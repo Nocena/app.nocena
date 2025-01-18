@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply font-sans;
+}
+
+@font-face {
+  font-family: 'Montserrat Alt 1';
+  src: url('/fonts/MontserratAlt1-Light.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
