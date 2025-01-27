@@ -7,11 +7,14 @@ import SearchIcon from '../icons/search';
 import ProfileIcon from '../icons/profile';
 import MenuIcon from '../icons/menu';
 import PenIcon from '../icons/pen';
+import SaveIcon from '../icons/save';
 
 // Define props for the component
 export interface ThematicIconProps {
-  iconName: 'home' | 'map' | 'challenges' | 'search' | 'profile' | 'menu' | 'pen';
+  iconName: 'home' | 'map' | 'challenges' | 'search' | 'profile' | 'menu' | 'pen' | 'save';
   isActive?: boolean;
+  className?: string;
+  onClick?: () => void; 
 }
 
 // Map icon names to React components
@@ -23,6 +26,7 @@ const iconMap: Record<ThematicIconProps['iconName'], React.FC<React.SVGProps<SVG
   profile: ProfileIcon,
   menu: MenuIcon,
   pen: PenIcon,
+  save: SaveIcon
 };
 
 const ThematicIcon: React.FC<ThematicIconProps> = ({ iconName, isActive = false }) => {

@@ -59,7 +59,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ user, handleLogout, children }) =
       <main className="flex-grow mt-12 pt-3">{children}</main>
 
       {/* Bottom Navbar */}
-      <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light">
+      <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-2 flex justify-around bg-nocenaBg z-50 font-light border-t boorder-white">
         {(['home', 'map', 'challenges', 'search'] as ThematicIconProps['iconName'][]).map(
           (item, index) => (
             <button

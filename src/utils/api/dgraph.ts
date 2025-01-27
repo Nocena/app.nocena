@@ -8,7 +8,10 @@ export const registerUser = async (
   email: string,
   passwordHash: string,
   profilePicture: string,
-  wallet: string
+  wallet: string,
+  dailyChallenge: string,
+  weeklyChallenge: string,
+  monthlyChallenge: string
 ) => {
   const mutation = `
     mutation RegisterUser($input: AddUserInput!) {
@@ -18,6 +21,9 @@ export const registerUser = async (
           username
           email
           wallet
+          dailyChallenge
+          weeklyChallenge
+          monthlyChallenge
         }
       }
     }
@@ -25,7 +31,7 @@ export const registerUser = async (
 
   const variables = {
     input: {
-      id: uuidv4(), // Add unique ID
+      id: uuidv4(),
       username,
       email,
       bio: '',
@@ -36,14 +42,17 @@ export const registerUser = async (
       followers: [],
       following: [],
       completedChallenges: [],
-      upcomingChallenges: []
-    }
+      upcomingChallenges: [],
+      dailyChallenge,
+      weeklyChallenge,
+      monthlyChallenge,
+    },
   };
 
   try {
     const response = await axios.post(DGRAPH_ENDPOINT, {
       query: mutation,
-      variables
+      variables,
     });
 
     if (response.data.errors) {
@@ -51,17 +60,16 @@ export const registerUser = async (
       throw new Error(`GraphQL Error: ${errorMessages}`);
     }
 
-    return response.data.data.addUser.user[0]; // Return the first user added
+    return response.data.data.addUser.user[0];
   } catch (error) {
-    let errMessage = 'An unexpected error occurred';
+    console.error('Error during user registration:', error);
   
+    // Narrowing the type of error
     if (error instanceof Error) {
-      errMessage = error.message;
+      throw new Error(error.message || 'User registration failed. Please try again.');
+    } else {
+      throw new Error('An unknown error occurred during user registration.');
     }
-  
-    console.error('Error during user registration:', errMessage);
-  
-    throw new Error(errMessage || 'User registration failed. Please try again.');
   }
 };
 
@@ -73,8 +81,12 @@ export const getUserFromDgraph = async (identifier: string) => {
         username
         email
         wallet
+        bio
         passwordHash
         profilePicture
+        dailyChallenge
+        weeklyChallenge
+        monthlyChallenge
       }
     }
   `;
@@ -103,4 +115,45 @@ export const getUserFromDgraph = async (identifier: string) => {
 export const verifyPassword = (inputPassword: string, storedPasswordHash: string) => {
   // Placeholder for password comparison logic
   return btoa(inputPassword) === storedPasswordHash; // Replace with proper hash verification
+};
+
+export const updateBio = async (userId: string, newBio: string): Promise<void> => {
+  const mutation = `
+    mutation UpdateUserBio($id: String!, $bio: String!) {
+      updateUser(input: { filter: { id: { eq: $id } }, set: { bio: $bio } }) {
+        user {
+          id
+          bio
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    bio: newBio,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (response.data.errors) {
+      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(`Dgraph Error: ${errorMessages}`);
+    }
+
+    console.log('Bio successfully updated in Dgraph:', response.data);
+  } catch (error) {
+    console.error('Error updating bio in Dgraph:', error);
+    throw new Error('Failed to update bio in the database.');
+  }
 };

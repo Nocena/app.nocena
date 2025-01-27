@@ -3,6 +3,7 @@ import React from 'react';
 interface ThematicTextProps {
   text: string;
   isActive?: boolean;
+  className?: string;
 }
 
 const ThematicText: React.FC<ThematicTextProps> = ({ text, isActive = false }) => {

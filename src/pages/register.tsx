@@ -43,6 +43,9 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
         passwordHash,
         profilePicture: '/images/profile.png',
         earnedTokens: 0,
+        dailyChallenge: '0'.repeat(365), // Initialize daily challenges
+        weeklyChallenge: '0'.repeat(52), // Initialize weekly challenges
+        monthlyChallenge: '0'.repeat(12), // Initialize monthly challenges
       };
 
       // Save user to Dgraph
@@ -51,7 +54,10 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
         userPayload.email,
         userPayload.passwordHash,
         userPayload.profilePicture,
-        userPayload.wallet
+        userPayload.wallet,
+        userPayload.dailyChallenge,
+        userPayload.weeklyChallenge,
+        userPayload.monthlyChallenge
       );
 
       if (addedUser) {
@@ -64,6 +70,9 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
           bio: userPayload.bio,
           profilePicture: userPayload.profilePicture,
           earnedTokens: userPayload.earnedTokens,
+          dailyChallenge: userPayload.dailyChallenge,
+          weeklyChallenge: userPayload.weeklyChallenge,
+          monthlyChallenge: userPayload.monthlyChallenge,
         };
 
         localStorage.setItem('user', JSON.stringify(userData));

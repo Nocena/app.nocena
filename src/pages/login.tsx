@@ -35,10 +35,14 @@ const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
           bio: user.bio,
           profilePicture: user.profilePicture,
           earnedTokens: user.earnedTokens,
+          dailyChallenge: user.dailyChallenge, // Add dailyChallenge field
+          weeklyChallenge: user.weeklyChallenge, // Add weeklyChallenge field
+          monthlyChallenge: user.monthlyChallenge, // Add monthlyChallenge field
         };
   
         localStorage.setItem('user', JSON.stringify(userData));
-        console.log('user', JSON.stringify(userData));
+
+        console.log('User logged in:', userData);
   
         handleLogin(user); // Trigger parent login handling
         router.push('/'); // Redirect to home after login
