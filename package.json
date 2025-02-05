@@ -10,7 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "start:https": "node https-server.js"
+    "start:https": "node https-server.js",
+    "format": "pnpm run format:check",
+    "format:check": "prettier '**/*.{js,jsx,ts,tsx}' --config .prettierrc.json --check",
+    "format:fix": "prettier '**/*.{js,jsx,ts,tsx}' --config .prettierrc.json --write"
   },
   "keywords": [],
   "author": "",
@@ -43,9 +46,14 @@
     "@types/react": "^19.0.5",
     "@types/webpack": "^5.28.5",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "15.1.6",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
     "local-ssl-proxy": "^2.0.5",
     "mkcert-cli": "^1.5.0",
     "postcss": "^8.4.49",
+    "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
   }
