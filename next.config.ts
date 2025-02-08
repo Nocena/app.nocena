@@ -1,8 +1,13 @@
-import { NextConfig } from 'next';
+import type { NextConfig } from 'next';
+import type { Configuration } from 'webpack';
 
+/** @type {NextConfig} */
 const nextConfig: NextConfig = {
-  webpack(config) {
-    config.module.rules.push({
+  images: {
+    domains: ['gateway.pinata.cloud'],
+  },
+  webpack(config: Configuration) {
+    config.module?.rules?.push({
       test: /\.svg$/,
       use: [
         {

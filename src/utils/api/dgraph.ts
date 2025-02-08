@@ -157,3 +157,44 @@ export const updateBio = async (userId: string, newBio: string): Promise<void> =
     throw new Error('Failed to update bio in the database.');
   }
 };
+
+export const updateProfilePicture = async (userId: string, profilePictureUrl: string): Promise<void> => {
+  const mutation = `
+    mutation UpdateUserProfilePicture($id: String!, $profilePicture: String!) {
+      updateUser(input: { filter: { id: { eq: $id } }, set: { profilePicture: $profilePicture } }) {
+        user {
+          id
+          profilePicture
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    profilePicture: profilePictureUrl,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (response.data.errors) {
+      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(`Dgraph Error: ${errorMessages}`);
+    }
+
+    console.log('Profile picture successfully updated in Dgraph:', response.data);
+  } catch (error) {
+    console.error('Error updating profile picture in Dgraph:', error);
+    throw new Error('Failed to update profile picture in the database.');
+  }
+};

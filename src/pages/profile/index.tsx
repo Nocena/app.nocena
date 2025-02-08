@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { updateBio } from '../../utils/api/dgraph';
+import { updateBio, updateProfilePicture } from '../../utils/api/dgraph';
+import { unpinFromPinata } from '../../utils/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 
@@ -74,15 +75,76 @@ const ProfileView: React.FC = () => {
     }
   };
 
-  const handleProfilePicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePicUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+  
     if (file) {
-      console.log('Profile picture upload initiated');
-      // Placeholder for image compression and upload logic
-      setProfilePic(URL.createObjectURL(file));
+      const reader = new FileReader();
+  
+      reader.onloadend = async () => {
+        try {
+          const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+  
+          console.log('File read as base64:', base64String.substring(0, 100)); // Log part of the base64 string
+  
+          // Fetch the current user data from localStorage
+          const userData = localStorage.getItem('user');
+          if (!userData) {
+            throw new Error('User data is missing in localStorage.');
+          }
+  
+          const parsedUser = JSON.parse(userData);
+  
+          // If the user already has a profile picture (and it's not the default one), unpin the old picture
+          if (parsedUser.profilePicture && parsedUser.profilePicture !== defaultProfilePic) {
+            const oldCid = parsedUser.profilePicture.split('/').pop(); // Extract CID from the URL
+            if (oldCid) {
+              try {
+                await unpinFromPinata(oldCid);
+                console.log('Old profile picture unpinned from Pinata:', oldCid);
+              } catch (error) {
+                console.error('Failed to unpin old profile picture:', error);
+                // Continue with the upload even if unpinning fails
+              }
+            }
+          }
+  
+          // Upload the new profile picture to Pinata
+          const response = await fetch('/api/upload-profile-picture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file: base64String,
+              fileName: file.name,
+            }),
+          });
+  
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Upload failed:', errorText);
+            throw new Error(`Upload failed: ${response.status}`);
+          }
+  
+          const { url } = await response.json();
+          setProfilePic(url);
+  
+          // Update profile picture in Dgraph
+          await updateProfilePicture(parsedUser.id, url);
+  
+          // Update profile picture in localStorage
+          parsedUser.profilePicture = url;
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+          console.log('Profile picture successfully updated in localStorage and Dgraph.');
+        } catch (error) {
+          console.error('Upload error:', error);
+        }
+      };
+  
+      reader.readAsDataURL(file);
     }
   };
-
+  
+  
   const handleEditBioClick = () => setIsEditingBio(true);
 
   const handleSaveBioClick = async () => {
