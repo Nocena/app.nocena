@@ -2,6 +2,7 @@ import FormData from 'form-data';
 import fetch from 'node-fetch';
 
 const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT || '';
+const DEFAULT_PROFILE_PIC = '/profile.png';
 
 export const uploadProfilePictureToPinata = async (file: Buffer, fileName: string): Promise<string> => {
   const formData = new FormData();
@@ -36,6 +37,11 @@ export const uploadProfilePictureToPinata = async (file: Buffer, fileName: strin
 };
 
 export const unpinFromPinata = async (cid: string): Promise<void> => {
+  if (!cid || cid === DEFAULT_PROFILE_PIC.split('/').pop()) {
+    console.warn('Skipping unpinning as the CID corresponds to the default profile picture.');
+    return;
+  }
+
   try {
     const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
       method: 'DELETE',

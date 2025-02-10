@@ -3,18 +3,20 @@ import { useRouter } from 'next/router';
 import { registerUser } from '../utils/api/dgraph';
 import { createPolygonWallet } from '../utils/api/polygon';
 import PrimaryButton from '../components/ui/PrimaryButton';
+import { User, useAuth } from '../contexts/AuthContext';
+import { sanitizeInput } from '../utils/security';
 
-const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
+const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const hashPassword = (password: string) => {
-    // Placeholder for password hashing
-    return btoa(password); // Replace with a secure hash method
+    return btoa(password); // Placeholder: replace with secure hashing in production
   };
 
   const handleRegisterClick = async (e: React.FormEvent) => {
@@ -22,33 +24,35 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
     setError('');
     setLoading(true);
 
-    if (!username || !email || !password) {
+    // Sanitize user inputs
+    const sanitizedUsername = sanitizeInput(username);
+    const sanitizedEmail = sanitizeInput(email);
+    const sanitizedPassword = sanitizeInput(password);
+
+    if (!sanitizedUsername || !sanitizedEmail || !sanitizedPassword) {
       setError('All fields are required.');
       setLoading(false);
       return;
     }
 
-    const passwordHash = hashPassword(password);
+    const passwordHash = hashPassword(sanitizedPassword);
 
     try {
-      // Generate a Polygon wallet
       const wallet = createPolygonWallet();
 
-      // Prepare user payload for Dgraph
       const userPayload = {
-        username,
-        email,
+        username: sanitizedUsername,
+        email: sanitizedEmail,
         bio: '',
         wallet: wallet.address,
         passwordHash,
         profilePicture: '/images/profile.png',
         earnedTokens: 0,
-        dailyChallenge: '0'.repeat(365), // Initialize daily challenges
-        weeklyChallenge: '0'.repeat(52), // Initialize weekly challenges
-        monthlyChallenge: '0'.repeat(12), // Initialize monthly challenges
+        dailyChallenge: '0'.repeat(365),
+        weeklyChallenge: '0'.repeat(52),
+        monthlyChallenge: '0'.repeat(12),
       };
 
-      // Save user to Dgraph
       const addedUser = await registerUser(
         userPayload.username,
         userPayload.email,
@@ -61,8 +65,7 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
       );
 
       if (addedUser) {
-        // Save user data to local storage
-        const userData = {
+        const userData: User = {
           id: addedUser.id,
           username: userPayload.username,
           email: userPayload.email,
@@ -73,14 +76,12 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
           dailyChallenge: userPayload.dailyChallenge,
           weeklyChallenge: userPayload.weeklyChallenge,
           monthlyChallenge: userPayload.monthlyChallenge,
+          followers: [],
+          following: [],
         };
 
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('userWallet', JSON.stringify(wallet));
-
-        console.log('User registered and logged in:', userData);
-        handleRegister(userPayload); // Optional: Trigger parent handling
-        router.push('/'); // Redirect to home after registration
+        await login(userData);
+        router.push('/');
       } else {
         setError('Failed to register. Please try again.');
       }
@@ -92,15 +93,15 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
     }
   };
 
+  const handleShowLoginPage = () => {
+    router.push('/login');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
       <div className="w-full max-w-md mx-4">
         <div className="text-center mb-4">
-          <img
-            src="/logo/logo.png"
-            alt="Logo"
-            className="max-w-full h-auto mx-auto"
-          />
+          <img src="/logo/logo.png" alt="Logo" className="max-w-full h-auto mx-auto" />
         </div>
         <form onSubmit={handleRegisterClick} className="space-y-4">
           <div className="mb-3">
@@ -148,19 +149,13 @@ const RegisterPage = ({ showLoginPage, handleRegister }: any) => {
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="mb-3">
-            <PrimaryButton
-              text={loading ? 'Registering...' : 'Register'}
-              onPressed={handleRegisterClick}
-            />
+            <PrimaryButton text={loading ? 'Registering...' : 'Register'} onPressed={handleRegisterClick} />
           </div>
 
           <div className="text-center">
             <p>
-              Already have a profile?{' '}
-              <a
-                onClick={showLoginPage}
-                className="text-nocenaBlue cursor-pointer"
-              >
+              Already have an account?{' '}
+              <a onClick={handleShowLoginPage} className="text-nocenaBlue cursor-pointer">
                 Login
               </a>
             </p>

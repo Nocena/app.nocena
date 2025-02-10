@@ -2,32 +2,38 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { getUserFromDgraph, verifyPassword } from '../utils/api/dgraph';
 import PrimaryButton from '../components/ui/PrimaryButton';
+import { User, useAuth } from '../contexts/AuthContext';
+import { sanitizeInput } from '../utils/security';
 
-const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
+const LoginPage = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-  
+
+    // Sanitize user inputs
+    const sanitizedIdentifier = sanitizeInput(identifier);
+    const sanitizedPassword = sanitizeInput(password);
+
     try {
-      const user = await getUserFromDgraph(identifier);
-  
+      const user = await getUserFromDgraph(sanitizedIdentifier);
+
       if (!user) {
         setError('No user found with the provided username or email.');
         setShowForgotPassword(true);
         return;
       }
-  
-      const isPasswordValid = verifyPassword(password, user.passwordHash);
-  
+
+      const isPasswordValid = verifyPassword(sanitizedPassword, user.passwordHash);
+
       if (isPasswordValid) {
-        // Save user data to local storage
-        const userData = {
+        const userData: User = {
           id: user.id,
           username: user.username,
           email: user.email,
@@ -35,17 +41,15 @@ const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
           bio: user.bio,
           profilePicture: user.profilePicture,
           earnedTokens: user.earnedTokens,
-          dailyChallenge: user.dailyChallenge, // Add dailyChallenge field
-          weeklyChallenge: user.weeklyChallenge, // Add weeklyChallenge field
-          monthlyChallenge: user.monthlyChallenge, // Add monthlyChallenge field
+          dailyChallenge: user.dailyChallenge,
+          weeklyChallenge: user.weeklyChallenge,
+          monthlyChallenge: user.monthlyChallenge,
+          followers: user.followers || [],
+          following: user.following || [],
         };
-  
-        localStorage.setItem('user', JSON.stringify(userData));
 
-        console.log('User logged in:', userData);
-  
-        handleLogin(user); // Trigger parent login handling
-        router.push('/'); // Redirect to home after login
+        await login(userData);
+        router.push('/');
       } else {
         setError('Incorrect password. Please try again.');
         setShowForgotPassword(true);
@@ -57,18 +61,14 @@ const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
   };
 
   const handleShowRegisterPage = () => {
-    showRegisterPage();
+    router.push('/register');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
       <div className="w-full max-w-md mx-4">
         <div className="text-center mb-4">
-          <img
-            src="/logo/logo.png"
-            alt="Logo"
-            className="max-w-full h-auto mx-auto"
-          />
+          <img src="/logo/logo.png" alt="Logo" className="max-w-full h-auto mx-auto" />
         </div>
         <form onSubmit={handleSignIn} className="space-y-4">
           <div className="mb-3">
@@ -103,10 +103,7 @@ const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
 
           {showForgotPassword && (
             <div className="text-right mb-3">
-              <a
-                href="/forgot-password"
-                className="text-indigo-500 cursor-pointer"
-              >
+              <a href="/forgot-password" className="text-indigo-500 cursor-pointer">
                 Forgot password?
               </a>
             </div>
@@ -118,11 +115,8 @@ const LoginPage = ({ showRegisterPage, handleLogin }: any) => {
 
           <div className="text-center">
             <p>
-              Don’t have a profile yet?{' '}
-              <a
-                onClick={handleShowRegisterPage}
-                className="text-nocenaBlue cursor-pointer"
-              >
+              Don’t have an account?{' '}
+              <a onClick={handleShowRegisterPage} className="text-nocenaBlue cursor-pointer">
                 Sign up
               </a>
             </p>

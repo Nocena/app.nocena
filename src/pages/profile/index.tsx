@@ -4,6 +4,8 @@ import { unpinFromPinata } from '../../utils/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
 import ChallengeIndicator from '../../components/ui/ChallengeIndicator';
@@ -11,51 +13,38 @@ import ThematicText from '../../components/ui/ThematicText';
 import ThematicIcon from '../../components/ui/ThematicIcon';
 
 import FollowersIcon from '../../components/icons/followers';
-import SaveIcon from '../../components/icons/save';
 
 const defaultProfilePic = '/profile.png';
 const nocenix = '/nocenix.ico';
 
 const ProfileView: React.FC = () => {
-  const [profilePic, setProfilePic] = useState<string | StaticImageData>(defaultProfilePic);
-  const [username, setUsername] = useState<string>('Guest');
-  const [bio, setBio] = useState<string>('This is your bio. Click to edit it.');
-  const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
-  const [tokenBalance, setTokenBalance] = useState<number>(0);
-  const [followersCount, setFollowersCount] = useState<number>(0);
-  const [dailyChallenges, setDailyChallenges] = useState<boolean[]>([]);
-  const [weeklyChallenges, setWeeklyChallenges] = useState<boolean[]>([]);
-  const [monthlyChallenges, setMonthlyChallenges] = useState<boolean[]>([]);
-  const [userId, setUserId] = useState<string | null>(null); // Ensure userId is part of state
+  const DEFAULT_PROFILE_PIC = '/profile.png';
 
+  const { user, login } = useAuth(); // Access user and login from context
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize state variables with user context data
+  const [profilePic, setProfilePic] = useState<string | StaticImageData>(user?.profilePicture || defaultProfilePic);
+  const [username, setUsername] = useState<string>(user?.username || 'Guest');
+  const [bio, setBio] = useState<string>(user?.bio || 'This is your bio. Click to edit it.');
+  const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
+  const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
+  const [followersCount, setFollowersCount] = useState<number>(user?.followers.length || 0);
+  const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
+    user?.dailyChallenge.split('').map((char) => char === '1') || []
+  );
+  const [weeklyChallenges, setWeeklyChallenges] = useState<boolean[]>(
+    user?.weeklyChallenge.split('').map((char) => char === '1') || []
+  );
+  const [monthlyChallenges, setMonthlyChallenges] = useState<boolean[]>(
+    user?.monthlyChallenge.split('').map((char) => char === '1') || []
+  );
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
-
-  useEffect(() => {
-    // Load user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-
-      // Update state with user data
-      setUserId(parsedUser.id || null);
-      setUsername(parsedUser.username || 'Guest');
-      setProfilePic(parsedUser.profilePicture || defaultProfilePic);
-      setBio(parsedUser.bio || 'This is your bio. Click to edit it.');
-      setTokenBalance(parsedUser.earnedTokens || 0);
-      setFollowersCount(parsedUser.followersCount || 0); // Replace with followers count if available
-
-      // Convert daily, weekly, and monthly challenges from string to array
-      setDailyChallenges(parsedUser.dailyChallenge.split('').map((char: string) => char === '1'));
-      setWeeklyChallenges(parsedUser.weeklyChallenge.split('').map((char: string) => char === '1'));
-      setMonthlyChallenges(parsedUser.monthlyChallenge.split('').map((char: string) => char === '1'));
-    }
-  }, []);
 
   useEffect(() => {
     // Center scroll to the current month
@@ -75,41 +64,25 @@ const ProfileView: React.FC = () => {
     }
   };
 
-  const handleProfilePicUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-  
-    if (file) {
+    if (file && user) {
       const reader = new FileReader();
-  
+
       reader.onloadend = async () => {
         try {
           const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
-  
-          console.log('File read as base64:', base64String.substring(0, 100)); // Log part of the base64 string
-  
-          // Fetch the current user data from localStorage
-          const userData = localStorage.getItem('user');
-          if (!userData) {
-            throw new Error('User data is missing in localStorage.');
-          }
-  
-          const parsedUser = JSON.parse(userData);
-  
-          // If the user already has a profile picture (and it's not the default one), unpin the old picture
-          if (parsedUser.profilePicture && parsedUser.profilePicture !== defaultProfilePic) {
-            const oldCid = parsedUser.profilePicture.split('/').pop(); // Extract CID from the URL
+
+          // Only unpin if the current profile picture is not the default one
+          if (user.profilePicture && user.profilePicture !== DEFAULT_PROFILE_PIC) {
+            const oldCid = user.profilePicture.split('/').pop();
             if (oldCid) {
-              try {
-                await unpinFromPinata(oldCid);
-                console.log('Old profile picture unpinned from Pinata:', oldCid);
-              } catch (error) {
-                console.error('Failed to unpin old profile picture:', error);
-                // Continue with the upload even if unpinning fails
-              }
+              await unpinFromPinata(oldCid).catch((error) => {
+                console.warn('Failed to unpin old profile picture (possibly default):', error);
+              });
             }
           }
-  
-          // Upload the new profile picture to Pinata
+
           const response = await fetch('/api/upload-profile-picture', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -118,62 +91,47 @@ const ProfileView: React.FC = () => {
               fileName: file.name,
             }),
           });
-  
+
           if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Upload failed:', errorText);
             throw new Error(`Upload failed: ${response.status}`);
           }
-  
+
           const { url } = await response.json();
           setProfilePic(url);
-  
+
           // Update profile picture in Dgraph
-          await updateProfilePicture(parsedUser.id, url);
-  
-          // Update profile picture in localStorage
-          parsedUser.profilePicture = url;
-          localStorage.setItem('user', JSON.stringify(parsedUser));
-          console.log('Profile picture successfully updated in localStorage and Dgraph.');
+          await updateProfilePicture(user.id, url);
+
+          // Update user context and local storage
+          const updatedUser = { ...user, profilePicture: url };
+          login(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          console.log('Profile picture successfully updated.');
         } catch (error) {
           console.error('Upload error:', error);
         }
       };
-  
+
       reader.readAsDataURL(file);
     }
   };
-  
-  
+
   const handleEditBioClick = () => setIsEditingBio(true);
 
   const handleSaveBioClick = async () => {
-    // Fetch the current user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      console.error('User data is missing in localStorage.');
+    if (!user || bio === user.bio) {
+      setIsEditingBio(false);
       return;
     }
-  
-    const parsedUser = JSON.parse(userData);
-  
-    // Check if the bio has changed
-    if (bio === parsedUser.bio) {
-      console.log('No changes made to the bio.');
-      setIsEditingBio(false); // Exit editing mode
-      return;
-    }
-  
+
     try {
-      // Update bio in Dgraph
-      await updateBio(parsedUser.id, bio);
-  
-      // Update bio in localStorage
-      parsedUser.bio = bio; // Update the bio field
-      localStorage.setItem('user', JSON.stringify(parsedUser));
-      console.log('Bio successfully updated in localStorage and Dgraph.');
-  
-      setIsEditingBio(false); // Exit editing mode
+      await updateBio(user.id, bio);
+
+      const updatedUser = { ...user, bio };
+      login(updatedUser); // Update context state
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log('Bio successfully updated.');
+      setIsEditingBio(false);
     } catch (error) {
       console.error('Failed to update bio:', error);
       alert('Failed to update your bio. Please try again later.');
@@ -181,11 +139,7 @@ const ProfileView: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setBio(parsedUser.bio || 'This is your bio. Click to edit it.'); // Revert to the bio in localStorage
-    }
+    setBio(user?.bio || 'This is your bio. Click to edit it.');
     setIsEditingBio(false);
   };
 
@@ -242,16 +196,7 @@ const ProfileView: React.FC = () => {
       {/* Username */}
       <ThematicText text={username} isActive={true} className="capitalize relative z-10" />
 
-      {/* Buttons */}
-      <div className="relative z-10 flex items-center justify-center space-x-4 my-8">
-        <PrimaryButton 
-          text="Upcoming" 
-          className="px-6 py-2" 
-          onPressed={() => console.log('Upcoming clicked')} 
-        />
-      </div>
-
-      {/* Bio */}
+      {/* Bio Section */}
       <div
         className={`relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-16 ${
           isEditingBio ? 'border border-white' : ''

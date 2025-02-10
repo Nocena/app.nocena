@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../ui/PrimaryButton';
 
 interface MenuProps {
@@ -8,18 +9,8 @@ interface MenuProps {
 }
 
 const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-
-  // Load the wallet address from localStorage
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setWalletAddress(parsedUser.wallet || 'Not connected');
-    } else {
-      setWalletAddress('Not connected');
-    }
-  }, []);
+  const { user } = useAuth(); // Access user from context
+  const walletAddress = user?.wallet || 'Not connected'; // Get wallet address or default message
 
   return (
     <div

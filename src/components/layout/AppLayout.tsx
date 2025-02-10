@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext for user
 import HomeView from '@pages/home';
 import MapView from '@pages/map';
 import ChallengesView from '@pages/challenges';
@@ -16,16 +17,15 @@ import { ThematicIconProps } from '../ui/ThematicIcon';
 
 // Define a props type that includes children.
 interface AppLayoutProps {
-  user: any;
   handleLogout: () => void;
   children: React.ReactNode;
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ user, handleLogout, children }) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const router = useRouter();
+  const { user } = useAuth(); // Access user from context
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
     // Map route paths to current index for navigation highlighting
@@ -43,13 +43,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ user, handleLogout, children }) =
     const matchedRoute = Object.keys(routeMapping).find((path) =>
       router.pathname === path || (path.endsWith('/') && router.pathname.startsWith(path))
     );
-    
-    setCurrentIndex(routeMapping[matchedRoute || '/home'] || 0);
 
-    const storedWalletAddress = localStorage.getItem('walletAddress');
-    if (storedWalletAddress) {
-      setWalletAddress(storedWalletAddress);
-    }
+    setCurrentIndex(routeMapping[matchedRoute || '/home'] || 0);
   }, [router.pathname]);
 
   const handleNavClick = (index: number) => {
@@ -68,8 +63,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ user, handleLogout, children }) =
 
     // Use dynamic routing for OtherProfileView
     const route =
-      index === 6 && walletAddress
-        ? `/profile/${walletAddress}`
+      index === 6 && user?.wallet
+        ? `/profile/${user.wallet}` // Use wallet from context
         : routeMapping[index] || '/home';
 
     router.push(route);
