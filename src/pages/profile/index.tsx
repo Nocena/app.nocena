@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
-import ChallengeIndicator from '../../components/ui/ChallengeIndicator';
+import ChallengeIndicator from './ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
 import ThematicIcon from '../../components/ui/ThematicIcon';
 
@@ -20,11 +20,10 @@ const nocenix = '/nocenix.ico';
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/profile.png';
 
-  const { user, login } = useAuth(); // Access user and login from context
+  const { user, login } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize state variables with user context data
   const [profilePic, setProfilePic] = useState<string | StaticImageData>(user?.profilePicture || defaultProfilePic);
   const [username, setUsername] = useState<string>(user?.username || 'Guest');
   const [bio, setBio] = useState<string>(user?.bio || 'This is your bio. Click to edit it.');
@@ -53,7 +52,6 @@ const ProfileView: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    // Center scroll to the current month
     if (scrollContainerRef.current) {
       const currentMonthIndex = new Date().getMonth();
       const elementWidth = scrollContainerRef.current.scrollWidth / 12;
@@ -79,7 +77,6 @@ const ProfileView: React.FC = () => {
         try {
           const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
 
-          // Only unpin if the current profile picture is not the default one
           if (user.profilePicture && user.profilePicture !== DEFAULT_PROFILE_PIC) {
             const oldCid = user.profilePicture.split('/').pop();
             if (oldCid) {
@@ -105,10 +102,8 @@ const ProfileView: React.FC = () => {
           const { url } = await response.json();
           setProfilePic(url);
 
-          // Update profile picture in Dgraph
           await updateProfilePicture(user.id, url);
 
-          // Update user context and local storage
           const updatedUser = { ...user, profilePicture: url };
           login(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -134,7 +129,7 @@ const ProfileView: React.FC = () => {
       await updateBio(user.id, bio);
 
       const updatedUser = { ...user, bio };
-      login(updatedUser); // Update context state
+      login(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       console.log('Bio successfully updated.');
       setIsEditingBio(false);
@@ -156,15 +151,12 @@ const ProfileView: React.FC = () => {
         <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
       </div>
 
-      {/* Profile Picture and Stats Row */}
       <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-        {/* Followers Count */}
         <div className="flex flex-col items-center">
           <FollowersIcon className="w-8 h-8 mb-1" />
           <span>{followersCount}</span>
         </div>
 
-        {/* Profile Picture */}
         <div onClick={handleProfilePicClick}>
           <ThematicImage className="relative z-10">
             <Image
@@ -177,7 +169,6 @@ const ProfileView: React.FC = () => {
           </ThematicImage>
         </div>
 
-        {/* Hidden File Input */}
         <input
           type="file"
           accept=".jpg,.jpeg,.png,.webp,.heif,.hevc"
@@ -186,7 +177,6 @@ const ProfileView: React.FC = () => {
           onChange={handleProfilePicUpload}
         />
 
-        {/* Token Balance */}
         <div className="flex flex-col items-center">
           <Image
             src={nocenix}
@@ -199,10 +189,8 @@ const ProfileView: React.FC = () => {
         </div>
       </div>
 
-      {/* Username */}
       <ThematicText text={username} isActive={true} className="capitalize relative z-10" />
 
-      {/* Bio Section */}
       <div
         className={`relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-16 ${
           isEditingBio ? 'border border-white' : ''
@@ -234,7 +222,6 @@ const ProfileView: React.FC = () => {
         </div>
       </div>
 
-      {/* Timed Challenge Counter */}
       <div className="relative z-20 mt-10 text-center w-full">
         <h3 className="text-lg font-semibold">Timed challenge counter</h3>
         <div className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4" ref={scrollContainerRef} style={{ paddingBottom: '30px' }}>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'next/router';
+
 import ThematicImage from '../../components/ui/ThematicImage';
 import ThematicText from '../../components/ui/ThematicText';
 import PrimaryButton from '../../components/ui/PrimaryButton';
@@ -13,6 +15,7 @@ const nocenixIcon = '/nocenix.ico';
 const SearchView = () => {
   const [users, setUsers] = useState<User[]>([]);
   const { user } = useAuth();
+  const router = useRouter();
 
   // Fetch all users when the component mounts
   useEffect(() => {
@@ -20,6 +23,7 @@ const SearchView = () => {
       try {
         const allUsers = await fetchAllUsers();
         setUsers(allUsers);
+        console.log(allUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -47,6 +51,16 @@ const SearchView = () => {
     }
   };
 
+  const handleProfileRedirect = (clickedUser: User) => {
+    if (!clickedUser.wallet) return;
+    
+    if (user?.id === clickedUser.id) {
+      router.push(`/profile`);
+    } else {
+      router.push(`/profile/${clickedUser.id}`);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center p-4 text-white">
       {/* SearchBox Component */}
@@ -61,9 +75,9 @@ const SearchView = () => {
           return (
             <div
               key={userData.id}
-              className="w-full bg-nocenaBg/80 p-4 rounded-lg flex items-center justify-between"
+              className="w-full bg-nocenaBg/80 p-4 rounded-lg flex items-center justify-between cursor-pointer"
             >
-              <div className="flex items-center gap-4 flex-grow">
+              <div className="flex items-center gap-4 flex-grow" onClick={() => handleProfileRedirect(userData)}>
                 <ThematicImage className="rounded-full flex-shrink-0">
                   <Image
                     src={userData.profilePicture || '/profile.png'}

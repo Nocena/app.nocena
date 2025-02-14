@@ -82,6 +82,47 @@ export const registerUser = async (
   }
 };
 
+export const getUserByIdFromDgraph = async (userId: string) => {
+  const query = `
+    query GetUserById($userId: String!) {
+      queryUser(filter: { id: { eq: $userId } }) {
+        id
+        username
+        email
+        wallet
+        bio
+        profilePicture
+        earnedTokens
+        dailyChallenge
+        weeklyChallenge
+        monthlyChallenge
+        followers {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    return response.data?.data?.queryUser[0] || null;
+  } catch (error) {
+    console.error("Error fetching user by ID from Dgraph:", error);
+    throw new Error("Failed to fetch user by ID.");
+  }
+};
+
+
 export const getUserFromDgraph = async (identifier: string) => {
   const query = `
     query GetUser($identifier: String!) {
@@ -216,6 +257,7 @@ export const fetchAllUsers = async (): Promise<User[]> => {
         username
         profilePicture
         earnedTokens
+        wallet
         followers {
           id
         }
@@ -330,6 +372,7 @@ export const searchUsers = async (query: string): Promise<any[]> => {
         id
         username
         profilePicture
+        wallet  # ✅ Add this field
       }
     }
   `;
@@ -376,6 +419,9 @@ export const toggleFollowUser = async (
         following(filter: { id: { eq: $targetUserId } }) {
           id
         }
+        username
+        profilePicture
+        wallet
       }
     }
   `;
@@ -397,8 +443,13 @@ export const toggleFollowUser = async (
       return false;
     }
 
-    // isFollowing is true if already following (meaning this action is an unfollow)
-    const isFollowing = checkData.data.currentUser?.following?.length > 0;
+    const currentUser = checkData.data.currentUser;
+    if (!currentUser) {
+      console.error('Error: Current user not found.');
+      return false;
+    }
+
+    const isFollowing = currentUser.following?.length > 0;
     console.log(`Current follow status: ${isFollowing}`);
 
     // Use "remove" for unfollowing, "set" for following
@@ -437,10 +488,14 @@ export const toggleFollowUser = async (
       return false;
     }
 
-    // If this is a new follow action, create a notification with type "follow"
     if (!isFollowing) {
-      const notificationContent = `${currentUsername} followed you`;
-      await createNotification(targetUserId, notificationContent, "follow");
+      console.log("Creating notification with triggeredById:", currentUserId);
+      await createNotification(
+        targetUserId,
+        currentUserId,
+        `${currentUsername} followed you`,
+        "follow"
+      );
     }
 
     console.log(`Follow/unfollow successful: ${currentUserId} -> ${targetUserId}`);
@@ -485,15 +540,19 @@ export const fetchUserFollowers = async (userId: string): Promise<number> => {
 };
 
 export const createNotification = async (
-  userId: string,
+  recipientId: string,
+  triggeredById: string,
   content: string,
-  notificationType: string // e.g., "follow", "challenge", etc.
+  notificationType: string
 ): Promise<boolean> => {
   const id = generateId();
+  const createdAt = new Date().toISOString();
+
   const mutation = `
     mutation createNotification(
       $id: String!,
       $userId: String!,
+      $triggeredById: String!,
       $content: String!,
       $notificationType: String!,
       $isRead: Boolean!,
@@ -501,8 +560,10 @@ export const createNotification = async (
     ) {
       addNotification(input: [{
         id: $id,
-        user: { id: $userId },  # Linking to User
-        userId: $userId,        # Searchable field
+        user: { id: $userId },
+        userId: $userId,
+        triggeredBy: { id: $triggeredById },
+        triggeredById: $triggeredById,
         content: $content,
         notificationType: $notificationType,
         isRead: $isRead,
@@ -514,9 +575,7 @@ export const createNotification = async (
       }
     }
   `;
-  
-  const createdAt = new Date().toISOString();
-  
+
   try {
     const response = await fetch(DGRAPH_ENDPOINT, {
       method: 'POST',
@@ -525,7 +584,8 @@ export const createNotification = async (
         query: mutation,
         variables: {
           id,
-          userId,
+          userId: recipientId,
+          triggeredById,
           content,
           notificationType,
           isRead: false,
@@ -533,7 +593,7 @@ export const createNotification = async (
         },
       }),
     });
-    
+
     const data = await response.json();
     if (data.errors) {
       console.error("Error creating notification:", data.errors);
@@ -555,10 +615,12 @@ export const fetchNotifications = async (userId: string) => {
         notificationType
         isRead
         createdAt
-        user {
+
+        triggeredBy {  # ✅ Fetch the full User object
           id
           username
           profilePicture
+          wallet  # ✅ Ensure wallet is included for redirection
         }
       }
     }
@@ -641,7 +703,7 @@ export const markNotificationsAsRead = async (userId: string) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: mutation,  // ❌ Wrong key, should be "mutation"
+        query: mutation,
         variables: { "userId": userId }
       }),
     });
@@ -650,7 +712,7 @@ export const markNotificationsAsRead = async (userId: string) => {
     if (data.errors) {
       console.error("GraphQL Errors:", {
         errors: data.errors,
-        mutation,  // Use correct variable reference for debugging
+        mutation,
         variables: { userId }
       });
       return false;

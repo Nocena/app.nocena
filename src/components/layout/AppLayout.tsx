@@ -37,6 +37,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
+  // Detecting if the user is on a specific profile page
+  const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
+
   // Handle navigation clicks
   const handleNavClick = async (index: number) => {
     setCurrentIndex(index);
@@ -60,7 +63,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
     const route =
       index === 6 && user?.wallet
-        ? `/profile/${user.wallet}` // Use wallet from context
+        ? `/profile/${user.id}`
         : routeMapping[index] || '/home';
 
     router.push(route);
@@ -75,6 +78,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   };
 
   const getPageTitle = () => {
+    if (isUserProfile) return 'USER PROFILE'; // ✅ Show correct title for another user's profile
+
     const titles = [
       'HOME',
       'MAP',
@@ -102,7 +107,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         </div>
         <div className="flex items-center">
           <button onClick={() => handleNavClick(4)}>
-            <ThematicIcon iconName="profile" isActive={currentIndex === 4} />
+            <ThematicIcon iconName="profile" isActive={currentIndex === 4 && !isUserProfile} />
           </button>
         </div>
       </div>
@@ -115,15 +120,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         {children}
       </main>
 
-      {/* Bottom Navbar */}
+      {/* Bottom Navbar - Should NOT highlight anything if on another user's profile */}
       <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light">
         {(['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][]).map((item, index) => (
           <button
             key={item}
             onClick={() => handleNavClick(index)}
-            className={`relative text-center flex-grow ${currentIndex === index ? 'text-active' : 'text-white'}`}
+            className={`relative text-center flex-grow ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
           >
-            <ThematicIcon iconName={item} isActive={currentIndex === index} />
+            <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
             
             {/* Flashing Light Indicator for Unread Notifications */}
             {item === 'inbox' && unreadCount > 0 && (

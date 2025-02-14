@@ -35,12 +35,13 @@ const InboxView = () => {
       ) : notifications.length === 0 ? (
         <p className="text-gray-400">No notifications yet.</p>
       ) : (
-        notifications.map((notification, index) =>
+        notifications.map((notification) =>
           notification.notificationType === "follow" ? (
             <NotificationFollower
               key={notification.id}
-              username={notification.user?.username ?? "Unknown"}
-              profilePicture={notification.user?.profilePicture ?? "/profile.png"}
+              username={notification.triggeredBy?.username ?? "Unknown"}  // ✅ Correct user
+              profilePicture={notification.triggeredBy?.profilePicture ?? "/profile.png"}
+              id={notification.triggeredBy?.id} // ✅ Pass correct wallet
             />
           ) : (
             <NotificationChallenge
