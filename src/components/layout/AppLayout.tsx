@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext for user
-import HomeView from '@pages/home';
-import MapView from '@pages/map';
-import ChallengesView from '@pages/challenges';
-import SearchView from '@pages/search';
-import ProfileView from '@pages/profile';
-import OtherProfileView from '@pages/profile/[walletAddress]';
-import CompletingView from '@pages/completing';
-import CreateChallengeView from '@pages/createchallenge';
+import { fetchUnreadNotificationsCount, markNotificationsAsRead } from "../../utils/api/dgraph";
 
 import Menu from './Menu';
 import ThematicText from '../ui/ThematicText';
@@ -26,34 +19,32 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const { user } = useAuth(); // Access user from context
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  // Fetch unread notification count
   useEffect(() => {
-    // Map route paths to current index for navigation highlighting
-    const routeMapping: Record<string, number> = {
-      '/home': 0,
-      '/map': 1,
-      '/challenges': 2,
-      '/search': 3,
-      '/profile': 4,
-      '/completing': 5,
-      '/profile/': 6, // Matches dynamic routes like /profile/:walletAddress
-      '/createchallenge': 7,
+    if (!user?.id) return;
+
+    const checkUnreadNotifications = async () => {
+      const count = await fetchUnreadNotificationsCount(user.id);
+      setUnreadCount(count);
     };
 
-    const matchedRoute = Object.keys(routeMapping).find((path) =>
-      router.pathname === path || (path.endsWith('/') && router.pathname.startsWith(path))
-    );
+    checkUnreadNotifications();
 
-    setCurrentIndex(routeMapping[matchedRoute || '/home'] || 0);
-  }, [router.pathname]);
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(checkUnreadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
-  const handleNavClick = (index: number) => {
+  // Handle navigation clicks
+  const handleNavClick = async (index: number) => {
     setCurrentIndex(index);
 
     const routeMapping: Record<number, string> = {
       0: '/home',
       1: '/map',
-      2: '/challenges',
+      2: '/inbox',
       3: '/search',
       4: '/profile',
       5: '/completing',
@@ -61,7 +52,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       7: '/createchallenge',
     };
 
-    // Use dynamic routing for OtherProfileView
+    if (index === 2 && user?.id) {
+      // If the user opens the inbox, mark notifications as read
+      await markNotificationsAsRead(user.id);
+      setUnreadCount(0); // Reset unread count in UI
+    }
+
     const route =
       index === 6 && user?.wallet
         ? `/profile/${user.wallet}` // Use wallet from context
@@ -82,7 +78,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     const titles = [
       'HOME',
       'MAP',
-      'CHALLENGES',
+      'INBOX',
       'SEARCH',
       'PROFILE',
       'COMPLETING CHALLENGE',
@@ -121,13 +117,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       {/* Bottom Navbar */}
       <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light">
-        {(['home', 'map', 'challenges', 'search'] as ThematicIconProps['iconName'][]).map((item, index) => (
+        {(['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][]).map((item, index) => (
           <button
             key={item}
             onClick={() => handleNavClick(index)}
-            className={`text-center flex-grow ${currentIndex === index ? 'text-active' : 'text-white'}`}
+            className={`relative text-center flex-grow ${currentIndex === index ? 'text-active' : 'text-white'}`}
           >
             <ThematicIcon iconName={item} isActive={currentIndex === index} />
+            
+            {/* Flashing Light Indicator for Unread Notifications */}
+            {item === 'inbox' && unreadCount > 0 && (
+              <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
+            )}
+
             <div className="mt-2 capitalize">{item}</div>
           </button>
         ))}

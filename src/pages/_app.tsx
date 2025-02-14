@@ -1,5 +1,5 @@
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
 import { useAuth, AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
@@ -23,15 +23,11 @@ function MyAppContent({ Component, pageProps }: any) {
 
   if (!user) {
     // Show login or register page based on current route
-    return router.pathname === '/register' ? (
-      <RegisterPage />
-    ) : (
-      <LoginPage />
-    );
+    return router.pathname === '/register' ? <RegisterPage /> : <LoginPage />;
   }
 
   return (
-    <AppLayout user={user} handleLogout={logout}>
+    <AppLayout handleLogout={logout}>
       <Component {...pageProps} />
     </AppLayout>
   );

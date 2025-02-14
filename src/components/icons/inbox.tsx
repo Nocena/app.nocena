@@ -2,7 +2,7 @@ import React from 'react';
 
 interface SVGProps extends React.SVGProps<SVGSVGElement> {}
 
-const ChallengesIcon: React.FC<SVGProps> = (props) => {
+const InboxIcon: React.FC<SVGProps> = (props) => {
   return (
     <svg
       width="32"
@@ -20,4 +20,4 @@ const ChallengesIcon: React.FC<SVGProps> = (props) => {
   );
 };
 
-export default ChallengesIcon;
+export default InboxIcon;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { updateBio, updateProfilePicture } from '../../utils/api/dgraph';
+import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../utils/api/dgraph';
 import { unpinFromPinata } from '../../utils/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -30,7 +30,7 @@ const ProfileView: React.FC = () => {
   const [bio, setBio] = useState<string>(user?.bio || 'This is your bio. Click to edit it.');
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
-  const [followersCount, setFollowersCount] = useState<number>(user?.followers.length || 0);
+  const [followersCount, setFollowersCount] = useState<number>(0);
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
     user?.dailyChallenge.split('').map((char) => char === '1') || []
   );
@@ -45,6 +45,12 @@ const ProfileView: React.FC = () => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserFollowers(user.id).then(setFollowersCount);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     // Center scroll to the current month
@@ -166,7 +172,7 @@ const ProfileView: React.FC = () => {
               alt="Profile"
               width={96}
               height={96}
-              className="w-24 h-24 object-cover rounded-full border-4 border-gray-700 cursor-pointer"
+              className="w-24 h-24 object-cover rounded-full cursor-pointer"
             />
           </ThematicImage>
         </div>
