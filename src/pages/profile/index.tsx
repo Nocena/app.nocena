@@ -3,7 +3,7 @@ import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../utils
 import { unpinFromPinata } from '../../utils/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
-
+import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 
 import PrimaryButton from '../../components/ui/PrimaryButton';
@@ -71,49 +71,67 @@ const ProfileView: React.FC = () => {
   const handleProfilePicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && user) {
-      const reader = new FileReader();
-
-      reader.onloadend = async () => {
-        try {
-          const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
-
-          if (user.profilePicture && user.profilePicture !== DEFAULT_PROFILE_PIC) {
-            const oldCid = user.profilePicture.split('/').pop();
-            if (oldCid) {
-              await unpinFromPinata(oldCid).catch((error) => {
-                console.warn('Failed to unpin old profile picture (possibly default):', error);
-              });
+      try {
+        // **Compression settings**
+        const options = {
+          maxSizeMB: 0.5, // Target max file size: 500KB
+          maxWidthOrHeight: 512, // Resize to max 512px
+          useWebWorker: true,
+          fileType: 'image/webp' // Convert to WebP for better compression
+        };
+  
+        // **Compress image before uploading**
+        const compressedFile = await imageCompression(file, options);
+        console.log(`Original size: ${file.size / 1024} KB`);
+        console.log(`Compressed size: ${compressedFile.size / 1024} KB`);
+  
+        // Convert compressed file to Base64
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+  
+            if (user.profilePicture && user.profilePicture !== DEFAULT_PROFILE_PIC) {
+              const oldCid = user.profilePicture.split('/').pop();
+              if (oldCid) {
+                await unpinFromPinata(oldCid).catch((error) => {
+                  console.warn('Failed to unpin old profile picture:', error);
+                });
+              }
             }
+  
+            // Upload the compressed image
+            const response = await fetch('/api/upload-profile-picture', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                file: base64String,
+                fileName: file.name.replace(/\.[^/.]+$/, '.webp'), // Rename as WebP
+              }),
+            });
+  
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.status}`);
+            }
+  
+            const { url } = await response.json();
+            setProfilePic(url);
+  
+            await updateProfilePicture(user.id, url);
+  
+            const updatedUser = { ...user, profilePicture: url };
+            login(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            console.log('Profile picture successfully updated.');
+          } catch (error) {
+            console.error('Upload error:', error);
           }
-
-          const response = await fetch('/api/upload-profile-picture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              file: base64String,
-              fileName: file.name,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status}`);
-          }
-
-          const { url } = await response.json();
-          setProfilePic(url);
-
-          await updateProfilePicture(user.id, url);
-
-          const updatedUser = { ...user, profilePicture: url };
-          login(updatedUser);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          console.log('Profile picture successfully updated.');
-        } catch (error) {
-          console.error('Upload error:', error);
-        }
-      };
-
-      reader.readAsDataURL(file);
+        };
+  
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Image compression failed:', error);
+      }
     }
   };
 
