@@ -128,14 +128,6 @@ const HomeView = () => {
   return (
     <div className="bg-[#0A141D] text-white p-4 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-end mb-8">
-          {user && (
-            <div className="bg-blue-600 px-4 py-2 rounded-lg">
-              Welcome, {user.username}!
-            </div>
-          )}
-        </div>
-
         <div className="flex justify-center mb-8 space-x-6">
           {(['daily', 'weekly', 'monthly'] as ChallengeType[]).map((tab) => (
             <button
@@ -167,12 +159,12 @@ const HomeView = () => {
 
             <div className="flex items-center space-x-2 bg-[#2A3B4D] px-6 py-3 rounded-full">
               <img 
-                src="/icons/nocenix.ico" 
+                src="nocenix.ico" 
                 alt="Token" 
-                className="w-6 h-6"
+                className="w-8 h-8"
               />
               <span className="text-xl font-semibold">
-                {rewardMapping[selectedTab]} TOKEN
+                {rewardMapping[selectedTab]} NOCENIX
               </span>
             </div>
           </div>

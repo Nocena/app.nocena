@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../../contexts/AuthContext'; // Import AuthContext for user
+import { useAuth } from '../../contexts/AuthContext';
 import { fetchUnreadNotificationsCount, markNotificationsAsRead } from "../../utils/api/dgraph";
 
 import Menu from './Menu';
@@ -8,7 +8,6 @@ import ThematicText from '../ui/ThematicText';
 import ThematicIcon from '../ui/ThematicIcon';
 import { ThematicIconProps } from '../ui/ThematicIcon';
 
-// Define a props type that includes children.
 interface AppLayoutProps {
   handleLogout: () => void;
   children: React.ReactNode;
@@ -16,12 +15,11 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const router = useRouter();
-  const { user } = useAuth(); // Access user from context
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread notification count
   useEffect(() => {
     if (!user?.id) return;
 
@@ -32,15 +30,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
     checkUnreadNotifications();
 
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(checkUnreadNotifications, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  // Detecting if the user is on a specific profile page
   const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
 
-  // Handle navigation clicks
   const handleNavClick = async (index: number) => {
     setCurrentIndex(index);
 
@@ -56,9 +51,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     };
 
     if (index === 2 && user?.id) {
-      // If the user opens the inbox, mark notifications as read
       await markNotificationsAsRead(user.id);
-      setUnreadCount(0); // Reset unread count in UI
+      setUnreadCount(0);
     }
 
     const route =
@@ -78,7 +72,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   };
 
   const getPageTitle = () => {
-    if (isUserProfile) return 'USER PROFILE'; // ✅ Show correct title for another user's profile
+    if (isUserProfile) return 'USER PROFILE';
 
     const titles = [
       'HOME',
@@ -92,6 +86,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     ];
     return titles[currentIndex] || 'HOME';
   };
+
+  // Check if the current route is the completing challenge page
+  const isCompletingChallengePage = router.pathname === '/completing';
+
+  // If it's the completing challenge page, render children without layout
+  if (isCompletingChallengePage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
@@ -120,7 +122,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         {children}
       </main>
 
-      {/* Bottom Navbar - Should NOT highlight anything if on another user's profile */}
+      {/* Bottom Navbar */}
       <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light">
         {(['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][]).map((item, index) => (
           <button
@@ -130,7 +132,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           >
             <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
             
-            {/* Flashing Light Indicator for Unread Notifications */}
             {item === 'inbox' && unreadCount > 0 && (
               <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
             )}
