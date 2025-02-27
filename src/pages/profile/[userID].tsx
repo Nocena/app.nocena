@@ -132,7 +132,7 @@ const OtherProfileView: React.FC = () => {
       <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
 
       <div className="relative z-10 mt-4">
-        <PrimaryButton text="Challenge Me" onPressed={() => {}} className="px-6 py-2" disabled />
+        <PrimaryButton text="Challenge Me" onClick={() => {}} className="px-6 py-2" disabled />
       </div>
 
       <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">

@@ -81,7 +81,7 @@ const RegisterPage = () => {
         };
 
         await login(userData);
-        router.push('/');
+        router.push('/home');
       } else {
         setError('Failed to register. Please try again.');
       }
@@ -149,7 +149,7 @@ const RegisterPage = () => {
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="mb-3">
-            <PrimaryButton text={loading ? 'Registering...' : 'Register'} onPressed={handleRegisterClick} />
+            <PrimaryButton text={loading ? 'Registering...' : 'Register'} onClick={handleRegisterClick} />
           </div>
 
           <div className="text-center">

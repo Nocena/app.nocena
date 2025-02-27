@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicText from '../../components/ui/ThematicText';
+import Image from 'next/image';
 
 type Challenge = {
   title: string;
@@ -11,6 +12,8 @@ type Challenge = {
 };
 
 type ChallengeType = 'daily' | 'weekly' | 'monthly';
+
+const nocenixIcon = '/nocenix.ico';
 
 const HomeView = () => {
   const router = useRouter();
@@ -154,14 +157,16 @@ const HomeView = () => {
           <div className="flex flex-col items-center space-y-6">
             <PrimaryButton
               text="Complete Challenge"
-              onPressed={() => handleCompleteChallenge(selectedTab)}
+              onClick={() => handleCompleteChallenge(selectedTab)}
             />
 
             <div className="flex items-center space-x-2 bg-[#2A3B4D] px-6 py-3 rounded-full">
-              <img 
-                src="nocenix.ico" 
-                alt="Token" 
-                className="w-8 h-8"
+              <Image 
+                src={nocenixIcon} 
+                alt="Nocenix" 
+                width={32} 
+                height={32}
+                className="mr-2"
               />
               <span className="text-xl font-semibold">
                 {rewardMapping[selectedTab]} NOCENIX

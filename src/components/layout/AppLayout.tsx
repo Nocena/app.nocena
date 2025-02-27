@@ -34,6 +34,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
+  // Set the correct index based on the current path
+  useEffect(() => {
+    const pathToIndexMap: Record<string, number> = {
+      '/home': 0,
+      '/map': 1,
+      '/inbox': 2,
+      '/search': 3,
+      '/profile': 4,
+      '/completing': 5,
+    };
+
+    // Check if the current path is in our mapping
+    const index = pathToIndexMap[router.pathname];
+    if (index !== undefined) {
+      setCurrentIndex(index);
+    }
+  }, [router.pathname]);
+
   const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
 
   const handleNavClick = async (index: number) => {
@@ -87,14 +105,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     return titles[currentIndex] || 'HOME';
   };
 
-  // Check if the current route is the completing challenge page
-  const isCompletingChallengePage = router.pathname === '/completing';
-
-  // If it's the completing challenge page, render children without layout
-  if (isCompletingChallengePage) {
-    return <>{children}</>;
-  }
-
   return (
     <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
       {/* Top Navbar */}
@@ -118,7 +128,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleLogout} />
 
       {/* Main Content */}
-      <main className="flex-grow mt-12 pt-3">
+      <main className='flex-grow mt-12 pt-3'>
         {children}
       </main>
 

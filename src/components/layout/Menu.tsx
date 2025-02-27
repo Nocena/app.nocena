@@ -33,7 +33,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
 
         {/* Logout button */}
         <div className="mt-4">
-          <PrimaryButton text="Logout" onPressed={onLogout} />
+          <PrimaryButton text="Logout" onClick={onLogout} />
         </div>
       </div>
     </div>

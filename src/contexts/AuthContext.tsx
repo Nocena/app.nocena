@@ -14,6 +14,16 @@ export interface User {
   dailyChallenge: string;
   weeklyChallenge: string;
   monthlyChallenge: string;
+  completedChallenges?: Array<{
+    type: string;
+    title: string;
+    date: string;
+    proofCID: string;
+  }>;
+}
+
+interface UpdateUserData {
+  [key: string]: any;
 }
 
 interface AuthContextType {
@@ -21,6 +31,7 @@ interface AuthContextType {
   loading: boolean;
   login: (user: User) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (data: UpdateUserData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -63,8 +74,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await router.replace('/login');
   };
 
+  const updateUser = async (data: UpdateUserData) => {
+    if (!user) return;
+    
+    const updatedUser = {
+      ...user,
+      ...data
+    };
+    
+    // Update local state
+    setUser(updatedUser);
+    
+    // Update in localStorage
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    //L: Here you could also update the user in your backend if necessary
+    // await api.updateUser(user.id, data);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

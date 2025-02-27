@@ -105,7 +105,7 @@ const SearchView = () => {
               <div className="ml-4 flex-shrink-0">
                 <PrimaryButton
                   text={isCurrentUser ? 'Your Profile' : isFollowing ? 'Following' : 'Follow'}
-                  onPressed={() => handleFollow(userData.id)}
+                  onClick={() => handleFollow(userData.id)}
                   className="px-3 py-1 text-sm min-w-[7rem]"
                   isActive={isFollowing}
                   disabled={isCurrentUser} // Disable if it's the logged-in user

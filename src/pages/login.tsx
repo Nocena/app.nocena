@@ -49,7 +49,7 @@ const LoginPage = () => {
         };
 
         await login(userData);
-        router.push('/');
+        router.push('/home');
       } else {
         setError('Incorrect password. Please try again.');
         setShowForgotPassword(true);
@@ -110,7 +110,7 @@ const LoginPage = () => {
           )}
 
           <div className="mb-3">
-            <PrimaryButton text="Login" onPressed={handleSignIn} />
+            <PrimaryButton text="Login" onClick={handleSignIn} />
           </div>
 
           <div className="text-center">
