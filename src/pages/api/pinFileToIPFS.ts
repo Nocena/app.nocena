@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { uploadProfilePictureToPinata } from '../../utils/api/pinata';
+import { uploadToPinata } from '../../utils/api/pinata';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -7,22 +7,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { file, fileName } = req.body;
+    const { file, fileName, fileType = 'image' } = req.body;
 
-    console.log('Received file for upload:', fileName);
-    console.log('File data (first 100 chars):', file.substring(0, 100)); // Log part of the file data
+    if (!file || !fileName) {
+      return res.status(400).json({ message: 'Missing required fields: file and fileName' });
+    }
 
+    console.log(`Received ${fileType} for upload:`, fileName);
+    
     // Convert base64 string to Buffer
     const fileBuffer = Buffer.from(file, 'base64');
-    console.log('File converted to Buffer:', fileBuffer);
-
-    // Pass the Buffer directly to Pinata
-    const result = await uploadProfilePictureToPinata(fileBuffer, fileName);
-    console.log('Pinata upload result:', result);
-
+    
+    // Upload to Pinata
+    const ipfsHash = await uploadToPinata(fileBuffer, fileName);
+    
     res.status(200).json({
-      IpfsHash: result,
-      url: `https://gateway.pinata.cloud/ipfs/${result}`,
+      success: true,
+      ipfsHash,
+      url: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
+      fileType
     });
   } catch (error) {
     if (error instanceof Error) {

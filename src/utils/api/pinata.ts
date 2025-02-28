@@ -4,19 +4,19 @@ import fetch from 'node-fetch';
 const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT || '';
 const DEFAULT_PROFILE_PIC = '/profile.png';
 
-export const uploadProfilePictureToPinata = async (file: Buffer, fileName: string): Promise<string> => {
+// Generic upload function for any file type
+export const uploadToPinata = async (file: Buffer, fileName: string): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file, fileName);
 
-  console.log('FormData prepared for Pinata upload');
-  console.log('FormData headers:', formData.getHeaders());
+  console.log('Uploading to Pinata:', fileName);
 
   try {
     const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${PINATA_JWT}`,
-        ...formData.getHeaders(), // Ensure headers are correctly set
+        ...formData.getHeaders(),
       },
       body: formData,
     });
@@ -31,10 +31,14 @@ export const uploadProfilePictureToPinata = async (file: Buffer, fileName: strin
     console.log('Pinata upload successful:', result);
     return result.IpfsHash;
   } catch (error) {
-    console.error('Error in uploadProfilePictureToPinata:', error);
+    console.error('Error uploading to Pinata:', error);
     throw error;
   }
 };
+
+// For backward compatibility
+export const uploadProfilePictureToPinata = uploadToPinata;
+export const uploadChallengeToPinata = uploadToPinata;
 
 export const unpinFromPinata = async (cid: string): Promise<void> => {
   if (!cid || cid === DEFAULT_PROFILE_PIC.split('/').pop()) {
@@ -46,7 +50,7 @@ export const unpinFromPinata = async (cid: string): Promise<void> => {
     const response = await fetch(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
       method: 'DELETE',
       headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`,
+        Authorization: `Bearer ${PINATA_JWT}`,
       },
     });
 

@@ -11,7 +11,6 @@ const generateId = (): string => {
   );
 };
 
-
 export const registerUser = async (
   username: string,
   email: string,
@@ -30,9 +29,18 @@ export const registerUser = async (
           username
           email
           wallet
+          bio
+          profilePicture
+          earnedTokens
           dailyChallenge
           weeklyChallenge
           monthlyChallenge
+          followers {
+            id
+          }
+          following {
+            id
+          }
         }
       }
     }
@@ -69,7 +77,20 @@ export const registerUser = async (
       throw new Error(`GraphQL Error: ${errorMessages}`);
     }
 
-    return response.data.data.addUser.user[0];
+    // Get the user data from the response
+    const userData = response.data.data.addUser.user[0];
+    
+    // Format the data to match your User interface
+    if (userData) {
+      // Convert followers and following from objects to string arrays of ids
+      userData.followers = userData.followers?.map((f: any) => f.id) || [];
+      userData.following = userData.following?.map((f: any) => f.id) || [];
+      
+      // Initialize empty completedChallenges array since new users won't have any
+      userData.completedChallenges = [];
+    }
+    
+    return userData;
   } catch (error) {
     console.error('Error during user registration:', error);
   
@@ -99,6 +120,19 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         followers {
           id
         }
+        following {
+          id
+        }
+        completedChallenges {
+          id
+          challenge {
+            title
+            category
+            frequency
+          }
+          media
+          completionDate
+        }
       }
     }
   `;
@@ -115,13 +149,29 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       }
     );
 
-    return response.data?.data?.queryUser[0] || null;
+    const userData = response.data?.data?.queryUser[0] || null;
+    
+    // Format the data to match your User interface
+    if (userData) {
+      // Convert followers from objects to string array of ids
+      userData.followers = userData.followers?.map((f: any) => f.id) || [];
+      userData.following = userData.following?.map((f: any) => f.id) || [];
+      
+      // Format completed challenges to match your interface
+      userData.completedChallenges = userData.completedChallenges?.map((c: any) => ({
+        type: c.challenge.category === 'AI' ? `AI-${c.challenge.frequency}` : 'Social',
+        title: c.challenge.title,
+        date: c.completionDate,
+        proofCID: c.media
+      })) || [];
+    }
+    
+    return userData;
   } catch (error) {
     console.error("Error fetching user by ID from Dgraph:", error);
     throw new Error("Failed to fetch user by ID.");
   }
 };
-
 
 export const getUserFromDgraph = async (identifier: string) => {
   const query = `
@@ -134,9 +184,26 @@ export const getUserFromDgraph = async (identifier: string) => {
         bio
         passwordHash
         profilePicture
+        earnedTokens
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
+        followers {
+          id
+        }
+        following {
+          id
+        }
+        completedChallenges {
+          id
+          challenge {
+            title
+            category
+            frequency
+          }
+          media
+          completionDate
+        }
       }
     }
   `;
@@ -155,7 +222,24 @@ export const getUserFromDgraph = async (identifier: string) => {
       }
     );
 
-    return response.data?.data?.queryUser[0]; // Return the first user found
+    const userData = response.data?.data?.queryUser[0] || null;
+    
+    // Format the data to match your User interface
+    if (userData) {
+      // Convert followers from objects to string array of ids
+      userData.followers = userData.followers?.map((f: any) => f.id) || [];
+      userData.following = userData.following?.map((f: any) => f.id) || [];
+      
+      // Format completed challenges to match your interface
+      userData.completedChallenges = userData.completedChallenges?.map((c: any) => ({
+        type: c.challenge.category === 'AI' ? `AI-${c.challenge.frequency}` : 'Social',
+        title: c.challenge.title,
+        date: c.completionDate,
+        proofCID: c.media
+      })) || [];
+    }
+    
+    return userData;
   } catch (error) {
     console.error("Error fetching user from Dgraph:", error);
     throw new Error("Failed to fetch user.");
@@ -650,7 +734,7 @@ export const fetchUnreadNotificationsCount = async (userId: string) => {
   const query = `
     query GetUnreadNotifications($userId: String!) {
       queryNotification(
-        filter: { userId: { eq: $userId }, isRead: false }
+        filter: { userId: { eq: $userId }, isRead: { eq: false } }
       ) {
         id
       }
@@ -722,5 +806,312 @@ export const markNotificationsAsRead = async (userId: string) => {
   } catch (error) {
     console.error("Network error marking notifications as read:", error);
     return false;
+  }
+};
+
+/* completing challenges */
+
+interface MediaMetadata {
+  directoryCID: string;
+  hasVideo: boolean;
+  hasSelfie: boolean;
+  timestamp: number;
+  videoFileName?: string;
+  selfieFileName?: string;
+}
+
+/**
+ * Creates a challenge completion record in the database
+ * Handles both the new video+selfie format and legacy single media
+ */
+export const createChallengeCompletion = async (
+  userId: string,
+  challengeId: string,
+  mediaData: string | MediaMetadata, // Can be either a plain IPFS hash or a metadata object
+  isAIChallenge: boolean,
+  visibility: string
+): Promise<string> => {
+  const id = uuidv4();
+  const now = new Date();
+  
+  // Calculate date fields for easier filtering
+  const completionDate = now.toISOString();
+  const completionDay = getDayOfYear(now);
+  const completionWeek = getWeekOfYear(now);
+  const completionMonth = now.getMonth() + 1;
+  const completionYear = now.getFullYear();
+
+  // Process the media data
+  let mediaJson: string;
+  
+  if (typeof mediaData === 'string') {
+    // Legacy format - just an IPFS hash
+    mediaJson = JSON.stringify({
+      directoryCID: mediaData,
+      hasVideo: false,
+      hasSelfie: false,
+      timestamp: now.getTime()
+    });
+  } else {
+    // New format - a MediaMetadata object
+    mediaJson = JSON.stringify(mediaData);
+  }
+
+  const mutation = `
+    mutation CreateChallengeCompletion(
+      $id: String!,
+      $userId: String!,
+      $challengeId: String!,
+      $mediaJson: String!,
+      $completionDate: DateTime!,
+      $completionDay: Int!,
+      $completionWeek: Int!,
+      $completionMonth: Int!,
+      $completionYear: Int!,
+      $isAIChallenge: Boolean!,
+      $visibility: String!
+    ) {
+      addChallengeCompletion(input: [{
+        id: $id,
+        user: { id: $userId },
+        challenge: { id: $challengeId },
+        media: $mediaJson,
+        completionDate: $completionDate,
+        completionDay: $completionDay,
+        completionWeek: $completionWeek,
+        completionMonth: $completionMonth,
+        completionYear: $completionYear,
+        isAIChallenge: $isAIChallenge,
+        visibility: $visibility,
+        status: "verified",
+        likesCount: 0
+      }]) {
+        challengeCompletion {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    console.log('Creating challenge completion with media:', mediaJson);
+    
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          id,
+          userId,
+          challengeId,
+          mediaJson,
+          completionDate,
+          completionDay,
+          completionWeek,
+          completionMonth,
+          completionYear,
+          isAIChallenge,
+          visibility
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (response.data.errors) {
+      console.error('Dgraph mutation error:', response.data.errors);
+      throw new Error('Failed to create challenge completion');
+    }
+
+    return id;
+  } catch (error) {
+    console.error('Error creating challenge completion:', error);
+    throw error;
+  }
+};
+
+// Helper functions for date calculations
+function getDayOfYear(date: Date): number {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime();
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay);
+}
+
+function getWeekOfYear(date: Date): number {
+  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+}
+
+//L: Update earned tokens for user (so far without polygon layer)
+export const updateUserTokens = async (userId: string, tokenAmount: number): Promise<void> => {
+  const query = `
+    query GetUserTokens($userId: String!) {
+      getUser(id: $userId) {
+        earnedTokens
+      }
+    }
+  `;
+
+  try {
+    // First get current token balance
+    const queryResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (queryResponse.data.errors) {
+      throw new Error(`Dgraph query error: ${queryResponse.data.errors[0].message}`);
+    }
+
+    const currentTokens = queryResponse.data.data.getUser?.earnedTokens || 0;
+    const newTokens = currentTokens + tokenAmount;
+
+    // Update token balance
+    const mutation = `
+      mutation UpdateUserTokens($userId: String!, $tokens: Int!) {
+        updateUser(input: { filter: { id: { eq: $userId } }, set: { earnedTokens: $tokens } }) {
+          user {
+            id
+            earnedTokens
+          }
+        }
+      }
+    `;
+
+    const updateResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { userId, tokens: newTokens }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (updateResponse.data.errors) {
+      throw new Error(`Dgraph mutation error: ${updateResponse.data.errors[0].message}`);
+    }
+  } catch (error) {
+    console.error('Error updating user tokens:', error);
+    throw error;
+  }
+};
+
+export const getOrCreateChallenge = async (
+  title: string,
+  description: string,
+  reward: number,
+  category: string,
+  frequency: string | null,
+  visibility: string
+): Promise<string> => {
+  // First, try to find an existing challenge with the same title
+  // Using allofterms for term search instead of eq
+  const query = `
+    query GetExistingChallenge($title: String!) {
+      queryChallenge(filter: { title: { allofterms: $title } }) {
+        id
+      }
+    }
+  `;
+
+  try {
+    const queryResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { title }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (queryResponse.data.errors) {
+      throw new Error(`Dgraph query error: ${JSON.stringify(queryResponse.data.errors)}`);
+    }
+
+    // If challenge exists, return its ID
+    if (queryResponse.data.data.queryChallenge && queryResponse.data.data.queryChallenge.length > 0) {
+      return queryResponse.data.data.queryChallenge[0].id;
+    }
+
+    // Otherwise, create a new challenge
+    const id = uuidv4();
+    const now = new Date();
+    const createdAt = now.toISOString();
+    // Set expiration to 30 days from now
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const mutation = `
+      mutation CreateChallenge(
+        $id: String!,
+        $title: String!,
+        $description: String!,
+        $reward: Int!,
+        $category: String!,
+        $frequency: String,
+        $visibility: String!,
+        $createdAt: DateTime!,
+        $expiresAt: DateTime!
+      ) {
+        addChallenge(input: [{
+          id: $id,
+          title: $title,
+          description: $description,
+          reward: $reward,
+          category: $category,
+          frequency: $frequency,
+          visibility: $visibility,
+          createdAt: $createdAt,
+          expiresAt: $expiresAt,
+          isActive: true
+        }]) {
+          challenge {
+            id
+          }
+        }
+      }
+    `;
+
+    const createResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          id,
+          title,
+          description,
+          reward,
+          category,
+          frequency,
+          visibility,
+          createdAt,
+          expiresAt
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (createResponse.data.errors) {
+      throw new Error(`Dgraph mutation error: ${JSON.stringify(createResponse.data.errors)}`);
+    }
+
+    return id;
+  } catch (error) {
+    console.error('Error getting or creating challenge:', error);
+    throw error;
   }
 };

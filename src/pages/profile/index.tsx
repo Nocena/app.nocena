@@ -91,8 +91,15 @@ const ProfileView: React.FC = () => {
           try {
             const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
   
-            if (user.profilePicture && user.profilePicture !== DEFAULT_PROFILE_PIC) {
-              const oldCid = user.profilePicture.split('/').pop();
+            // Check if user has an existing profile picture that's not the default
+            if (user.profilePicture && 
+                user.profilePicture !== DEFAULT_PROFILE_PIC && 
+                !user.profilePicture.includes('profile.png')) {
+              // Extract CID from the URL - handle both full URLs and CIDs
+              const oldCid = user.profilePicture.includes('/')
+                ? user.profilePicture.split('/').pop()
+                : user.profilePicture;
+                
               if (oldCid) {
                 await unpinFromPinata(oldCid).catch((error) => {
                   console.warn('Failed to unpin old profile picture:', error);
@@ -101,36 +108,45 @@ const ProfileView: React.FC = () => {
             }
   
             // Upload the compressed image
-            const response = await fetch('/api/upload-profile-picture', {
+            const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 file: base64String,
-                fileName: file.name.replace(/\.[^/.]+$/, '.webp'), // Rename as WebP
+                fileName: `profile-${user.id}-${Date.now()}.webp`, // Add user ID and timestamp for uniqueness
               }),
             });
   
             if (!response.ok) {
-              throw new Error(`Upload failed: ${response.status}`);
+              throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
             }
   
             const { url } = await response.json();
+            
+            // Log the URL to see what's being returned
+            console.log('Received URL from upload:', url);
+            
+            // Update state with the new URL
             setProfilePic(url);
   
+            // Update user in database
             await updateProfilePicture(user.id, url);
   
+            // Update local user state
             const updatedUser = { ...user, profilePicture: url };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             console.log('Profile picture successfully updated.');
           } catch (error) {
             console.error('Upload error:', error);
+            alert('Failed to update profile picture. Please try again.');
           }
         };
   
         reader.readAsDataURL(compressedFile);
       } catch (error) {
         console.error('Image compression failed:', error);
+        alert('Image compression failed. Please try with a different image.');
       }
     }
   };
