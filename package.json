@@ -4,10 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "setup-https": "node setup-https.js",
     "dev": "next dev",
+    "dev:https": "node dev-https-server.js",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "start:https": "node https-server.js"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +25,7 @@
     "form-data": "^4.0.1",
     "formidable": "^3.5.2",
     "next": "^15.1.4",
+    "next-pwa": "^5.6.0",
     "node-fetch": "2.x",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -36,6 +40,8 @@
     "@types/react": "^19.0.5",
     "@types/webpack": "^5.28.5",
     "autoprefixer": "^10.4.20",
+    "local-ssl-proxy": "^2.0.5",
+    "mkcert-cli": "^1.5.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"

@@ -101,7 +101,7 @@ const RegisterPage = () => {
     <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
       <div className="w-full max-w-md mx-4">
         <div className="text-center mb-4">
-          <img src="/logo/logo.png" alt="Logo" className="max-w-full h-auto mx-auto" />
+          <img src="/logo/" alt="Logo" className="max-w-full h-auto mx-auto" />
         </div>
         <form onSubmit={handleRegisterClick} className="space-y-4">
           <div className="mb-3">

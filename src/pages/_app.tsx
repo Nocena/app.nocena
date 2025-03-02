@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { useAuth, AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
 import LoginPage from './login';
 import RegisterPage from './register';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 
 function MyAppContent({ Component, pageProps }: any) {
   const { user, loading, logout } = useAuth();
@@ -23,13 +25,26 @@ function MyAppContent({ Component, pageProps }: any) {
 
   if (!user) {
     // Show login or register page based on current route
-    return router.pathname === '/register' ? <RegisterPage /> : <LoginPage />;
+    return (
+      <>
+        <Head>
+          <title>Nocena</title>
+        </Head>
+        {router.pathname === '/register' ? <RegisterPage /> : <LoginPage />}
+      </>
+    );
   }
 
   return (
-    <AppLayout handleLogout={logout}>
-      <Component {...pageProps} />
-    </AppLayout>
+    <>
+      <Head>
+        <title>Nocena</title>
+      </Head>
+      <AppLayout handleLogout={logout}>
+        <Component {...pageProps} />
+      </AppLayout>
+      <PWAInstallPrompt />
+    </>
   );
 }
 
