@@ -1,28 +1,56 @@
-import { useState } from 'react';
+// pages/home/index.tsx
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import PrimaryButton from '../../components/ui/PrimaryButton';
-import ThematicText from '../../components/ui/ThematicText';
-import Image from 'next/image';
-import { Challenge } from '../../data/challenges';
-import { getCurrentChallenge, getChallengeReward } from '../../utils/challengeUtils';
+import { hasCompletedChallenge, fetchFollowerCompletions } from '../../lib/api/dgraph';
+import { getCurrentChallenge, getChallengeReward } from '../../lib/utils/challengeUtils';
+
+// Component imports
+import ChallengeHeader from './components/ChallengeHeader';
+import ChallengeForm from './components/ChallengeForm';
+import CompletionFeed from './components/CompletionFeed';
 
 type ChallengeType = 'daily' | 'weekly' | 'monthly';
-
-const nocenixIcon = '/nocenix.ico';
 
 const HomeView = () => {
   const router = useRouter();
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState<ChallengeType>('daily');
-
-  // Get the current challenge for the selected tab
+  const [followerCompletions, setFollowerCompletions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const currentChallenge = getCurrentChallenge(selectedTab);
-  
-  // Get the reward for the current challenge type
   const reward = getChallengeReward(selectedTab);
+  const hasCompleted = user ? hasCompletedChallenge(user, selectedTab) : false;
+  
+  // Fetch follower completions when the component mounts or when the user completes a challenge
+  useEffect(() => {
+    const loadFollowerCompletions = async () => {
+      if (!user || !hasCompleted) {
+        setFollowerCompletions([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      
+      try {
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const todayDate = today.toISOString().split('T')[0];
+        
+        const completions = await fetchFollowerCompletions(user.id, todayDate);
+        setFollowerCompletions(completions);
+      } catch (error) {
+        console.error('Error fetching follower completions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadFollowerCompletions();
+  }, [user, hasCompleted]);
 
-  const handleCompleteChallenge = async (type: ChallengeType) => {
+  const handleCompleteChallenge = async (type: string, frequency: string) => {
     if (!user) {
       alert('Please login to complete challenges!');
       router.push('/login');
@@ -30,72 +58,60 @@ const HomeView = () => {
     }
     
     try {
-      // TODO: Add logic to mint tokens and update user's earnedTokens
-      // This should interact with your Polygon smart contract
-      // and update the Dgraph database
-      
       router.push({
         pathname: '/completing',
         query: {
-          type,
+          type, // 'AI'
+          frequency, // 'daily', 'weekly', or 'monthly'
           title: currentChallenge.title,
           description: currentChallenge.description,
-          reward
+          reward,
+          visibility: 'public'
         }
       });
     } catch (error) {
-      console.error('Error completing challenge:', error);
-      alert('Failed to complete challenge. Please try again.');
+      console.error('Error navigating to challenge completion:', error);
+      alert('Failed to start challenge. Please try again.');
     }
   };
 
   return (
     <div className="bg-[#0A141D] text-white p-4 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-center mb-8 space-x-6">
-          {(['daily', 'weekly', 'monthly'] as ChallengeType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTab(tab)}
-              className="hover:opacity-75 transition-opacity"
-            >
-              <ThematicText 
-                text={tab.charAt(0).toUpperCase() + tab.slice(1)}
-                isActive={selectedTab === tab}
-              />
-            </button>
-          ))}
-        </div>
-
+        {/* Challenge Type Tabs */}
+        <ChallengeHeader 
+          selectedTab={selectedTab} 
+          onTabChange={setSelectedTab} 
+        />
+        
+        {/* Challenge Form or Completion Feed based on completion status */}
         <div className="bg-[#1A2734] rounded-xl p-8 shadow-xl">
-          <h2 className="text-3xl font-bold mb-4 text-center">
-            {currentChallenge.title}
-          </h2>
-          <p className="text-lg text-gray-300 mb-8 text-center">
-            {currentChallenge.description}
-          </p>
-
-          <div className="flex flex-col items-center space-y-6">
-            <PrimaryButton
-              text="Complete Challenge"
-              onClick={() => handleCompleteChallenge(selectedTab)}
+          {!hasCompleted ? (
+            <ChallengeForm 
+              challenge={currentChallenge}
+              reward={reward}
+              selectedTab={selectedTab}
+              onCompleteChallenge={handleCompleteChallenge}
             />
-
-            <div className="flex items-center space-x-2 bg-[#2A3B4D] px-6 py-3 rounded-full">
-              <Image 
-                src={nocenixIcon} 
-                alt="Nocenix" 
-                width={32} 
-                height={32}
-                className="mr-2"
+          ) : (
+            <>
+              <div className="flex items-center justify-center mb-6">
+                <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-medium">
+                  Challenge Completed! 🎉
+                </div>
+              </div>
+              
+              <CompletionFeed 
+                user={user}
+                isLoading={isLoading} 
+                followerCompletions={followerCompletions}
+                selectedTab={selectedTab}
               />
-              <span className="text-xl font-semibold">
-                {reward} NOCENIX
-              </span>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
+        {/* Footer */}
         <div className="mt-8 text-center text-gray-400">
           <p>Powered by Polygon Testnet</p>
           {user && (

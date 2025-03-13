@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { searchUsers } from '../../utils/api/dgraph';
-import { sanitizeInput } from '../../utils/security';
+import { searchUsers } from '../../lib/api/dgraph';
+import { sanitizeInput } from '../../lib/utils/security';
 import { useAuth } from '../../contexts/AuthContext';
 
 import ThematicImage from '../../components/ui/ThematicImage';
@@ -74,7 +74,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect }) => {
 
               <ThematicImage className="rounded-full">
                 <Image
-                  src={user.profilePicture || '/profile.png'}
+                  src={user.profilePicture || '/images/profile.png'}
                   alt="Profile"
                   width={96}
                   height={96}

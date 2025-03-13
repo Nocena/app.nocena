@@ -23,7 +23,7 @@
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
       "@views/*": ["src/views/*"],
-      "@utils/*": ["src/utils/*"],
+      "@utils/*": ["src/lib/utils/*"],
       "@styles/*": ["src/styles/*"],
       "@public/*": ["public/*"]
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchUnreadNotificationsCount, markNotificationsAsRead } from "../../utils/api/dgraph";
+import { fetchUnreadNotificationsCount, markNotificationsAsRead } from "../../lib/api/dgraph";
 
 import Menu from './Menu';
 import ThematicText from '../ui/ThematicText';

@@ -3,686 +3,638 @@ export type Challenge = {
   description: string;
 };
 
-export const dailyChallenges: Challenge[] = [
-  // URBAN EXPLORATION & ADVENTURE (70)
-  { title: 'Urban Explorer', description: 'Find and capture an abandoned or overlooked spot in your city that most people walk past without noticing.' },
-  { title: 'Dawn Patrol', description: 'Catch the sunrise from anywhere in your area and capture the moment.' },
-  { title: 'Dusk Hunter', description: 'Capture the sunset from your favorite local spot.' },
-  { title: 'High Point', description: 'Find the highest accessible point near you and document the view.' },
-  { title: 'Low Point', description: 'Find the lowest point in your area (basement, valley, underground) and document it.' },
-  { title: 'Urban Wildlife', description: 'Find and document local wildlife in an urban setting (birds, squirrels, insects, etc.).' },
-  { title: 'Hidden Art', description: 'Locate a piece of street art or public art that is not widely known.' },
-  { title: 'Water Seeker', description: 'Find a body of water (fountain, stream, puddle) in your urban environment.' },
-  { title: 'Boundary Crosser', description: 'Stand at the border between two neighborhoods or districts and document the differences.' },
-  { title: 'Stairway Climber', description: 'Find and climb an interesting staircase in a public place.' },
-  { title: 'Alley Adventure', description: 'Explore an alley or side street you have never been down before.' },
-  { title: 'Rooftop View', description: 'Access a publicly available rooftop and capture the view.' },
-  { title: 'Urban Oasis', description: 'Find a peaceful spot in the middle of a busy area.' },
-  { title: 'Night Explorer', description: 'Capture something interesting in your neighborhood after dark.' },
-  { title: 'Bridge Crossing', description: 'Cross a bridge in your area on foot and document the journey.' },
-  { title: 'Public Transport Safari', description: 'Ride public transportation and document your journey from the window.' },
-  { title: 'Historic Spot', description: 'Find and document a historical marker or site in your area.' },
-  { title: 'Urban Waterfall', description: 'Find water flowing in an urban setting (drain, fountain, etc.).' },
-  { title: 'Tunnel Vision', description: 'Find and walk through a tunnel or underpass in your area.' },
-  { title: 'Clockwatcher', description: 'Find an interesting public clock or timepiece in your area.' },
-  { title: 'Boundary Stone', description: 'Find a marker that indicates a boundary (property line, city limit, etc.).' },
-  { title: 'Elevated Perspective', description: 'Get at least 3 floors above ground level and capture the view.' },
-  { title: 'Morning Dew', description: 'Find and document something covered in dew or morning moisture.' },
-  { title: 'Reflection Hunter', description: 'Find an interesting reflection in windows, puddles, or other surfaces.' },
-  { title: 'Shadow Seeker', description: 'Create an interesting shadow and document it.' },
-  { title: 'Weather Witness', description: 'Document today\'s weather in a creative way.' },
-  { title: 'Skyline Capture', description: 'Find a spot where you can see your city\'s skyline and document it.' },
-  { title: 'Public Seating', description: 'Find the most interesting public bench or seat in your area.' },
-  { title: 'Flora Hunter', description: 'Find and document an interesting plant growing in an urban setting.' },
-  { title: 'Architectural Detail', description: 'Find and document an interesting architectural detail on a building.' },
-  { title: 'Urban Sounds', description: 'Record the sounds of your city from an interesting location.' },
-  { title: 'Corner Explorer', description: 'Stand at a street corner you have never been to before.' },
-  { title: 'Car-Free Zone', description: 'Find a public space where cars are not allowed and document it.' },
-  { title: 'Light Chaser', description: 'Find an interesting play of light and shadow in an urban setting.' },
-  { title: 'Pattern Finder', description: 'Document an interesting pattern in the urban environment (tiles, bricks, etc.).' },
-  { title: 'Urban Texture', description: 'Find and document an interesting texture in your urban environment.' },
-  { title: 'Boundary Walker', description: 'Stand at a boundary between two different areas (neighborhoods, properties, etc.).' },
-  { title: 'Street Musician Spot', description: 'Find a place where street musicians perform (with or without musicians present).' },
-  { title: 'Public Art', description: 'Find and document a piece of public art (sculpture, mural, installation).' },
-  { title: 'Window Shopping', description: 'Find the most interesting store window display in your area.' },
-  { title: 'Local Landmark', description: 'Visit and document a well-known landmark in your area.' },
-  { title: 'Micro Park', description: 'Find the smallest park or green space in your area.' },
-  { title: 'Secret Garden', description: 'Find a hidden or secluded garden or green space.' },
-  { title: 'Urban Decay', description: 'Document something in your urban environment that shows signs of age or decay.' },
-  { title: 'Future City', description: 'Find something in your environment that looks futuristic.' },
-  { title: 'Vintage Vibes', description: 'Find something in your environment that looks like it is from the past.' },
-  { title: 'Door Knocker', description: 'Find an interesting door or entrance in a public space.' },
-  { title: 'Secret Passage', description: 'Find a path, alley, or shortcut that is not obvious to most people.' },
-  { title: 'Ghost Sign', description: 'Find an old, faded advertisement painted on a building.' },
-  { title: 'Street Letter', description: 'Find an interesting letter form on a sign, license plate, or other text in your environment.' },
-  { title: 'Color Hunter', description: 'Find 3 different things in your immediate environment that are the same color.' },
-  { title: 'Public Phone', description: 'Find a public phone booth or remnant of one.' },
-  { title: 'Mailbox Mission', description: 'Find the most interesting mailbox or post box in your area.' },
-  { title: 'Transit Tracker', description: 'Document public transportation in action (bus, train, subway, etc.).' },
-  { title: 'Bike Route', description: 'Find and document a bike lane or cycling route in your area.' },
-  { title: 'Pedestrian Path', description: 'Find a pathway designed specifically for pedestrians.' },
-  { title: 'Boundary Marker', description: 'Find something that marks a boundary (fence, wall, sign, etc.).' },
-  { title: 'Urban Fossil', description: 'Find something in the urban environment that is obsolete but still exists.' },
-  { title: 'Traffic Watcher', description: 'Find a spot to safely observe and document traffic patterns.' },
-  { title: 'Urban Cave', description: 'Find a sheltered or cave-like space in the urban environment.' },
-  { title: 'Abandoned Object', description: 'Find something that has been abandoned or forgotten in a public space.' },
-  { title: 'Painted Street', description: 'Find a street, crosswalk, or public space with decorative painting.' },
-  { title: 'City Compass', description: 'Show which way is north without using your phone and explain how you figured it out.' },
-  { title: 'Power Spot', description: 'Find electrical infrastructure in your city (transformer, power lines, etc.).' },
-  { title: 'Underground Glimpse', description: 'Find a spot where you can see or access what is below street level.' },
-  { title: 'Forgotten Space', description: 'Find a public space that seems forgotten or rarely used.' },
-  { title: 'Morning Light', description: 'Capture how morning light interacts with buildings or objects in your city.' },
-  { title: 'Evening Shadows', description: 'Document the long shadows created in the evening hours.' },
-  { title: 'Urban Symmetry', description: 'Find and document something perfectly symmetrical in your urban environment.' },
-  
-  // SOCIAL INTERACTIONS & COMMUNITY (50)
-  { title: 'Stranger Compliment', description: 'Give a genuine compliment to a willing stranger and capture their reaction (with permission).' },
-  { title: 'Local Expert', description: 'Ask a local person for a recommendation about the area and document their response (with permission).' },
-  { title: 'Language Exchange', description: 'Learn how to say "hello" in a language you do not speak from someone who knows it (with permission).' },
-  { title: 'Street Performance', description: 'Find a street performer and document their art (with permission).' },
-  { title: 'Community Board', description: 'Find a community bulletin board and document an interesting notice.' },
-  { title: 'Local Business', description: 'Visit a local independent business you have never been to before.' },
-  { title: 'Community Garden', description: 'Find a community garden or shared growing space in your area.' },
-  { title: 'Public Forum', description: 'Find a place where public discussions or meetings are held.' },
-  { title: 'Book Exchange', description: 'Find a public book exchange or free library.' },
-  { title: 'Pet Encounter', description: 'Meet someone walking their pet and ask if you can say hello (with permission).' },
-  { title: 'Smile Exchange', description: 'Exchange smiles with a stranger (with permission to record).' },
-  { title: 'Random Kindness', description: 'Do something kind for a stranger that can be completed in 30 seconds.' },
-  { title: 'Helpful Gesture', description: 'Help someone with a small task (hold a door, carry something, etc.) with their permission.' },
-  { title: 'Market Visit', description: 'Visit a farmers market or local market and document something interesting.' },
-  { title: 'Food Truck', description: 'Find a food truck or street food vendor in your area.' },
-  { title: 'Public Gathering', description: 'Find a place where people naturally gather in your area.' },
-  { title: 'Cafe Culture', description: 'Visit a local cafe and document the atmosphere.' },
-  { title: 'Game Spot', description: 'Find a place where people play games in public (chess tables, courts, etc.).' },
-  { title: 'Chalk Message', description: 'Write a positive message with chalk in a public space (where permitted).' },
-  { title: 'Dog Walker Route', description: 'Find a popular dog-walking spot in your area with dogs present.' },
-  { title: 'High Five', description: 'Get a high five from a willing stranger.' },
-  { title: 'Direction Asker', description: 'Ask someone for directions to a local landmark and document their response (with permission).' },
-  { title: 'Photo Favor', description: 'Ask someone to take your photo in front of something interesting (besides your selfie).' },
-  { title: 'Local Tip', description: 'Ask a local resident for a tip about the area and document what you learn (with permission).' },
-  { title: 'Street Interview', description: 'Ask someone what they like most about the area (with permission).' },
-  { title: 'Store Greeter', description: 'Have a brief, friendly conversation with someone working at a local store (with permission).' },
-  { title: 'Pet Spotter', description: 'Find and document people walking their pets (from a respectful distance).' },
-  { title: 'Bike Meetup', description: 'Find a place where cyclists gather or a popular cycling route with cyclists present.' },
-  { title: 'Running Route', description: 'Find a popular running or jogging route in your area with runners present.' },
-  { title: 'Public Workspace', description: 'Find people working in a public space (cafe, library, park).' },
-  { title: 'Local News', description: 'Ask someone what is new in the neighborhood (with permission).' },
-  { title: 'Shop Local', description: 'Buy something from a local independent business and show what you purchased.' },
-  { title: 'Community Service', description: 'Find an organization that provides services to the community.' },
-  { title: 'Public Opinion', description: 'Ask someone a question about your city and document their answer (with permission).' },
-  { title: 'Public Exercise', description: 'Find people exercising in a public space (yoga in the park, group runs, etc.).' },
-  { title: 'Fist Bump', description: 'Get a fist bump from a willing stranger.' },
-  { title: 'Coffee Conversation', description: 'Have a brief conversation with someone at a cafe or coffee shop (with permission).' },
-  { title: 'Local Legend', description: 'Ask someone about a local legend or story about the area (with permission).' },
-  { title: 'Street Musician', description: 'Listen to a street musician and document their performance (with permission).' },
-  { title: 'Public Space', description: 'Find a well-used public space and document how people are using it.' },
-  { title: 'Random Question', description: 'Ask a stranger an interesting but appropriate question (with permission).' },
-  { title: 'Eye Contact', description: 'Make eye contact with a willing participant for 10 seconds (with permission).' },
-  { title: 'Local Character', description: 'Document a well-known local character or personality (with permission).' },
-  { title: 'Busker Appreciation', description: 'Show appreciation for a street performer (applause, tip, etc.) with their permission.' },
-  { title: 'Networking', description: 'Introduce yourself to someone new in a social setting (with permission).' },
-  { title: 'Wave Hello', description: 'Wave hello to someone and see if they wave back (with permission to record).' },
-  { title: 'Public Toast', description: 'Make a toast with a friend or acquaintance in a public place.' },
-  { title: 'Team Effort', description: 'Collaborate with someone to complete a simple task that takes under 30 seconds.' },
-  { title: 'Thank You Note', description: 'Write a thank you note and give it to someone on camera (with permission).' },
-  
-  // CREATIVITY & EXPRESSION (55)
-  { title: 'Shadow Art', description: 'Create and photograph a shadow artwork using your body or found objects.' },
-  { title: 'Urban Composition', description: 'Create a balanced visual composition using elements in your immediate urban environment.' },
-  { title: 'Color Match', description: 'Find something in your environment that exactly matches the color of your clothing.' },
-  { title: 'Forced Perspective', description: 'Create a forced perspective photo that plays with size and distance.' },
-  { title: 'Found Face', description: 'Find something in your environment that looks like a face (pareidolia).' },
-  { title: 'Texture Rubbing', description: 'Create a quick rubbing of an interesting texture using paper and a pencil.' },
-  { title: 'Improvised Instrument', description: 'Make a brief sound/music using objects you find in your immediate environment.' },
-  { title: 'Environmental Portrait', description: 'Take a portrait that incorporates elements of your surroundings.' },
-  { title: 'Nature Arrangement', description: 'Create a small arrangement using natural materials you find nearby.' },
-  { title: 'Sound Collection', description: 'Find and record an interesting sound in your environment.' },
-  { title: 'Urban Still Life', description: 'Arrange found objects into a quick still life composition.' },
-  { title: 'Street Typography', description: 'Find interesting letters or typography in your environment.' },
-  { title: 'Symmetry Hunter', description: 'Find and document something perfectly symmetrical in your environment.' },
-  { title: 'Chalk Art', description: 'Create a small piece of chalk art in a public space (where permitted).' },
-  { title: 'Color Story', description: 'Find 3 objects of the same color in your immediate vicinity.' },
-  { title: 'Found Poetry', description: 'Find 3 words in your environment and connect them into a simple phrase.' },
-  { title: 'Environmental Frame', description: 'Use elements in your environment to create a natural frame for your subject.' },
-  { title: 'Miniature Scene', description: 'Create a miniature scene using small objects you find near you.' },
-  { title: 'Shape Collector', description: 'Find 3 different shapes in your immediate environment.' },
-  { title: 'Sound Mimicry', description: 'Try to mimic a sound you hear in your environment.' },
-  { title: 'Public Dance', description: 'Do a short dance in a public space.' },
-  { title: 'Street Haiku', description: 'Write and recite a haiku inspired by your surroundings.' },
-  { title: 'Rhythm Finder', description: 'Find a repeated pattern or rhythm in your environment and document it.' },
-  { title: 'Cloud Imagination', description: 'Find shapes in the clouds and describe what you see.' },
-  { title: 'Coin Art', description: 'Arrange coins into a simple design in a public place.' },
-  { title: 'Leaf Arrangement', description: 'Create a simple design using fallen leaves found nearby.' },
-  { title: 'Window Reflection', description: 'Capture an interesting reflection in a window or glass surface.' },
-  { title: 'Paper Transformation', description: 'Transform a piece of paper into something interesting in 30 seconds.' },
-  { title: 'Monochrome Moment', description: 'Document something in your environment using a black and white filter.' },
-  { title: 'Public Singing', description: 'Sing a short song or hum a tune in a public space.' },
-  { title: 'Sidewalk Message', description: 'Leave a positive message in a public space (chalk, arranged objects, etc.).' },
-  { title: 'Spontaneous Speech', description: 'Give a 30-second impromptu speech about something you see.' },
-  { title: 'Found Sculpture', description: 'Find something in your environment that looks like sculpture.' },
-  { title: 'Line Drawing', description: 'Create a quick continuous line drawing of something in your environment.' },
-  { title: 'Trash Transformation', description: 'Transform a piece of trash into something artistic or useful.' },
-  { title: 'Finger Frame', description: 'Use your fingers to create a frame around something interesting.' },
-  { title: 'Echo Test', description: 'Find a space with interesting acoustics and test the echo.' },
-  { title: 'Natural Paintbrush', description: 'Use a natural object (leaf, stick, etc.) to create a simple drawing or mark.' },
-  { title: 'Pocket Gallery', description: 'Create a tiny art gallery using small objects from your pockets or bag.' },
-  { title: 'Word Association', description: 'Find 3 words in your environment and explain how they connect to each other.' },
-  { title: 'Stone Stacking', description: 'Create a small stack of stones or objects (where permitted).' },
-  { title: 'Sound Wave', description: 'Visualize a sound around you by drawing what you hear.' },
-  { title: 'Public Performance', description: 'Perform a short skit or scene in a public space.' },
-  { title: 'Mirror Image', description: 'Create a symmetrical arrangement of objects you find near you.' },
-  { title: 'Wind Art', description: 'Create something that moves with the wind using materials you find nearby.' },
-  { title: 'Light Drawing', description: 'Use a light source to "draw" in the air while recording.' },
-  { title: 'Invisible Orchestra', description: 'Pretend to play an invisible instrument in a public space.' },
-  { title: 'Outdoor Gallery', description: 'Create a temporary exhibition of found objects nearby.' },
-  { title: 'Shadow Puppet', description: 'Create a shadow puppet using your hands or objects.' },
-  { title: 'Street Portrait', description: 'Draw a quick portrait on paper in a public setting.' },
-  { title: 'Alphabet Photography', description: 'Find an object that looks like a letter and document it.' },
-  { title: 'Urban Camouflage', description: 'Try to blend in with your environment for a creative photo.' },
-  { title: 'Reflection Self-Portrait', description: 'Create a self-portrait using reflective surfaces around you.' },
-  { title: 'Urban Color Palette', description: 'Find 5 different colors in your immediate urban environment.' },
-  
-  // CHALLENGES & GAMES (40)
-  { title: 'Balance Challenge', description: 'Balance on one foot for 30 seconds in a public space.' },
-  { title: 'Coin Flip Decision', description: 'Make a spontaneous decision based on a coin flip on camera.' },
-  { title: 'Rock Paper Scissors', description: 'Play rock paper scissors with a willing participant.' },
-  { title: 'Hopscotch', description: 'Play hopscotch on a sidewalk or create your own hopscotch grid.' },
-  { title: 'Memory Challenge', description: 'Look at a scene for 10 seconds, turn away, and recall as many details as possible.' },
-  { title: 'Backwards Walking', description: 'Walk backwards for 30 steps in a safe, open area.' },
-  { title: 'Coin Stacking', description: 'Stack coins in a public space and see how high you can go in 30 seconds.' },
-  { title: 'Limbo Challenge', description: 'Do the limbo under a branch, sign, or other object without touching it.' },
-  { title: 'Blind Drawing', description: 'Draw something in your environment without looking at your paper for 30 seconds.' },
-  { title: 'Speed Challenge', description: 'Do 10 jumping jacks in a public space.' },
-  { title: 'Counting Game', description: 'Count how many of a specific object you can find in 30 seconds.' },
-  { title: 'Alphabet Hunt', description: 'In 30 seconds, find objects that start with as many letters of the alphabet as possible.' },
-  { title: 'Mirror Challenge', description: 'Mirror the movements of someone else in a public space (with their permission).' },
-  { title: 'Stone Skipping', description: 'Skip a stone on water (if near a suitable body of water).' },
-  { title: 'Target Practice', description: 'Throw a small object into a target (trash can, circle drawn with chalk, etc.).' },
-  { title: 'Freeze Frame', description: 'Freeze in an interesting pose in a public space for 15 seconds.' },
-  { title: 'Word Chain', description: 'Find 3 words in your environment and connect them in a word chain.' },
-  { title: 'Obstacle Course', description: 'Navigate a simple obstacle course using objects in your immediate environment.' },
-  { title: 'Treasure Hunt', description: 'Find 3 small "treasures" in your immediate environment (interesting rocks, leaves, etc.).' },
-  { title: 'Shadow Tag', description: 'Try to step on the shadows of objects without stepping on your own shadow.' },
-  { title: 'Chair Challenge', description: 'Sit in 3 different public seating options within 30 seconds.' },
-  { title: 'Step Counter', description: 'Count how many steps it takes to walk around a small defined area.' },
-  { title: 'Follow the Leader', description: 'Have someone lead you on a spontaneous 30-second journey.' },
-  { title: 'Simon Says', description: 'Play a quick game of Simon Says with a willing participant.' },
-  { title: 'I Spy', description: 'Play I Spy with someone and document the object they choose.' },
-  { title: 'Coin Toss', description: 'Toss a coin into a fountain or designated spot (if appropriate).' },
-  { title: 'Mime Time', description: 'Mime an activity for 30 seconds in a public space.' },
-  { title: 'Fitness Minute', description: 'Do 30 seconds of exercise in a public space.' },
-  { title: 'Penny Challenge', description: 'Place a penny heads-up for someone else to find for good luck.' },
-  { title: 'Hand Clap Game', description: 'Play a hand clap game with a willing participant.' },
-  { title: 'Stretch Break', description: 'Do 3 different stretches in a public space.' },
-  { title: 'Finger Counting Game', description: 'Play an "odd or even" finger counting game with someone.' },
-  { title: 'Standing Long Jump', description: 'Do a standing long jump and mark your distance.' },
-  { title: 'Bubble Blowing', description: 'Blow bubbles in a public space.' },
-  { title: 'Paper Airplane', description: 'Make and fly a paper airplane outdoors.' },
-  { title: 'Hula Hoop', description: 'Do the hula hoop motion with or without an actual hula hoop for 30 seconds.' },
-  { title: 'Thumb War', description: 'Have a thumb war with a willing participant.' },
-  { title: 'Air Drawing', description: 'Draw something in the air and have someone guess what it is.' },
-  { title: 'Double High Five', description: 'Do a double high five with someone.' },
-  { title: 'Quick Chase', description: 'Playfully chase a friend for 10 seconds in an open area.' },
-  
-  // OBSERVATION & MINDFULNESS (45)
-  { title: 'Cloud Watcher', description: 'Spend 30 seconds watching and describing the clouds.' },
-  { title: 'Bird Listener', description: 'Close your eyes for 15 seconds and identify any bird sounds you hear.' },
-  { title: 'Texture Touch', description: 'Find and document 3 different textures in your immediate environment.' },
-  { title: 'Deep Breath', description: 'Take 5 deep breaths in a peaceful setting and describe how you feel.' },
-  { title: 'Wind Direction', description: 'Determine which way the wind is blowing using natural indicators.' },
-  { title: 'People Watching', description: 'Observe and document the flow of people in a public space for 30 seconds.' },
-  { title: 'Sound Map', description: 'Close your eyes for 15 seconds and describe all the sounds around you.' },
-  { title: 'Color Meditation', description: 'Focus on a single color for 30 seconds and find all instances of it in your immediate environment.' },
-  { title: 'Slow Motion', description: 'Perform a simple action in extreme slow motion for 30 seconds.' },
-  { title: 'Tree Study', description: 'Spend 30 seconds observing a tree and document what you notice.' },
-  { title: 'Barefoot Moment', description: 'Feel the ground with your bare feet (in a safe, clean area) for 30 seconds.' },
-  { title: 'Eye Level Change', description: 'View your environment from a different eye level (crouching, lying down, etc.).' },
-  { title: 'Smell Map', description: 'Document the different smells you encounter in your immediate area.' },
-  { title: 'Water Watching', description: 'Spend 30 seconds observing water (fountain, stream, puddle) and describe the patterns.' },
-  { title: 'Weather Feeling', description: 'Describe how the current weather feels on your skin.' },
-  { title: 'Detail Detective', description: 'Find a small detail in your environment that most people would miss.' },
-  { title: 'Light and Shadow', description: 'Observe how light and shadow interact in your immediate environment.' },
-  { title: 'Sound Isolation', description: 'Focus on a single sound in your environment and describe it in detail.' },
-  { title: 'Sky Gazing', description: 'Spend 30 seconds looking at the sky and describe what you see.' },
-  { title: 'Peripheral Vision', description: 'Test your peripheral vision by focusing on a central point and noting what you can see at the edges.' },
-  { title: 'Counting Meditation', description: 'Count your breaths for 30 seconds while sitting still.' },
-  { title: 'Leaf Study', description: 'Examine a leaf in detail and document what you observe.' },
-  { title: 'Stone Feeling', description: 'Hold a stone or rock and describe how it feels in your hand.' },
-  { title: 'Temperature Contrast', description: 'Find two surfaces with distinctly different temperatures and document the contrast.' },
-  { title: 'Wind Feeling', description: 'Close your eyes and focus on the feeling of wind or air on your skin for 30 seconds.' },
-  { title: 'Silence Seeker', description: 'Find the quietest spot you can and spend 30 seconds there.' },
-  { title: 'Balance Stone', description: 'Balance a small stone on another stone or object.' },
-  { title: 'Puddle Reflection', description: 'Find a puddle and observe what reflects in it.' },
-  { title: 'Sky Color', description: 'Observe and describe the exact color of the sky.' },
-  { title: 'Ground Texture', description: 'Document the texture of the ground beneath your feet.' },
-  { title: 'Shape Meditation', description: 'Focus on a single geometric shape and find examples of it in your environment.' },
-  { title: 'Sound Rhythm', description: 'Listen for rhythmic sounds in your environment (traffic lights, crosswalk signals, etc.).' },
-  { title: 'Insect Observer', description: 'Find and observe an insect for 30 seconds.' },
-  { title: 'Plant Detail', description: 'Examine and document a small detail of a plant.' },
-  { title: 'Eye Contact', description: 'Make eye contact with yourself in a reflective surface for 15 seconds.' },
-  { title: 'Walking Meditation', description: 'Take 30 deliberate, mindful steps, focusing on each movement.' },
-  { title: 'Sound Layers', description: 'Try to identify at least 3 different layers of sound in your environment.' },
-  { title: 'Time Awareness', description: 'Try to count exactly 30 seconds without looking at a clock.' },
-  { title: 'Temperature Awareness', description: 'Document how the temperature changes as you move from sun to shade.' },
-  { title: 'Movement Flow', description: 'Observe and document how people or objects move through a space for 30 seconds.' },
-  { title: 'Seasonal Change', description: 'Find and document signs of the current season in your immediate environment.' },
-  { title: 'Micro Observation', description: 'Find something tiny and observe it in great detail for 30 seconds.' },
-  { title: 'Cloud Movement', description: 'Observe cloud movement for 30 seconds and describe the patterns.' },
-  { title: 'Sensory Deprivation', description: 'Cover one sense (like ears or eyes) for 30 seconds and describe how it changes your awareness.' },
-  { title: 'Color Gradient', description: 'Find a natural color gradient in your immediate environment.' },
-  
-  // FOOD & DRINK (35)
-  { title: 'Local Taste', description: 'Try a food or drink from a local vendor you have never visited before.' },
-  { title: 'Outdoor Coffee', description: 'Enjoy a coffee or tea in an outdoor setting.' },
-  { title: 'Water Taste Test', description: 'Compare the taste of water from two different sources on camera.' },
-  { title: 'Street Food', description: 'Find and try a street food item.' },
-  { title: 'Picnic Spot', description: 'Find an ideal spot for a picnic and document why it is perfect.' },
-  { title: 'Fruit Finder', description: 'Find and document fresh fruit being sold in your area.' },
-  { title: 'Bread Aroma', description: 'Find a bakery and document the aroma and atmosphere of fresh bread.' },
-  { title: 'Drink with a View', description: 'Enjoy a beverage while taking in a nice view.' },
-  { title: 'Food Truck', description: 'Find a food truck and show their menu or specialties.' },
-  { title: 'Market Fresh', description: 'Visit a market and find the freshest looking produce.' },
-  { title: 'Sweet Treat', description: 'Find and enjoy a local sweet treat on camera.' },
-  { title: 'Spice Encounter', description: 'Find a source of aromatic spices and document the scent and appearance.' },
-  { title: 'Beverage Pairing', description: 'Show a drink that pairs well with your current surroundings and explain why.' },
-  { title: 'Coffee Art', description: 'Find a cafe that creates latte art and document an example.' },
-  { title: 'Water Source', description: 'Find a public water source (drinking fountain, etc.) and take a drink.' },
-  { title: 'Outdoor Dining', description: 'Find a place where people dine outdoors and document the atmosphere.' },
-  { title: 'Local Specialty', description: 'Find a food that is a specialty of your local area.' },
-  { title: 'Tea Time', description: 'Take a moment to enjoy a cup of tea and show your surroundings.' },
-  { title: 'International Flavor', description: 'Find a food establishment offering cuisine from another country.' },
-  { title: 'Food Aroma', description: 'Find a place with enticing food aromas and describe what you smell.' },
-  { title: 'Juice Bar', description: 'Find a place that sells fresh juice or smoothies.' },
-  { title: 'Herb Spotter', description: 'Find fresh herbs being grown or sold in your area.' },
-  { title: 'Ice Cream Moment', description: 'Enjoy an ice cream or frozen treat in a public space.' },
-  { title: 'Farmer Meeting', description: 'At a market, talk to someone who grew or made what you are buying (with permission).' },
-  { title: 'Comfort Food', description: 'Find a place that serves comfort food and show why it is comforting.' },
-  { title: 'Unique Beverage', description: 'Find and try a beverage you have never had before.' },
-  { title: 'Food Share', description: 'Share a snack with someone (with their permission).' },
-  { title: 'Vegetarian Option', description: 'Find a place offering interesting vegetarian food options.' },
-  { title: 'Seasonal Taste', description: 'Find a food or drink that is specific to the current season.' },
-  { title: 'Food Art', description: 'Document food that is presented in an artistic way.' },
-  { title: 'Breakfast Spot', description: 'Find a popular spot for breakfast or brunch.' },
-  { title: 'Lunch Break', description: 'Have lunch in an unusual location and document the experience.' },
-  { title: 'Communal Dining', description: 'Find a place where people dine communally or at shared tables.' },
-  { title: 'Food Tour', description: 'Visit a food market or hall and show three different interesting foods.' },
-  { title: 'Kitchen Voyeur', description: 'Find a restaurant with an open kitchen where you can watch the chefs.' },
-  { title: 'Food Critic', description: 'Try a local food item and give a 30-second review on camera.' },
-  { title: 'Colorful Plate', description: 'Find a meal or snack with at least 3 different vibrant colors.' },
-  { title: 'Hidden Gem', description: 'Find a small, lesser-known eatery and show what makes it special.' },
-  { title: 'Street Corner Snack', description: 'Enjoy a quick snack at a busy street corner and describe the ambiance.' },
-  { title: 'Cooking Show', description: 'Find someone cooking in public (street vendor, etc.) and document the process (with permission).' },
-  
-  // CRYPTO & WEB3 (35)
-  { title: 'Crypto Graffiti', description: 'Find street art or graffiti related to cryptocurrency or Web3.' },
-  { title: 'Blockchain Meetup', description: 'Find a location where crypto/blockchain meetups happen (even if there is no event today).' },
-  { title: 'Crypto Cafe', description: 'Find a cafe or restaurant that accepts cryptocurrency as payment.' },
-  { title: 'Token Hunt', description: 'Find and scan a QR code in a public space (like a poster or advertisement).' },
-  { title: 'Mining Metaphor', description: 'Find something in the physical world that reminds you of crypto mining and explain why.' },
-  { title: 'Digital Twin', description: 'Find a physical object that could have an interesting digital twin as an NFT.' },
-  { title: 'Crypto Conversation', description: 'Explain a basic crypto concept to the camera or to someone (with their permission).' },
-  { title: 'Decentralized Symbol', description: 'Find something in your environment that symbolizes decentralization.' },
-  { title: 'Wallet Check', description: 'Check your crypto wallet in a memorable location and document it.' },
-  { title: 'Crypto Merch', description: 'Find someone wearing cryptocurrency merchandise or spot crypto stickers in the wild.' },
-  { title: 'Public Key Art', description: 'Create quick art inspired by the concept of public and private keys.' },
-  { title: 'Blockchain Metaphor', description: 'Find something in the physical world that reminds you of a blockchain and explain the connection.' },
-  { title: 'Web3 Workspace', description: 'Find a coworking space or cafe where tech or crypto developers gather.' },
-  { title: 'Crypto ATM', description: 'Find a cryptocurrency ATM in your area.' },
-  { title: 'Digital Asset', description: 'Find something physical that you think would make a valuable digital asset and explain why.' },
-  { title: 'NFT Gallery', description: 'Find a physical gallery that displays NFT art or create a mini physical display of digital art concepts.' },
-  { title: 'Smart Contract Analogy', description: 'Find something in the physical world that works like a smart contract and explain the similarity.' },
-  { title: 'Token Economy', description: 'Find a local business that uses some kind of token system (loyalty points, etc.).' },
-  { title: 'Governance Symbol', description: 'Find something that represents governance or voting in the physical world.' },
-  { title: 'Crypto Educator', description: 'Teach one simple blockchain concept in 30 seconds.' },
-  { title: 'Privacy Metaphor', description: 'Find something that symbolizes privacy or security in the physical world.' },
-  { title: 'Token Utility', description: 'Find something that demonstrates utility or value exchange in the physical world.' },
-  { title: 'Web3 Community', description: 'Find a local community board or space where tech-oriented people gather.' },
-  { title: 'Physical Ledger', description: 'Find a physical ledger or record-keeping system in the real world.' },
-  { title: 'Digital Identity', description: 'Create a quick representation of your digital identity using physical objects around you.' },
-  { title: 'Crypto Symbol', description: 'Find something that resembles a cryptocurrency symbol (₿, Ξ, etc.) in the wild.' },
-  { title: 'DeFi in Real Life', description: 'Find an example of traditional finance and explain how DeFi could improve it.' },
-  { title: 'Validator Node', description: 'Find something in your environment that reminds you of a validator node and explain why.' },
-  { title: 'Public vs Private', description: 'Find an example of public vs private space and relate it to public vs private keys.' },
-  { title: 'Hash Function', description: 'Create a simple visual representation of how a hash function works using objects around you.' },
-  { title: 'Crypto-Friendly Business', description: 'Find a business that embraces technology or might be open to crypto adoption.' },
-  { title: 'Metaverse Portal', description: 'Find a location that feels like it could be a portal to the metaverse and explain why.' },
-  { title: 'Token Bridge', description: 'Find a physical bridge and use it as a metaphor to explain bridging between blockchains.' },
-  { title: 'Consensus Mechanism', description: 'Use objects around you to create a quick visual explanation of how consensus works.' },
-  { title: 'Wallet Security', description: 'Find something that represents security in the physical world and relate it to wallet security.' },
-  
-  // RANDOM & FUN (35)
-  { title: 'Spontaneous Celebration', description: 'Celebrate something small with an impromptu 30-second party.' },
-  { title: 'Opposite Day', description: 'Do something in the opposite way you normally would for 30 seconds.' },
-  { title: 'Random Direction', description: 'At an intersection, go in a random direction and discover what is there.' },
-  { title: 'Time Capsule', description: 'Create a quick digital time capsule of the current moment with your narration.' },
-  { title: 'Secret Message', description: 'Create and leave a secret message for someone to find (where appropriate).' },
-  { title: 'Unusual Perspective', description: 'Take a video from a very unusual angle or perspective.' },
-  { title: 'Silly Walk', description: 'Do a silly walk for 30 seconds in a public place.' },
-  { title: 'Joke Teller', description: 'Tell a joke to someone and document their reaction (with permission).' },
-  { title: 'Improvised Story', description: 'Create a short story about a random object you find.' },
-  { title: 'Disguise', description: 'Subtly change your appearance for a short time (hat, glasses, etc.).' },
-  { title: 'Childhood Game', description: 'Play a game you enjoyed as a child for 30 seconds.' },
-  { title: 'Imaginary Friend', description: 'Introduce and interact with an imaginary friend for 30 seconds.' },
-  { title: 'Future Prediction', description: 'Make a fun prediction about the future of your location.' },
-  { title: 'Alternative Use', description: 'Find a common object and use it for something other than its intended purpose.' },
-  { title: 'Invisible Object', description: 'Pretend to interact with an invisible object for 30 seconds.' },
-  { title: 'Accent Adventure', description: 'Speak in a different accent for 30 seconds (without mocking any culture).' },
-  { title: 'Secret Agent', description: 'Pretend to be a secret agent on a mission for 30 seconds.' },
-  { title: 'Random Act of Weirdness', description: 'Do something harmlessly weird in public for 30 seconds.' },
-  { title: 'Pet Rock', description: 'Find a rock and treat it as a pet for 30 seconds.' },
-  { title: 'Superhero Moment', description: 'Strike superhero poses in an everyday location.' },
-  { title: 'Reverse Video', description: 'Create a 15-second video of an action, then perform it backwards.' },
-  { title: 'Slow Motion Scene', description: 'Create a 30-second slow-motion scene of an ordinary action.' },
-  { title: 'Speed Challenge', description: 'See how many jumping jacks you can do in 30 seconds.' },
-  { title: 'Street Performance', description: 'Perform a quick 30-second routine in a public space.' },
-  { title: 'Quick Change', description: 'Change one aspect of your appearance during the 30-second video.' },
-  { title: 'Random Facts', description: 'Share 3 random facts about your current location.' },
-  { title: 'Echo Location', description: 'Find a place with an echo and demonstrate it.' },
-  { title: 'Paper Fortune Teller', description: 'Make a quick paper fortune teller and use it.' },
-  { title: 'Impersonation', description: 'Do a brief, respectful impersonation of a famous character or celebrity.' },
-  { title: 'Sound Effects', description: 'Add live sound effects to a simple action.' },
-  { title: 'Magic Trick', description: 'Perform a simple magic trick or illusion.' },
-  { title: 'Impromptu Song', description: 'Make up a quick song about your surroundings.' },
-  { title: 'Shadow Puppets', description: 'Create shadow puppets and tell a 30-second story.' },
-  { title: 'Public Challenge', description: 'Complete a safe, fun physical challenge in a public space.' },
-  { title: 'Time Traveler', description: 'Pretend you are a time traveler experiencing your location for the first time.' }
+export const monthlyChallenges: Challenge[] = [
+  { 
+    title: 'January: Polar Bear Challenge', 
+    description: 'Take a full immersion swim in an outdoor body of water during winter. Show your preparation, immersion, and reaction afterward.'
+  },
+  { 
+    title: 'February: Love Ambassador', 
+    description: 'Organize a "love event" where at least 10 strangers share what love means to them. Create a montage of their responses.'
+  },
+  { 
+    title: 'March: Urban Marathon', 
+    description: 'Visit and document 26 distinct neighborhoods or districts in your city in a single day, spending at least 10 minutes in each.'
+  },
+  { 
+    title: 'April: Fool\'s Festival', 
+    description: 'Organize a small public event with games or activities centered around playful foolishness. Get at least 15 participants.'
+  },
+  { 
+    title: 'May: Nature Immersion', 
+    description: 'Spend 24 consecutive hours in nature without digital technology. Document your experience and what you learned.'
+  },
+  { 
+    title: 'June: Cultural Fusion', 
+    description: 'Organize a public multicultural exchange with at least 5 people from different cultural backgrounds sharing elements of their culture.'
+  },
+  { 
+    title: 'July: Peak Performance', 
+    description: 'Reach the highest point in your region (mountain, hill, or tall building if urban). Document the entire journey from preparation to summit.'
+  },
+  { 
+    title: 'August: Water Challenge', 
+    description: 'Travel a significant distance (at least 5km) on water using a non-motorized vessel (kayak, paddleboard, etc.). Show your journey.'
+  },
+  { 
+    title: 'September: Knowledge Quest', 
+    description: 'Learn a complex skill from a master or expert in your city. Document your learning process and demonstrate your new skill.'
+  },
+  { 
+    title: 'October: Fear Factor Extreme', 
+    description: 'Face your biggest fear in a significant way. Document your preparation, the experience itself, and your reflection afterward.'
+  },
+  { 
+    title: 'November: Kindness Campaign', 
+    description: 'Perform 30 meaningful acts of kindness in 30 days, documenting each one. Create a final compilation showing the impact.'
+  },
+  { 
+    title: 'December: Survival Challenge', 
+    description: 'Survive for 48 hours using only $10 for all your needs (food, shelter, etc.). Document your strategies and experience.'
+  }
 ];
 
-// WEEKLY CHALLENGES (52 total - designed to be provable but require more time)
+export const dailyChallenges: Challenge[] = [
+  // SOCIAL DARES (95 challenges)
+  { title: 'High Five Chain', description: 'Get 5 consecutive high fives from strangers in 30 seconds. Must show each reaction!' },
+  { title: 'Compliment Cascade', description: 'Give genuine compliments to 3 strangers and capture their reactions (with permission).' },
+  { title: 'Dance Contagion', description: 'Start dancing in public and get at least one stranger to join you (even briefly).' },
+  { title: 'Human Statue', description: 'Freeze in a dramatic pose in a busy area for 30 seconds. Capture people\'s reactions.' },
+  { title: 'Stranger Selfie', description: 'Convince a stranger to take a creative selfie with you (get permission first).' },
+  { title: 'Accent Challenge', description: 'Order something at a shop/cafe in an accent completely different from your own.' },
+  { title: 'Reverse Direction', description: 'Walk against the flow of pedestrian traffic for 30 seconds without colliding with anyone.' },
+  { title: 'Phone a Friend', description: 'Call an old friend you haven\'t spoken to in months and catch up for 30 seconds.' },
+  { title: 'Flash Choir', description: 'Start singing in public and try to get at least one person to join in.' },
+  { title: 'Stranger Directions', description: 'Ask a stranger for directions to an obvious landmark that\'s visible from where you\'re standing.' },
+  { title: 'Power Pose', description: 'Strike superhero poses in 3 different public locations within 30 seconds.' },
+  { title: 'Public Limbo', description: 'Create an impromptu limbo bar in public and get at least one person to go under it.' },
+  { title: 'Invisible Tug-of-War', description: 'Start an invisible tug-of-war and convince at least one stranger to join the other end.' },
+  { title: 'Laugh Outbreak', description: 'Start laughing loudly in public and see if you can get others to laugh with you.' },
+  { title: 'Secret Handshake', description: 'Create a complicated handshake and teach it to a willing stranger.' },
+  { title: 'Eye Contact Contest', description: 'Have a 15-second staring contest with a willing stranger. Who will blink first?' },
+  { title: 'Wave Chain', description: 'Wave enthusiastically at strangers until at least 3 people wave back.' },
+  { title: 'Conga Line', description: 'Start a conga line in public and get at least 2 strangers to join.' },
+  { title: 'Mirror Mirror', description: 'Secretly mirror a stranger\'s movements until they notice (respectfully, not mockingly).' },
+  { title: 'Quick Poll', description: 'Ask 5 strangers the same unusual but innocent question and compare their answers.' },
+  { title: 'Smile Campaign', description: 'Make at least 7 people smile in 30 seconds without speaking.' },
+  { title: 'Interpretive Dance', description: 'Perform an interpretive dance based on something in your environment. Get a reaction!' },
+  { title: 'Random Applause', description: 'Start applauding for no reason in public and get others to join in.' },
+  { title: 'Tourist Trick', description: 'Pretend to be a tourist and ask locals about obvious landmarks. Record their helpful responses!' },
+  { title: 'Thumb Wrestler', description: 'Challenge a stranger to a thumb wrestling match. Best 2 out of 3!' },
+  { title: 'Spontaneous Celebration', description: 'Start celebrating as if you just received amazing news and get strangers to congratulate you.' },
+  { title: 'Imaginary Friend', description: 'Have a full conversation with an imaginary friend in public. Capture onlookers\' reactions.' },
+  { title: 'Slow-Mo Heroes', description: 'Walk in dramatic slow motion with at least one stranger joining you.' },
+  { title: 'Freeze Tag', description: 'Play a quick game of freeze tag with at least 2 willing strangers.' },
+  { title: 'Human Mirror', description: 'Stand back-to-back with a stranger and try to mimic each other\'s movements while facing away.' },
+  { title: 'Public Proposal', description: 'Stage a fake (but convincing) marriage proposal in public with a willing participant.' },
+  { title: 'Invisible Basketball', description: 'Start an invisible basketball game and get a stranger to play with you.' },
+  { title: 'Fist Bump Frenzy', description: 'Get 10 fist bumps from different strangers in 30 seconds.' },
+  { title: 'Signature Collector', description: 'Get 3 strangers to sign your "autograph book" as if they were celebrities.' },
+  { title: 'International Greeter', description: 'Say hello to strangers in 5 different languages. Document their responses.' },
+  { title: 'Synchronize Watches', description: 'Approach strangers to urgently "synchronize watches" for a "mission."' },
+  { title: 'Stranger\'s Choice', description: 'Let 3 different strangers each tell you to do something (appropriate) and do it immediately.' },
+  { title: 'Hat Swap', description: 'Convince a stranger wearing a hat to swap headwear with you for 30 seconds.' },
+  { title: 'Flash Debate', description: 'Start a friendly 30-second debate with a stranger on a light-hearted topic.' },
+  { title: 'Fake Celebrity', description: 'Pretend to be a minor celebrity and see if you can get a stranger to "recognize" you.' },
+  { title: 'Fortune Teller', description: 'Set up as an impromptu fortune teller and read a stranger\'s palm or fortune.' },
+  { title: 'Stranger\'s Story', description: 'Get a stranger to tell you an interesting story from their life in 30 seconds.' },
+  { title: 'Group Photo', description: 'Gather at least 5 strangers for a group photo pretending you\'re all old friends.' },
+  { title: 'Quick Interview', description: 'Conduct a mock TV interview with a willing stranger about their day.' },
+  { title: 'Silent Communication', description: 'Have a 30-second "conversation" with a stranger using only gestures, no words.' },
+  { title: 'Public Confession', description: 'Make a harmless, humorous "public confession" and get reactions.' },
+  { title: 'Stranger\'s Advice', description: 'Ask 3 different strangers for advice on the same minor life decision. Compare answers!' },
+  { title: 'Group Hug', description: 'Organize a group hug with at least 3 willing strangers.' },
+  { title: 'Personal Hype', description: 'Get a stranger to hype you up/introduce you as if you\'re about to give a major performance.' },
+  { title: 'Instant Best Friend', description: 'Approach a stranger and interact as if you\'ve been best friends for years.' },
+  { title: 'Paper Airplane Messages', description: 'Write nice messages on paper airplanes and fly them to strangers.' },
+  { title: 'Name Game', description: 'Meet 5 new people and memorize all their names. Recite them at the end of your video.' },
+  { title: 'Fast Friends', description: 'Find a stranger and ask 3 progressively deeper questions to become quick friends.' },
+  { title: 'Human Chain', description: 'Create a human chain across a public space with at least 4 willing strangers.' },
+  { title: 'Whisper Challenge', description: 'Play the whisper challenge with 2 strangers, passing a message down the line.' },
+  { title: 'Public Karaoke', description: 'Sing a popular song in public and get at least one person to sing along with you.' },
+  { title: 'Stranger\'s Talent', description: 'Find a stranger willing to demonstrate a talent or skill they possess.' },
+  { title: 'Human Knot', description: 'Form a human knot with at least 3 strangers and try to untangle yourselves.' },
+  { title: 'Air Band', description: 'Start an "air band" in public and recruit at least 2 strangers to join your band.' },
+  { title: 'Rock Paper Scissors Tournament', description: 'Challenge 5 different strangers to quick rock-paper-scissors matches.' },
+  { title: 'Stranger\'s Language', description: 'Find someone who speaks a language you don\'t know and learn 3 phrases from them.' },
+  { title: 'Surprise Party', description: 'Convince at least 3 strangers to help you throw a 30-second "surprise party" for another stranger.' },
+  { title: 'Improv Scene', description: 'Create a 30-second improvised scene with at least one willing stranger.' },
+  { title: 'Confidence Boost', description: 'Give confidence-boosting pep talks to 3 strangers. Record their reactions.' },
+  { title: 'Stranger\'s Secret', description: 'Get 3 strangers to whisper a harmless secret into your ear.' },
+  { title: 'Joke Exchange', description: 'Exchange jokes with 3 different strangers. Who has the best one?' },
+  { title: 'Back Story', description: 'Approach a stranger and start a conversation as if you\'re continuing from yesterday.' },
+  { title: 'Reverse Introduction', description: 'Get 3 strangers to introduce themselves to you instead of the other way around.' },
+  { title: 'Restaurant Hop', description: 'Visit 3 restaurants in 30 seconds and ask each host for their dinner recommendation.' },
+  { title: 'Rapid Fire Compliments', description: 'Give 10 different compliments to 10 different people in 30 seconds.' },
+  { title: 'Language Barrier', description: 'Pretend you don\'t speak the local language and communicate with a stranger using only gestures.' },
+  { title: 'Partner Swap', description: 'Approach a couple and ask to "borrow" one person for your 30-second video.' },
+  { title: 'Counting Chorus', description: 'Get a group of at least 5 strangers to count loudly from 1 to 10 together.' },
+  { title: 'Mystery Box', description: 'Carry a box and ask strangers to reach in without looking. Fill it with something harmless but surprising.' },
+  { title: 'Stranger\'s Pose', description: 'Ask 3 strangers to show you their best pose and mimic them perfectly.' },
+  { title: 'Guess My Job', description: 'Ask 5 strangers to guess what you do for a living based just on looking at you.' },
+  { title: 'Photo Director', description: 'Direct 3 strangers to pose for an artistic photo following your specific instructions.' },
+  { title: 'Accent Adaptor', description: 'Speak to 3 different strangers in 3 different accents. See if they notice the changes.' },
+  { title: 'Spontaneous Dating', description: 'Create an impromptu "speed dating" setup and get at least 2 strangers to participate.' },
+  { title: 'Workout Buddy', description: 'Start exercising in public and get at least 2 strangers to join your "workout class."' },
+  { title: 'Poetry Slam', description: 'Recite a spontaneous poem about a stranger (with their permission) in a public place.' },
+  { title: 'Hand Holding Chain', description: 'Create a hand-holding chain with at least 4 strangers crossing a street or space together.' },
+  { title: 'Playground Adults', description: 'Get 3 adults to join you in using playground equipment meant for children.' },
+  { title: 'Wake Up Call', description: 'Pretend to wake up confused in a public place and ask strangers what year it is.' },
+  { title: 'Stranger\'s Orders', description: 'Let 3 strangers each give you a simple command that you must follow immediately.' },
+  { title: 'Memory Test', description: 'Meet a stranger, exchange 5 facts about yourselves, then test each other\'s memory.' },
+  { title: 'Cheerleading Squad', description: 'Create an impromptu cheerleading routine and get at least 2 strangers to join.' },
+  { title: 'Cultural Exchange', description: 'Find someone from another culture and exchange a tradition, phrase, or custom.' },
+  { title: 'Finger Pyramid', description: 'Create a finger pyramid (touching index fingers) with at least 3 strangers simultaneously.' },
+  { title: 'Public Pranking', description: 'Pull a harmless prank on a friend in public and capture strangers\' reactions.' },
+  { title: 'Stranger\'s Outfit', description: 'Compliment 5 strangers on specific elements of their outfit. Get their reactions!' },
+  { title: 'Trust Fall', description: 'Perform a trust fall with a willing stranger (safely and with warning).' },
+  { title: 'Human Clock', description: 'Get 12 strangers to represent hours on a clock and stand in the correct positions.' },
+  { title: 'Invisible Gift', description: 'Give "invisible gifts" to 5 strangers and record their reactions and "thank yous."' },
+  
+  // ADVENTURE & DARING CHALLENGES (90 challenges)
+  { title: 'Urban Summit', description: 'Climb the highest accessible point in your immediate area (stairs, hill, etc.) and shout "I made it!"' },
+  { title: 'Wrong Way', description: 'Take the first path, alley, or street you\'ve never traveled before and discover what\'s there.' },
+  { title: 'Puddle Jumper', description: 'Find and jump over (or into) the biggest puddle you can find today.' },
+  { title: 'Snack Roulette', description: 'Go into a store and buy the weirdest snack you can find. Try it on camera.' },
+  { title: 'Free Fall', description: 'Find something at least 3 meters high (wall, platform, etc.) and safely jump off it.' },
+  { title: 'Counter Culture', description: 'Do something that goes against the social norm (safely and respectfully).' },
+  { title: 'Hidden Passage', description: 'Find and traverse a "shortcut" you\'ve never used before in your city.' },
+  { title: 'Roll the Dice', description: 'Let a dice roll decide what you do next - show your dice and your spontaneous activity.' },
+  { title: 'Upside Down', description: 'Do a handstand or headstand against a wall in a public place.' },
+  { title: 'Balance Beam', description: 'Walk along a narrow wall, curb, or rail for at least 10 meters without falling.' },
+  { title: 'Secret Agent', description: 'Follow a stranger (at a respectful distance) for 1 minute without being noticed. NO CREEPING.' },
+  { title: 'Barefoot Explorer', description: 'Remove your shoes and walk barefoot through 3 different urban textures.' },
+  { title: 'Cold Plunge', description: 'Submerge yourself in cold water (fountain, lake, ocean, etc.) for at least 5 seconds.' },
+  { title: 'Free Ride', description: 'Convince someone with a bicycle, scooter, or skateboard to let you borrow it for 20 seconds.' },
+  { title: 'Speed Demons', description: 'Challenge a stranger to a spontaneous 10-second race.' },
+  { title: 'Phone Swap', description: 'Convince a stranger to briefly swap phones with you to take each other\'s selfies.' },
+  { title: 'Food Fusion', description: 'Combine two completely different foods and eat the creation on camera.' },
+  { title: 'Get Carried', description: 'Convince someone to carry you for at least 5 steps (safely).' },
+  { title: 'Crowd Surfing', description: 'Get at least 3 people to "crowd surf" you horizontally for a few seconds.' },
+  { title: 'Human Pyramid', description: 'Form a human pyramid with at least 2 other willing participants.' },
+  { title: 'Stranger\'s Sunglasses', description: 'Borrow and wear a stranger\'s sunglasses for your 30-second clip.' },
+  { title: 'Urban Cave', description: 'Find and explore a small urban "cave" (underpass, alcove, etc.) you\'ve never entered before.' },
+  { title: 'Parkour Basics', description: 'Perform a basic parkour move (safety roll, precision jump, etc.) in an urban setting.' },
+  { title: 'Tree Climber', description: 'Climb a tree in a public place and wave to passersby from above.' },
+  { title: 'Fountain Splash', description: 'Splash water from a public fountain without getting completely soaked.' },
+  { title: 'Door Dasher', description: 'Enter and exit 5 different public buildings within 30 seconds.' },
+  { title: 'Reverse Shopping', description: 'Go through a store in reverse, walking backward the entire time.' },
+  { title: 'Car Horn Symphony', description: 'Get 3 different drivers to honk their horns in sequence (without causing traffic issues).' },
+  { title: 'Urban Wildlife', description: 'Track and document an urban animal (squirrel, bird, etc.) for 30 seconds.' },
+  { title: 'Roof Access', description: 'Legally access a rooftop you\'ve never been on and show the view.' },
+  { title: 'Weather Embracer', description: 'Whatever the weather, embrace it fully – dance in rain, make snow angels, sun worship, etc.' },
+  { title: 'Tunnel Echo', description: 'Find a tunnel or underpass and create the most impressive echo you can.' },
+  { title: 'Water Crossing', description: 'Cross a body of water without using a bridge (stepping stones, shallow wade, etc.).' },
+  { title: 'Public Napper', description: 'Find an unusual but comfortable public place to take a 10-second "power nap."' },
+  { title: 'Coin Flip Decision', description: 'Make every decision for 30 seconds based on coin flips. Show the results!' },
+  { title: 'Urban Camouflage', description: 'Blend in so well with your environment that you\'re hard to spot in the video.' },
+  { title: 'Floor is Lava', description: 'Cross a public space pretending the floor is lava (don\'t touch the ground!).' },
+  { title: 'Stranger\'s Photo', description: 'Ask a stranger to take your photo in 5 different poses in 30 seconds.' },
+  { title: 'Backward Day', description: 'Walk backward for 100 steps in a public place without colliding with anything.' },
+  { title: 'Invisible Obstacle', description: 'Navigate an "invisible obstacle course" in public, jumping and dodging imaginary barriers.' },
+  { title: 'Wrong Order', description: 'Order something that clearly isn\'t on the menu at a food establishment.' },
+  { title: 'Payphone Hunter', description: 'Find a payphone or public phone and make a call (even if just to your own phone).' },
+  { title: 'Animal Walk', description: 'Cross a public space walking like 3 different animals. Capture reactions!' },
+  { title: 'Urban Archaeology', description: 'Dig up (or pretend to excavate) something in a public space as if you\'re an archaeologist.' },
+  { title: 'Public Transportation Challenge', description: 'Use 3 different forms of public transportation within 30 minutes.' },
+  { title: 'Stair Master', description: 'Run up and down the longest staircase you can find without stopping.' },
+  { title: 'Stranger\'s Dare', description: 'Ask 3 strangers to each dare you to do something (appropriate), then do all three.' },
+  { title: 'Free Fall Feeling', description: 'Create the sensation of free-falling (safely) in a public place.' },
+  { title: 'Invisible Car', description: 'Pretend to drive an invisible car through a pedestrian area, with sound effects.' },
+  { title: 'Wall Runner', description: 'Run up a wall and attempt a parkour wall flip (safely or modified for your ability).' },
+  { title: 'Trash Can Basketball', description: 'Make 3 "basketball shots" into public trash cans from increasing distances.' },
+  { title: 'One Wheel Wonder', description: 'Find someone with a unicycle, skateboard, or similar and attempt to ride it (with permission).' },
+  { title: 'Tight Rope Walker', description: 'Walk a "tight rope" (curb, painted line, etc.) for 20 meters without stepping off.' },
+  { title: 'Urban Fishing', description: 'Pretend to fish in an urban water feature. See if anyone asks what you\'re catching!' },
+  { title: 'Invisible Box', description: 'Perform the "invisible box" trick where you pretend to step onto an invisible box.' },
+  { title: 'Food Challenger', description: 'Try the spiciest or most unusual food item at a local restaurant.' },
+  { title: 'Random Bus', description: 'Get on the next public bus that arrives, regardless of its destination. Ride for one stop.' },
+  { title: 'Barrier Jumper', description: 'Jump over 5 different barriers or obstacles in an urban environment (safely and legally).' },
+  { title: 'Sign Climber', description: 'Climb onto a public sign or monument (if safe and legal) and strike a pose.' },
+  { title: 'Bathroom Break', description: 'Find and rate the 3 most unusual public bathrooms in your immediate area.' },
+  { title: 'Urban Scavenger', description: 'Find 5 specific items in an urban environment within 30 seconds.' },
+  { title: 'Cart Racer', description: 'Race a shopping cart (or similar) down a (safe) slope or around a parking lot.' },
+  { title: 'Bubble Invasion', description: 'Fill a public space with bubbles and capture people\'s reactions.' },
+  { title: 'Quick Change', description: 'Change your outfit completely in a public place (while remaining decent) in under 30 seconds.' },
+  { title: 'Blind Navigator', description: 'Navigate through a public space blindfolded for 30 seconds (with a spotter for safety).' },
+  { title: 'Revolving Door Loop', description: 'Go through a revolving door at least 5 times consecutively.' },
+  { title: 'Rain Dance', description: 'Perform a "rain dance" in public – if it actually rains, bonus points!' },
+  { title: 'Elevator Entertainer', description: 'Entertain people in an elevator for one full ride with a performance of your choice.' },
+  { title: 'Hidden Message', description: 'Leave hidden messages in 3 public places for strangers to find.' },
+  { title: 'Mannequin Challenge', description: 'Freeze completely in a busy public place and hold it for 30 seconds.' },
+  { title: 'Penny Stacker', description: 'Stack at least 10 coins in a precarious public location without them falling.' },
+  { title: 'Invisible Tennis', description: 'Play an intense match of "invisible tennis" in a public place. Get a stranger to join!' },
+  { title: 'Rolling Down Hill', description: 'Find a (safe, grassy) hill in an urban area and roll all the way down it.' },
+  { title: 'Ceiling Toucher', description: 'Touch the ceiling in 5 different public buildings in 30 minutes.' },
+  { title: 'Shadow Chaser', description: 'Chase your shadow for 30 seconds in a public place, trying different moves to "escape" it.' },
+  { title: 'Mirror World', description: 'Visit a location with many mirrors and create an interesting "infinity" effect.' },
+  { title: 'Escalator Salmon', description: 'Walk up a down escalator or down an up escalator (safely, without disrupting others).' },
+  { title: 'Coin Collector', description: 'Find 5 coins on the ground in public places within 30 minutes.' },
+  { title: 'Plant Whisperer', description: 'Have a full, earnest conversation with a plant in a public place.' },
+  { title: 'Railing Slider', description: 'Slide down a handrail or railing (safely) in a public place.' },
+  { title: 'Leap of Faith', description: 'Take a dramatic leap from one safe platform to another in a public space.' },
+  { title: 'Sound Explorer', description: 'Create 5 different unusual sounds using only objects found in your environment.' },
+  { title: 'Public Exercise', description: 'Do an unusual exercise routine in a public place for 30 seconds.' },
+  { title: 'Spontaneous Tour Guide', description: 'Give a completely improvised 30-second tour of a public place to strangers.' },
+  { title: 'Hidden Entrance', description: 'Find and use an unusual or little-known entrance to a public building.' },
+  
+  // CREATIVITY & EXPRESSION CHALLENGES (90 challenges)
+  { title: 'Chalk Takeover', description: 'Create a colorful chalk message/drawing in a public space (where permitted).' },
+  { title: 'Trash Transformation', description: 'Turn a piece of litter into art or something useful on the spot.' },
+  { title: 'Unplanned Percussion', description: 'Create a 20-second beat using only objects found around you.' },
+  { title: 'Public Poetry', description: 'Write a quick poem about what you see and recite it to at least one stranger.' },
+  { title: 'Sound Safari', description: 'Recreate 3 urban sounds using only your voice, have a stranger guess what they are.' },
+  { title: 'Photo Bomb', description: 'Subtly (and respectfully) photo bomb someone\'s picture with permission to show the result.' },
+  { title: 'Invisible Object', description: 'Pretend to pass around an invisible object with at least 2 strangers.' },
+  { title: 'Quick Disguise', description: 'Transform your appearance in 30 seconds using only items you find around you.' },
+  { title: 'Air Artist', description: 'Create an elaborate "air drawing" and get a stranger to guess what you drew.' },
+  { title: 'Slow Motion', description: 'Cross a busy area in dramatic slow motion without breaking character.' },
+  { title: 'Shadow Puppets', description: 'Create an elaborate shadow puppet show on a wall using just your hands and a light source.' },
+  { title: 'Street Florist', description: 'Create a beautiful bouquet using only plants and flowers found in public spaces (no picking from gardens).' },
+  { title: 'Human Jukebox', description: 'Offer to sing any song requested by strangers – attempt at least 3 different songs.' },
+  { title: 'Invisible Orchestra', description: 'Conduct an "invisible orchestra" in public and get at least one person to join your ensemble.' },
+  { title: 'Urban Color Hunt', description: 'Find objects representing all colors of the rainbow in an urban environment within 30 seconds.' },
+  { title: 'Street Mime', description: 'Perform as a mime for 30 seconds in a public space, interacting with passersby.' },
+  { title: 'Environmental Art', description: 'Create a small piece of art using only natural materials found in your immediate environment.' },
+  { title: 'Dance Styles', description: 'Perform 5 different dance styles in 30 seconds in a public place.' },
+  { title: 'Found Object Music', description: 'Create a musical instrument from objects found in your environment and play a short tune.' },
+  { title: 'Portrait Artist', description: 'Draw a quick portrait of a willing stranger in a public place.' },
+  { title: 'Improvised Song', description: 'Create and perform a song about what\'s happening around you in real-time.' },
+  { title: 'Stranger\'s Voice', description: 'Interview a stranger and then tell their story using their voice and mannerisms.' },
+  { title: 'Public Catwalk', description: 'Turn a public walkway into a fashion runway and strut your stuff for 30 seconds.' },
+  { title: 'Voice Effects', description: 'Narrate what\'s happening around you using 5 different voice effects or accents.' },
+  { title: 'Leaf Art', description: 'Create a recognizable image or pattern using only fallen leaves.' },
+  { title: 'Sign Language', description: 'Learn and perform a simple phrase in sign language in a public place.' },
+  { title: 'Light Painting', description: 'Create a "light painting" in the dark using a phone or flashlight.' },
+  { title: 'Public Storyteller', description: 'Tell an impromptu 30-second story to at least 3 strangers.' },
+  { title: 'Architecture Critic', description: 'Give an impromptu architectural critique of a building in your city.' },
+  { title: 'Color Coordinator', description: 'Arrange objects you find in a public space by color to create a rainbow or gradient.' },
+  { title: 'Water Calligraphy', description: 'Write a message using water and a finger or brush on a dry surface.' },
+  { title: 'Pattern Hunter', description: 'Find and document 5 different patterns in your urban environment within 30 seconds.' },
+  { title: 'Stick Art', description: 'Create a small sculpture or design using only sticks and twigs found nearby.' },
+  { title: 'Voice Projection', description: 'Project your voice to be heard at least 20 meters away in a public space.' },
+  { title: 'Pop-up Installation', description: 'Create a small, temporary art installation in a public space using found objects.' },
+  { title: 'Interpretive Pedestrian', description: 'Cross a street or public space in an extremely unique or interpretive way.' },
+  { title: 'Symmetry Creator', description: 'Create a perfectly symmetrical design using objects found in your environment.' },
+  { title: 'Voice-Over Narrator', description: 'Narrate the actions of people in public (respectfully) as if it\'s a nature documentary.' },
+  { title: 'Urban Canvas', description: 'Use a public space as your "canvas" and create a design using your movement (tracked on video).' },
+  { title: 'Sound Collage', description: 'Create a 30-second "sound collage" by recording different urban sounds.' },
+  { title: 'Mannequin Pose-Off', description: 'Pose exactly like mannequins in a store window (without disturbing the display).' },
+  { title: 'Quick Portrait', description: 'Get 3 strangers to pose for rapid-fire portrait photos in creative poses.' },
+  { title: 'Urban Alphabet', description: 'Find objects in your environment that form each letter of your name.' },
+  { title: 'Paper Airplane Message', description: 'Write an uplifting message on a paper airplane and launch it in a public space.' },
+  { title: 'Headline Creator', description: 'Create an outrageous newspaper headline about what\'s happening around you and "report" it.' },
+  { title: 'Found Poem', description: 'Create a poem using only text you find in your environment (signs, advertisements, etc.).' },
+  { title: 'DIY Instrument', description: 'Make a musical instrument from urban materials and play a recognizable tune.' },
+  { title: 'Photo Series', description: 'Create a 5-photo series that tells a story about your location in 30 seconds.' },
+  { title: 'Body Percussion', description: 'Create a 30-second rhythm using only body percussion and get someone to dance to it.' },
+  { title: 'Shape Hunter', description: 'Find 5 perfect geometric shapes in your urban environment within 30 seconds.' },
+  { title: 'Urban Choreographer', description: 'Create a dance that incorporates 3 elements of the urban landscape around you.' },
+  { title: 'Living Statue', description: 'Pose as a living statue for 30 seconds in a busy area and capture people\'s reactions.' },
+  { title: 'Reflection Art', description: 'Create an interesting image using reflections in windows, puddles, or mirrors.' },
+  { title: 'Forced Perspective', description: 'Create 3 different forced perspective photo illusions in your environment.' },
+  { title: 'Urban Beat', description: 'Create a beat using only sounds from your urban environment (no instruments).' },
+  { title: 'Hands-Free Challenge', description: 'Complete a simple task without using your hands, in a creative way.' },
+  { title: 'Cartoon Voice', description: 'Interact with at least 3 strangers using only a cartoon character voice.' },
+  { title: 'Urban Collage', description: 'Create a quick collage using only items found in your immediate environment.' },
+  { title: 'Text Hunter', description: 'Find text in your environment that unintentionally forms a funny or meaningful message.' },
+  { title: 'Spontaneous Haiku', description: 'Create and recite a haiku about your current location to at least one stranger.' },
+  { title: 'Sound Effects', description: 'Add live sound effects to everyday actions happening around you.' },
+  { title: 'Hidden Face', description: 'Take creative photos where your face is hidden behind objects in the environment.' },
+  { title: 'Photo Challenge', description: 'Get 3 strangers to each take a creative photo of you following your specific instructions.' },
+  { title: 'Color Story', description: 'Tell a 30-second story using only objects of a specific color in your environment.' },
+  { title: 'Sidewalk Gallery', description: 'Create a temporary "art gallery" on a sidewalk using found objects arranged deliberately.' },
+  { title: 'Pocket Exhibition', description: 'Create an "art exhibition" using only items you have in your pockets or bag.' },
+  { title: 'Urban Echo', description: 'Find a space with interesting acoustics and use it to create unusual sounds.' },
+  { title: 'Sticker Story', description: 'If you have stickers, create a small story using them in a public space (removable only).' },
+  { title: 'Typography Safari', description: 'Find 10 different and interesting examples of typography in your environment.' },
+  { title: 'Reverse Song', description: 'Sing a popular song backwards in public and see if anyone recognizes it.' },
+  { title: 'Nature in City', description: 'Find and artistically document 5 examples of nature reclaiming urban spaces.' },
+  { title: 'Body Letters', description: 'Use your body to form all the letters needed to spell your name.' },
+  { title: 'Monochrome Challenge', description: 'Collect and arrange objects of a single color from your environment.' },
+  { title: 'Road Calligraphy', description: 'Use your walking path to "write" a word or draw a shape (tracked on your video).' },
+  { title: 'Hand Art', description: 'Create an interesting image or pattern using just handprints (on a safe, appropriate surface).' },
+  { title: 'One-minute Makeover', description: 'Give a willing participant a quick "makeover" using only items found around you.' },
+  { title: 'Rock Balancing', description: 'Create a balanced stack of rocks or urban objects that seems to defy gravity.' },
+  { title: 'Time-lapse Creator', description: 'Create a simple 30-second time-lapse of a busy urban area.' },
+  { title: 'Voice Transformer', description: 'Have a conversation with strangers while progressively changing your voice throughout.' },
+  { title: 'Finger Dancer', description: 'Create an elaborate dance using only your fingers as the dancers on a flat surface.' },
+  { title: 'Cloud Interpreter', description: 'Find shapes in the clouds and get at least 2 strangers to tell you what they see.' },
+  { title: 'Shadow Creator', description: 'Create interesting shadows using your body and the available light.' },
+  { title: 'Balloon Artist', description: 'If you have a balloon, create a simple balloon animal or object in public.' },
+  { title: 'Hidden Talent', description: 'Demonstrate a hidden talent in public and get reactions from at least 3 people.' },
+  { title: 'Mouth Musician', description: 'Create a 30-second song using only sounds you can make with your mouth.' },
+  { title: 'Improvised Concert', description: 'Turn everyday objects around you into instruments and perform a short "concert".' },
+  
+  // KINDNESS & CONNECTION CHALLENGES (90 challenges)
+  { title: 'Flower Gift', description: 'Find or buy a flower and give it to a stranger with a kind message.' },
+  { title: 'Pedestrian Helper', description: 'Help 3 people cross a street, carry groceries, or with another simple task.' },
+  { title: 'Street Performer Boost', description: 'Find a street performer, join their audience, and get 3 others to watch too.' },
+  { title: 'Joy Outbreak', description: 'Make at least 3 strangers laugh or smile within 30 seconds.' },
+  { title: 'Spontaneous Gift', description: 'Give away something you have on you to a stranger who might appreciate it.' },
+  { title: 'Gratitude Express', description: 'Thank a service worker (barista, bus driver, etc.) in an elaborate, memorable way.' },
+  { title: 'Chair Puller', description: 'Pull out chairs for 3 different people in 30 seconds (with permission).' },
+  { title: 'Door Holder', description: 'Hold the door for at least 5 people entering a building, with a unique greeting for each.' },
+  { title: 'Sidewalk Sweep', description: 'Clean up a small area of a public space for 30 seconds.' },
+  { title: 'Tip Booster', description: 'Leave an unusually generous tip for a small purchase and capture the reaction.' },
+  { title: 'Public Defender', description: 'Stand up for someone being treated unfairly in public (when safe to do so).' },
+  { title: 'Happiness Patrol', description: 'Offer free high-fives to everyone who passes you for 30 seconds.' },
+  { title: 'Water Provider', description: 'Give away bottles of water to people who look like they need refreshment.' },
+  { title: 'Conversation Starter', description: 'Start conversations with 3 people who look lonely or bored.' },
+  { title: 'Secret Note', description: 'Leave a positive, anonymous note for someone to find.' },
+  { title: 'Photo Volunteer', description: 'Offer to take photos for 3 groups of tourists you see struggling with selfies.' },
+  { title: 'Micro-Library', description: 'Leave a book you\'ve enjoyed in a public place with a note inviting someone to read it.' },
+  { title: 'Pay It Forward', description: 'Pay for a stranger\'s coffee, toll, or small item and ask them to pay it forward.' },
+  { title: 'Umbrella Sharer', description: 'Share your umbrella with a stranger caught in the rain.' },
+  { title: 'Surprise Performer', description: 'Perform a song, poem, or dance specifically to cheer up someone who looks sad.' },
+  { title: 'Plant Caretaker', description: 'Water plants in a public space that look like they need some care.' },
+  { title: 'Lost & Found Creator', description: 'Create a small "lost & found" for items you notice left behind in a public space.' },
+  { title: 'Encouragement Patrol', description: 'Find people exercising and cheer them on enthusiastically for 30 seconds.' },
+  { title: 'Litter Collector', description: 'Pick up at least 10 pieces of litter in a public space in 30 seconds.' },
+  { title: 'Food Sharer', description: 'Share food you have with someone who looks hungry (person or animal, as appropriate).' },
+  { title: 'Digital Detox Helper', description: 'Create a "phone-free zone" and invite strangers to put down their devices and interact.' },
+  { title: 'Language Helper', description: 'Help someone who is struggling with the local language to communicate.' },
+  { title: 'Business Promoter', description: 'Promote a small local business to at least 5 people in 30 seconds.' },
+  { title: 'Pet Complimenter', description: 'Compliment the pets of 5 different people you pass in 30 seconds.' },
+  { title: 'Welcome Party', description: 'Create an impromptu "welcome party" for someone arriving at an airport, station, etc.' },
+  { title: 'Street Librarian', description: 'Recommend books to at least 3 strangers based on a quick conversation about their interests.' },
+  { title: 'Heritage Sharer', description: 'Share something about your cultural heritage with 3 strangers.' },
+  { title: 'Genuine Question', description: 'Ask a genuine, thoughtful question to 3 different strangers and listen to their answers.' },
+  { title: 'Tour Guide for Locals', description: 'Give a quick tour of a well-known local landmark to someone who lives in the area.' },
+  { title: 'Quick Fix', description: 'Fix something small that\'s broken in a public space (with permission if required).' },
+  { title: 'Direction Genius', description: 'Help 3 people find their way in 30 seconds, even if they didn\'t ask for directions.' },
+  { title: 'Line Entertainer', description: 'Entertain people waiting in a long line for 30 seconds.' },
+  { title: 'Street Therapist', description: 'Listen to a stranger\'s problem and offer sincere advice or encouragement.' },
+  { title: 'Appreciation Notes', description: 'Write quick notes of appreciation for 3 service workers and give them directly.' },
+  { title: 'Shopping Helper', description: 'Help someone carry groceries or packages to their car or home.' },
+  { title: 'Translation Service', description: 'If you speak multiple languages, offer free translation help in a tourist area.' },
+  { title: 'Coupon Fairy', description: 'Give coupons or discount codes you aren\'t going to use to strangers who can use them.' },
+  { title: 'Public Thanks', description: 'Publicly thank someone who often goes unnoticed for their work.' },
+  { title: 'Lost Item Finder', description: 'Help someone find something they\'ve lost in a public space.' },
+  { title: 'Spare Change Collector', description: 'Collect spare change from willing donors and give it to someone in need.' },
+  { title: 'Bike Pump Provider', description: 'If you have access to one, offer to pump up bicycle tires for cyclists in a park or bike path.' },
+  { title: 'Plant Gifter', description: 'Give away a small plant or seeds to a stranger with care instructions.' },
+  { title: 'Phone Charger', description: 'Offer your portable charger or charging cable to someone with a dying phone battery.' },
+  { title: 'Small Business Reviewer', description: 'Write a positive online review for a local small business while you\'re there.' },
+  { title: 'Grocery Divider', description: 'Let someone with fewer items go ahead of you in a checkout line.' },
+  { title: 'Performer Tipper', description: 'Leave a generous tip for a street performer and encourage others to do the same.' },
+  { title: 'Community Board Creator', description: 'Create a small, temporary community message board in a public space (where permitted).' },
+  { title: 'Weather Protector', description: 'Help someone protect themselves or their belongings from sudden weather changes.' },
+  { title: 'Train Seat Offerer', description: 'Give up your seat on public transportation to someone who needs it more.' },
+  { title: 'Dog Walker', description: 'Offer to walk a stranger\'s dog for a few minutes (with their supervision).' },
+  { title: 'Stress Reliever', description: 'Create a quick "stress relief" station in public with simple activities for passersby.' },
+  { title: 'Bird Feeder', description: 'Create a small, temporary bird feeder in a public park using appropriate food.' },
+  { title: 'Traffic Director', description: 'Help direct traffic or pedestrians during a busy time (when appropriate and safe).' },
+  { title: 'Water Fountain Fixer', description: 'Clean a public drinking fountain before using it.' },
+  { title: 'WiFi Sharer', description: 'Share your mobile hotspot with someone who needs internet access.' },
+  { title: 'Sports Includer', description: 'Invite someone watching from the sidelines to join in a public sports game.' },
+  { title: 'Gratitude Circle', description: 'Create a quick "gratitude circle" with strangers, each sharing one thing they\'re grateful for.' },
+  { title: 'Shoelace Alerter', description: 'Politely inform people if their shoelaces are untied to prevent accidents.' },
+  { title: 'Shopping Cart Returner', description: 'Return stray shopping carts to their proper place in a parking lot.' },
+  { title: 'Accessibility Helper', description: 'Make a public space more accessible by removing obstacles or holding doors.' },
+  { title: 'Prayer Offerer', description: 'Respectfully offer to pray for or with people in need of spiritual support.' },
+  { title: 'Map Creator', description: 'Draw a helpful map for a lost tourist showing local landmarks and destinations.' },
+  { title: 'Local Guide', description: 'Give insider tips to tourists about hidden gems in your city.' },
+  { title: 'Photographer For Hire', description: 'Offer free "professional" photos to couples or families you see in a scenic spot.' },
+  { title: 'Celebration Starter', description: 'Help a stranger celebrate a personal achievement or special day.' },
+  { title: 'Food Server', description: 'Help serve food at a busy restaurant or cafe for a few minutes (with permission).' },
+  { title: 'Toy Repair', description: 'Fix a child\'s broken toy in a park or public space (with parent\'s permission).' },
+  { title: 'Medicine Cabinet', description: 'Offer basic first aid supplies (bandages, pain relievers, etc.) to someone in need.' },
+  { title: 'Mood Booster', description: 'Compliment at least 10 different people within 30 seconds.' },
+  { title: 'Wish Granter', description: 'Ask 3 strangers what small wish you could grant them today, then try to fulfill one.' },
+  { title: 'Meetup Creator', description: 'Create a spontaneous "meetup" for people with a shared interest in a public space.' },
+  { title: 'Line Placeholder', description: 'Offer to hold someone\'s place in line while they run a quick errand.' },
+  { title: 'Car Helper', description: 'Help someone clean snow off their car, change a tire, or with another car issue.' },
+  { title: 'Inclusion Specialist', description: 'Include someone who\'s being left out in a public activity or conversation.' },
+  { title: 'Solar Charger', description: 'Create a small public solar charging station (if you have portable solar chargers).' },
+  { title: 'Feedback Giver', description: 'Give genuine, constructive feedback to a street performer or artist.' },
+  { title: 'First-Timer Helper', description: 'Help someone who\'s clearly using a service or facility for the first time.' },
+  { title: 'Map Marker', description: 'Mark interesting spots on a tourist\'s map that aren\'t in the guidebooks.' },
+  { title: 'Comfort Provider', description: 'Provide comfort to someone who appears distressed in a public place (respectfully).' }
+];
+
 export const weeklyChallenges: Challenge[] = [
-  // ADVENTURE & EXPLORATION (12)
+  // SOCIAL & PERFORMANCE WEEKLY CHALLENGES (14 challenges)
   { 
-    title: 'Urban Explorer Week', 
-    description: 'Find and document a hidden gem in your city that most tourists and locals do not know about. Show why it is special and what makes it worth visiting.'
+    title: 'Stranger Symphony', 
+    description: 'Create an impromptu "band" with at least 3 strangers, each playing makeshift instruments. Perform a 30-second "song" together in public.'
   },
   { 
-    title: 'Sunrise Challenge', 
-    description: 'Capture the sunrise from a notable location in your area. Show your journey to get there and the moment the sun appears.'
+    title: 'Flash Mob Starter', 
+    description: 'Start a small flash mob in a public place. Begin dancing and get at least 5 strangers to join you within 30 seconds.'
   },
   { 
-    title: 'Alternative Transport', 
-    description: 'Use a form of transportation you do not typically use (bike, skateboard, public transit, etc.). Show your experience and perspective.'
+    title: 'Public Speech', 
+    description: 'Give an impromptu 30-second motivational speech in a public place (park, square, etc.) with at least 5 listeners.'
   },
   { 
-    title: 'Urban Wildlife', 
-    description: 'Find and document urban wildlife in your area. Show the animal(s) in their environment and explain what makes this sighting interesting.'
+    title: 'Free Hugs Champion', 
+    description: 'Make a "Free Hugs" sign and collect hugs from at least 10 different strangers (with clear consent).'
   },
   { 
-    title: 'Historic Site', 
-    description: 'Visit a historical site in your area. Show the location and share something interesting you learned about its significance.'
+    title: 'Dance Lesson', 
+    description: 'Learn a dance move from a stranger and then teach it to another stranger. Show the learning and teaching process.'
   },
   { 
-    title: 'Microadventure', 
-    description: 'Complete a small adventure that takes you out of your comfort zone. Show the experience and what made it challenging.'
+    title: 'Secret Talent Show', 
+    description: 'Find 3 strangers willing to demonstrate a unique talent or skill on the spot. Host a mini talent show.'
   },
   { 
-    title: 'Night Explorer', 
-    description: 'Visit an interesting location after dark (safely). Show how the place transforms at night and what makes it special in darkness.'
+    title: 'Speed Dating Host', 
+    description: 'Organize an impromptu 1-minute "speed dating" or "speed friending" event with at least 4 strangers.'
+  },
+  { 
+    title: 'Human Chain', 
+    description: 'Create a human chain of at least 8 people holding hands across a public space or street (safely).'
+  },
+  { 
+    title: 'Silent Disco', 
+    description: 'Start a "silent disco" where everyone dances to their own music. Get at least 5 strangers to join you.'
+  },
+  { 
+    title: 'Open Mic Creator', 
+    description: 'Set up an impromptu "open mic" in a public space and convince at least 3 strangers to perform.'
+  },
+  { 
+    title: 'Public Karaoke', 
+    description: 'Set up a karaoke session in a public place and get at least 5 strangers to sing.'
+  },
+  { 
+    title: 'Street Theater', 
+    description: 'Create a short theatrical scene in public with at least 3 strangers as actors.'
+  },
+  { 
+    title: 'Dance Circle', 
+    description: 'Start a dance circle and get at least 8 different people to take turns showing off moves in the center.'
+  },
+  { 
+    title: 'Human Sculpture', 
+    description: 'Direct at least 6 people to form a human sculpture/tableau in a public place.'
+  },
+  
+  // ADVENTURE & DARE WEEKLY CHALLENGES (15 challenges)
+  { 
+    title: 'Free Ride Champion', 
+    description: 'Hitchhike a ride in the most interesting vehicle you can find. Show your approach, the vehicle, and the driver (with permission).'
+  },
+  { 
+    title: 'Urban Explorer', 
+    description: 'Find and access an abandoned or rarely visited location in your city. Show how you got in and what you discovered.'
+  },
+  { 
+    title: 'Rooftop Victory', 
+    description: 'Legally access the rooftop of one of the tallest buildings in your area. Show the ascent and the view from the top.'
+  },
+  { 
+    title: 'Cold Plunge Pro', 
+    description: 'Take a full body plunge into cold water (ocean, lake, river) and stay in for at least 30 seconds. Show your reaction!'
+  },
+  { 
+    title: 'Night Mission', 
+    description: 'Complete a challenge after midnight in a safely accessible but unusual location. Show the location\'s unique nighttime qualities.'
+  },
+  { 
+    title: 'Sunrise Seeker', 
+    description: 'Watch the sunrise from an exceptional vantage point that requires effort to reach. Show your journey and the sunrise moment.'
+  },
+  { 
+    title: 'Urban Camping', 
+    description: 'Set up a small camp (tent or sleeping bag) in an unexpected urban location for at least 30 minutes (where legal).'
+  },
+  { 
+    title: 'Fear Factor', 
+    description: 'Face a personal fear and record yourself overcoming it. Explain what the fear is and show yourself conquering it.'
+  },
+  { 
+    title: 'Fountain Swimmer', 
+    description: 'Take a swim in a public fountain (where legal and safe). Show your entry and reaction.'
+  },
+  { 
+    title: 'Food Challenge', 
+    description: 'Eat the spiciest or most unusual dish at a local restaurant. Show your reaction and review.'
   },
   { 
     title: 'Border Crosser', 
-    description: 'Visit the border between two distinct neighborhoods or districts. Show the contrasts and how the environment changes.'
+    description: 'Cross from one district, neighborhood, or jurisdiction to another using an unusual method of transportation.'
   },
   { 
-    title: 'Urban Nature', 
-    description: 'Find a surprising spot of nature thriving in an urban environment. Show the contrast between natural and man-made elements.'
+    title: 'Cave Explorer', 
+    description: 'Find and explore an urban "cave" (tunnel, large drain, underpass) safely. Document what you discover.'
   },
   { 
-    title: 'Elevation Challenge', 
-    description: 'Visit the highest accessible point in your area. Show the journey up and the view from the top.'
+    title: 'High Altitude Picnic', 
+    description: 'Have a picnic at the highest accessible point in your city. Show the journey and the meal with a view.'
   },
   { 
-    title: 'Secret Passage', 
-    description: 'Find a hidden passageway, alley, or shortcut that few people know about. Show how it connects different areas.'
+    title: 'Water Crossing', 
+    description: 'Cross a body of water without using a bridge or boat. Show your method and the crossing.'
   },
   { 
-    title: 'Weather Expedition', 
-    description: 'Go out in unusual weather (rain, snow, fog, etc.) and show how it transforms a familiar location.'
+    title: 'Animal Encounter', 
+    description: 'Safely encounter and interact with an unusual urban or wild animal. Document the interaction.'
   },
   
-  // SOCIAL & COMMUNITY (10)
+  // CREATIVITY & SKILL WEEKLY CHALLENGES (12 challenges)
   { 
-    title: 'Community Event', 
-    description: 'Attend a community event or gathering. Show the atmosphere, what people are doing, and what makes it meaningful.'
+    title: 'Street Art Creator', 
+    description: 'Create a substantial piece of temporary street art (chalk, removable installation, etc.) that takes at least 30 minutes to complete.'
   },
   { 
-    title: 'Local Interview', 
-    description: 'Interview someone who makes your community function (with their permission). Show what they do and what insights they shared.'
+    title: 'Flash Kitchen', 
+    description: 'Cook a local specialty dish outdoors in a public space and share it with at least 3 strangers. Show cooking and reactions.'
   },
   { 
-    title: 'Random Act of Kindness', 
-    description: 'Perform a meaningful act of kindness for someone in your community. Show the act (with permission) and the impact it had.'
+    title: 'Music Video', 
+    description: 'Create a 30-second music video with at least 3 locations and 5 strangers making cameo appearances.'
   },
   { 
-    title: 'Local Expert', 
-    description: 'Become a temporary expert on a specific aspect of your neighborhood. Show what you learned and what makes it special.'
+    title: 'Parkour Basics', 
+    description: 'Learn and perform 3 basic parkour moves from a practiced traceur or through self-teaching in an urban environment.'
   },
   { 
-    title: 'Skill Exchange', 
-    description: 'Learn a quick skill from someone in your community (with permission). Show the teaching process and what you learned.'
+    title: 'Street Performance', 
+    description: 'Perform a song, dance, or act on a busy street for at least 10 minutes. Show the performance and audience reactions.'
   },
   { 
-    title: 'Community Improvement', 
-    description: 'Make a small improvement to a public space (where permitted). Show the before, your work, and the after result.'
+    title: 'Foreign Language', 
+    description: 'Learn how to introduce yourself and ask 3 basic questions in a language you don\'t speak. Use it with a native speaker.'
   },
   { 
-    title: 'Cultural Experience', 
-    description: 'Experience an aspect of culture different from your own (with respect). Show what you learned and what made it meaningful.'
+    title: 'Blindfolded Challenge', 
+    description: 'Navigate from one specific point to another (at least 200 meters apart) while blindfolded, with a friend guiding verbally.'
   },
   { 
-    title: 'Digital Detox', 
-    description: 'Spend time completely offline in a public setting. Show the environment and how it felt to be disconnected.'
+    title: 'Human Statue Pro', 
+    description: 'Become a human statue for 30 minutes in a busy area. Create a character and hold the pose with minimal movement.'
   },
   { 
-    title: 'Conversation Starter', 
-    description: 'Create a simple interactive experience that gets strangers talking (with their permission). Show what happened and the reactions.'
+    title: 'Urban Sculpture', 
+    description: 'Create a significant public sculpture using only found objects. Document the creation process and final piece.'
   },
   { 
-    title: 'Local Business Spotlight', 
-    description: 'Visit a local independent business you have never been to before. Show what makes it unique and interview the owner (with permission).'
+    title: 'Guerrilla Gardening', 
+    description: 'Plant flowers or vegetables in an abandoned or neglected urban space. Transform it into something beautiful.'
+  },
+  { 
+    title: 'Fire Starter', 
+    description: 'Start a fire without matches or a lighter in a safe, legal outdoor setting. Cook something simple over it.'
+  },
+  { 
+    title: 'Street Magic', 
+    description: 'Learn and perform 3 magic tricks for strangers on the street. Capture their reactions of wonder.'
   },
   
-  // CREATIVITY & EXPRESSION (10)
+  // CONNECTION & IMPACT WEEKLY CHALLENGES (13 challenges)
   { 
-    title: 'Street Art Tour', 
-    description: 'Find an impressive piece of street art in your area. Show the art from different angles and explain what makes it powerful.'
-  },
-  { 
-    title: 'Public Space Creation', 
-    description: 'Create a temporary, non-destructive artistic intervention in a public space (where permitted). Show your process and the final result.'
+    title: 'Stranger Dinner', 
+    description: 'Organize an impromptu dinner or picnic with at least 3 people you didn\'t know before today. Share food and conversation.'
   },
   { 
-    title: 'Sound Mapping', 
-    description: 'Find a location with interesting sounds. Record and describe the sonic environment and what makes it unique.'
+    title: 'Local Hero', 
+    description: 'Find a community service opportunity and volunteer for at least 2 hours. Show what you did and who you helped.'
   },
   { 
-    title: 'Urban Color Study', 
-    description: 'Find a location with a distinctive color palette. Show how color defines the character of the place.'
+    title: 'Tour Guide', 
+    description: 'Become a tour guide for a group of at least 3 tourists or newcomers to your area. Give them a 15+ minute tour.'
   },
   { 
-    title: 'Temporary Installation', 
-    description: 'Create a temporary art installation using found or natural materials (where permitted). Show your creation process and the final piece.'
+    title: 'Secret Santa', 
+    description: 'Buy 5 small, thoughtful gifts and give them to strangers who look like they could use a boost.'
   },
   { 
-    title: 'Public Poetry', 
-    description: 'Write a poem inspired by a specific location and recite it on site. Show the location and your performance.'
+    title: 'Community Cleanup', 
+    description: 'Organize a mini cleanup of a public area with at least 3 other participants. Show before, during, and after.'
   },
   { 
-    title: 'Visual Story', 
-    description: 'Tell a visual story about a place without using words. Show the narrative through your camera movements and focus.'
+    title: 'Skill Share', 
+    description: 'Teach a skill you\'re good at to at least 3 interested strangers in a public space. Show the teaching and learning.'
   },
   { 
-    title: 'Urban Sketching', 
-    description: 'Sketch a location in your city. Show your process, the environment, and your completed sketch.'
+    title: 'Generosity Challenge', 
+    description: 'Spend a day performing as many acts of kindness as possible with $20. Document each act and recipient reaction.'
   },
   { 
-    title: 'Public Dance', 
-    description: 'Create and perform a short dance in response to a public location. Show how your movements relate to the space.'
+    title: 'Cardboard Shelter', 
+    description: 'Build a functional cardboard shelter and sleep in it overnight. Document the building process and your experience.'
   },
   { 
-    title: 'Sensory Focus', 
-    description: 'Focus intensely on one sense in a busy environment. Show what you discovered by this deep sensory attention.'
-  },
-  
-  // CRYPTO & WEB3 (8)
-  { 
-    title: 'Web3 Explorer', 
-    description: 'Find a business that accepts cryptocurrency as payment. Show the location, their crypto payment option, and your interaction with them.'
+    title: 'Public Class', 
+    description: 'Organize and teach a free class in a public park on any subject you know well. Get at least 5 students to attend.'
   },
   { 
-    title: 'Blockchain Scavenger', 
-    description: 'Find physical objects or locations that relate to blockchain concepts. Show each item and explain the connection.'
+    title: 'Homeless Helper', 
+    description: 'Spend 3 hours helping at a homeless shelter or directly assisting homeless individuals. Document your experience.'
   },
   { 
-    title: 'Token Economy', 
-    description: 'Find a real-world token economy (arcade tokens, casino chips, etc.). Show how it works and relate it to digital tokens.'
+    title: 'Memory Maker', 
+    description: 'Help a stranger create a special memory. Plan and execute a memorable experience for someone you just met.'
   },
   { 
-    title: 'Crypto Art', 
-    description: 'Create a physical representation of a digital asset or NFT concept. Show your creative process and the final result.'
+    title: 'Lost Item Finder', 
+    description: 'Help at least 3 different people find items they\'ve lost, either by physically searching or by creating "lost" posters.'
   },
   { 
-    title: 'Digital Asset Hunt', 
-    description: 'Find unique real-world objects that would make interesting NFTs. Show each item and explain its potential digital value.'
-  },
-  { 
-    title: 'Web3 Community', 
-    description: 'Find a place where Web3 enthusiasts gather. Show the location and what makes it a crypto-friendly environment.'
-  },
-  { 
-    title: 'DAO Concept', 
-    description: 'Find a real-world example of collaborative decision-making. Show how it works and relate it to DAOs.'
-  },
-  { 
-    title: 'Crypto Educator', 
-    description: 'Create an educational demonstration explaining a blockchain concept using physical objects. Show your demonstration in a public setting.'
-  },
-  
-  // PHYSICAL & MINDFULNESS (6)
-  { 
-    title: 'Urban Workout', 
-    description: 'Use your city as a gym for a workout. Show the different urban features you use as exercise equipment.'
-  },
-  { 
-    title: 'Meditation Spot', 
-    description: 'Find an unexpectedly peaceful spot in a busy area. Show the contrast and why it works as a mindfulness location.'
-  },
-  { 
-    title: 'Sunrise Practice', 
-    description: 'Complete a physical or mindfulness practice at sunrise. Show the setting and your experience.'
-  },
-  { 
-    title: 'Movement Flow', 
-    description: 'Create a movement sequence inspired by your urban environment. Show how your movements relate to the architecture or landscape.'
-  },
-  { 
-    title: 'Cold Exposure', 
-    description: 'Challenge yourself with a cold exposure experience (cold shower, ice bath, winter swim). Show your experience and reaction.'
-  },
-  { 
-    title: 'Sensory Exploration', 
-    description: 'Explore a familiar environment while focusing intently on just one sense. Show what new things you discovered.'
-  },
-  
-  // FOOD & CULTURE (6)
-  { 
-    title: 'Culinary Heritage', 
-    description: 'Explore a cuisine from a specific cultural community in your area. Show the food and what makes it culturally significant.'
-  },
-  { 
-    title: 'Food Origins', 
-    description: 'Trace the source of a food item back to where it was produced. Show the connection between producer and consumer.'
-  },
-  { 
-    title: 'Local Food Challenge', 
-    description: 'Eat only food produced within 50 miles for a meal. Show what you found and where you got it.'
-  },
-  { 
-    title: 'Communal Dining', 
-    description: 'Have a meal in a setting where food is shared communally. Show the experience and social aspects of the dining.'
-  },
-  { 
-    title: 'Food Waste Reduction', 
-    description: 'Create a meal using parts of foods typically discarded. Show your creative approach to reducing food waste.'
-  },
-  { 
-    title: 'Global Street Food', 
-    description: 'Find authentic international street food in your area. Show the preparation, the dish, and your tasting experience.'
-  }
-];
-
-// MONTHLY CHALLENGES (12 total - quite difficult, but still provable with a 30s clip)
-export const monthlyChallenges: Challenge[] = [
-  { 
-    title: 'January: Urban Transformation', 
-    description: 'Find an underutilized urban space and show what could be done to transform it. Create a demonstration of your improvement idea and show how it would benefit the community.'
-  },
-  { 
-    title: 'February: Relationship Revolution', 
-    description: 'Form a meaningful new relationship or deepen an existing one through an act of vulnerability or connection. Show the interaction (with permission) and what made it significant.'
-  },
-  { 
-    title: 'March: Local Expert', 
-    description: 'Become an expert on a specific neighborhood, street, or district by spending extensive time there. Create a guide to hidden gems, showing the most interesting discovery you made.'
-  },
-  { 
-    title: 'April: Skill Acquisition', 
-    description: 'Learn a challenging new skill and demonstrate your progress. Show your practice and what you can now do that you could not do before.'
-  },
-  { 
-    title: 'May: Community Impact', 
-    description: 'Identify a specific need in your community and implement a solution. Show the problem and your approach to improving the situation.'
-  },
-  { 
-    title: 'June: Creator Challenge', 
-    description: 'Create an original piece of content (art, writing, music, video, etc.) and share it publicly. Show your creative process and the public presentation.'
-  },
-  { 
-    title: 'July: Micro-Adventure', 
-    description: 'Complete a small adventure that pushes your boundaries (wild swimming, sleeping outdoors, climbing a local peak, etc.). Show the most challenging moment and your accomplishment.'
-  },
-  { 
-    title: 'August: Physical Challenge', 
-    description: 'Set and achieve a significant physical goal. Show your training and the moment you accomplish your target.'
-  },
-  { 
-    title: 'September: Digital Minimalism', 
-    description: 'Reduce digital dependencies and increase analog experiences. Show how you replaced digital activities with meaningful offline alternatives.'
-  },
-  { 
-    title: 'October: Fear Confrontation', 
-    description: 'Identify and confront a personal fear. Show yourself facing the fear and share what you learned from the experience.'
-  },
-  { 
-    title: 'November: Web3 Integration', 
-    description: 'Immerse yourself in a Web3 technology or community. Show what you learned and how you participated in the ecosystem.'
-  },
-  { 
-    title: 'December: Future Self', 
-    description: 'Design and implement a positive change that moves you toward becoming your ideal future self. Document the transformation with before and after evidence.'
-  }
-];
-
-// SPECIAL CRYPTO CHALLENGES (for events or promotions)
-export const cryptoChallenges: Challenge[] = [
-  {
-    title: 'Token Trail',
-    description: 'Find and scan a crypto-related QR code hidden in your city. Show the location, the code, and what happens when you scan it.'
-  },
-  {
-    title: 'Proof of Adventure',
-    description: 'Complete an adrenaline-pumping challenge with witnesses. Show the challenge, the witnesses, and your successful completion.'
-  },
-  {
-    title: 'DAO Challenge',
-    description: 'Form a temporary team with other users to collectively complete a challenge. Show your team coordination and the successful outcome.'
-  },
-  {
-    title: 'Reality Mining',
-    description: 'Transform a real-world activity into a creative digital asset concept. Show the physical activity and explain its digital value.'
-  },
-  {
-    title: 'Crypto Meetup',
-    description: 'Attend or organize a small gathering of Nocena users. Show the group, your interactions, and what you learned from each other.'
+    title: 'Random Celebration', 
+    description: 'Throw a mini celebration for a complete stranger (with their permission). Decorate, bring cake or candles, sing, etc.'
   }
 ];

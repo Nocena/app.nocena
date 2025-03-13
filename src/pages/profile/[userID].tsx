@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import { getUserByIdFromDgraph } from '../../utils/api/dgraph';
+import { getUserByIdFromDgraph } from '../../lib/api/dgraph';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
-import ChallengeIndicator from './ChallengeIndicator';
+import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
 
 import FollowersIcon from '../../components/icons/followers';
 
-const defaultProfilePic = '/profile.png';
+const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
 
 interface User {

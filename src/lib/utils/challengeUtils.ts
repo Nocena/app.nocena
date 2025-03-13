@@ -1,4 +1,4 @@
-import { Challenge, dailyChallenges, weeklyChallenges, monthlyChallenges } from '../data/challenges';
+import { Challenge, dailyChallenges, weeklyChallenges, monthlyChallenges } from '../../data/challenges';
 
 /**
  * Generates a deterministic but seemingly random ordering of daily challenges

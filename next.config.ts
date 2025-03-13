@@ -11,7 +11,14 @@ const pwaConfig = withPWA({
 /** @type {NextConfig} */
 const nextConfig: NextConfig = {
   images: {
-    domains: ['gateway.pinata.cloud'],
+    domains: [
+      'gateway.pinata.cloud',
+      'jade-elaborate-emu-349.mypinata.cloud',
+      'ipfs.io',
+      'cloudflare-ipfs.com',
+      'dweb.link',
+      'gateway.ipfs.io',
+    ],
   },
   webpack(config: Configuration) {
     config.module?.rules?.push({
@@ -47,7 +54,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self' https: http:; img-src 'self' data: https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https: http:; media-src 'self' https: http: blob:;"
+            value: "default-src 'self' https: http:; img-src 'self' data: blob: https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https://api.pinata.cloud https: http:; media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;"
           },
           {
             key: 'Access-Control-Allow-Origin',

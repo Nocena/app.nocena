@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { fetchNotifications } from "../../utils/api/dgraph";
+import { fetchNotifications } from "../../lib/api/dgraph";
 import NotificationFollower from "./notifications/NotificationFollower";
 import NotificationChallenge from "./notifications/NotificationChallenge";
 
@@ -40,7 +40,7 @@ const InboxView = () => {
             <NotificationFollower
               key={notification.id}
               username={notification.triggeredBy?.username ?? "Unknown"}  // ✅ Correct user
-              profilePicture={notification.triggeredBy?.profilePicture ?? "/profile.png"}
+              profilePicture={notification.triggeredBy?.profilePicture ?? "/images/profile.png"}
               id={notification.triggeredBy?.id} // ✅ Pass correct wallet
             />
           ) : (
@@ -48,7 +48,7 @@ const InboxView = () => {
               key={notification.id}
               title={notification.content}
               challengerName={"Unknown"}
-              challengerProfile={"/profile.png"}
+              challengerProfile={"/images/profile.png"}
               reward={10}
             />
           )

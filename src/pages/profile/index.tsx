@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../utils/api/dgraph';
-import { unpinFromPinata } from '../../utils/api/pinata';
+import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../lib/api/dgraph';
+import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import imageCompression from 'browser-image-compression';
@@ -8,17 +8,17 @@ import { useAuth } from '../../contexts/AuthContext';
 
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
-import ChallengeIndicator from './ChallengeIndicator';
+import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
 import ThematicIcon from '../../components/ui/ThematicIcon';
 
 import FollowersIcon from '../../components/icons/followers';
 
-const defaultProfilePic = '/profile.png';
+const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
 
 const ProfileView: React.FC = () => {
-  const DEFAULT_PROFILE_PIC = '/profile.png';
+  const DEFAULT_PROFILE_PIC = '/images/profile.png';
 
   const { user, login } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +94,7 @@ const ProfileView: React.FC = () => {
             // Check if user has an existing profile picture that's not the default
             if (user.profilePicture && 
                 user.profilePicture !== DEFAULT_PROFILE_PIC && 
-                !user.profilePicture.includes('profile.png')) {
+                !user.profilePicture.includes('/images/profile.png')) {
               // Extract CID from the URL - handle both full URLs and CIDs
               const oldCid = user.profilePicture.includes('/')
                 ? user.profilePicture.split('/').pop()

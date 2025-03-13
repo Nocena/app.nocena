@@ -6,8 +6,8 @@ import ThematicImage from '../../components/ui/ThematicImage';
 import ThematicText from '../../components/ui/ThematicText';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import { User } from '../../contexts/AuthContext';
-import { fetchAllUsers, toggleFollowUser } from '../../utils/api/dgraph';
-import SearchBox from './SearchBox';
+import { fetchAllUsers, toggleFollowUser } from '../../lib/api/dgraph';
+import SearchBox from './components/SearchBox';
 import Image from 'next/image';
 
 const nocenixIcon = '/nocenix.ico';
@@ -80,7 +80,7 @@ const SearchView = () => {
               <div className="flex items-center gap-4 flex-grow" onClick={() => handleProfileRedirect(userData)}>
                 <ThematicImage className="rounded-full flex-shrink-0">
                   <Image
-                    src={userData.profilePicture || '/profile.png'}
+                    src={userData.profilePicture || '/images/profile.png'}
                     alt="Profile"
                     width={96}
                     height={96}

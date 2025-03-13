@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { getUserFromDgraph, verifyPassword } from '../utils/api/dgraph';
+import { getUserFromDgraph, verifyPassword } from '../lib/api/dgraph';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { User, useAuth } from '../contexts/AuthContext';
-import { sanitizeInput } from '../utils/security';
+import { sanitizeInput } from '../lib/utils/security';
 
 const LoginPage = () => {
   const [identifier, setIdentifier] = useState('');

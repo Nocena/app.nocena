@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { uploadToPinata } from '../../utils/api/pinata';
+import { uploadToPinata } from '../../lib/api/pinata';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

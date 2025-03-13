@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { registerUser } from '../utils/api/dgraph';
-import { createPolygonWallet } from '../utils/api/polygon';
+import { registerUser } from '../lib/api/dgraph';
+import { createPolygonWallet } from '../lib/api/polygon';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { User, useAuth } from '../contexts/AuthContext';
-import { sanitizeInput } from '../utils/security';
+import { sanitizeInput } from '../lib/utils/security';
 
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
