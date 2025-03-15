@@ -39,12 +39,15 @@ Nocena is a challenge-based social networking application where users can comple
    pnpm install
    ```
 3. Set up environment variables:
-   - Create a `.env` file in the root directory
-   - ANEXT_PUBLIC_DGRAPH_API_KEY
+   Create a `.env` file in the root directory
+   - NEXT_PUBLIC_DGRAPH_API_KEY
    - NEXT_PUBLIC_DGRAPH_ENDPOINT
    - PINATA_API_KEY
    - PINATA_SECRET_KEY
    - NEXT_PUBLIC_PINATA_JWT
+   - TWILIO_ACCOUNT_SID
+   - TWILIO_AUTH_TOKEN
+   - TWILIO_VERIFY_SERVICE_SID
 
 
 ### Development
