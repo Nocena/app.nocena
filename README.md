@@ -136,6 +136,10 @@ app.nocena/
 │   │   ├── layout/                             # Layout components
 │   │   │   ├── AppLayout.tsx                   # Main app layout wrapper
 │   │   │   └── Menu.tsx                        # Navigation menu component
+│   │   ├── PWA/                                # Components for better UX while isntalling PWA
+│   │   │   ├── AndroidPWAPrompt.tsx            # Android
+│   │   │   ├── DebugPWAInstaller.tsx           # Incredibly helpful debuger component
+│   │   │   └── iOSPWAPrompt.tsx                # iOS
 │   │   └── ui/                                 # UI components
 │   │       ├── LoadingSpinner.tsx              # Loading animation component
 │   │       ├── PrimaryButton.tsx               # Main button style component
