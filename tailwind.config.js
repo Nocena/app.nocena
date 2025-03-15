@@ -17,6 +17,7 @@ module.exports = {
       animation: {
         glitchPink: 'glitchPink 1s infinite',
         glitchBlue: 'glitchBlue 1s infinite',
+        'fade-in': 'fadeIn 0.5s ease-in',
       },
       keyframes: {
         glitchPink: {
@@ -32,6 +33,10 @@ module.exports = {
           '40%': { transform: 'translate(-2px, -2px)', opacity: '0.8' },
           '60%': { transform: 'translate(1px, -1px)', opacity: '0.9' },
           '80%': { transform: 'translate(-1px, 1px)', opacity: '0.8' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
     },

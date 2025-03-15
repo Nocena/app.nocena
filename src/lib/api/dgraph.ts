@@ -14,7 +14,7 @@ const generateId = (): string => {
 
 export const registerUser = async (
   username: string,
-  email: string,
+  phoneNumber: string,  // Changed from email to phoneNumber
   passwordHash: string,
   profilePicture: string,
   wallet: string,
@@ -28,7 +28,7 @@ export const registerUser = async (
         user {
           id
           username
-          email
+          phoneNumber  # Changed from email to phoneNumber
           wallet
           bio
           profilePicture
@@ -51,7 +51,7 @@ export const registerUser = async (
     input: {
       id: uuidv4(),
       username,
-      email,
+      phoneNumber,  // Changed from email to phoneNumber
       bio: '',
       wallet,
       passwordHash,
@@ -110,7 +110,7 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       queryUser(filter: { id: { eq: $userId } }) {
         id
         username
-        email
+        phoneNumber  # Changed from email to phoneNumber
         wallet
         bio
         profilePicture
@@ -177,10 +177,10 @@ export const getUserByIdFromDgraph = async (userId: string) => {
 export const getUserFromDgraph = async (identifier: string) => {
   const query = `
     query GetUser($identifier: String!) {
-      queryUser(filter: { or: [{ username: { eq: $identifier } }, { email: { eq: $identifier } }] }) {
+      queryUser(filter: { username: { eq: $identifier } }) {
         id
         username
-        email
+        phoneNumber
         wallet
         bio
         passwordHash
@@ -245,11 +245,6 @@ export const getUserFromDgraph = async (identifier: string) => {
     console.error("Error fetching user from Dgraph:", error);
     throw new Error("Failed to fetch user.");
   }
-};
-
-export const verifyPassword = (inputPassword: string, storedPasswordHash: string) => {
-  // Placeholder for password comparison logic
-  return btoa(inputPassword) === storedPasswordHash; // Replace with proper hash verification
 };
 
 export const updateBio = async (userId: string, newBio: string): Promise<void> => {
@@ -1488,5 +1483,58 @@ export const parseMediaMetadata = (mediaJson: string | null | undefined): any =>
   } catch (e) {
     console.error('Error parsing media JSON:', e);
     return null;
+  }
+};
+
+/**
+ * Checks if a Discord invite code exists and is valid (not used)
+ * 
+ * @param code The 6-character invite code to check
+ * @returns Promise<boolean> True if the code is valid and unused
+ */
+export const validateDiscordInviteCode = async (code: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/registration/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code }),
+    });
+
+    const data = await response.json();
+    return data.valid;
+  } catch (error) {
+    console.error('Error validating Discord invite code:', error);
+    return false;
+  }
+};
+
+/**
+ * Marks a Discord invite code as used by associating it with a user
+ * 
+ * @param code The 6-character invite code
+ * @param userId The Nocena user ID who used this code
+ * @returns Promise<boolean> Success status
+ */
+export const markDiscordInviteAsUsed = async (code: string, userId: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/registration/markAsUsed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        code, 
+        userId,
+        usedAt: new Date().toISOString()
+      }),
+    });
+
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error('Error marking Discord invite as used:', error);
+    return false;
   }
 };

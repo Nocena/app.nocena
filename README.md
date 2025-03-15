@@ -107,6 +107,7 @@ app.nocena/
 │   │   └── profile.png                         # Default profile image
 │   ├── index.html                              # Static HTML entry for PWA fallback
 │   ├── logo/                                   # App logo assets
+│   │   ├── eyes.png                            # Old Nocena logo for the meantime
 │   │   └── LogoDark.png                        # Dark version of the logo
 │   ├── manifest.json                           # PWA manifest file defining app metadata
 │   ├── nocenix.ico                             # Icon of the Nocenix token
@@ -117,6 +118,8 @@ app.nocena/
 │   ├── components/                             # Reusable React components
 │   │   ├── IPFSMediaLoader.tsx                 # Component for loading media from IPFS/Pinata
 │   │   ├── PWAInstallPrompt.tsx                # Prompt for installing the app as PWA
+│   │   ├── InviteCodeInput.tsx                 # Special component for begining of registration process - might be reused
+│   │   ├── PhoneVerification.tsx               # Like the above, just specially for verifying phone
 │   │   ├── icons/                              # SVG icon components as React components (!or use lucide-react!)
 │   │   │   ├── followers.tsx                   # Followers icon
 │   │   │   ├── home.tsx                        # Home icon
@@ -151,11 +154,18 @@ app.nocena/
 │   │   └── utils/                              # Utility functions
 │   │       ├── challengeUtils.ts               # Helper functions for challenges
 │   │       ├── dateUtils.ts                    # Date formatting and manipulation utilities
+│   │       ├── passwordUtils.ts                # New and more secure hashing functionality with salt
+│   │       ├── phoneUtils.ts                   # Util for phone verfication process
+│   │       ├── rateLimiting.ts                 # Helper function for countering bruteforce on the discord invite code
+│   │       ├── verification.ts                 # Verifing user by their phonenumber
 │   │       └── security.ts                     # Security-related utilities
 │   ├── pages/                                  # Next.js pages
 │   │   ├── _app.tsx                            # Next.js app wrapper component
 │   │   ├── _document.tsx                       # Next.js document customization
 │   │   ├── api/                                # API routes
+│   │   │   ├── registration/                   # Special api routes for registration process
+│   │   │   │   ├── markAsUsed.ts               # Once invite code is used it needs to be deactivated
+│   │   │   │   └── validate.ts                 # Validating discord invite code
 │   │   │   ├── debugIPFS.ts                    # Debug endpoint for IPFS
 │   │   │   ├── pinChallengeToIPFS.ts           # Save challenge to IPFS
 │   │   │   └── pinFileToIPFS.ts                # Upload file to IPFS
@@ -229,3 +239,4 @@ If the app doesn't install properly as a PWA:
 
 
 (Created 2.3.2025 - louskac)
+(Last modification 3.15.2025 - louskac)

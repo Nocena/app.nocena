@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { searchUsers } from '../../lib/api/dgraph';
-import { sanitizeInput } from '../../lib/utils/security';
-import { useAuth } from '../../contexts/AuthContext';
+import { searchUsers } from '../../../lib/api/dgraph';
+import { sanitizeInput } from '../../../lib/utils/security';
+import { useAuth } from '../../../contexts/AuthContext';
 
-import ThematicImage from '../../components/ui/ThematicImage';
+import ThematicImage from '../../../components/ui/ThematicImage';
 import Image from 'next/image';
 
 interface SearchBoxProps {

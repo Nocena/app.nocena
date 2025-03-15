@@ -1,90 +1,94 @@
+// pages/login.tsx
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { getUserFromDgraph, verifyPassword } from '../lib/api/dgraph';
+import { getUserFromDgraph } from '../lib/api/dgraph';
 import PrimaryButton from '../components/ui/PrimaryButton';
-import { User, useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { sanitizeInput } from '../lib/utils/security';
+import { verifyPassword } from '../lib/utils/passwordUtils';
+import Link from 'next/link';
 
 const LoginPage = () => {
-  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Sanitize user inputs
-    const sanitizedIdentifier = sanitizeInput(identifier);
+    setLoading(true);
+  
+    // Sanitize inputs
+    const sanitizedUsername = sanitizeInput(username);
     const sanitizedPassword = sanitizeInput(password);
-
+  
+    if (!sanitizedUsername || !sanitizedPassword) {
+      setError('Both username and password are required.');
+      setLoading(false);
+      return;
+    }
+  
     try {
-      const user = await getUserFromDgraph(sanitizedIdentifier);
-
-      if (!user) {
-        setError('No user found with the provided username or email.');
-        setShowForgotPassword(true);
+      // Get user data from backend
+      const userData = await getUserFromDgraph(sanitizedUsername);
+      
+      if (!userData) {
+        setError('No account found with this username.');
+        setLoading(false);
         return;
       }
-
-      const isPasswordValid = verifyPassword(sanitizedPassword, user.passwordHash);
-
-      if (isPasswordValid) {
-        const userData: User = {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          wallet: user.wallet,
-          bio: user.bio,
-          profilePicture: user.profilePicture,
-          earnedTokens: user.earnedTokens,
-          dailyChallenge: user.dailyChallenge,
-          weeklyChallenge: user.weeklyChallenge,
-          monthlyChallenge: user.monthlyChallenge,
-          followers: user.followers || [],
-          following: user.following || [],
-        };
-
-        await login(userData);
-        router.push('/home');
-      } else {
-        setError('Incorrect password. Please try again.');
-        setShowForgotPassword(true);
+  
+      // Securely verify password
+      const isPasswordValid = await verifyPassword(sanitizedPassword, userData.passwordHash);
+      
+      if (!isPasswordValid) {
+        setError('Invalid password. Please try again.');
+        setLoading(false);
+        return;
       }
+  
+      // Login successful
+      await login(userData);
+      router.push('/home');
     } catch (err) {
       console.error(err);
-      setError('Failed to login. Please try again later.');
+      setError('Login failed. Please try again.');
+      setLoading(false);
     }
   };
 
-  const handleShowRegisterPage = () => {
+  const redirectToRegister = () => {
     router.push('/register');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
       <div className="w-full max-w-md mx-4">
-        <div className="text-center mb-4">
-          <img src="/logo/LogoDark.png" alt="Logo" className="max-w-full h-auto mx-auto" />
+        <div className="text-center mb-8">
+          <img src="/logo/eyes.png" alt="Nocena Logo" className="w-64 mx-auto mb-10" />
+          <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
+          <p className="text-gray-300">Login to your account to continue</p>
         </div>
-        <form onSubmit={handleSignIn} className="space-y-4">
+        
+        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
           <div className="mb-3">
-            <label htmlFor="identifier" className="block mb-1">
-              Username or Email
+            <label htmlFor="username" className="block mb-1">
+              Username
             </label>
             <input
               type="text"
-              id="identifier"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Enter username or email"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
               className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-
+          
           <div className="mb-3">
             <label htmlFor="password" className="block mb-1">
               Password
@@ -94,34 +98,31 @@ const LoginPage = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter your password"
               className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          {showForgotPassword && (
-            <div className="text-right mb-3">
-              <a href="/forgot-password" className="text-indigo-500 cursor-pointer">
-                Forgot password?
-              </a>
-            </div>
-          )}
-
           <div className="mb-3">
-            <PrimaryButton text="Login" onClick={handleSignIn} />
-          </div>
-
-          <div className="text-center">
-            <p>
-              Don’t have an account?{' '}
-              <a onClick={handleShowRegisterPage} className="text-nocenaBlue cursor-pointer">
-                Sign up
-              </a>
-            </p>
+            <PrimaryButton 
+              text={loading ? "Logging in..." : "Login"} 
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full"
+            />
           </div>
         </form>
+
+        <div className="text-center">
+          <p>
+            Don't have an account?{' '}
+            <button onClick={redirectToRegister} className="text-nocenaBlue cursor-pointer">
+              Create Account
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
