@@ -161,6 +161,7 @@ app.nocena/
 │   │   │   └── types.ts                        # Type definitions for challenge completion
 │   │   └── utils/                              # Utility functions
 │   │       ├── challengeUtils.ts               # Helper functions for challenges
+│   │       ├── pinataUtils.ts                  # Pinata utils used for debugging the pinata upload
 │   │       ├── dateUtils.ts                    # Date formatting and manipulation utilities
 │   │       ├── passwordUtils.ts                # New and more secure hashing functionality with salt
 │   │       ├── phoneUtils.ts                   # Util for phone verfication process
@@ -175,6 +176,7 @@ app.nocena/
 │   │   │   │   ├── markAsUsed.ts               # Once invite code is used it needs to be deactivated
 │   │   │   │   └── validate.ts                 # Validating discord invite code
 │   │   │   ├── debugIPFS.ts                    # Debug endpoint for IPFS
+│   │   │   ├── checkPinataFile.ts              # Debug endpoint for uploading AI challenges to Pinata
 │   │   │   ├── pinChallengeToIPFS.ts           # Save challenge to IPFS
 │   │   │   └── pinFileToIPFS.ts                # Upload file to IPFS
 │   │   ├── completing/                         # Challenge completion pages
@@ -182,6 +184,7 @@ app.nocena/
 │   │   │   │   ├── ChallengeHeader.tsx         # Header for challenge view
 │   │   │   │   ├── IdleView.tsx                # Idle state view
 │   │   │   │   ├── RecordingView.tsx           # Video recording view
+│   │   │   │   ├── FileUploadView.tsx          # For weekly and monthly challenegs working diffrently than daily
 │   │   │   │   ├── ReviewView.tsx              # Submission review view
 │   │   │   │   ├── SelfieView.tsx              # Selfie capture view
 │   │   │   │   ├── StartingView.tsx            # Initial challenge view
