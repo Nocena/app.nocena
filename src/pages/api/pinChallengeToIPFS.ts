@@ -169,7 +169,7 @@ async function uploadSingleFileToPinata(
             pinata_api_key: pinataApiKey,
             pinata_secret_api_key: pinataSecretKey,
           },
-          timeout: 30000,
+          timeout: 120000,
         }
       );
       

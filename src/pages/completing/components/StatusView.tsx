@@ -30,7 +30,7 @@ const StatusView: React.FC<StatusViewProps> = ({
             {statusMessage || "Processing your challenge..."}
           </p>
           <p className="text-center text-gray-400">
-            This may take a moment. Please don't close the app.
+            This may take a moment (up to 2 minutes). Please don't close the app.
           </p>
         </div>
       );

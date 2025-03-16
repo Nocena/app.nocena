@@ -126,26 +126,29 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
 
   // Handle video loading error
   const handleVideoError = () => {
-    if (currentVideoGateway >= MAX_GATEWAY_ATTEMPTS) {
+    // Try the next gateway, up to MAX_GATEWAY_ATTEMPTS (increase to 6)
+    const MAX_GATEWAY_ATTEMPTS = 6;
+    
+    if (currentVideoGateway >= MAX_GATEWAY_ATTEMPTS - 1) {
       console.error('Failed to load video after trying multiple gateways');
       setVideoError(true);
       setVideoLoading(false);
       return;
     }
-
+  
     // Try an alternative gateway
-    const backupUrl = getBackupGatewayUrl(videoUrl, currentVideoGateway + 1);
+    const nextGatewayIndex = currentVideoGateway + 1;
+    const backupUrl = getBackupGatewayUrl(videoUrl, nextGatewayIndex);
     
-    if (backupUrl && backupUrl !== videoUrl) {
-      console.log(`Trying alternative gateway for video: ${backupUrl}`);
-      setCurrentVideoGateway(currentVideoGateway + 1);
+    if (backupUrl) {
+      console.log(`Switching to gateway ${nextGatewayIndex} for video: ${backupUrl}`);
+      setCurrentVideoGateway(nextGatewayIndex);
       
       // Update the video source with a new URL
       const video = videoRef.current;
       if (video) {
         video.src = backupUrl;
         video.load();
-        return;
       }
     } else {
       console.error('No more gateway alternatives available');
@@ -289,11 +292,16 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
             <>
               <video
                 ref={videoRef}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 playsInline
                 preload="metadata"
-                poster="/placeholder.png"
+                poster="/images/placeholder.avif"
                 onClick={togglePlayPause}
+                style={{
+                  objectFit: "cover",
+                  width: "100%",
+                  height: "100%"
+                }}
               />
               
               {/* Play/Pause overlay */}

@@ -18,9 +18,9 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
       case 'daily':
         return 'Record a 30-second video showing your completion';
       case 'weekly':
-        return 'Upload a 1-minute video showing your completion';
+        return 'Upload an up to 1-minute video showing your completion';
       case 'monthly':
-        return 'Upload a 3-minute video showing your completion';
+        return 'Upload an up to 3-minute video showing your completion';
       default:
         return 'Record a 30-second video showing your completion';
     }

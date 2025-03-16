@@ -106,7 +106,8 @@ app.nocena/
 │   │   ├── shortcut-home.png                   # Home shortcut icon
 │   │   └── shortcut-map.png                    # Map shortcut icon
 │   ├── images/                                 # Static images
-│   │   ├── ai.png                              # Default image used as a profile picture of the AI character creating the challenges
+│   │   ├── ai.png                              # Default profile pic of the AI character creating the challenges
+│   │   ├── placeholder.avif                    # Placeholder image for loading videos on homepage
 │   │   └── profile.png                         # Default profile image
 │   ├── index.html                              # Static HTML entry for PWA fallback
 │   ├── logo/                                   # App logo assets

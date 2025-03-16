@@ -9,6 +9,8 @@ import {
   updateUserChallengeStrings 
 } from '../../lib/api/dgraph';
 import { getDayOfYear, getWeekOfYear, getMonth } from '../../lib/utils/dateUtils';
+import { checkPinataForFile, createFallbackMediaMetadata } from '../../lib/utils/pinataUtils';
+
 
 // Types and enums
 import { 
@@ -25,6 +27,7 @@ import RecordingView from './components/RecordingView';
 import SelfieView from './components/SelfieView';
 import ReviewView from './components/ReviewView';
 import StatusView from './components/StatusView';
+import FileUploadView from './components/FileUploadView';
 
 // Utilities for media handling
 import { 
@@ -189,6 +192,11 @@ const CompletingView = () => {
 
   // Start the recording process
   const handleStartRecording = useCallback(async () => {
+    if (frequency === 'weekly' || frequency === 'monthly') {
+      setRecordingState(RecordingState.FILE_UPLOAD);
+      return;
+    }
+
     setRecordingState(RecordingState.STARTING);
     
     // Initialize back camera - fixed TypeScript error
@@ -216,6 +224,38 @@ const CompletingView = () => {
       });
     }, 1000);
   }, [beginRecording]);
+
+  // Add this new handler for file uploads
+  const handleFilesSelected = useCallback(async (videoFile: File, selfieFile: File) => {
+    setIsLoading(true);
+    setRecordingState(RecordingState.UPLOADING);
+    setStatusMessage('Processing your uploaded files...');
+    
+    try {
+      // Convert files to blobs and then to base64
+      const videoBlob = new Blob([videoFile], { type: videoFile.type });
+      const selfieBlob = new Blob([selfieFile], { type: selfieFile.type });
+      
+      setVideoBlob(videoBlob);
+      setSelfieBlob(selfieBlob);
+      
+      // Create preview URLs
+      const videoUrl = URL.createObjectURL(videoBlob);
+      const selfieUrl = URL.createObjectURL(selfieBlob);
+      
+      setVideoPreviewUrl(videoUrl);
+      setSelfiePreviewUrl(selfieUrl);
+      
+      // Process as in the review step
+      setRecordingState(RecordingState.REVIEW);
+    } catch (err) {
+      console.error('Error processing uploaded files:', err);
+      setError('Failed to process your files. Please try again.');
+      setRecordingState(RecordingState.ERROR);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Stop recording and switch to selfie mode
   const handleStopRecording = useCallback(() => {
@@ -338,9 +378,9 @@ const CompletingView = () => {
       setError('Missing required data to complete challenge');
       return;
     }
-
-    // Check file size before upload
-    const MAX_SIZE_MB = 99; // Set slightly below the 100MB limit
+  
+    // Set appropriate size limit based on challenge type
+    const MAX_SIZE_MB = frequency === 'monthly' ? 95 : frequency === 'weekly' ? 60 : 30;
     const videoSizeMB = videoBlob.size / (1024 * 1024);
     
     if (videoSizeMB > MAX_SIZE_MB) {
@@ -547,6 +587,12 @@ const CompletingView = () => {
         return <IdleView 
           onStartRecording={handleStartRecording} 
           challengeParams={challengeParams} 
+        />;
+      case RecordingState.FILE_UPLOAD:
+        return <FileUploadView 
+          onFilesSelected={handleFilesSelected}
+          onCancel={() => setRecordingState(RecordingState.IDLE)}
+          challengeParams={challengeParams}
         />;
       case RecordingState.STARTING:
         return <StartingView countdown={countdown} videoRef={videoRef} />;

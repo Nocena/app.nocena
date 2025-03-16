@@ -6,6 +6,7 @@ export enum RecordingState {
   STARTING = 'starting',
   RECORDING = 'recording',
   SELFIE_MODE = 'selfie_mode',
+  FILE_UPLOAD = 'file_upload',
   REVIEW = 'review',
   UPLOADING = 'uploading',
   COMPLETE = 'complete',

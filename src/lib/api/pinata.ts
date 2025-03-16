@@ -162,30 +162,57 @@ export function getSelfieUrl(media: any): string | null {
 export function getBackupGatewayUrl(url: string | null, gatewayIndex: number): string | null {
   if (!url) return null;
   
-  // If we've exhausted all gateways, return null
+  // Add this line to log which gateway we're trying
+  console.log(`Attempting to use gateway index: ${gatewayIndex}`);
+  
+  // Use these additional gateways
+  const IPFS_GATEWAYS = [
+    'https://gateway.pinata.cloud/ipfs',
+    'https://jade-elaborate-emu-349.mypinata.cloud/ipfs', // Your dedicated gateway
+    'https://ipfs.io/ipfs',
+    'https://cloudflare-ipfs.com/ipfs',
+    'https://dweb.link/ipfs',
+    'https://gateway.ipfs.io/ipfs'
+  ];
+  
+  // If we're out of gateways, return null
   if (gatewayIndex >= IPFS_GATEWAYS.length) {
     return null;
   }
   
-  // Try to extract CID and path from the URL
-  let cidAndPath = '';
-  
-  // Find which gateway is used in the current URL
-  for (const gateway of IPFS_GATEWAYS) {
-    if (url.startsWith(gateway)) {
-      cidAndPath = url.substring(gateway.length);
-      break;
+  try {
+    // Parse the URL to extract CID and path
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    
+    // Find CID part (typically after /ipfs/)
+    let cidIndex = -1;
+    for (let i = 0; i < pathParts.length; i++) {
+      if (pathParts[i] === 'ipfs') {
+        cidIndex = i + 1;
+        break;
+      }
     }
+    
+    if (cidIndex >= 0 && cidIndex < pathParts.length) {
+      // Extract CID and any additional path
+      const cid = pathParts[cidIndex];
+      const additionalPath = pathParts.slice(cidIndex + 1).join('/');
+      
+      // Construct new URL with the gateway
+      let newUrl = `${IPFS_GATEWAYS[gatewayIndex]}/${cid}`;
+      if (additionalPath) {
+        newUrl += `/${additionalPath}`;
+      }
+      
+      console.log(`Trying alternative gateway: ${newUrl}`);
+      return newUrl;
+    }
+  } catch (err) {
+    console.error('Error parsing IPFS URL:', err);
   }
   
-  // If we couldn't extract the CID and path, can't create a backup URL
-  if (!cidAndPath) {
-    console.error('Could not extract CID and path from URL', url);
-    return null;
-  }
-  
-  // Return the URL with the new gateway
-  return `${IPFS_GATEWAYS[gatewayIndex]}${cidAndPath}`;
+  return null;
 }
 
 /**
