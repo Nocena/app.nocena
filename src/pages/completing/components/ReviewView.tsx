@@ -97,7 +97,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full flex flex-col items-center mb-10">
       {/* Main video display with selfie overlay */}
       <div className="w-full mb-4 relative">
         <video 

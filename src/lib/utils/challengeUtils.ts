@@ -1,4 +1,11 @@
-import { Challenge, dailyChallenges, weeklyChallenges, monthlyChallenges } from '../../data/challenges';
+import { 
+  Challenge, 
+  dailyChallenges, 
+  weeklyChallenges, 
+  monthlyChallenges,
+  ChallengeFrequency,
+  ChallengeCategory
+} from '../../data/challenges';
 
 /**
  * Generates a deterministic but seemingly random ordering of daily challenges
@@ -39,6 +46,13 @@ export function getCurrentChallenge(type: 'daily' | 'weekly' | 'monthly'): Chall
   const now = new Date();
   const currentYear = now.getFullYear();
   
+  // Map the string type to the enum
+  const frequency = type === 'daily' 
+    ? ChallengeFrequency.DAILY 
+    : type === 'weekly' 
+      ? ChallengeFrequency.WEEKLY 
+      : ChallengeFrequency.MONTHLY;
+  
   switch (type) {
     case 'daily': {
       // Get the day of the year (0-364)
@@ -51,7 +65,11 @@ export function getCurrentChallenge(type: 'daily' | 'weekly' | 'monthly'): Chall
       const orderedDailyChallenges = getOrderedDailyChallenges(currentYear);
       
       // Get the challenge for today (use modulo to cycle through if we have fewer than 365)
-      return orderedDailyChallenges[dayOfYear % orderedDailyChallenges.length];
+      return {
+        ...orderedDailyChallenges[dayOfYear % orderedDailyChallenges.length],
+        category: ChallengeCategory.AI,
+        frequency: frequency
+      };
     }
     
     case 'weekly': {
@@ -62,15 +80,23 @@ export function getCurrentChallenge(type: 'daily' | 'weekly' | 'monthly'): Chall
       const weekNumber = Math.floor(pastDaysOfYear / oneWeek);
       
       // Get the challenge for this week (use modulo to cycle through if we have fewer than 52)
-      return weeklyChallenges[weekNumber % weeklyChallenges.length];
+      return {
+        ...weeklyChallenges[weekNumber % weeklyChallenges.length],
+        category: ChallengeCategory.AI,
+        frequency: frequency
+      };
     }
     
     case 'monthly': {
       // Get the current month (0-11)
       const monthIndex = now.getMonth();
       
-      // Get the challenge for this month
-      return monthlyChallenges[monthIndex];
+      // Make sure we have a challenge for each month, or cycle through available ones
+      return {
+        ...monthlyChallenges[monthIndex % monthlyChallenges.length],
+        category: ChallengeCategory.AI,
+        frequency: frequency
+      };
     }
     
     default:

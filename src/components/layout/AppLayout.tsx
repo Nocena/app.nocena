@@ -107,10 +107,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   return (
     <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
-      {/* Top Navbar */}
-      <div className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg">
+      {/* Top Navbar - with top safe area padding */}
+      <div className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg pt-[env(safe-area-inset-top)]">
         <div className="flex items-center">
-          <button onClick={handleMenuToggle} className="z-9999">
+          <button onClick={handleMenuToggle} className="z-50">
             <ThematicIcon iconName="menu" isActive={isMenuOpen} />
           </button>
         </div>
@@ -127,13 +127,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       {/* Side Menu */}
       <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleLogout} />
 
-      {/* Main Content */}
-      <main className='flex-grow mt-12 pt-3'>
+      {/* Main Content - with margin to account for top navbar + safe area */}
+      <main className="flex-grow mt-[calc(3rem+env(safe-area-inset-top))] pt-3">
         {children}
       </main>
 
-      {/* Bottom Navbar */}
-      <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light">
+      {/* Bottom Navbar - with bottom safe area padding */}
+      <div className="navbar-bottom fixed bottom-0 left-0 right-0 py-8 flex justify-around bg-nocenaBg z-50 font-light pb-[env(safe-area-inset-bottom)]">
         {(['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][]).map((item, index) => (
           <button
             key={item}
