@@ -1,6 +1,6 @@
 // lib/completing/mediaServices.ts
 
-import { MediaMetadata } from './types';
+import { MediaMetadata, ChallengeParams } from './types';
 
 /**
  * Initializes the back (main) camera for video recording
@@ -64,14 +64,25 @@ export async function initializeFrontCamera(
 }
 
 /**
- * Creates a MediaRecorder instance with optimized settings
+ * Creates a MediaRecorder instance with optimized settings based on challenge frequency
  */
 export function createMediaRecorder(
   stream: MediaStream,
   onDataAvailable: (event: BlobEvent) => void,
-  onStop: () => void
+  onStop: () => void,
+  frequency: 'daily' | 'weekly' | 'monthly' = 'daily'
 ): MediaRecorder | null {
   try {
+    // Determine optimal bitrate and options based on challenge frequency
+    // Lower bitrate for longer videos to keep file size manageable
+    const bitrates = {
+      daily: 2500000,    // 2.5 Mbps for daily (30s)
+      weekly: 1500000,   // 1.5 Mbps for weekly (1min)
+      monthly: 1000000   // 1 Mbps for monthly (3min)
+    };
+    
+    const selectedBitrate = bitrates[frequency];
+    
     // Try supported MIME types in order of preference
     const mimeTypes = [
       'video/webm;codecs=vp9,opus',
@@ -81,10 +92,13 @@ export function createMediaRecorder(
     ];
     
     // Find first supported mime type
-    let options = {};
+    let options: MediaRecorderOptions = {};
     for (const mimeType of mimeTypes) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
-        options = { mimeType };
+        options = { 
+          mimeType,
+          videoBitsPerSecond: selectedBitrate
+        };
         break;
       }
     }
@@ -101,6 +115,39 @@ export function createMediaRecorder(
     console.error('Error creating MediaRecorder:', err);
     return null;
   }
+}
+
+/**
+ * Compresses video to keep file size manageable
+ * Especially important for weekly and monthly challenges
+ */
+export async function compressVideo(
+  videoBlob: Blob, 
+  frequency: 'daily' | 'weekly' | 'monthly' = 'daily'
+): Promise<Blob> {
+  // For now, we're just returning the original blob as compression requires a library
+  // In a production environment, consider using ffmpeg.wasm or similar
+  console.log(`Compression needed for ${frequency} challenge (placeholder)`);
+  
+  // In a real implementation, we would:
+  // 1. Use appropriate compression settings based on challenge frequency
+  // 2. Apply compression to reduce file size while maintaining acceptable quality
+  // 3. Return the compressed blob
+  
+  return videoBlob;
+}
+
+/**
+ * Gets the maximum recording duration based on challenge frequency
+ */
+export function getMaxRecordingDuration(frequency: 'daily' | 'weekly' | 'monthly' = 'daily'): number {
+  const durations = {
+    daily: 30,       // 30 seconds
+    weekly: 60,      // 1 minute
+    monthly: 180     // 3 minutes
+  };
+  
+  return durations[frequency] || 30;
 }
 
 /**

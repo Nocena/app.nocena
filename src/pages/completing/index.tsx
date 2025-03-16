@@ -532,9 +532,22 @@ const CompletingView = () => {
 
   // Render content based on current state
   const renderContent = () => {
+    // Create a challenge params object to pass to components
+    const challengeParams: ChallengeParams = {
+      type,
+      frequency,
+      title,
+      description,
+      reward,
+      visibility
+    };
+  
     switch (recordingState) {
       case RecordingState.IDLE:
-        return <IdleView onStartRecording={handleStartRecording} />;
+        return <IdleView 
+          onStartRecording={handleStartRecording} 
+          challengeParams={challengeParams} 
+        />;
       case RecordingState.STARTING:
         return <StartingView countdown={countdown} videoRef={videoRef} />;
       case RecordingState.RECORDING:
