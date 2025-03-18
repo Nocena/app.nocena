@@ -222,7 +222,7 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
   };
 
   const openDiscord = () => {
-    window.open('https://discord.gg/k5UMTvtc', '_blank');
+    window.open('https://discord.gg/4xwXAB2zhp', '_blank');
   };
 
   const handleShowLoginPage = () => {
