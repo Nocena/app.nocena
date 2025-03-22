@@ -14,6 +14,7 @@ const nocenixIcon = '/nocenix.ico';
 
 const SearchView = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [pendingFollowActions, setPendingFollowActions] = useState<Set<string>>(new Set());
   const { user } = useAuth();
   const router = useRouter();
 
@@ -23,7 +24,6 @@ const SearchView = () => {
       try {
         const allUsers = await fetchAllUsers();
         setUsers(allUsers);
-        console.log(allUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -34,8 +34,47 @@ const SearchView = () => {
   const handleFollow = async (targetUserId: string) => {
     if (!user || !user.id || !targetUserId || user.id === targetUserId) return;
     
-    const success = await toggleFollowUser(user.id, targetUserId, user.username);
-    if (success) {
+    // Add to pending actions to prevent multiple clicks
+    if (pendingFollowActions.has(targetUserId)) return;
+    setPendingFollowActions(prev => new Set(prev).add(targetUserId));
+    
+    // Immediately update UI for better user experience
+    setUsers((prevUsers) =>
+      prevUsers.map((u) =>
+        u.id === targetUserId
+          ? {
+              ...u,
+              followers: u.followers.includes(user.id)
+                ? u.followers.filter((id) => id !== user.id)
+                : [...u.followers, user.id],
+            }
+          : u
+      )
+    );
+    
+    try {
+      // Make API call in the background
+      const success = await toggleFollowUser(user.id, targetUserId, user.username);
+      
+      // If API call fails, revert the UI change
+      if (!success) {
+        setUsers((prevUsers) =>
+          prevUsers.map((u) =>
+            u.id === targetUserId
+              ? {
+                  ...u,
+                  followers: u.followers.includes(user.id)
+                    ? u.followers.filter((id) => id !== user.id)
+                    : [...u.followers, user.id],
+                }
+              : u
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      
+      // Revert UI change on error
       setUsers((prevUsers) =>
         prevUsers.map((u) =>
           u.id === targetUserId
@@ -48,6 +87,13 @@ const SearchView = () => {
             : u
         )
       );
+    } finally {
+      // Remove from pending actions
+      setPendingFollowActions(prev => {
+        const updated = new Set(prev);
+        updated.delete(targetUserId);
+        return updated;
+      });
     }
   };
 
@@ -67,49 +113,66 @@ const SearchView = () => {
       <SearchBox onUserSelect={(selectedUser) => console.log('User selected:', selectedUser)} />
 
       {/* Default User List */}
-      <div className="w-full max-w-md space-y-4 mt-6">
+      <div className="w-full max-w-md space-y-2 mt-6 px-1">
         {users.map((userData) => {
           const isFollowing = userData.followers.includes(user!.id);
           const isCurrentUser = userData.id === user!.id;
+          const isPending = pendingFollowActions.has(userData.id);
 
           return (
             <div
               key={userData.id}
-              className="w-full bg-nocenaBg/80 p-4 rounded-lg flex items-center justify-between cursor-pointer"
+              className="w-full bg-nocenaBg/80 py-3 rounded-lg flex flex-col cursor-pointer overflow-hidden"
             >
-              <div className="flex items-center gap-4 flex-grow" onClick={() => handleProfileRedirect(userData)}>
-                <ThematicImage className="rounded-full flex-shrink-0">
-                  <Image
-                    src={userData.profilePicture || '/images/profile.png'}
-                    alt="Profile"
-                    width={96}
-                    height={96}
-                    className="w-14 h-14 object-cover rounded-full"
-                  />
-                </ThematicImage>
+              <div className="flex items-center">
+                <div 
+                  className="flex items-center gap-3 flex-1 min-w-0" 
+                  onClick={() => handleProfileRedirect(userData)}
+                >
+                  <ThematicImage className="rounded-full flex-shrink-0">
+                    <Image
+                      src={userData.profilePicture || '/images/profile.png'}
+                      alt="Profile"
+                      width={96}
+                      height={96}
+                      className="w-10 h-10 object-cover rounded-full"
+                    />
+                  </ThematicImage>
 
-                <div className="min-w-0">
-                  <ThematicText
-                    text={userData.username}
-                    isActive={true}
-                    className="truncate text-left"
-                  />
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Image src={nocenixIcon} alt="Nocenix" width={20} height={20} />
-                    <span className="text-sm">{userData.earnedTokens}</span>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <ThematicText
+                      text={userData.username}
+                      isActive={true}
+                      className="truncate text-left max-w-full text-sm font-medium"
+                    />
+                    <div className="flex items-center mt-0.5">
+                      <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
+                      <span className="text-xs ml-1 text-gray-400">{userData.earnedTokens}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Follow Button */}
-              <div className="ml-4 flex-shrink-0">
-                <PrimaryButton
-                  text={isCurrentUser ? 'Your Profile' : isFollowing ? 'Following' : 'Follow'}
-                  onClick={() => handleFollow(userData.id)}
-                  className="px-3 py-1 text-sm min-w-[7rem]"
-                  isActive={isFollowing}
-                  disabled={isCurrentUser} // Disable if it's the logged-in user
-                />
+                {/* Follow Button */}
+                <div className="flex-shrink-0">
+                  <PrimaryButton
+                    text={
+                      isCurrentUser 
+                        ? 'Your Profile' 
+                        : isPending 
+                          ? isFollowing ? 'Following...' : 'Following...' 
+                          : isFollowing 
+                            ? 'Following' 
+                            : 'Follow'
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent profile navigation when clicking the button
+                      if (!isCurrentUser) handleFollow(userData.id);
+                    }}
+                    className="px-3 py-1 text-xs min-w-[5rem] h-8"
+                    isActive={!!isFollowing}
+                    disabled={isCurrentUser || isPending}
+                  />
+                </div>
               </div>
             </div>
           );

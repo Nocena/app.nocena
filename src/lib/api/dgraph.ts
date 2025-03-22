@@ -586,36 +586,47 @@ export const toggleFollowUser = async (
   }
 };
 
-export const fetchUserFollowers = async (userId: string): Promise<number> => {
-  if (!userId) return 0;
-
-  const query = `
-    query getUserFollowers($userId: String!) {
-      getUser(id: $userId) {
-        followers {
-          id
+/**
+ * Fetches the followers for a user
+ * @param userId The ID of the user
+ * @returns Array of follower IDs
+ */
+export const fetchUserFollowers = async (userId: string): Promise<string[]> => {
+  try {
+    const query = `
+      query GetUserFollowers($userId: String!) {
+        getUser(id: $userId) {
+          followers {
+            id
+          }
         }
       }
-    }
-  `;
+    `;
 
-  try {
-    const response = await fetch(DGRAPH_ENDPOINT, {
+    const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { userId } }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY!,
+      },
+      body: JSON.stringify({
+        query,
+        variables: { userId },
+      }),
     });
 
     const data = await response.json();
+    
     if (data.errors) {
-      console.error('Dgraph query error:', JSON.stringify(data.errors, null, 2));
-      return 0;
+      throw new Error(data.errors[0].message);
     }
 
-    return data.data.getUser?.followers?.length || 0;
+    // Extract the IDs from the followers array
+    const followerIds = data.data.getUser.followers.map((follower: { id: string }) => follower.id);
+    return followerIds || [];
   } catch (error) {
-    console.error('Network or fetch error:', error);
-    return 0;
+    console.error('Error fetching user followers:', error);
+    return [];
   }
 };
 

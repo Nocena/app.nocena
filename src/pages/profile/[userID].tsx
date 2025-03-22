@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import { getUserByIdFromDgraph } from '../../lib/api/dgraph';
+import { getUserByIdFromDgraph, toggleFollowUser } from '../../lib/api/dgraph';
+import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
 import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
+import FollowersPopup from './components/FollowersPopup';
 
 import FollowersIcon from '../../components/icons/followers';
 
@@ -29,16 +31,13 @@ interface User {
 const OtherProfileView: React.FC = () => {
   const router = useRouter();
   const { userID } = router.query;
+  const { user: currentUser } = useAuth();
   
-  console.log("Received userID from router.query:", userID);
-
-  if (!userID) {
-    return <div className="text-white">Invalid user ID.</div>;
-  }
-
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isPendingFollow, setIsPendingFollow] = useState(false);
+  const [showFollowersPopup, setShowFollowersPopup] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +47,8 @@ const OtherProfileView: React.FC = () => {
   ];
 
   useEffect(() => {
+    if (!userID) return;
+    
     const fetchFullUserData = async () => {
       try {
         const fullUser = await getUserByIdFromDgraph(userID as string);
@@ -77,6 +78,69 @@ const OtherProfileView: React.FC = () => {
         elementWidth / 2;
     }
   }, [user]);
+  
+  const handleFollowToggle = async () => {
+    if (!currentUser || !user || !currentUser.id || isPendingFollow) return;
+    
+    // Set pending state
+    setIsPendingFollow(true);
+    
+    // Optimistically update UI
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      
+      const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
+      const updatedFollowers = isCurrentlyFollowing 
+        ? prevUser.followers.filter(id => id !== currentUser.id)
+        : [...prevUser.followers, currentUser.id];
+        
+      return {
+        ...prevUser,
+        followers: updatedFollowers
+      };
+    });
+    
+    try {
+      // Make API call
+      const success = await toggleFollowUser(currentUser.id, user.id, currentUser.username);
+      
+      // If API call fails, revert the UI change
+      if (!success) {
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          
+          const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
+          const updatedFollowers = isCurrentlyFollowing 
+            ? prevUser.followers.filter(id => id !== currentUser.id)
+            : [...prevUser.followers, currentUser.id];
+            
+          return {
+            ...prevUser,
+            followers: updatedFollowers
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      
+      // Revert UI change on error
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        
+        const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
+        const updatedFollowers = isCurrentlyFollowing 
+          ? prevUser.followers.filter(id => id !== currentUser.id)
+          : [...prevUser.followers, currentUser.id];
+          
+        return {
+          ...prevUser,
+          followers: updatedFollowers
+        };
+      });
+    } finally {
+      setIsPendingFollow(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
@@ -93,6 +157,9 @@ const OtherProfileView: React.FC = () => {
   if (!user) {
     return <div className="flex items-center justify-center min-h-screen text-white">User not found.</div>;
   }
+  
+  // Check if current user is following this profile
+  const isFollowing = !!(currentUser && user.followers.includes(currentUser.id));
 
   return (
     <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
@@ -102,7 +169,10 @@ const OtherProfileView: React.FC = () => {
       </div>
 
       <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-        <div className="flex flex-col items-center">
+        <div 
+          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => setShowFollowersPopup(true)}
+        >
           <FollowersIcon className="w-8 h-8 mb-1" />
           <span>{user.followers.length}</span>
         </div>
@@ -129,10 +199,31 @@ const OtherProfileView: React.FC = () => {
         </div>
       </div>
 
+      {/* Followers Popup */}
+      <FollowersPopup 
+        isOpen={showFollowersPopup} 
+        onClose={() => setShowFollowersPopup(false)}
+        followers={user.followers}
+        isFollowers={true}
+      />
+
       <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
 
-      <div className="relative z-10 mt-4">
-        <PrimaryButton text="Challenge Me" onClick={() => {}} className="px-6 py-2" disabled />
+      <div className="relative z-10 mt-4 flex gap-3">
+        <PrimaryButton 
+          text={isPendingFollow ? (isFollowing ? "Unfollowing..." : "Following...") : (isFollowing ? "Following" : "Follow")}
+          onClick={handleFollowToggle} 
+          className="px-6 py-2"
+          isActive={!!isFollowing}
+          disabled={isPendingFollow || !currentUser}
+        />
+        
+        <PrimaryButton 
+          text="Challenge Me" 
+          onClick={() => {}} 
+          className="px-6 py-2" 
+          disabled 
+        />
       </div>
 
       <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">

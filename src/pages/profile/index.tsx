@@ -11,6 +11,7 @@ import ThematicImage from '../../components/ui/ThematicImage';
 import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
 import ThematicIcon from '../../components/ui/ThematicIcon';
+import FollowersPopup from './components/FollowersPopup';
 
 import FollowersIcon from '../../components/icons/followers';
 
@@ -30,6 +31,8 @@ const ProfileView: React.FC = () => {
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [followersCount, setFollowersCount] = useState<number>(0);
+  const [followers, setFollowers] = useState<string[]>([]);
+  const [showFollowersPopup, setShowFollowersPopup] = useState<boolean>(false);
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
     user?.dailyChallenge.split('').map((char) => char === '1') || []
   );
@@ -47,7 +50,22 @@ const ProfileView: React.FC = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchUserFollowers(user.id).then(setFollowersCount);
+      // Update the followers fetching to get the actual follower IDs
+      const getFollowers = async () => {
+        try {
+          const followers = await fetchUserFollowers(user.id);
+          if (Array.isArray(followers)) {
+            setFollowers(followers);
+            setFollowersCount(followers.length);
+          } else if (typeof followers === 'number') {
+            setFollowersCount(followers);
+          }
+        } catch (error) {
+          console.error('Error fetching followers:', error);
+        }
+      };
+      
+      getFollowers();
     }
   }, [user?.id]);
 
@@ -178,6 +196,10 @@ const ProfileView: React.FC = () => {
     setIsEditingBio(false);
   };
 
+  const handleFollowersClick = () => {
+    setShowFollowersPopup(true);
+  };
+
   return (
     <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
       <div className="absolute inset-0">
@@ -186,7 +208,10 @@ const ProfileView: React.FC = () => {
       </div>
 
       <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-        <div className="flex flex-col items-center">
+        <div
+          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleFollowersClick}
+        >
           <FollowersIcon className="w-8 h-8 mb-1" />
           <span>{followersCount}</span>
         </div>
@@ -277,6 +302,14 @@ const ProfileView: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Followers Popup */}
+      <FollowersPopup
+        isOpen={showFollowersPopup}
+        onClose={() => setShowFollowersPopup(false)}
+        followers={followers}
+        isFollowers={true}
+      />
     </div>
   );
 };

@@ -124,6 +124,7 @@ app.nocena/
 │   │   ├── PWAInstallPrompt.tsx                # Prompt for installing the app as PWA
 │   │   ├── InviteCodeInput.tsx                 # Special component for begining of registration process - might be reused
 │   │   ├── PhoneVerification.tsx               # Like the above, just specially for verifying phone
+│   │   ├── Popup.tsx                           # Reusable across the app (use in profile followers for now)
 │   │   ├── icons/                              # SVG icon components as React components (!or use lucide-react!)
 │   │   │   ├── followers.tsx                   # Followers icon
 │   │   │   ├── home.tsx                        # Home icon
@@ -208,12 +209,13 @@ app.nocena/
 │   │   │   └── index.tsx                       # Map page
 │   │   ├── profile/                            # User profiles
 │   │   │   ├── components/                     # Profile page components
-│   │   │   │  └── ChallengeIndicator.tsx       # Indicator for completed challenges
+│   │   │   │   ├── FollowersPopup.tsx          # Using the general popup componenet for displaying followers on icon click
+│   │   │   │   └── ChallengeIndicator.tsx      # Indicator for completed challenges
 │   │   │   ├── [userID].tsx                    # Dynamic other user profile page
 │   │   │   └── index.tsx                       # Current user profile page
 │   │   ├── search/                             # User search functionality
 │   │   │   ├── components/                     # Search page components
-│   │   │   │  └── SearchBox.tsx                   # Search input component
+│   │   │   │   └── SearchBox.tsx               # Search input component
 │   │   │   └── index.tsx                       # Search page
 │   │   ├── index.tsx                           # Landing page
 │   │   ├── login.tsx                           # Login page
