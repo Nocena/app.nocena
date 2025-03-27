@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../lib/api/dgraph';
 import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
+import { getPageState, updatePageState } from '../../components/PageManager';
 
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
@@ -42,33 +43,136 @@ const ProfileView: React.FC = () => {
   const [monthlyChallenges, setMonthlyChallenges] = useState<boolean[]>(
     user?.monthlyChallenge.split('').map((char) => char === '1') || []
   );
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+  // Check if this page is visible in the PageManager
   useEffect(() => {
-    if (user?.id) {
-      // Update the followers fetching to get the actual follower IDs
-      const getFollowers = async () => {
-        try {
-          const followers = await fetchUserFollowers(user.id);
-          if (Array.isArray(followers)) {
-            setFollowers(followers);
-            setFollowersCount(followers.length);
-          } else if (typeof followers === 'number') {
-            setFollowersCount(followers);
-          }
-        } catch (error) {
-          console.error('Error fetching followers:', error);
+    const handleVisibilityChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.pageName === 'profile') {
+        setIsPageVisible(customEvent.detail.isVisible);
+      }
+    };
+    
+    const handleRouteChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        if (customEvent.detail.to === '/profile') {
+          setIsPageVisible(true);
+        } else if (customEvent.detail.from === '/profile') {
+          setIsPageVisible(false);
         }
-      };
+      }
+    };
+    
+    window.addEventListener('pageVisibilityChange', handleVisibilityChange);
+    window.addEventListener('routeChange', handleRouteChange);
+    
+    // Initialize visibility based on current route
+    setIsPageVisible(window.location.pathname === '/profile');
+    
+    return () => {
+      window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
+      window.removeEventListener('routeChange', handleRouteChange);
+    };
+  }, []);
+
+  // Function to fetch followers with caching
+  const fetchFollowersData = useCallback(async (showLoading = true) => {
+    if (!user?.id) return;
+    
+    if (showLoading) setIsLoading(true);
+    
+    try {
+      // Try to get from page state first
+      const pageState = getPageState();
+      const profileCacheKey = `profile_${user.id}`;
       
-      getFollowers();
+      // Check if we have fresh data in PageManager
+      if (pageState && pageState[profileCacheKey] && 
+          Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
+        const { followers } = pageState[profileCacheKey].data;
+        if (Array.isArray(followers)) {
+          setFollowers(followers);
+          setFollowersCount(followers.length);
+          if (!showLoading) return; // Skip API call if silent refresh
+        }
+      }
+      
+      // If no fresh data or forced refresh, get from API
+      const fetchedFollowers = await fetchUserFollowers(user.id);
+      if (Array.isArray(fetchedFollowers)) {
+        setFollowers(fetchedFollowers);
+        setFollowersCount(fetchedFollowers.length);
+        
+        // Update PageManager state
+        updatePageState(profileCacheKey, {
+          followers: fetchedFollowers,
+          bio: user.bio,
+          profilePicture: user.profilePicture
+        });
+        
+        // Also update localStorage for faster loads
+        localStorage.setItem(`nocena_${profileCacheKey}`, JSON.stringify({
+          data: { followers: fetchedFollowers },
+          timestamp: Date.now()
+        }));
+      } else if (typeof fetchedFollowers === 'number') {
+        setFollowersCount(fetchedFollowers);
+      }
+    } catch (error) {
+      console.error('Error fetching followers:', error);
+    } finally {
+      if (showLoading) setIsLoading(false);
     }
   }, [user?.id]);
 
+  // Fetch followers when component mounts or becomes visible
+  useEffect(() => {
+    if (!user?.id || !isPageVisible) return;
+    
+    // Check if we have cached data
+    try {
+      const profileCacheKey = `profile_${user.id}`;
+      const cachedData = localStorage.getItem(`nocena_${profileCacheKey}`);
+      
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // Use cache if less than 5 minutes old
+        if (data && data.followers && Date.now() - timestamp < 300000) {
+          setFollowers(data.followers);
+          setFollowersCount(data.followers.length);
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cached followers', error);
+    }
+    
+    // Always fetch fresh data if page is visible
+    fetchFollowersData(followers.length === 0);
+    
+    // Set up background refresh every 5 minutes when page is visible
+    const intervalId = setInterval(() => {
+      if (isPageVisible) {
+        fetchFollowersData(false); // Silent refresh
+      }
+    }, 300000); // Every 5 minutes
+    
+    // Add to tracking for memory optimization
+    if (typeof window !== 'undefined' && window.nocena_app_timers) {
+      window.nocena_app_timers.push(intervalId as unknown as number);
+    }
+    
+    return () => clearInterval(intervalId);
+  }, [user?.id, isPageVisible, fetchFollowersData, followers.length]);
+
+  // Set up scroll position for months
   useEffect(() => {
     if (scrollContainerRef.current) {
       const currentMonthIndex = new Date().getMonth();
@@ -79,6 +183,21 @@ const ProfileView: React.FC = () => {
         elementWidth / 2;
     }
   }, []);
+
+  // Handler when app comes back to foreground
+  useEffect(() => {
+    const handleAppForeground = () => {
+      if (isPageVisible && user?.id) {
+        fetchFollowersData(false);
+      }
+    };
+    
+    window.addEventListener('nocena_app_foreground', handleAppForeground);
+    
+    return () => {
+      window.removeEventListener('nocena_app_foreground', handleAppForeground);
+    };
+  }, [isPageVisible, user?.id, fetchFollowersData]);
 
   const handleProfilePicClick = () => {
     if (fileInputRef.current) {
@@ -154,6 +273,14 @@ const ProfileView: React.FC = () => {
             const updatedUser = { ...user, profilePicture: url };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            // Update PageManager state
+            const profileCacheKey = `profile_${user.id}`;
+            updatePageState(profileCacheKey, {
+              ...getPageState()[profileCacheKey]?.data || {},
+              profilePicture: url
+            });
+            
             console.log('Profile picture successfully updated.');
           } catch (error) {
             console.error('Upload error:', error);
@@ -183,6 +310,14 @@ const ProfileView: React.FC = () => {
       const updatedUser = { ...user, bio };
       login(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Update PageManager state
+      const profileCacheKey = `profile_${user.id}`;
+      updatePageState(profileCacheKey, {
+        ...getPageState()[profileCacheKey]?.data || {},
+        bio
+      });
+      
       console.log('Bio successfully updated.');
       setIsEditingBio(false);
     } catch (error) {
@@ -199,6 +334,39 @@ const ProfileView: React.FC = () => {
   const handleFollowersClick = () => {
     setShowFollowersPopup(true);
   };
+
+  // Ensure challenge indicators are always in sync with user data
+  useEffect(() => {
+    if (user) {
+      setDailyChallenges(user.dailyChallenge.split('').map((char) => char === '1'));
+      setWeeklyChallenges(user.weeklyChallenge.split('').map((char) => char === '1'));
+      setMonthlyChallenges(user.monthlyChallenge.split('').map((char) => char === '1'));
+      setTokenBalance(user.earnedTokens || 0);
+      setProfilePic(user.profilePicture || defaultProfilePic);
+      setUsername(user.username);
+      setBio(user.bio || 'This is your bio. Click to edit it.');
+    }
+  }, [user]);
+
+  // Memoize challenge indicator to prevent unnecessary re-renders
+  const challengeIndicators = useMemo(() => {
+    return monthNames.map((month, index) => (
+      <div
+        key={index}
+        className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}
+      >
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}>
+          <ChallengeIndicator
+            dailyChallenges={dailyChallenges}
+            weeklyChallenges={weeklyChallenges}
+            monthlyChallenge={monthlyChallenges}
+            month={index}
+          />
+        </div>
+        <span className="text-sm mt-4">{month}</span>
+      </div>
+    ));
+  }, [dailyChallenges, weeklyChallenges, monthlyChallenges, monthNames]);
 
   return (
     <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
@@ -284,22 +452,7 @@ const ProfileView: React.FC = () => {
       <div className="relative z-20 mt-10 text-center w-full">
         <h3 className="text-lg font-semibold">Timed challenge counter</h3>
         <div className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4" ref={scrollContainerRef} style={{ paddingBottom: '30px' }}>
-          {monthNames.map((month, index) => (
-            <div
-              key={index}
-              className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}
-            >
-              <div className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}>
-                <ChallengeIndicator
-                  dailyChallenges={dailyChallenges}
-                  weeklyChallenges={weeklyChallenges}
-                  monthlyChallenge={monthlyChallenges}
-                  month={index}
-                />
-              </div>
-              <span className="text-sm mt-4">{month}</span>
-            </div>
-          ))}
+          {challengeIndicators}
         </div>
       </div>
 

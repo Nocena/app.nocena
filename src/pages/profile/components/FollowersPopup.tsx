@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
@@ -6,18 +6,19 @@ import Popup from '../../../components/Popup';
 import ThematicImage from '../../../components/ui/ThematicImage';
 import ThematicText from '../../../components/ui/ThematicText';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
-import { useAuth } from '../../../contexts/AuthContext';
-import { getUserByIdFromDgraph, toggleFollowUser } from '../../../lib/api/dgraph';
 import LoadingSpinner from '../../../components/ui/LoadingSpinner';
+import { useAuth, User as AuthUser } from '../../../contexts/AuthContext';
+import { getUserByIdFromDgraph, toggleFollowUser } from '../../../lib/api/dgraph';
 
 const nocenixIcon = '/nocenix.ico';
 
+// Local interface that matches the component's needs
 export interface FollowerUser {
   id: string;
   username: string;
   profilePicture: string;
   earnedTokens: number;
-  followers: string[];
+  followers: string[]; // Array of IDs
   bio?: string;
 }
 
@@ -43,6 +44,23 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
   const touchMoveY = useRef<number | null>(null);
+
+  // Convert AuthUser to FollowerUser
+  const convertToFollowerUser = useCallback((user: AuthUser | null): FollowerUser | null => {
+    if (!user) return null;
+    
+    return {
+      id: user.id,
+      username: user.username,
+      profilePicture: user.profilePicture,
+      earnedTokens: user.earnedTokens,
+      bio: user.bio,
+      // Extract follower IDs from User objects
+      followers: Array.isArray(user.followers) 
+        ? user.followers.map(f => typeof f === 'string' ? f : f.id)
+        : []
+    };
+  }, []);
 
   // Setup touch handlers for swipe down to close
   useEffect(() => {
@@ -105,6 +123,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
     };
   }, [onClose]);
 
+  // More efficient follower data fetching
   useEffect(() => {
     if (!isOpen || followers.length === 0) {
       setIsLoading(false);
@@ -115,11 +134,41 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
     const fetchFollowers = async () => {
       setIsLoading(true);
       try {
-        const userPromises = followers.map(id => getUserByIdFromDgraph(id));
-        const users = await Promise.all(userPromises);
-        // Filter out null values and type cast
-        const validUsers = users.filter(user => user !== null) as FollowerUser[];
-        setFollowerUsers(validUsers);
+        // If we already have the user data in the currentUser's following/followers,
+        // we could use it here to avoid unnecessary API calls
+        
+        // Batch requests in groups of 5 to avoid overwhelming the server
+        const batchSize = 5;
+        const results: FollowerUser[] = [];
+        
+        for (let i = 0; i < followers.length; i += batchSize) {
+          const batch = followers.slice(i, i + batchSize);
+          const userPromises = batch.map(id => getUserByIdFromDgraph(id));
+          const batchResults = await Promise.all(userPromises);
+          
+          // Process batch results
+          for (const user of batchResults) {
+            if (user) {
+              const formattedUser = convertToFollowerUser(user);
+              if (formattedUser) {
+                results.push(formattedUser);
+              }
+            }
+          }
+          
+          // Update UI after each batch for better UX if there are many followers
+          if (results.length > 0) {
+            setFollowerUsers(prevUsers => {
+              // Keep existing users and add new ones, avoid duplicates
+              const existingIds = new Set(prevUsers.map(u => u.id));
+              const newUsers = results.filter(u => !existingIds.has(u.id));
+              return [...prevUsers, ...newUsers];
+            });
+          }
+        }
+        
+        // Final update to ensure all results are included
+        setFollowerUsers(results);
       } catch (error) {
         console.error('Error fetching followers:', error);
       } finally {
@@ -128,7 +177,19 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
     };
 
     fetchFollowers();
-  }, [isOpen, followers]);
+  }, [isOpen, followers, convertToFollowerUser]);
+
+  // Memoized follow status check
+  const getIsFollowing = useCallback((userId: string): boolean => {
+    return !!(currentUser && currentUser.following && 
+      (Array.isArray(currentUser.following) ? 
+        currentUser.following.some(f => 
+          (typeof f === 'string' ? f === userId : f.id === userId)
+        ) : 
+        false
+      )
+    );
+  }, [currentUser]);
 
   const handleFollow = async (targetUserId: string) => {
     if (!currentUser || !currentUser.id || !targetUserId || currentUser.id === targetUserId) return;
@@ -205,6 +266,12 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
     onClose();
   };
 
+  // Show empty or partial results while loading
+  const showPartialResults = useMemo(() => 
+    !isLoading || (followerUsers.length > 0 && isLoading), 
+    [isLoading, followerUsers.length]
+  );
+
   return (
     <Popup isOpen={isOpen} onClose={onClose} title={isFollowers ? "Followers" : "Following"}>
       <div 
@@ -216,18 +283,19 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        {isLoading ? (
+        {isLoading && followerUsers.length === 0 ? (
           <div className="flex justify-center py-8">
             <LoadingSpinner />
           </div>
-        ) : followerUsers.length === 0 ? (
+        ) : showPartialResults && followerUsers.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             {isFollowers ? "No followers yet" : "Not following anyone yet"}
           </div>
         ) : (
           <div className="space-y-4">
             {followerUsers.map((userData) => {
-              const isFollowing = userData.followers.includes(currentUser?.id || '');
+              // Use our getIsFollowing helper to check follow status
+              const isFollowing = getIsFollowing(userData.id);
               const isCurrentUser = userData.id === currentUser?.id;
               const isPending = pendingFollowActions.has(userData.id);
 
@@ -286,11 +354,16 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                       />
                     </div>
                   </div>
-                  
-                  {/* Remove token display at bottom since we moved it up */}
                 </div>
               );
             })}
+            
+            {/* Show loading indicator at bottom when loading more */}
+            {isLoading && followerUsers.length > 0 && (
+              <div className="flex justify-center py-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            )}
           </div>
         )}
         
