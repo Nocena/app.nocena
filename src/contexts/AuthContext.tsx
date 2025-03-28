@@ -1,31 +1,53 @@
-// contexts/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
+// User type that matches your Dgraph schema
 export interface User {
   id: string;
   username: string;
-  phoneNumber: string;  // Changed from email to phoneNumber
-  wallet: string;
+  phoneNumber: string;
   bio: string;
-  profilePicture: string;
+  wallet: string;
+  passwordHash: string;
+  profilePicture: string; // CID stored in Filecoin
   earnedTokens: number;
-  dailyChallenge: string;
-  weeklyChallenge: string;
-  monthlyChallenge: string;
-  followers: string[];
-  following: string[];
-  completedChallenges?: Array<{
-    type: string;
-    title: string;
-    date: string;
-    proofCID: string;
-  }>;
+  followers: User[]; // Array of User objects
+  following: User[];
+  notifications: Notification[];
+  completedChallenges: ChallengeCompletion[];
+  upcomingChallenges: Challenge[];
+  dailyChallenge: string; // String of 365 characters
+  weeklyChallenge: string; // String of 52 characters
+  monthlyChallenge: string; // String of 12 characters
+}
+
+// Additional types to match Dgraph schema
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+}
+
+export interface ChallengeCompletion {
+  id: string;
+  challenge: Challenge;
+  user: User;
+  completedAt: string;
+  proofCID: string;
+}
+
+export interface Notification {
+  id: string;
+  user: User;
+  type: string;
+  read: boolean;
+  message: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  loading: boolean;  // Added loading state
+  loading: boolean;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
@@ -34,7 +56,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
-  loading: true,  // Default to loading
+  loading: true,
   login: async () => {},
   logout: async () => {},
   updateUser: () => {},
@@ -49,7 +71,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true); // Start with loading=true
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -64,7 +86,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('nocenaUser');
       }
     }
-    // Set loading to false once we've checked for stored user
     setLoading(false);
   }, []);
 
