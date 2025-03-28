@@ -6,6 +6,10 @@ import NotificationFollower from "./notifications/NotificationFollower";
 import NotificationChallenge from "./notifications/NotificationChallenge";
 import { getPageState, updatePageState } from "../../components/PageManager";
 
+// Performance debugging - global timer for overall page load
+const startTime = Date.now();
+console.log(`[PERF] InboxView started initializing at ${new Date().toISOString()}`);
+
 // Type definitions for notifications
 interface NotificationBase {
   id: string;
@@ -69,9 +73,22 @@ interface CustomRouteEvent extends CustomEvent {
 }
 
 const InboxView = () => {
+  console.time('inbox-render-total');
+  console.log(`[PERF] InboxView component function started at ${Date.now() - startTime}ms`);
+  
+  // Debug PageManager state on initialization
+  console.log('[PERF] Initial PageManager state:', getPageState());
+  if (getPageState()?.notifications?.data) {
+    console.log('[PERF] Found notifications in PageManager:', 
+      getPageState().notifications.data.length, 
+      'Last fetched:', new Date(getPageState().notifications.lastFetched).toLocaleString()
+    );
+  }
+  
   const { user, isAuthenticated } = useAuth();
+  // Start with loading true for immediate skeleton display
   const [notifications, setNotifications] = useState<NotificationBase[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [initialRenderComplete, setInitialRenderComplete] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
@@ -80,12 +97,24 @@ const InboxView = () => {
   const startY = useRef(0);
   const currentY = useRef(0);
   const pulling = useRef(false);
+  const dataFetchedRef = useRef(false);
+  
+  // Monitor component lifecycle
+  useEffect(() => {
+    console.log(`[PERF] InboxView mounted at ${new Date().toLocaleTimeString()}`);
+    return () => {
+      console.log(`[PERF] InboxView unmounted at ${new Date().toLocaleTimeString()}`);
+    };
+  }, []);
   
   // Register page visibility event listeners for PageManager
   useEffect(() => {
+    console.time('visibility-setup');
+    
     const handlePageVisibility = (event: Event) => {
       const customEvent = event as CustomVisibilityEvent;
       if (customEvent.detail && customEvent.detail.pageName === 'inbox') {
+        console.log(`[PERF] Inbox visibility changed to: ${customEvent.detail.isVisible}`);
         setIsVisible(customEvent.detail.isVisible);
       }
     };
@@ -93,6 +122,7 @@ const InboxView = () => {
     const handleRouteChange = (event: Event) => {
       const customEvent = event as CustomRouteEvent;
       if (customEvent.detail) {
+        console.log(`[PERF] Route changed: ${customEvent.detail.from} -> ${customEvent.detail.to}`);
         if (customEvent.detail.to === '/inbox') {
           setIsVisible(true);
           
@@ -110,6 +140,8 @@ const InboxView = () => {
     // Initialize visibility based on current route
     setIsVisible(window.location.pathname === '/inbox');
     
+    console.timeEnd('visibility-setup');
+    
     return () => {
       window.removeEventListener('pageVisibilityChange', handlePageVisibility);
       window.removeEventListener('routeChange', handleRouteChange);
@@ -118,7 +150,13 @@ const InboxView = () => {
   
   // First load - check for cached data in PageManager and localStorage
   useEffect(() => {
+    console.time('initial-data-load');
+    
+    // Mark initial render as complete immediately
+    setInitialRenderComplete(true);
+    
     try {
+      console.time('cache-check');
       // First try PageManager state
       const pageState = getPageState();
       if (pageState && pageState.notifications) {
@@ -126,67 +164,110 @@ const InboxView = () => {
         
         // Only use data if it's not too old (5 minutes)
         if (data && data.length > 0 && Date.now() - lastFetched < 300000) {
+          console.log('[PERF] Using cached notifications from PageManager');
           setNotifications(data as NotificationBase[]);
+          setIsLoading(false); // Stop loading immediately when we have cached data
+          dataFetchedRef.current = true;
         }
       } else {
         // Try localStorage if PageManager doesn't have data
+        console.time('localStorage-read');
         const cachedData = localStorage.getItem('nocena_cached_notifications');
+        console.timeEnd('localStorage-read');
+        
         if (cachedData) {
+          console.time('localStorage-parse');
           const { data, timestamp } = JSON.parse(cachedData);
+          console.timeEnd('localStorage-parse');
+          
           if (Date.now() - timestamp < 300000) {
+            console.log('[PERF] Using cached notifications from localStorage');
             setNotifications(data);
+            setIsLoading(false); // Stop loading immediately when we have cached data
+            dataFetchedRef.current = true;
             
             // Also update PageManager state
+            console.time('update-page-state');
             updatePageState('notifications', data);
+            console.timeEnd('update-page-state');
           }
         }
       }
+      console.timeEnd('cache-check');
     } catch (error) {
-      console.error('Failed to load cached notifications', error);
+      console.error('[PERF] Failed to load cached notifications', error);
     }
     
-    setInitialRenderComplete(true);
+    console.timeEnd('initial-data-load');
+    console.timeEnd('inbox-render-total');
   }, []);
 
   // Function to fetch notifications
-  const fetchUserNotifications = useCallback(async (showLoading = true) => {
-    if (!user?.id) return;
+  const fetchUserNotifications = useCallback(async (showLoadingState = true) => {
+    if (!user?.id) {
+      console.log('[PERF] fetchUserNotifications aborted - no user ID');
+      return;
+    }
     
-    if (showLoading) setIsLoading(true);
+    console.time('fetch-notifications-total');
+    
+    if (showLoadingState && !dataFetchedRef.current) {
+      setIsLoading(true);
+    }
     
     try {
+      console.time('network-request');
+      console.log('[PERF] Starting API request to fetch notifications');
       const fetchedNotifications = await fetchNotifications(user.id);
+      console.timeEnd('network-request');
+      console.log(`[PERF] API returned ${fetchedNotifications.length} notifications`);
       
+      console.time('process-notifications');
       // Sort notifications by createdAt date (newest first)
       const sortedNotifications = [...fetchedNotifications].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       
       setNotifications(sortedNotifications);
+      setIsLoading(false);
+      dataFetchedRef.current = true;
+      console.timeEnd('process-notifications');
       
       // Update both PageManager state and localStorage cache
+      console.time('update-state');
       updatePageState('notifications', sortedNotifications);
       
-      localStorage.setItem('nocena_cached_notifications', JSON.stringify({
-        data: sortedNotifications,
-        timestamp: Date.now()
-      }));
+      try {
+        localStorage.setItem('nocena_cached_notifications', JSON.stringify({
+          data: sortedNotifications,
+          timestamp: Date.now()
+        }));
+      } catch (storageError) {
+        console.error('[PERF] LocalStorage write failed', storageError);
+      }
       
       // Mark notifications as viewed
       localStorage.setItem('nocena_last_notification_view', Date.now().toString());
+      console.timeEnd('update-state');
     } catch (error) {
-      console.error("Failed to load notifications", error);
+      console.error("[PERF] Failed to load notifications", error);
+      setIsLoading(false);
     } finally {
-      if (showLoading) setIsLoading(false);
+      if (showLoadingState) setIsLoading(false);
       setIsPulling(false);
       setPullDistance(0);
+      console.timeEnd('fetch-notifications-total');
     }
   }, [user?.id]);
 
   // Handle data fetching based on component visibility and data freshness
   useEffect(() => {
-    if (!user?.id || !initialRenderComplete) return;
+    if (!user?.id || !initialRenderComplete) {
+      console.log(`[PERF] Data fetch check skipped - user: ${!!user?.id}, initialRender: ${initialRenderComplete}`);
+      return;
+    }
     
+    console.time('should-fetch-check');
     // Get the most recent data timestamp
     const pageState = getPageState();
     const lastFetched = pageState?.notifications?.lastFetched || 0;
@@ -196,18 +277,28 @@ const InboxView = () => {
       (Date.now() - lastFetched > 60000) || // Data is older than 1 minute
       (isVisible && Date.now() - lastFetched > 30000); // Page is visible and data older than 30 seconds
     
+    console.log(`[PERF] Should fetch data: ${shouldFetch}`, { 
+      notificationsLength: notifications.length,
+      lastFetchedAge: Date.now() - lastFetched,
+      isVisible
+    });
+    
     if (shouldFetch) {
       // Only show loading indicator if we have no data yet
       fetchUserNotifications(notifications.length === 0);
     }
+    console.timeEnd('should-fetch-check');
   }, [user?.id, isVisible, notifications.length, initialRenderComplete, fetchUserNotifications]);
 
   // Set up background refresh when page is visible
   useEffect(() => {
     if (!isVisible || !user?.id) return;
     
+    console.log('[PERF] Setting up background refresh interval');
+    
     // Use number type for interval ID
     const intervalId: number = window.setInterval(() => {
+      console.log('[PERF] Background refresh triggered');
       fetchUserNotifications(false); // Silent background refresh
     }, 30000); // Check every 30 seconds when visible
     
@@ -222,6 +313,7 @@ const InboxView = () => {
   // Listen for app foreground/background events
   useEffect(() => {
     const handleAppForeground = () => {
+      console.log('[PERF] App came to foreground');
       if (isVisible && user?.id) {
         // Refresh data when app comes to foreground and this page is visible
         fetchUserNotifications(false);
@@ -239,6 +331,7 @@ const InboxView = () => {
   useEffect(() => {
     if (!contentRef.current) return;
     
+    console.log('[PERF] Setting up pull-to-refresh handlers');
     const container = contentRef.current;
     
     const handleTouchStart = (e: TouchEvent) => {
@@ -298,7 +391,8 @@ const InboxView = () => {
 
   // Memoize notification rendering to prevent unnecessary re-renders
   const notificationList = useMemo(() => {
-    return notifications.map((notification) => {
+    console.time('render-notification-list');
+    const result = notifications.map((notification) => {
       if (notification.notificationType === "follow") {
         return (
           <NotificationFollower
@@ -320,10 +414,15 @@ const InboxView = () => {
         );
       }
     });
+    console.timeEnd('render-notification-list');
+    return result;
   }, [notifications]);
 
   // For initial render with no data, show skeletons
-  if (!initialRenderComplete && notifications.length === 0) {
+  console.log(`[PERF] Render decision - isLoading: ${isLoading}, notifications: ${notifications.length}`);
+  
+  if (isLoading) {
+    console.log('[PERF] Rendering skeleton view');
     return (
       <div className="flex flex-col items-center w-full h-full max-w-md mx-auto">
         <div className="w-full space-y-4 p-6">
@@ -335,6 +434,7 @@ const InboxView = () => {
     );
   }
 
+  console.log('[PERF] Rendering main inbox content');
   return (
     <div 
       id="inbox-page" 
@@ -357,12 +457,7 @@ const InboxView = () => {
       
       {/* Notifications list */}
       <div className="w-full space-y-4 p-6 pb-32"> {/* Added bottom padding for scroll space */}
-        {isLoading && notifications.length === 0 ? (
-          // Show skeletons only when loading and we have no data
-          Array(3).fill(0).map((_, index) => (
-            <NotificationSkeleton key={`skeleton-${index}`} />
-          ))
-        ) : notifications.length === 0 ? (
+        {notifications.length === 0 ? (
           // Empty state when no notifications
           <EmptyState />
         ) : (
