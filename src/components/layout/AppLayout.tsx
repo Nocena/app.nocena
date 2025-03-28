@@ -10,6 +10,9 @@ import { ThematicIconProps } from '../ui/ThematicIcon';
 import PageManager from '../PageManager';
 import MemoryOptimizer from '../MemoryOptimizer'; // New component for memory optimization
 
+// Check if we're running in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
 interface AppLayoutProps {
   handleLogout: () => void;
   children?: React.ReactNode;
@@ -25,7 +28,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // More efficient unread notifications check with caching and visibility detection
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !isBrowser) return;
 
     const checkUnreadNotifications = async () => {
       try {
@@ -33,10 +36,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         setUnreadCount(count);
         
         // Cache the count in localStorage to show immediately on next app open
-        localStorage.setItem('nocena_unread_count', JSON.stringify({
-          count,
-          timestamp: Date.now()
-        }));
+        try {
+          localStorage.setItem('nocena_unread_count', JSON.stringify({
+            count,
+            timestamp: Date.now()
+          }));
+        } catch (error) {
+          console.error('Failed to cache unread count', error);
+        }
       } catch (error) {
         console.error('Failed to fetch unread count', error);
       }
@@ -72,6 +79,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // App visibility handler to optimize performance
   useEffect(() => {
+    if (!isBrowser) return;
+    
     const handleVisibilityChange = () => {
       setAppIsVisible(document.visibilityState === 'visible');
     };
@@ -151,10 +160,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       setUnreadCount(0);
       
       // Update the cache to reflect read notifications
-      localStorage.setItem('nocena_unread_count', JSON.stringify({
-        count: 0,
-        timestamp: Date.now()
-      }));
+      if (isBrowser) {
+        try {
+          localStorage.setItem('nocena_unread_count', JSON.stringify({
+            count: 0,
+            timestamp: Date.now()
+          }));
+        } catch (error) {
+          console.error('Failed to update unread count cache', error);
+        }
+      }
     }
 
     const route =
@@ -183,16 +198,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     handleLogout();
     
     // Clear any app state from localStorage before redirecting
-    try {
-      localStorage.removeItem('nocena_page_state');
-      localStorage.removeItem('nocena_unread_count');
-      localStorage.removeItem('nocena_cached_notifications');
-    } catch (error) {
-      console.error('Failed to clear cached data during logout', error);
+    if (isBrowser) {
+      try {
+        localStorage.removeItem('nocena_page_state');
+        localStorage.removeItem('nocena_unread_count');
+        localStorage.removeItem('nocena_cached_notifications');
+      } catch (error) {
+        console.error('Failed to clear cached data during logout', error);
+      }
     }
     
     // Force a full page navigation to ensure clean state
-    window.location.href = '/login';
+    if (isBrowser) {
+      window.location.href = '/login';
+    }
   };
 
   const getPageTitle = () => {

@@ -1,6 +1,9 @@
 // components/MemoryOptimizer.tsx
 import { useEffect } from 'react';
 
+// Check if we're running in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
 // Extend Window interface to allow for our custom properties
 declare global {
   interface Window {
@@ -17,14 +20,14 @@ declare global {
  */
 const MemoryOptimizer: React.FC = () => {
   useEffect(() => {
+    if (!isBrowser) return; // Don't run in SSR
+
     // Store all interval IDs that should be paused when app is in background
     const intervalIds: number[] = [];
     
     // Custom tracker for app timers
-    if (typeof window !== 'undefined') {
-      // Add our custom global for tracking timers
-      window.nocena_app_timers = window.nocena_app_timers || [];
-    }
+    // Add our custom global for tracking timers
+    window.nocena_app_timers = window.nocena_app_timers || [];
     
     // Safer type approach for setTimeout override
     type SetTimeoutFunction = typeof window.setTimeout;
@@ -37,9 +40,7 @@ const MemoryOptimizer: React.FC = () => {
       ...args: any[]
     ): ReturnType<SetTimeoutFunction> {
       const timerId = originalSetTimeout(handler, timeout, ...args);
-      if (typeof window !== 'undefined' && window.nocena_app_timers) {
-        window.nocena_app_timers.push(timerId);
-      }
+      window.nocena_app_timers.push(timerId);
       return timerId as unknown as ReturnType<SetTimeoutFunction>;
     };
     
@@ -73,23 +74,19 @@ const MemoryOptimizer: React.FC = () => {
         // 2. Force save any app state to localStorage
         try {
           // Get the latest page state if it exists
-          if (typeof window !== 'undefined') {
-            const debugElement = document.getElementById('nocena-debug-state');
-            if (debugElement && debugElement.textContent) {
-              localStorage.setItem('nocena_page_state', debugElement.textContent);
-            }
+          const debugElement = document.getElementById('nocena-debug-state');
+          if (debugElement && debugElement.textContent) {
+            localStorage.setItem('nocena_page_state', debugElement.textContent);
           }
         } catch (error) {
           console.error('Failed to save state in background', error);
         }
         
         // 3. Pause non-essential timers to save battery
-        if (typeof window !== 'undefined' && window.nocena_app_timers) {
-          window.nocena_app_timers.forEach((timerId: number) => {
-            window.clearTimeout(timerId);
-          });
-          window.nocena_app_timers = [];
-        }
+        window.nocena_app_timers.forEach((timerId: number) => {
+          window.clearTimeout(timerId);
+        });
+        window.nocena_app_timers = [];
         
       } else if (document.visibilityState === 'visible') {
         // App is now visible
@@ -114,7 +111,7 @@ const MemoryOptimizer: React.FC = () => {
     window.addEventListener('offline', handleOffline);
     
     // Detect mobile device memory limitations
-    if (typeof window !== 'undefined' && 'deviceMemory' in navigator) {
+    if ('deviceMemory' in navigator) {
       const memory = (navigator as any).deviceMemory;
       if (memory && memory < 4) {
         console.log('Low memory device detected, enabling memory optimization');

@@ -29,6 +29,9 @@ interface ProfileUser {
   followers: string[]; // Array of user IDs
 }
 
+// Interface for follower data that could be string or object
+type FollowerData = string | { id: string; [key: string]: any };
+
 const OtherProfileView: React.FC = () => {
   const router = useRouter();
   const { userID } = router.query;
@@ -132,7 +135,7 @@ const OtherProfileView: React.FC = () => {
           monthlyChallenge: fullUser.monthlyChallenge,
           // Extract follower IDs from User objects
           followers: Array.isArray(fullUser.followers) 
-            ? fullUser.followers.map(f => typeof f === 'string' ? f : f.id)
+            ? fullUser.followers.map((f: FollowerData) => typeof f === 'string' ? f : f.id)
             : []
         };
         
@@ -432,7 +435,7 @@ const OtherProfileView: React.FC = () => {
 
         <div className="relative z-10 mt-4 flex gap-3">
           <PrimaryButton 
-            text={isPendingFollow ? (isFollowing ? "Unfollowing..." : "Following...") : (isFollowing ? "Following" : "Follow")}
+            text={isPendingFollow ? (isFollowing ? "Following..." : "Unfollowing...") : (isFollowing ? "Following" : "Follow")}
             onClick={handleFollowToggle} 
             className="px-6 py-2"
             isActive={!!isFollowing}

@@ -1,6 +1,9 @@
 import React, { useEffect, useState, lazy, Suspense, useRef } from 'react';
 import { useRouter } from 'next/router';
 
+// Check if we're running in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
 // Define proper types for page state
 type PageStateSection = 'notifications' | 'feed' | 'challenges';
 
@@ -16,15 +19,6 @@ interface GlobalPageState {
   challenges: PageStateData;
   // Allow dynamic string keys for custom sections (like profile data)
   [key: string]: PageStateData;
-}
-
-// Track page load status
-interface PageLoadStatus {
-  home: boolean;
-  map: boolean;
-  inbox: boolean;
-  search: boolean;
-  profile: boolean;
 }
 
 // Create a global state that persists between renders
@@ -45,14 +39,16 @@ const createPageState = (): GlobalPageState => {
   };
   
   // Load initial state from localStorage if available
-  try {
-    const savedState = localStorage.getItem('nocena_page_state');
-    if (savedState) {
-      const parsedState = JSON.parse(savedState);
-      Object.assign(state, parsedState);
+  if (isBrowser) {
+    try {
+      const savedState = localStorage.getItem('nocena_page_state');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        Object.assign(state, parsedState);
+      }
+    } catch (error) {
+      console.error('Failed to load page state', error);
     }
-  } catch (error) {
-    console.error('Failed to load page state', error);
   }
   
   return state;
@@ -113,12 +109,14 @@ const PageManager: React.FC = () => {
       prevRouteRef.current = router.pathname;
       
       // Dispatch route change event for components to detect
-      window.dispatchEvent(new CustomEvent('routeChange', {
-        detail: {
-          from: prevRoute,
-          to: router.pathname
-        } as RouteChangeEvent
-      }));
+      if (isBrowser) {
+        window.dispatchEvent(new CustomEvent('routeChange', {
+          detail: {
+            from: prevRoute,
+            to: router.pathname
+          } as RouteChangeEvent
+        }));
+      }
       
       // Add this page to loaded pages if not already loaded
       if (!loadedPages.includes(router.pathname)) {
@@ -129,6 +127,8 @@ const PageManager: React.FC = () => {
 
   // Preload adjacent pages after the first page is loaded
   useEffect(() => {
+    if (!isBrowser) return;
+    
     if (loadedPages.length === 1) {
       // After first page load, schedule preloading of other main pages
       const timer = setTimeout(() => {
@@ -146,6 +146,8 @@ const PageManager: React.FC = () => {
   
   // Notify pages about their visibility status
   useEffect(() => {
+    if (!isBrowser) return;
+    
     // Trigger visibility events for pages
     const routes = [
       { path: '/home', name: 'home' }, 
@@ -166,6 +168,8 @@ const PageManager: React.FC = () => {
   
   // Save state to localStorage periodically
   useEffect(() => {
+    if (!isBrowser) return;
+    
     const saveInterval = setInterval(() => {
       try {
         localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
@@ -281,12 +285,23 @@ const PageManager: React.FC = () => {
       )}
       
       {/* Export the global state to the window for debugging */}
-      <div style={{ display: 'none' }} id="nocena-debug-state">
-        {JSON.stringify(globalPageState)}
-      </div>
+      {isBrowser && (
+        <div style={{ display: 'none' }} id="nocena-debug-state">
+          {JSON.stringify(globalPageState)}
+        </div>
+      )}
     </div>
   );
 };
+
+// Track page load status
+interface PageLoadStatus {
+  home: boolean;
+  map: boolean;
+  inbox: boolean;
+  search: boolean;
+  profile: boolean;
+}
 
 // Export the global state for components to access
 export const getPageState = (): GlobalPageState => globalPageState;
@@ -313,10 +328,12 @@ export const updatePageState = (section: string, data: any): void => {
   }
   
   // Attempt to save immediately
-  try {
-    localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
-  } catch (error) {
-    console.error('Failed to save page state update', error);
+  if (isBrowser) {
+    try {
+      localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
+    } catch (error) {
+      console.error('Failed to save page state update', error);
+    }
   }
 };
 

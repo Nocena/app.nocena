@@ -355,7 +355,9 @@ const SearchView = () => {
                   isCurrentUser 
                     ? 'Your Profile' 
                     : isPending 
-                      ? 'Processing...' 
+                      ? isFollowing 
+                        ? 'Following...' 
+                        : 'Unfollowing...'
                       : isFollowing 
                         ? 'Following' 
                         : 'Follow'
