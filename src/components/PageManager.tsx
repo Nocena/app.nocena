@@ -4,11 +4,19 @@ import { useRouter } from 'next/router';
 // Check if we're running in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
+// Performance debugging
+const enablePerformanceLogging = true;
+const logPerf = (message: string) => {
+  if (enablePerformanceLogging && isBrowser) {
+    console.log(`[PERF] ${message}`);
+  }
+};
+
 // Define proper types for page state
 type PageStateSection = 'notifications' | 'feed' | 'challenges';
 
-interface PageStateData<T = any> {  // Changed from any[] to any
-  data: T | null;  // Added | null to allow null values
+interface PageStateData<T = any> {
+  data: T | null;
   lastFetched: number;
 }
 
@@ -41,10 +49,12 @@ const createPageState = (): GlobalPageState => {
   // Load initial state from localStorage if available
   if (isBrowser) {
     try {
+      const startTime = performance.now();
       const savedState = localStorage.getItem('nocena_page_state');
       if (savedState) {
         const parsedState = JSON.parse(savedState);
         Object.assign(state, parsedState);
+        logPerf(`Loaded state from localStorage in ${(performance.now() - startTime).toFixed(2)}ms`);
       }
     } catch (error) {
       console.error('Failed to load page state', error);
@@ -64,19 +74,65 @@ const createVisibilityEvent = (pageName: string, isVisible: boolean): CustomEven
   });
 };
 
-// Simple loading skeletons for each page
-const HomeLoading = () => <div className="p-4 animate-pulse h-screen bg-nocenaBg opacity-50"></div>;
-const MapLoading = () => <div className="p-4 animate-pulse h-screen bg-nocenaBg opacity-50"></div>;
-const InboxLoading = () => <div className="p-4 animate-pulse h-screen bg-nocenaBg opacity-50"></div>;
-const SearchLoading = () => <div className="p-4 animate-pulse h-screen bg-nocenaBg opacity-50"></div>;
-const ProfileLoading = () => <div className="p-4 animate-pulse h-screen bg-nocenaBg opacity-50"></div>;
+// Optimized skeleton loaders using inline components
+const renderSkeleton = () => (
+  <div className="w-full p-6 space-y-4">
+    {Array(3).fill(0).map((_, i) => (
+      <div key={i} className="w-full bg-[#1A2734] rounded-lg p-4 animate-pulse">
+        <div className="flex items-center space-x-4">
+          <div className="h-12 w-12 bg-gray-700 rounded-full"></div>
+          <div className="flex-1">
+            <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// Direct inline fallbacks for each page to avoid component overhead
+const HomeLoading = () => renderSkeleton();
+const MapLoading = () => renderSkeleton();
+const InboxLoading = () => renderSkeleton();
+const SearchLoading = () => renderSkeleton();
+const ProfileLoading = () => renderSkeleton();
+
+// Lazy load the page components with performance tracking
+const lazyLoadWithTracking = (importFn: () => Promise<any>, pageName: string) => {
+  return lazy(() => {
+    logPerf(`Starting lazy load of ${pageName}`);
+    const startTime = performance.now();
+    return importFn().then(module => {
+      logPerf(`Loaded ${pageName} in ${(performance.now() - startTime).toFixed(2)}ms`);
+      return module;
+    });
+  });
+};
 
 // Lazy load the page components using their correct paths
-const HomePage = lazy(() => import('../pages/home/index'));
-const MapPage = lazy(() => import('../pages/map/index'));
-const InboxPage = lazy(() => import('../pages/inbox/index'));
-const SearchPage = lazy(() => import('../pages/search/index'));
-const ProfilePage = lazy(() => import('../pages/profile/index'));
+const HomePage = lazyLoadWithTracking(() => import(/* webpackChunkName: "home-page" */ '../pages/home/index'), 'HomePage');
+const MapPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "map-page" */ '../pages/map/index'), 'MapPage');
+const InboxPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "inbox-page" */ '../pages/inbox/index'), 'InboxPage');
+const SearchPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "search-page" */ '../pages/search/index'), 'SearchPage');
+const ProfilePage = lazyLoadWithTracking(() => import(/* webpackChunkName: "profile-page" */ '../pages/profile/index'), 'ProfilePage');
+
+// Preload critical assets
+if (isBrowser) {
+  // Use requestIdleCallback for preloading to avoid competing with critical resources
+  const preloadPages = () => {
+    // Preload the most common pages in order of likely usage
+    setTimeout(() => import(/* webpackChunkName: "home-page" */ '../pages/home/index'), 1000);
+    setTimeout(() => import(/* webpackChunkName: "inbox-page" */ '../pages/inbox/index'), 2000);
+    setTimeout(() => import(/* webpackChunkName: "profile-page" */ '../pages/profile/index'), 3000);
+  };
+
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(preloadPages, { timeout: 5000 });
+  } else {
+    setTimeout(preloadPages, 1000);
+  }
+}
 
 // Interface for route change event
 interface RouteChangeEvent {
@@ -84,7 +140,19 @@ interface RouteChangeEvent {
   to: string;
 }
 
+// Track page load status
+interface PageLoadStatus {
+  home: boolean;
+  map: boolean;
+  inbox: boolean;
+  search: boolean;
+  profile: boolean;
+}
+
 const PageManager: React.FC = () => {
+  const startRenderTime = performance.now();
+  logPerf(`PageManager render started`);
+  
   const router = useRouter();
   const [activeRoute, setActiveRoute] = useState('/home');
   const [loadedPages, setLoadedPages] = useState<string[]>([]);
@@ -101,27 +169,65 @@ const PageManager: React.FC = () => {
     profile: false
   });
   
+  // Track when component first mounts
   useEffect(() => {
-    // Update active route when router changes
+    logPerf(`PageManager mounted at ${new Date().toLocaleTimeString()}`);
+    return () => {
+      logPerf(`PageManager unmounted at ${new Date().toLocaleTimeString()}`);
+    };
+  }, []);
+  
+  // Update active route when router changes
+  useEffect(() => {
     if (router.pathname) {
+      const transitionStart = performance.now();
+      logPerf(`Route transition started: ${prevRouteRef.current} -> ${router.pathname}`);
+      
       const prevRoute = prevRouteRef.current;
       setActiveRoute(router.pathname);
       prevRouteRef.current = router.pathname;
       
-      // Dispatch route change event for components to detect
-      if (isBrowser) {
-        window.dispatchEvent(new CustomEvent('routeChange', {
-          detail: {
-            from: prevRoute,
-            to: router.pathname
-          } as RouteChangeEvent
-        }));
-      }
+      // Show loading state immediately for better UX
+      window.requestAnimationFrame(() => {
+        // Fire visibility event first to prepare component
+        if (isBrowser) {
+          // Look up which component name corresponds to this route
+          const routeToComponentName: Record<string, string> = {
+            '/home': 'home',
+            '/map': 'map',
+            '/inbox': 'inbox',
+            '/search': 'search',
+            '/profile': 'profile'
+          };
+          
+          const mainRoute = router.pathname.split('/')[1];
+          const componentName = routeToComponentName[`/${mainRoute}`] || mainRoute;
+          
+          // Fire visibility event first for the new page
+          if (componentName) {
+            window.dispatchEvent(createVisibilityEvent(componentName, true));
+          }
+          
+          // Then dispatch route change event
+          window.dispatchEvent(new CustomEvent('routeChange', {
+            detail: {
+              from: prevRoute,
+              to: router.pathname
+            } as RouteChangeEvent
+          }));
+        }
+      });
       
       // Add this page to loaded pages if not already loaded
       if (!loadedPages.includes(router.pathname)) {
         setLoadedPages(prev => [...prev, router.pathname]);
+        logPerf(`Added route to loaded pages: ${router.pathname}`);
       }
+      
+      // Log complete transition time
+      window.requestAnimationFrame(() => {
+        logPerf(`Route transition completed in ${(performance.now() - transitionStart).toFixed(2)}ms`);
+      });
     }
   }, [router.pathname, loadedPages]);
 
@@ -130,17 +236,23 @@ const PageManager: React.FC = () => {
     if (!isBrowser) return;
     
     if (loadedPages.length === 1) {
-      // After first page load, schedule preloading of other main pages
-      const timer = setTimeout(() => {
-        const pagesToPreload = ['/home', '/map', '/inbox', '/search', '/profile']
-          .filter(page => !loadedPages.includes(page));
-          
-        if (pagesToPreload.length > 0) {
-          setLoadedPages(prevPages => [...prevPages, ...pagesToPreload]);
-        }
-      }, 1000); // Reduce to 1 second for faster preloading
+      logPerf(`First page loaded, scheduling preload of other pages`);
       
-      return () => clearTimeout(timer);
+      // After first page load, schedule preloading of other main pages
+      // Use requestAnimationFrame to ensure it doesn't compete with current render
+      window.requestAnimationFrame(() => {
+        const timer = setTimeout(() => {
+          const pagesToPreload = ['/home', '/map', '/inbox', '/search', '/profile']
+            .filter(page => !loadedPages.includes(page));
+            
+          if (pagesToPreload.length > 0) {
+            logPerf(`Preloading pages: ${pagesToPreload.join(', ')}`);
+            setLoadedPages(prevPages => [...prevPages, ...pagesToPreload]);
+          }
+        }, 1000); // 1 second delay
+        
+        return () => clearTimeout(timer);
+      });
     }
   }, [loadedPages]);
   
@@ -176,7 +288,7 @@ const PageManager: React.FC = () => {
       } catch (error) {
         console.error('Failed to save page state', error);
       }
-    }, 5000); // Every 5 seconds
+    }, 10000); // Every 10 seconds to reduce overhead
     
     return () => clearInterval(saveInterval);
   }, []);
@@ -194,6 +306,15 @@ const PageManager: React.FC = () => {
   const onInboxLoaded = () => setPageLoadStatus(prev => ({ ...prev, inbox: true }));
   const onSearchLoaded = () => setPageLoadStatus(prev => ({ ...prev, search: true }));
   const onProfileLoaded = () => setPageLoadStatus(prev => ({ ...prev, profile: true }));
+  
+  // Pre-render the loading placeholders
+  const homeLoadingPlaceholder = <HomeLoading />;
+  const mapLoadingPlaceholder = <MapLoading />;
+  const inboxLoadingPlaceholder = <InboxLoading />;
+  const searchLoadingPlaceholder = <SearchLoading />;
+  const profileLoadingPlaceholder = <ProfileLoading />;
+  
+  logPerf(`PageManager render completed in ${(performance.now() - startRenderTime).toFixed(2)}ms`);
 
   return (
     <div className="page-container">
@@ -209,7 +330,7 @@ const PageManager: React.FC = () => {
             transition: 'opacity 0.2s ease-in-out'
           }}
         >
-          <Suspense fallback={<HomeLoading />}>
+          <Suspense fallback={homeLoadingPlaceholder}>
             <HomePage />
           </Suspense>
           {isHomeRoute && <div style={{ display: 'none' }} onLoad={onHomeLoaded} />}
@@ -226,7 +347,7 @@ const PageManager: React.FC = () => {
             transition: 'opacity 0.2s ease-in-out'
           }}
         >
-          <Suspense fallback={<MapLoading />}>
+          <Suspense fallback={mapLoadingPlaceholder}>
             <MapPage />
           </Suspense>
           {isMapRoute && <div style={{ display: 'none' }} onLoad={onMapLoaded} />}
@@ -243,7 +364,7 @@ const PageManager: React.FC = () => {
             transition: 'opacity 0.2s ease-in-out'
           }}
         >
-          <Suspense fallback={<InboxLoading />}>
+          <Suspense fallback={inboxLoadingPlaceholder}>
             <InboxPage />
           </Suspense>
           {isInboxRoute && <div style={{ display: 'none' }} onLoad={onInboxLoaded} />}
@@ -260,7 +381,7 @@ const PageManager: React.FC = () => {
             transition: 'opacity 0.2s ease-in-out'
           }}
         >
-          <Suspense fallback={<SearchLoading />}>
+          <Suspense fallback={searchLoadingPlaceholder}>
             <SearchPage />
           </Suspense>
           {isSearchRoute && <div style={{ display: 'none' }} onLoad={onSearchLoaded} />}
@@ -277,7 +398,7 @@ const PageManager: React.FC = () => {
             transition: 'opacity 0.2s ease-in-out'
           }}
         >
-          <Suspense fallback={<ProfileLoading />}>
+          <Suspense fallback={profileLoadingPlaceholder}>
             <ProfilePage />
           </Suspense>
           {isProfileRoute && <div style={{ display: 'none' }} onLoad={onProfileLoaded} />}
@@ -293,15 +414,6 @@ const PageManager: React.FC = () => {
     </div>
   );
 };
-
-// Track page load status
-interface PageLoadStatus {
-  home: boolean;
-  map: boolean;
-  inbox: boolean;
-  search: boolean;
-  profile: boolean;
-}
 
 // Export the global state for components to access
 export const getPageState = (): GlobalPageState => globalPageState;
@@ -327,14 +439,30 @@ export const updatePageState = (section: string, data: any): void => {
     globalPageState[section].lastFetched = Date.now();
   }
   
-  // Attempt to save immediately
+  // Attempt to save immediately - but use a debounced approach
   if (isBrowser) {
-    try {
-      localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
-    } catch (error) {
-      console.error('Failed to save page state update', error);
+    // Clear existing timeout if there is one
+    if (window.nocenaSaveTimeout) {
+      clearTimeout(window.nocenaSaveTimeout);
     }
+    
+    // Set a new timeout for 500ms
+    window.nocenaSaveTimeout = setTimeout(() => {
+      try {
+        localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
+      } catch (error) {
+        console.error('Failed to save page state update', error);
+      }
+    }, 500);
   }
 };
+
+// Add to global window for save debouncing
+declare global {
+  interface Window {
+    nocenaSaveTimeout: ReturnType<typeof setTimeout>;
+    nocena_app_timers: number[];
+  }
+}
 
 export default PageManager;
