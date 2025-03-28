@@ -41,6 +41,8 @@ const LoginPage = () => {
         setLoading(false);
         return;
       }
+      
+      console.log("Found user:", userData); // Debug log
   
       // Securely verify password
       const isPasswordValid = await verifyPassword(sanitizedPassword, userData.passwordHash);
@@ -50,12 +52,22 @@ const LoginPage = () => {
         setLoading(false);
         return;
       }
+      
+      console.log("Password verified successfully"); // Debug log
+  
+      // Format followers and following to ensure they're arrays
+      // This helps with the types in the AuthContext
+      const formattedUser = {
+        ...userData,
+        followers: Array.isArray(userData.followers) ? userData.followers : [],
+        following: Array.isArray(userData.following) ? userData.following : [],
+      };
   
       // Login successful
-      await login(userData);
+      await login(formattedUser);
       router.push('/home');
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError('Login failed. Please try again.');
       setLoading(false);
     }

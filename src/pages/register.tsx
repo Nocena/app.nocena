@@ -11,7 +11,7 @@ import InviteCodeInput from '../components/InviteCodeInput';
 import PhoneVerification from '../components/PhoneVerification';
 import PhoneInput from 'react-phone-input-2';
 import ThematicText from '../components/ui/ThematicText';
-import { hashPassword } from '../lib/utils/passwordUtils'; // Import the secure version
+import { hashPassword } from '../lib/utils/passwordUtils';
 import 'react-phone-input-2/lib/style.css';
 
 const RegisterPage = () => {
@@ -47,8 +47,6 @@ const RegisterPage = () => {
       return () => clearTimeout(timer);
     }
   }, [currentStep]);
-
-  // Removed the local hashPassword function that used btoa()
 
   const handleInviteCodeValid = (code: string) => {
     setInviteCode(code);
@@ -184,26 +182,11 @@ const RegisterPage = () => {
       );
   
       if (addedUser) {
-        // Create user data object with formatted phoneNumber
-        const userData: User = {
-          id: addedUser.id,
-          username: username,
-          phoneNumber: formattedPhone,
-          wallet: wallet.address,
-          bio: '',
-          profilePicture: '/images/profile.png',
-          earnedTokens: 0,
-          dailyChallenge: '0'.repeat(365),
-          weeklyChallenge: '0'.repeat(52),
-          monthlyChallenge: '0'.repeat(12),
-          followers: [],
-          following: [],
-        };
-  
         // Mark the invite code as used
-        await markDiscordInviteAsUsed(inviteCode, userData.id);
+        await markDiscordInviteAsUsed(inviteCode, addedUser.id);
   
-        await login(userData);
+        // Login with our updated AuthContext
+        await login(addedUser);
         router.push('/home');
       } else {
         setError('Failed to register. Please try again.');
