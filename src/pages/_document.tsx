@@ -7,17 +7,17 @@ class MyDocument extends Document {
         <Head>
           {/* Viewport meta tag with viewport-fit=cover */}
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-          
+
           {/* PWA meta tags */}
           <meta name="application-name" content="Nocena" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="apple-mobile-web-app-title" content="Nocena" />
           <meta name="theme-color" content="#000000" />
-          
+
           {/* Manifest */}
           <link rel="manifest" href="/manifest.json" />
-          
+
           {/* Icons */}
           <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
           <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
@@ -26,10 +26,11 @@ class MyDocument extends Document {
         <body>
           <Main />
           <NextScript />
-          
+
           {/* Direct service worker registration script */}
-          <script dangerouslySetInnerHTML={{
-            __html: `
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
               // Check if service workers are supported
               if ('serviceWorker' in navigator) {
                 // Wait for window load
@@ -46,8 +47,9 @@ class MyDocument extends Document {
                     });
                 });
               }
-            `
-          }} />
+            `,
+            }}
+          />
         </body>
       </Html>
     );

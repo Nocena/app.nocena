@@ -10,7 +10,9 @@ const verifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 // If environment variables are missing, log an error
 if (!accountSid || !authToken || !verifySid) {
-  console.error('Twilio credentials missing. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in .env.local');
+  console.error(
+    'Twilio credentials missing. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in .env.local',
+  );
 }
 
 // Initialize client only if credentials are available
@@ -42,16 +44,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const verification = await client.verify.v2
         .services(verifySid)
         .verifications.create({ to: formattedPhone, channel: 'sms' });
-      
+
       console.log(`Verification sent to ${formattedPhone}, status: ${verification.status}`);
-      
-      return res.status(200).json({ 
-        success: true, 
+
+      return res.status(200).json({
+        success: true,
         message: 'Verification code sent',
-        status: verification.status
+        status: verification.status,
       });
-    } 
-    else if (action === 'VERIFY') {
+    } else if (action === 'VERIFY') {
       if (!code) {
         return res.status(400).json({ success: false, message: 'Verification code is required' });
       }
@@ -60,34 +61,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const verification = await client.verify.v2
         .services(verifySid)
         .verificationChecks.create({ to: formattedPhone, code });
-      
+
       const isValid = verification.status === 'approved';
-      
+
       if (isValid) {
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Phone number verified successfully' 
+        return res.status(200).json({
+          success: true,
+          message: 'Phone number verified successfully',
         });
       } else {
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(400).json({
+          success: false,
           message: 'Invalid verification code',
-          status: verification.status
+          status: verification.status,
         });
       }
-    } 
-    else {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid action' 
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action',
       });
     }
   } catch (error: any) {
     console.error('Phone verification error:', error);
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({
+      success: false,
       message: 'Server error during phone verification',
-      details: error.message
+      details: error.message,
     });
   }
 }
@@ -98,39 +98,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
  */
 const handleDevFallback = (req: NextApiRequest, res: NextApiResponse) => {
   const { phoneNumber, action, code } = req.body;
-  
+
   if (action === 'SEND') {
     console.log(`[DEV FALLBACK] Sending verification code to ${phoneNumber}`);
     // For development, always return a mock code
     const mockCode = '123456';
     console.log(`[DEV FALLBACK] Mock verification code: ${mockCode}`);
-    
+
     return res.status(200).json({
       success: true,
-      message: '[DEV FALLBACK] Verification code sent (mock)'
+      message: '[DEV FALLBACK] Verification code sent (mock)',
     });
-  } 
-  else if (action === 'VERIFY') {
+  } else if (action === 'VERIFY') {
     console.log(`[DEV FALLBACK] Verifying code ${code} for ${phoneNumber}`);
-    
+
     // In development mode, accept any 6-digit code
     const isValid = /^\d{6}$/.test(code || '');
-    
+
     if (isValid) {
       return res.status(200).json({
         success: true,
-        message: '[DEV FALLBACK] Phone number verified successfully (mock)'
+        message: '[DEV FALLBACK] Phone number verified successfully (mock)',
       });
     } else {
       return res.status(400).json({
         success: false,
-        message: '[DEV FALLBACK] Invalid verification code (mock)'
+        message: '[DEV FALLBACK] Invalid verification code (mock)',
       });
     }
   }
-  
+
   return res.status(400).json({
     success: false,
-    message: 'Invalid action'
+    message: 'Invalid action',
   });
 };

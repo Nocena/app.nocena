@@ -8,7 +8,7 @@
 export const formatPhoneToE164 = (phoneNumber: string): string => {
   // Remove all non-numeric characters
   let digits = phoneNumber.replace(/\D/g, '');
-  
+
   // Ensure the number has a + prefix
   if (!phoneNumber.startsWith('+')) {
     // If the number doesn't have a country code (assuming US/Canada as default)
@@ -17,7 +17,7 @@ export const formatPhoneToE164 = (phoneNumber: string): string => {
     }
     return '+' + digits;
   }
-  
+
   return phoneNumber;
 };
 
@@ -34,7 +34,7 @@ export const formatPhoneForDisplay = (phoneNumber: string): string => {
       return `+1 (${match[1]}) ${match[2]}-${match[3]}`;
     }
   }
-  
+
   // Return the original number if it doesn't match the pattern
   return phoneNumber;
 };

@@ -4,7 +4,7 @@ import { FilterXSS } from 'xss';
 const xssFilter = new FilterXSS({
   whiteList: {},
   stripIgnoreTag: true,
-  css: false
+  css: false,
 });
 
 export const sanitizeInput = (input: string): string => {
@@ -19,9 +19,7 @@ export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
     if (typeof value === 'string') {
       acc[key as keyof T] = sanitizeInput(value) as any;
     } else if (Array.isArray(value)) {
-      acc[key as keyof T] = value.map(item => 
-        typeof item === 'string' ? sanitizeInput(item) : item
-      ) as any;
+      acc[key as keyof T] = value.map((item) => (typeof item === 'string' ? sanitizeInput(item) : item)) as any;
     } else {
       acc[key as keyof T] = value;
     }

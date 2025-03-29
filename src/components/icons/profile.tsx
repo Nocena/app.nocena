@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface SVGProps extends React.SVGProps<SVGSVGElement> {}
+type SVGProps = React.SVGProps<SVGSVGElement>;
 
 const ProfileIcon: React.FC<SVGProps> = (props) => {
   return (

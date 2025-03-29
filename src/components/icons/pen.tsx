@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface SVGProps extends React.SVGProps<SVGSVGElement> {}
+type SVGProps = React.SVGProps<SVGSVGElement>;
 
 const PenIcon: React.FC<SVGProps> = (props) => {
   return (

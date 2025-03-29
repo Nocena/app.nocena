@@ -29,18 +29,13 @@ interface FollowersPopupProps {
   isFollowers?: boolean; // true for followers, false for following
 }
 
-const FollowersPopup: React.FC<FollowersPopupProps> = ({
-  isOpen,
-  onClose,
-  followers,
-  isFollowers = true
-}) => {
+const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, followers, isFollowers = true }) => {
   const [followerUsers, setFollowerUsers] = useState<FollowerUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingFollowActions, setPendingFollowActions] = useState<Set<string>>(new Set());
   const { user: currentUser } = useAuth();
   const router = useRouter();
-  
+
   const contentRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number | null>(null);
   const touchMoveY = useRef<number | null>(null);
@@ -48,7 +43,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
   // Convert AuthUser to FollowerUser
   const convertToFollowerUser = useCallback((user: AuthUser | null): FollowerUser | null => {
     if (!user) return null;
-    
+
     return {
       id: user.id,
       username: user.username,
@@ -56,9 +51,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
       earnedTokens: user.earnedTokens,
       bio: user.bio,
       // Extract follower IDs from User objects
-      followers: Array.isArray(user.followers) 
-        ? user.followers.map(f => typeof f === 'string' ? f : f.id)
-        : []
+      followers: Array.isArray(user.followers) ? user.followers.map((f) => (typeof f === 'string' ? f : f.id)) : [],
     };
   }, []);
 
@@ -78,10 +71,10 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartY.current === null) return;
-      
+
       touchMoveY.current = e.touches[0].clientY;
       const deltaY = touchMoveY.current - touchStartY.current;
-      
+
       // If swiping down
       if (deltaY > 0) {
         e.preventDefault(); // Prevent default scrolling
@@ -92,12 +85,12 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
 
     const handleTouchEnd = () => {
       if (touchStartY.current === null || touchMoveY.current === null) return;
-      
+
       const deltaY = touchMoveY.current - touchStartY.current;
-      
+
       // Reset styles
       content.style.transition = 'transform 0.3s ease-out';
-      
+
       // If swiped down enough, close the popup
       if (deltaY > 100) {
         content.style.transform = 'translateY(100%)';
@@ -107,7 +100,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
       } else {
         content.style.transform = 'translateY(0)';
       }
-      
+
       touchStartY.current = null;
       touchMoveY.current = null;
     };
@@ -136,16 +129,16 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
       try {
         // If we already have the user data in the currentUser's following/followers,
         // we could use it here to avoid unnecessary API calls
-        
+
         // Batch requests in groups of 5 to avoid overwhelming the server
         const batchSize = 5;
         const results: FollowerUser[] = [];
-        
+
         for (let i = 0; i < followers.length; i += batchSize) {
           const batch = followers.slice(i, i + batchSize);
-          const userPromises = batch.map(id => getUserByIdFromDgraph(id));
+          const userPromises = batch.map((id) => getUserByIdFromDgraph(id));
           const batchResults = await Promise.all(userPromises);
-          
+
           // Process batch results
           for (const user of batchResults) {
             if (user) {
@@ -155,18 +148,18 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
               }
             }
           }
-          
+
           // Update UI after each batch for better UX if there are many followers
           if (results.length > 0) {
-            setFollowerUsers(prevUsers => {
+            setFollowerUsers((prevUsers) => {
               // Keep existing users and add new ones, avoid duplicates
-              const existingIds = new Set(prevUsers.map(u => u.id));
-              const newUsers = results.filter(u => !existingIds.has(u.id));
+              const existingIds = new Set(prevUsers.map((u) => u.id));
+              const newUsers = results.filter((u) => !existingIds.has(u.id));
               return [...prevUsers, ...newUsers];
             });
           }
         }
-        
+
         // Final update to ensure all results are included
         setFollowerUsers(results);
       } catch (error) {
@@ -180,24 +173,26 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
   }, [isOpen, followers, convertToFollowerUser]);
 
   // Memoized follow status check
-  const getIsFollowing = useCallback((userId: string): boolean => {
-    return !!(currentUser && currentUser.following && 
-      (Array.isArray(currentUser.following) ? 
-        currentUser.following.some(f => 
-          (typeof f === 'string' ? f === userId : f.id === userId)
-        ) : 
-        false
-      )
-    );
-  }, [currentUser]);
+  const getIsFollowing = useCallback(
+    (userId: string): boolean => {
+      return !!(
+        currentUser &&
+        currentUser.following &&
+        (Array.isArray(currentUser.following)
+          ? currentUser.following.some((f) => (typeof f === 'string' ? f === userId : f.id === userId))
+          : false)
+      );
+    },
+    [currentUser],
+  );
 
   const handleFollow = async (targetUserId: string) => {
     if (!currentUser || !currentUser.id || !targetUserId || currentUser.id === targetUserId) return;
-    
+
     // Add to pending actions to prevent multiple clicks
     if (pendingFollowActions.has(targetUserId)) return;
-    setPendingFollowActions(prev => new Set(prev).add(targetUserId));
-    
+    setPendingFollowActions((prev) => new Set(prev).add(targetUserId));
+
     // Immediately update UI for better user experience
     setFollowerUsers((prevUsers) =>
       prevUsers.map((u) =>
@@ -208,14 +203,14 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                 ? u.followers.filter((id) => id !== currentUser.id)
                 : [...u.followers, currentUser.id],
             }
-          : u
-      )
+          : u,
+      ),
     );
-    
+
     try {
       // Make API call in the background
       const success = await toggleFollowUser(currentUser.id, targetUserId, currentUser.username);
-      
+
       // If API call fails, revert the UI change
       if (!success) {
         setFollowerUsers((prevUsers) =>
@@ -227,13 +222,13 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                     ? u.followers.filter((id) => id !== currentUser.id)
                     : [...u.followers, currentUser.id],
                 }
-              : u
-          )
+              : u,
+          ),
         );
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
-      
+
       // Revert UI change on error
       setFollowerUsers((prevUsers) =>
         prevUsers.map((u) =>
@@ -244,12 +239,12 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                   ? u.followers.filter((id) => id !== currentUser.id)
                   : [...u.followers, currentUser.id],
               }
-            : u
-        )
+            : u,
+        ),
       );
     } finally {
       // Remove from pending actions
-      setPendingFollowActions(prev => {
+      setPendingFollowActions((prev) => {
         const updated = new Set(prev);
         updated.delete(targetUserId);
         return updated;
@@ -267,20 +262,20 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
   };
 
   // Show empty or partial results while loading
-  const showPartialResults = useMemo(() => 
-    !isLoading || (followerUsers.length > 0 && isLoading), 
-    [isLoading, followerUsers.length]
+  const showPartialResults = useMemo(
+    () => !isLoading || (followerUsers.length > 0 && isLoading),
+    [isLoading, followerUsers.length],
   );
 
   return (
-    <Popup isOpen={isOpen} onClose={onClose} title={isFollowers ? "Followers" : "Following"}>
-      <div 
+    <Popup isOpen={isOpen} onClose={onClose} title={isFollowers ? 'Followers' : 'Following'}>
+      <div
         ref={contentRef}
         className="p-2 overflow-y-auto"
-        style={{ 
+        style={{
           height: 'calc(90vh - 4rem)',
           maxHeight: 'calc(90vh - 4rem)',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {isLoading && followerUsers.length === 0 ? (
@@ -289,7 +284,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
           </div>
         ) : showPartialResults && followerUsers.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
-            {isFollowers ? "No followers yet" : "Not following anyone yet"}
+            {isFollowers ? 'No followers yet' : 'Not following anyone yet'}
           </div>
         ) : (
           <div className="space-y-4">
@@ -305,8 +300,8 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                   className="w-full bg-nocenaBg/80 p-3 rounded-lg flex flex-col cursor-pointer overflow-hidden"
                 >
                   <div className="flex items-center">
-                    <div 
-                      className="flex items-center gap-3 flex-1 min-w-0" 
+                    <div
+                      className="flex items-center gap-3 flex-1 min-w-0"
                       onClick={() => handleProfileRedirect(userData)}
                     >
                       <ThematicImage className="rounded-full flex-shrink-0">
@@ -338,10 +333,12 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                         text={
                           isCurrentUser
                             ? 'Your Profile'
-                            : isPending 
-                              ? isFollowing ? 'Following...' : 'Following...' 
-                              : isFollowing 
-                                ? 'Following' 
+                            : isPending
+                              ? isFollowing
+                                ? 'Following...'
+                                : 'Following...'
+                              : isFollowing
+                                ? 'Following'
                                 : 'Follow'
                         }
                         onClick={(e) => {
@@ -357,7 +354,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
                 </div>
               );
             })}
-            
+
             {/* Show loading indicator at bottom when loading more */}
             {isLoading && followerUsers.length > 0 && (
               <div className="flex justify-center py-4">
@@ -366,11 +363,9 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({
             )}
           </div>
         )}
-        
+
         {/* Pull down to close indicator */}
-        <div className="text-center text-xs text-gray-500 mt-3 mb-1">
-          Pull down to close
-        </div>
+        <div className="text-center text-xs text-gray-500 mt-3 mb-1">Pull down to close</div>
       </div>
     </Popup>
   );

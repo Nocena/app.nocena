@@ -10,12 +10,7 @@ interface CompletionFeedProps {
   selectedTab: string;
 }
 
-const CompletionFeed: React.FC<CompletionFeedProps> = ({
-  user,
-  isLoading,
-  followerCompletions,
-  selectedTab
-}) => {
+const CompletionFeed: React.FC<CompletionFeedProps> = ({ user, isLoading, followerCompletions, selectedTab }) => {
   // Get user's own completion if it exists
   const todaysCompletion = getTodaysCompletion(user, selectedTab);
 
@@ -31,39 +26,37 @@ const CompletionFeed: React.FC<CompletionFeedProps> = ({
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-center">Today's Completions</h3>
-      
+
       {/* User's own completion */}
       {todaysCompletion && (
-        <CompletionItem 
+        <CompletionItem
           key={`self-${user.id}`}
           profile={{
             userId: user.id,
             username: `${user.username} (You)`,
-            profilePicture: user.profilePicture
+            profilePicture: user.profilePicture,
           }}
           completion={todaysCompletion}
           isSelf={true}
         />
       )}
-      
+
       {/* Follower completions */}
       {followerCompletions.length > 0 ? (
         followerCompletions.map((item) => (
-          <CompletionItem 
+          <CompletionItem
             key={item.userId}
             profile={{
               userId: item.userId,
               username: item.username,
-              profilePicture: item.profilePicture
+              profilePicture: item.profilePicture,
             }}
             completion={item.completion}
             isSelf={false}
           />
         ))
       ) : (
-        <p className="text-center text-gray-400 py-4">
-          None of your friends have completed today's challenge yet.
-        </p>
+        <p className="text-center text-gray-400 py-4">None of your friends have completed today's challenge yet.</p>
       )}
     </div>
   );

@@ -34,11 +34,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       DGRAPH_ENDPOINT,
       {
         query: queryString,
-        variables: { code }
+        variables: { code },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     // Handle potential errors in the response
@@ -49,24 +49,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Check if we found a valid invite code
     const invites = response.data.data?.queryDiscordInvite || [];
-    
+
     if (invites.length === 0) {
       return res.status(200).json({ valid: false, message: 'Invalid invite code' });
     }
-    
+
     const invite = invites[0];
-    
+
     // Check if the invite has already been used
     if (invite.isUsed) {
       return res.status(200).json({ valid: false, message: 'This invite code has already been used' });
     }
-    
+
     // Valid invite code
-    return res.status(200).json({ 
-      valid: true, 
+    return res.status(200).json({
+      valid: true,
       inviteId: invite.id,
       discordUsername: invite.discordUsername,
-      quizScore: invite.quizScore
+      quizScore: invite.quizScore,
     });
   } catch (error) {
     console.error('Error validating invite code:', error);

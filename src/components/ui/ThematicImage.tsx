@@ -20,9 +20,7 @@ const ThematicImage: React.FC<ThematicImageProps> = ({ className = '', isActive 
       <div className="absolute inset-0 border-[1px] border-nocenaPink rounded-full transform translate-y-[-3px] z-10"></div>
       <div className="absolute inset-0 border-[1px] border-nocenaBlue rounded-full transform translate-y-[3px] z-10"></div>
       {/* Content */}
-      <div className="relative rounded-full border-[1px] border-white">
-        {children}
-      </div>
+      <div className="relative rounded-full border-[1px] border-white">{children}</div>
     </div>
   );
 };

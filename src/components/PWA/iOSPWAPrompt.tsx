@@ -42,21 +42,40 @@ const IOSPWAPrompt: React.FC = () => {
         <div className="flex-grow">
           <p className="font-bold text-base mb-1">Install Nocena App</p>
           <p className="text-sm opacity-90">
-            To get the full experience without the browser you should install this app on your iPhone: tap <span className="inline-block">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline">
+            To get the full experience without the browser you should install this app on your iPhone: tap{' '}
+            <span className="inline-block">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="inline"
+              >
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
               </svg>
-            </span> then "Add to Home Screen" 
+            </span>{' '}
+            then "Add to Home Screen"
           </p>
         </div>
-        <button 
-          onClick={handleDismiss} 
-          className="text-white p-1"
-          aria-label="Close"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button onClick={handleDismiss} className="text-white p-1" aria-label="Close">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>

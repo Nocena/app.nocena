@@ -1,0 +1,32 @@
+# Build directories
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Public assets
+public/
+public/sw.js
+public/workbox-*.js
+
+# Configuration files
+*.config.js
+next.config.ts
+tailwind.config.js
+postcss.config.js
+
+# Server files
+server.js
+dev-https-server.js
+setup-https.js
+
+# Files with many warnings (you can add more as needed)
+src/lib/api/dgraph.ts
+src/pages/inbox/index.tsx
+src/lib/api/pinata.ts
+src/components/IPFSMediaLoader.tsx
+src/pages/completing/index.tsx
+
+# Generated files
+*.d.ts

@@ -31,12 +31,12 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     const handleStart = () => {
       // Clear any existing timeout to prevent flicker for fast page loads
       if (loadingTimeout) clearTimeout(loadingTimeout);
-      
+
       // Only show loading indicator for transitions longer than 100ms
       const timeout = setTimeout(() => setIsRouteChanging(true), 100);
       setLoadingTimeout(timeout);
     };
-    
+
     const handleComplete = () => {
       if (loadingTimeout) clearTimeout(loadingTimeout);
       setIsRouteChanging(false);
@@ -61,7 +61,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       setIsIOS(/ipad|iphone|ipod/.test(ua) && !(window as any).MSStream);
       setIsAndroid(/android/.test(ua));
     }
-    
+
     // Redirect to login if user is not authenticated and not already on login or register page
     if (!loading && !user && !['/login', '/register'].includes(router.pathname)) {
       router.replace('/login');
@@ -93,7 +93,10 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       <>
         <Head>
           <title>Nocena</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+          />
           <meta name="theme-color" content="#000000" />
         </Head>
         <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
@@ -124,7 +127,10 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       <>
         <Head>
           <title>Nocena</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+          />
           <meta name="theme-color" content="#000000" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -142,16 +148,19 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <title>Nocena</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+        />
         <meta name="theme-color" content="#000000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </Head>
-      
+
       {isRouteChanging && <LoadingIndicator />}
-      
+
       {shouldUseAppLayout ? (
         <AppLayout handleLogout={logout}>
           <Component {...pageProps} />
@@ -159,7 +168,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       ) : (
         <Component {...pageProps} />
       )}
-      
+
       {renderPWAPrompt()}
     </>
   );

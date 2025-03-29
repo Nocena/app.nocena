@@ -20,15 +20,16 @@ console.log('Key path:', keyPath);
 try {
   const httpsOptions = {
     key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath)
+    cert: fs.readFileSync(certPath),
   };
-  
+
   console.log('Certificates loaded successfully');
 
-  app.prepare()
+  app
+    .prepare()
     .then(() => {
       console.log('Next.js app prepared, creating HTTPS server...');
-      
+
       createServer(httpsOptions, (req, res) => {
         const parsedUrl = parse(req.url, true);
         handle(req, res, parsedUrl);
@@ -40,7 +41,7 @@ try {
         console.log('> Ready on https://localhost:3001');
       });
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Error preparing Next.js app:', err);
     });
 } catch (error) {

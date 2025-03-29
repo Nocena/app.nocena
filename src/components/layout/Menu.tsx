@@ -13,7 +13,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
   const walletAddress = user?.wallet || 'Not connected';
   const menuRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  
+
   // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -33,10 +33,10 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!touchStart) return;
-    
+
     const currentTouch = e.touches[0].clientX;
     const diff = touchStart - currentTouch;
-    
+
     // Swipe left to close
     if (diff > 50) {
       onClose();
@@ -51,13 +51,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
   return (
     <>
       {/* Overlay for clicking outside */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-[9998]" 
-          onClick={onClose}
-        />
-      )}
-      
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onClose} />}
+
       {/* Menu panel */}
       <div
         ref={menuRef}
@@ -70,8 +65,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
       >
         {/* Close button - repositioned to respect safe area */}
         <div className="flex justify-end p-4">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-2xl h-10 w-10 flex items-center justify-center rounded-full bg-gray-800/50"
           >
             ✖

@@ -14,18 +14,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     console.log(`Received ${fileType} for upload:`, fileName);
-    
+
     // Convert base64 string to Buffer
     const fileBuffer = Buffer.from(file, 'base64');
-    
+
     // Upload to Pinata
     const ipfsHash = await uploadToPinata(fileBuffer, fileName);
-    
+
     res.status(200).json({
       success: true,
       ipfsHash,
       url: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-      fileType
+      fileType,
     });
   } catch (error) {
     if (error instanceof Error) {

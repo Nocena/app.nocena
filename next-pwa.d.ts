@@ -1,6 +1,6 @@
 declare module 'next-pwa' {
   import { NextConfig } from 'next';
-  
+
   export interface PWAConfig {
     dest?: string;
     disable?: boolean;
@@ -15,7 +15,6 @@ declare module 'next-pwa' {
     }>;
     [key: string]: any;
   }
-  
-  export default function withPWA(options?: PWAConfig): 
-    (nextConfig?: NextConfig) => NextConfig;
+
+  export default function withPWA(options?: PWAConfig): (nextConfig?: NextConfig) => NextConfig;
 }

@@ -31,7 +31,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  
+
   const router = useRouter();
   const { user } = useAuth();
 
@@ -45,28 +45,28 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
         setIsDropdownOpen(false);
         return;
       }
-      
+
       // Call onSearch callback if provided (for parent component filtering)
       if (onSearch) {
         onSearch(sanitizedQuery);
       }
-      
+
       // If users are provided by parent, filter them locally
       if (users && users.length > 0) {
         const filtered = users
-          .filter(u => u.username.toLowerCase().includes(sanitizedQuery.toLowerCase()))
+          .filter((u) => u.username.toLowerCase().includes(sanitizedQuery.toLowerCase()))
           .slice(0, 8); // Limit to 8 results
-        
+
         setSuggestedUsers(filtered);
         setIsDropdownOpen(filtered.length > 0);
         return;
       }
-      
+
       // Otherwise, fetch from API
       setIsLoading(true);
       try {
         const results = await searchUsers(sanitizedQuery);
-        
+
         // Ensure results have all required properties
         const formattedResults: SearchUser[] = results.map((user: any) => ({
           id: user.id,
@@ -76,9 +76,9 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
           earnedTokens: user.earnedTokens || 0, // Provide default value to ensure this is always a number
           bio: user.bio,
           followers: user.followers || [],
-          following: user.following || []
+          following: user.following || [],
         }));
-        
+
         setSuggestedUsers(formattedResults);
         setIsDropdownOpen(formattedResults.length > 0);
       } catch (error) {
@@ -108,7 +108,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
 
   const handleProfileRedirect = (selectedUser: SearchUser) => {
     if (!selectedUser.wallet) return;
-    
+
     // Call onUserSelect callback if provided
     if (onUserSelect) {
       onUserSelect(selectedUser);
@@ -136,7 +136,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
           onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
           onFocus={() => searchQuery.trim() !== '' && suggestedUsers.length > 0 && setIsDropdownOpen(true)}
         />
-        
+
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>

@@ -26,7 +26,7 @@ const iconMap: Record<ThematicIconProps['iconName'], React.FC<React.SVGProps<SVG
   profile: ProfileIcon,
   menu: MenuIcon,
   pen: PenIcon,
-  save: SaveIcon
+  save: SaveIcon,
 };
 
 const ThematicIcon: React.FC<ThematicIconProps> = ({ iconName, isActive = false }) => {
@@ -38,19 +38,13 @@ const ThematicIcon: React.FC<ThematicIconProps> = ({ iconName, isActive = false 
       {/* Glitch Effect */}
       {isActive && (
         <>
-          <IconComponent
-            className="absolute -translate-x-[2px] -translate-y-[2px] text-nocenaPink animate-glitchPink"
-          />
-          <IconComponent
-            className="absolute translate-x-[2px] translate-y-[2px] text-nocenaBlue animate-glitchBlue"
-          />
+          <IconComponent className="absolute -translate-x-[2px] -translate-y-[2px] text-nocenaPink animate-glitchPink" />
+          <IconComponent className="absolute translate-x-[2px] translate-y-[2px] text-nocenaBlue animate-glitchBlue" />
         </>
       )}
       {/* Primary Icon */}
       <IconComponent
-        className={`relative transition-opacity duration-300 ${
-          isActive ? 'opacity-100' : 'opacity-70'
-        }`}
+        className={`relative transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-70'}`}
       />
     </div>
   );

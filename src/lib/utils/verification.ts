@@ -5,7 +5,7 @@ type VerificationAction = 'SEND' | 'VERIFY';
 
 /**
  * Sends a verification code to a phone number or verifies a code using Twilio
- * 
+ *
  * @param phoneNumber The phone number to verify
  * @param action Whether to send a code or verify a code
  * @param code The verification code (only needed for VERIFY action)
@@ -14,7 +14,7 @@ type VerificationAction = 'SEND' | 'VERIFY';
 export const verifyPhoneNumber = async (
   phoneNumber: string,
   action: VerificationAction,
-  code?: string
+  code?: string,
 ): Promise<boolean> => {
   try {
     // Ensure phone number is in E.164 format
@@ -33,12 +33,12 @@ export const verifyPhoneNumber = async (
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       console.error('Phone verification error:', data.message);
       return false;
     }
-    
+
     return data.success;
   } catch (error) {
     console.error('Phone verification error:', error);

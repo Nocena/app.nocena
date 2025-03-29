@@ -1,8 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
@@ -15,8 +13,8 @@ module.exports = {
         thematic: ['"Montserrat Alt 1"', 'sans-serif'],
       },
       animation: {
-        glitchPink: 'glitchPink 1s infinite',
-        glitchBlue: 'glitchBlue 1s infinite',
+        'glitchPink': 'glitchPink 1s infinite',
+        'glitchBlue': 'glitchBlue 1s infinite',
         'fade-in': 'fadeIn 0.5s ease-in',
       },
       keyframes: {
@@ -42,4 +40,4 @@ module.exports = {
     },
   },
   plugins: [],
-}
+};

@@ -23,10 +23,7 @@ interface PinataResponse {
  * API endpoint to upload challenge completion (video + selfie) to IPFS via Pinata
  * Simplified to upload one file at a time
  */
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -35,7 +32,7 @@ export default async function handler(
 
   try {
     const { videoFile, selfieFile, fileName, userId } = req.body;
-    
+
     if (!videoFile || !userId) {
       return res.status(400).json({ message: 'Missing required video file or user ID' });
     }
@@ -45,35 +42,25 @@ export default async function handler(
     const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, '_');
     const videoFileName = `${safeUserId}_${timestamp}_video.webm`;
     const selfieFileName = selfieFile ? `${safeUserId}_${timestamp}_selfie.jpg` : '';
-    
+
     // Decode base64 data
     const videoBuffer = Buffer.from(videoFile.split(',')[1], 'base64');
     let selfieBuffer = null;
     if (selfieFile) {
       selfieBuffer = Buffer.from(selfieFile.split(',')[1], 'base64');
     }
-    
+
     // Upload video file to Pinata
     console.log('Uploading video file to Pinata...');
-    const videoCID = await uploadSingleFileToPinata(
-      videoBuffer, 
-      videoFileName, 
-      safeUserId,
-      timestamp
-    );
-    
+    const videoCID = await uploadSingleFileToPinata(videoBuffer, videoFileName, safeUserId, timestamp);
+
     // Upload selfie if exists
     let selfieCID = null;
     if (selfieBuffer) {
       console.log('Uploading selfie file to Pinata...');
-      selfieCID = await uploadSingleFileToPinata(
-        selfieBuffer, 
-        selfieFileName, 
-        safeUserId,
-        timestamp
-      );
+      selfieCID = await uploadSingleFileToPinata(selfieBuffer, selfieFileName, safeUserId, timestamp);
     }
-    
+
     // Successful response
     return res.status(200).json({
       message: 'Challenge proof uploaded successfully',
@@ -84,15 +71,15 @@ export default async function handler(
         hasSelfie: !!selfieFile,
         timestamp,
         videoFileName,
-        selfieFileName: selfieFile ? selfieFileName : null
-      }
+        selfieFileName: selfieFile ? selfieFileName : null,
+      },
     });
   } catch (error: unknown) {
     console.error('API error:', error);
-    
+
     let errorMessage = 'Error uploading to IPFS';
     let errorDetails = {};
-    
+
     if (error && typeof error === 'object') {
       const err = error as any;
       if (err.message) {
@@ -102,10 +89,10 @@ export default async function handler(
         errorDetails = err.response.data;
       }
     }
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       message: errorMessage,
-      details: errorDetails
+      details: errorDetails,
     });
   }
 }
@@ -117,79 +104,74 @@ async function uploadSingleFileToPinata(
   fileBuffer: Buffer,
   fileName: string,
   userId: string,
-  timestamp: number
+  timestamp: number,
 ): Promise<string> {
   const pinataApiKey = process.env.PINATA_API_KEY;
   const pinataSecretKey = process.env.PINATA_SECRET_KEY;
-  
+
   if (!pinataApiKey || !pinataSecretKey) {
     throw new Error('Pinata API keys missing');
   }
-  
+
   // Retry logic
   const maxRetries = 3;
   let retryCount = 0;
   let lastError = null;
-  
+
   while (retryCount < maxRetries) {
     try {
       const formData = new FormData();
-      
+
       // Add just the single file to form data
       formData.append('file', fileBuffer, fileName);
-      
+
       // Add metadata
       const pinataMetadata = JSON.stringify({
         name: `Nocena ${fileName}`,
         keyvalues: {
           userId,
           timestamp: timestamp.toString(),
-          type: 'challenge_proof'
-        }
+          type: 'challenge_proof',
+        },
       });
-      
+
       formData.append('pinataMetadata', pinataMetadata);
-      
+
       // Set options
       const pinataOptions = JSON.stringify({
-        cidVersion: 1
+        cidVersion: 1,
       });
-      
+
       formData.append('pinataOptions', pinataOptions);
-      
+
       console.log(`Attempting upload attempt ${retryCount + 1}/${maxRetries}`);
-      
-      const response = await axios.post<PinataResponse>(
-        'https://api.pinata.cloud/pinning/pinFileToIPFS',
-        formData,
-        {
-          maxBodyLength: Infinity,
-          headers: {
-            'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
-            pinata_api_key: pinataApiKey,
-            pinata_secret_api_key: pinataSecretKey,
-          },
-          timeout: 120000,
-        }
-      );
-      
+
+      const response = await axios.post<PinataResponse>('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
+        maxBodyLength: Infinity,
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${formData.getBoundary()}`,
+          'pinata_api_key': pinataApiKey,
+          'pinata_secret_api_key': pinataSecretKey,
+        },
+        timeout: 120000,
+      });
+
       console.log('Pinata upload successful:', response.data);
       return response.data.IpfsHash;
-      
     } catch (error) {
       lastError = error;
       retryCount++;
-      
+
       console.error(`Upload attempt ${retryCount} failed:`, error);
-      
+
       if (retryCount < maxRetries) {
         const waitTime = 1000 * Math.pow(2, retryCount);
         console.log(`Retrying in ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
     }
   }
-  
+
   // If we get here, all retries failed
   throw lastError;
 }

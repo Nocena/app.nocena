@@ -13,7 +13,7 @@ const IPFS_GATEWAYS = [
   'https://ipfs.io/ipfs',
   'https://cloudflare-ipfs.com/ipfs',
   'https://dweb.link/ipfs',
-  'https://gateway.ipfs.io/ipfs'
+  'https://gateway.ipfs.io/ipfs',
 ];
 
 // If you're using a dedicated Pinata subdomain gateway, add it here
@@ -118,15 +118,15 @@ export function getVideoUrl(media: any): string | null {
   if (media.videoCID) {
     return `${IPFS_GATEWAYS[0]}/${media.videoCID}`;
   }
-  
+
   // Fall back to old format for backwards compatibility
   const { directoryCID, videoFileName } = media;
-  
+
   if (!directoryCID || !videoFileName) {
     console.error('Invalid media metadata for video', media);
     return null;
   }
-  
+
   return `${IPFS_GATEWAYS[0]}/${directoryCID}/${videoFileName}`;
 }
 
@@ -141,15 +141,15 @@ export function getSelfieUrl(media: any): string | null {
   if (media.selfieCID) {
     return `${IPFS_GATEWAYS[0]}/${media.selfieCID}`;
   }
-  
+
   // Fall back to old format for backwards compatibility
   const { directoryCID, selfieFileName } = media;
-  
+
   if (!directoryCID || !selfieFileName) {
     console.error('Invalid media metadata for selfie', media);
     return null;
   }
-  
+
   return `${IPFS_GATEWAYS[0]}/${directoryCID}/${selfieFileName}`;
 }
 
@@ -161,10 +161,10 @@ export function getSelfieUrl(media: any): string | null {
  */
 export function getBackupGatewayUrl(url: string | null, gatewayIndex: number): string | null {
   if (!url) return null;
-  
+
   // Add this line to log which gateway we're trying
   console.log(`Attempting to use gateway index: ${gatewayIndex}`);
-  
+
   // Use these additional gateways
   const IPFS_GATEWAYS = [
     'https://gateway.pinata.cloud/ipfs',
@@ -172,19 +172,19 @@ export function getBackupGatewayUrl(url: string | null, gatewayIndex: number): s
     'https://ipfs.io/ipfs',
     'https://cloudflare-ipfs.com/ipfs',
     'https://dweb.link/ipfs',
-    'https://gateway.ipfs.io/ipfs'
+    'https://gateway.ipfs.io/ipfs',
   ];
-  
+
   // If we're out of gateways, return null
   if (gatewayIndex >= IPFS_GATEWAYS.length) {
     return null;
   }
-  
+
   try {
     // Parse the URL to extract CID and path
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    
+
     // Find CID part (typically after /ipfs/)
     let cidIndex = -1;
     for (let i = 0; i < pathParts.length; i++) {
@@ -193,25 +193,25 @@ export function getBackupGatewayUrl(url: string | null, gatewayIndex: number): s
         break;
       }
     }
-    
+
     if (cidIndex >= 0 && cidIndex < pathParts.length) {
       // Extract CID and any additional path
       const cid = pathParts[cidIndex];
       const additionalPath = pathParts.slice(cidIndex + 1).join('/');
-      
+
       // Construct new URL with the gateway
       let newUrl = `${IPFS_GATEWAYS[gatewayIndex]}/${cid}`;
       if (additionalPath) {
         newUrl += `/${additionalPath}`;
       }
-      
+
       console.log(`Trying alternative gateway: ${newUrl}`);
       return newUrl;
     }
   } catch (err) {
     console.error('Error parsing IPFS URL:', err);
   }
-  
+
   return null;
 }
 

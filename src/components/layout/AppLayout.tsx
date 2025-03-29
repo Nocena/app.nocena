@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchUnreadNotificationsCount, markNotificationsAsRead } from "../../lib/api/dgraph";
+import { fetchUnreadNotificationsCount, markNotificationsAsRead } from '../../lib/api/dgraph';
 
 import Menu from './Menu';
 import ThematicText from '../ui/ThematicText';
@@ -32,14 +32,14 @@ const navIcons = ['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconNa
 const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const startRenderTime = isBrowser ? performance.now() : 0;
   logPerf(`AppLayout render started`);
-  
+
   const router = useRouter();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [appIsVisible, setAppIsVisible] = useState(true);
-  
+
   // Track when component first mounts
   useEffect(() => {
     logPerf(`AppLayout mounted at ${new Date().toLocaleTimeString()}`);
@@ -49,8 +49,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }, []);
 
   // Refs to store cached data
-  const cachedUnreadCount = useRef<{count: number, timestamp: number} | null>(null);
-  
+  const cachedUnreadCount = useRef<{ count: number; timestamp: number } | null>(null);
+
   // More efficient unread notifications check with caching and visibility detection
   useEffect(() => {
     if (!user?.id || !isBrowser) return;
@@ -62,17 +62,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         const fetchStart = performance.now();
         const count = await fetchUnreadNotificationsCount(user.id);
         logPerf(`Fetched unread count in ${(performance.now() - fetchStart).toFixed(2)}ms: ${count}`);
-        
+
         setUnreadCount(count);
-        
+
         // Cache the count in localStorage to show immediately on next app open
         try {
           // Update memory cache first
           cachedUnreadCount.current = {
             count,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
-          
+
           // Then persist to localStorage
           localStorage.setItem('nocena_unread_count', JSON.stringify(cachedUnreadCount.current));
         } catch (error) {
@@ -120,7 +120,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         checkUnreadNotifications();
       }
     }, 30000);
-    
+
     return () => {
       clearTimeout(initialCheckTimer);
       clearInterval(interval);
@@ -130,35 +130,35 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   // App visibility handler to optimize performance
   useEffect(() => {
     if (!isBrowser) return;
-    
+
     const handleVisibilityChange = () => {
       const newVisibility = document.visibilityState === 'visible';
       logPerf(`App visibility changed to: ${newVisibility ? 'visible' : 'hidden'}`);
       setAppIsVisible(newVisibility);
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Also listen for our custom events
     const handleBackgroundEvent = () => {
       logPerf(`App went to background`);
       setAppIsVisible(false);
     };
-    
+
     const handleForegroundEvent = () => {
       logPerf(`App came to foreground`);
       setAppIsVisible(true);
       // Refresh notification count when app comes to foreground
       if (user?.id) {
         fetchUnreadNotificationsCount(user.id)
-          .then(count => setUnreadCount(count))
-          .catch(error => console.error('Failed to refresh notifications', error));
+          .then((count) => setUnreadCount(count))
+          .catch((error) => console.error('Failed to refresh notifications', error));
       }
     };
-    
+
     window.addEventListener('nocena_app_background', handleBackgroundEvent);
     window.addEventListener('nocena_app_foreground', handleForegroundEvent);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('nocena_app_background', handleBackgroundEvent);
@@ -215,82 +215,82 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   })();
 
   // Memoized navigation handler to prevent unnecessary rerenders
-  const handleNavClick = useCallback(async (index: number) => {
-    logPerf(`Navigation clicked: index ${index}`);
-    const navigationStart = performance.now();
-    
-    // Update the current tab index immediately for UI feedback
-    setCurrentIndex(index);
+  const handleNavClick = useCallback(
+    async (index: number) => {
+      logPerf(`Navigation clicked: index ${index}`);
+      const navigationStart = performance.now();
 
-    const routeMapping: Record<number, string> = {
-      0: '/home',
-      1: '/map',
-      2: '/inbox',
-      3: '/search',
-      4: '/profile',
-      5: '/completing',
-      6: '/profile',
-      7: '/createchallenge',
-    };
+      // Update the current tab index immediately for UI feedback
+      setCurrentIndex(index);
 
-    // Determine the target route
-    const route =
-      index === 6 && user?.wallet
-        ? `/profile/${user.id}`
-        : routeMapping[index] || '/home';
-    
-    // Update visibility state immediately before navigation
-    // This helps make the page load appear faster
-    const routeToComponentName: Record<number, string> = {
-      0: 'home',
-      1: 'map',
-      2: 'inbox',
-      3: 'search',
-      4: 'profile'
-    };
-    
-    if (routeToComponentName[index]) {
-      const visibilityEvent = new CustomEvent('pageVisibilityChange', {
-        detail: { 
-          pageName: routeToComponentName[index], 
-          isVisible: true 
-        }
-      });
-      window.dispatchEvent(visibilityEvent);
-    }
-        
-    // Perform route push first for faster response
-    // Add shallow routing to prevent full page reload
-    router.push(route, undefined, { shallow: true });
-    
-    // After navigation, handle any operations that could block
-    if (index === 2 && user?.id) {
-      // For inbox, perform background operation after navigation
-      window.requestAnimationFrame(async () => {
-        // Mark notifications as read
-        await markNotificationsAsRead(user.id);
-        setUnreadCount(0);
-        
-        // Update the cache to reflect read notifications
-        if (isBrowser) {
-          try {
-            const updatedCache = {
-              count: 0,
-              timestamp: Date.now()
-            };
-            // Update memory cache first
-            cachedUnreadCount.current = updatedCache;
-            // Then persist to localStorage
-            localStorage.setItem('nocena_unread_count', JSON.stringify(updatedCache));
-          } catch (error) {
-            console.error('Failed to update unread count cache', error);
+      const routeMapping: Record<number, string> = {
+        0: '/home',
+        1: '/map',
+        2: '/inbox',
+        3: '/search',
+        4: '/profile',
+        5: '/completing',
+        6: '/profile',
+        7: '/createchallenge',
+      };
+
+      // Determine the target route
+      const route = index === 6 && user?.wallet ? `/profile/${user.id}` : routeMapping[index] || '/home';
+
+      // Update visibility state immediately before navigation
+      // This helps make the page load appear faster
+      const routeToComponentName: Record<number, string> = {
+        0: 'home',
+        1: 'map',
+        2: 'inbox',
+        3: 'search',
+        4: 'profile',
+      };
+
+      if (routeToComponentName[index]) {
+        const visibilityEvent = new CustomEvent('pageVisibilityChange', {
+          detail: {
+            pageName: routeToComponentName[index],
+            isVisible: true,
+          },
+        });
+        window.dispatchEvent(visibilityEvent);
+      }
+
+      // Perform route push first for faster response
+      // Add shallow routing to prevent full page reload
+      router.push(route, undefined, { shallow: true });
+
+      // After navigation, handle any operations that could block
+      if (index === 2 && user?.id) {
+        // For inbox, perform background operation after navigation
+        window.requestAnimationFrame(async () => {
+          // Mark notifications as read
+          await markNotificationsAsRead(user.id);
+          setUnreadCount(0);
+
+          // Update the cache to reflect read notifications
+          if (isBrowser) {
+            try {
+              const updatedCache = {
+                count: 0,
+                timestamp: Date.now(),
+              };
+              // Update memory cache first
+              cachedUnreadCount.current = updatedCache;
+              // Then persist to localStorage
+              localStorage.setItem('nocena_unread_count', JSON.stringify(updatedCache));
+            } catch (error) {
+              console.error('Failed to update unread count cache', error);
+            }
           }
-        }
-      });
-    }
-    
-    logPerf(`Navigation completed in ${(performance.now() - navigationStart).toFixed(2)}ms`);
-  }, [router, user?.id, user?.wallet]);
+        });
+      }
+
+      logPerf(`Navigation completed in ${(performance.now() - navigationStart).toFixed(2)}ms`);
+    },
+    [router, user?.id, user?.wallet],
+  );
 
   const handleMenuToggle = useCallback(() => {
     setIsMenuOpen((prev) => !prev);
@@ -304,10 +304,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const handleAppLogout = useCallback(() => {
     // First close the menu
     setIsMenuOpen(false);
-    
+
     // Call the original logout handler from props
     handleLogout();
-    
+
     // Clear any app state from localStorage before redirecting
     if (isBrowser) {
       try {
@@ -318,7 +318,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         console.error('Failed to clear cached data during logout', error);
       }
     }
-    
+
     // Force a full page navigation to ensure clean state
     if (isBrowser) {
       window.location.href = '/login';
@@ -326,10 +326,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }, [handleLogout]);
 
   // Determine whether to use PageManager or direct children
-  const usePageManager = !router.pathname.startsWith('/completing') && 
-                        !router.pathname.startsWith('/createchallenge') &&
-                        children === undefined;
-                        
+  const usePageManager =
+    !router.pathname.startsWith('/completing') &&
+    !router.pathname.startsWith('/createchallenge') &&
+    children === undefined;
+
   if (isBrowser) {
     logPerf(`AppLayout render completed in ${(performance.now() - startRenderTime).toFixed(2)}ms`);
   }
@@ -338,14 +339,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
       {/* Add the memory optimizer for background/foreground handling */}
       <MemoryOptimizer />
-      
+
       {/* Top Navbar - with top safe area padding */}
       <div
-        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg" 
-        style={{ 
-          paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',  
-          height: 'calc(3rem + env(safe-area-inset-top))'
-        }}>
+        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+          height: 'calc(3rem + env(safe-area-inset-top))',
+        }}
+      >
         <div className="flex items-center">
           <button onClick={handleMenuToggle} className="z-50">
             <ThematicIcon iconName="menu" isActive={isMenuOpen} />
@@ -365,18 +367,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
 
       {/* Main Content - conditionally use PageManager or children */}
-      <main className="flex-grow pt-3"
-            style={{ 
-              marginTop: 'calc(3rem + env(safe-area-inset-top))'
-            }}>
+      <main
+        className="flex-grow pt-3"
+        style={{
+          marginTop: 'calc(3rem + env(safe-area-inset-top))',
+        }}
+      >
         {usePageManager ? <PageManager /> : children}
       </main>
 
       {/* Bottom Navbar - with bottom safe area padding */}
-      <div className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocenaBg z-50 font-light"
-           style={{
-             paddingBottom: 'env(safe-area-inset-bottom)'
-           }}>
+      <div
+        className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocenaBg z-50 font-light"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
         {navIcons.map((item, index) => (
           <button
             key={item}
@@ -384,7 +390,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
             className={`relative text-center flex-grow p-2 ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
           >
             <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
-            
+
             {item === 'inbox' && unreadCount > 0 && (
               <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
             )}

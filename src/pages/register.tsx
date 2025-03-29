@@ -12,7 +12,11 @@ import PhoneVerification from '../components/PhoneVerification';
 import PhoneInput from 'react-phone-input-2';
 import ThematicText from '../components/ui/ThematicText';
 import { hashPassword } from '../lib/utils/passwordUtils';
+import Image from 'next/image';
 import 'react-phone-input-2/lib/style.css';
+
+// Import global styles for the phone input
+import '../styles/phone-input.css';
 
 const RegisterPage = () => {
   // Registration steps
@@ -33,7 +37,7 @@ const RegisterPage = () => {
   const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedPrivateKey, setCopiedPrivateKey] = useState(false);
-  
+
   const router = useRouter();
   const { login } = useAuth();
 
@@ -43,7 +47,7 @@ const RegisterPage = () => {
       const timer = setTimeout(() => {
         setCurrentStep(STEP_REGISTER_FORM);
       }, 4000); // 4 seconds for welcome animation
-      
+
       return () => clearTimeout(timer);
     }
   }, [currentStep]);
@@ -72,12 +76,9 @@ const RegisterPage = () => {
     try {
       // Format phone number to E.164 format before sending to Twilio
       const formattedPhone = formatPhoneToE164(sanitizedPhoneNumber);
-      
+
       // Send verification code via Twilio
-      const success = await verifyPhoneNumber(
-        formattedPhone,
-        'SEND'
-      );
+      const success = await verifyPhoneNumber(formattedPhone, 'SEND');
 
       if (success) {
         setCurrentStep(STEP_PHONE_VERIFICATION);
@@ -100,19 +101,15 @@ const RegisterPage = () => {
     try {
       // Format phone number to E.164 format before verifying
       const formattedPhone = formatPhoneToE164(phoneNumber);
-      
+
       // Verify the code using Twilio
-      const isValid = await verifyPhoneNumber(
-        formattedPhone,
-        'VERIFY',
-        code
-      );
+      const isValid = await verifyPhoneNumber(formattedPhone, 'VERIFY', code);
 
       if (isValid) {
         // Create wallet
         const newWallet = createPolygonWallet();
         setWallet(newWallet);
-        
+
         setCurrentStep(STEP_WALLET_CREATION);
       } else {
         setError('Invalid verification code. Please try again.');
@@ -128,17 +125,14 @@ const RegisterPage = () => {
   const handleResendCode = async () => {
     setError('');
     setLoading(true);
-    
+
     try {
       // Format phone number to E.164 format before resending
       const formattedPhone = formatPhoneToE164(phoneNumber);
-      
+
       // Resend verification code via Twilio
-      const success = await verifyPhoneNumber(
-        formattedPhone,
-        'SEND'
-      );
-      
+      const success = await verifyPhoneNumber(formattedPhone, 'SEND');
+
       if (success) {
         // Optionally show a success notification
       } else {
@@ -155,20 +149,20 @@ const RegisterPage = () => {
   const handleCompleteRegistration = async () => {
     setError('');
     setLoading(true);
-  
+
     if (!wallet) {
       setError('Wallet creation failed. Please try again.');
       setLoading(false);
       return;
     }
-  
+
     try {
       // Securely hash the password - the salt will be generated automatically
       const securePasswordHash = await hashPassword(password);
-      
+
       // Format phone number to E.164 format before storing
       const formattedPhone = formatPhoneToE164(phoneNumber);
-      
+
       // Register user with properly formatted phone number and secure password hash
       const addedUser = await registerUser(
         username,
@@ -178,13 +172,13 @@ const RegisterPage = () => {
         wallet.address,
         '0'.repeat(365),
         '0'.repeat(52),
-        '0'.repeat(12)
+        '0'.repeat(12),
       );
-  
+
       if (addedUser) {
         // Mark the invite code as used
         await markDiscordInviteAsUsed(inviteCode, addedUser.id);
-  
+
         // Login with our updated AuthContext
         await login(addedUser);
         router.push('/home');
@@ -214,9 +208,12 @@ const RegisterPage = () => {
   const renderWelcomeStep = () => (
     <div className="w-full max-w-md mx-auto text-center">
       <div className="flex flex-col items-center justify-center h-60">
-        <img src="/logo/eyes.png" alt="Logo" className="max-w-full h-auto mx-auto mb-10" />
+        <div className="max-w-full h-auto mx-auto mb-10 relative">
+          <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
+        </div>
         <h1 className="text-3xl font-semibold mb-4">
-          <ThematicText text="Welcome" isActive />to the <ThematicText text="challenge" isActive />
+          <ThematicText text="Welcome" isActive />
+          to the <ThematicText text="challenge" isActive />
         </h1>
         <p className="text-lg text-gray-300">Get ready to earn while exploring...</p>
       </div>
@@ -226,9 +223,11 @@ const RegisterPage = () => {
   const renderRegisterFormStep = () => (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-4">
-        <img src="/logo/eyes.png" alt="Logo" className="max-w-full h-auto mx-auto mb-40" />
+        <div className="max-w-full h-auto mx-auto mb-40 relative">
+          <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
+        </div>
       </div>
-      
+
       <form onSubmit={handleRegisterSubmit} className="space-y-4">
         <div className="mb-3">
           <label htmlFor="username" className="block mb-1">
@@ -261,7 +260,7 @@ const RegisterPage = () => {
               border: 'none',
               borderRadius: '1rem',
               height: '42px',
-              padding: '0.5rem 1rem 0.5rem 3.5rem'
+              padding: '0.5rem 1rem 0.5rem 3.5rem',
             }}
             buttonStyle={{
               backgroundColor: '#1f2937',
@@ -274,7 +273,7 @@ const RegisterPage = () => {
               border: '1px solid #374151',
               borderRadius: '0.5rem',
               margin: '0.25rem 0',
-              maxHeight: '300px'
+              maxHeight: '300px',
             }}
             searchStyle={{
               backgroundColor: '#1f2937',
@@ -283,37 +282,15 @@ const RegisterPage = () => {
               margin: '0',
               border: 'none',
               borderBottom: '1px solid #374151',
-              borderRadius: '0'
+              borderRadius: '0',
             }}
             containerClass="w-full"
             dropdownClass="!bg-gray-900 !text-white"
             searchClass="!bg-gray-800 !text-white !border-gray-700"
             containerStyle={{
-              width: '100%'  
+              width: '100%',
             }}
           />
-          <style jsx global>{`
-            .react-tel-input .selected-flag {
-              background-color: #1f2937 !important;
-            }
-            .react-tel-input .selected-flag:hover, 
-            .react-tel-input .selected-flag:focus {
-              background-color: #1f2937 !important;
-            }
-            .react-tel-input .country-list .country.highlight,
-            .react-tel-input .country-list .country:hover {
-              background-color: #374151 !important;
-            }
-            .react-tel-input .country-list .country {
-              background-color: #111827 !important;
-              color: white !important;
-            }
-            .react-tel-input .country-list {
-              background-color: #111827 !important;
-              color: white !important;
-              border: 1px solid #374151 !important;
-            }
-          `}</style>
         </div>
 
         <div className="mb-3">
@@ -333,8 +310,8 @@ const RegisterPage = () => {
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <div className="mb-3">
-          <PrimaryButton 
-            text={loading ? "Processing..." : "Continue"} 
+          <PrimaryButton
+            text={loading ? 'Processing...' : 'Continue'}
             onClick={handleRegisterSubmit}
             disabled={loading || !username || !phoneNumber || !password}
           />
@@ -346,7 +323,9 @@ const RegisterPage = () => {
   const renderWalletCreationStep = () => (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-4">
-        <img src="/logo/eyes.png" alt="Logo" className="max-w-full h-auto mx-auto mb-20" />
+        <div className="max-w-full h-auto mx-auto mb-40 relative">
+          <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
+        </div>
         <h2 className="text-2xl font-bold mb-2">Your Wallet Is Ready</h2>
         <p className="text-gray-400 mb-4">Save these details in a secure place</p>
       </div>
@@ -362,9 +341,7 @@ const RegisterPage = () => {
               {copiedAddress ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">
-            {wallet?.address}
-          </p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.address}</p>
         </div>
 
         <div className="bg-gray-800 p-4 rounded-lg">
@@ -377,9 +354,7 @@ const RegisterPage = () => {
               {copiedPrivateKey ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">
-            {wallet?.privateKey}
-          </p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.privateKey}</p>
         </div>
 
         <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 p-4 rounded-lg text-yellow-400 text-sm">
@@ -396,8 +371,8 @@ const RegisterPage = () => {
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
       <div className="mb-3">
-        <PrimaryButton 
-          text={loading ? "Processing..." : "I Have Saved My Wallet Information"} 
+        <PrimaryButton
+          text={loading ? 'Processing...' : 'I Have Saved My Wallet Information'}
           onClick={handleCompleteRegistration}
           disabled={loading}
         />
@@ -408,14 +383,12 @@ const RegisterPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
       <div className="w-full max-w-md mx-4">
-        {currentStep === STEP_INVITE_CODE && (
-          <InviteCodeInput onValidCode={handleInviteCodeValid} />
-        )}
+        {currentStep === STEP_INVITE_CODE && <InviteCodeInput onValidCode={handleInviteCodeValid} />}
         {currentStep === STEP_WELCOME && renderWelcomeStep()}
         {currentStep === STEP_REGISTER_FORM && renderRegisterFormStep()}
         {currentStep === STEP_PHONE_VERIFICATION && (
-          <PhoneVerification 
-            phoneNumber={phoneNumber} 
+          <PhoneVerification
+            phoneNumber={phoneNumber}
             onVerify={handleVerificationSubmit}
             onResend={handleResendCode}
           />
