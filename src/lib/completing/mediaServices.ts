@@ -5,26 +5,24 @@ import { MediaMetadata, ChallengeParams } from './types';
 /**
  * Initializes the back (main) camera for video recording
  */
-export async function initializeBackCamera(
-  videoRef: React.RefObject<HTMLVideoElement>
-): Promise<MediaStream | null> {
+export async function initializeBackCamera(videoRef: React.RefObject<HTMLVideoElement>): Promise<MediaStream | null> {
   try {
     const constraints: MediaStreamConstraints = {
       audio: true,
       video: {
-        facingMode: "environment", // Use back camera
+        facingMode: 'environment', // Use back camera
         width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
+        height: { ideal: 720 },
+      },
     };
-    
+
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
     }
-    
+
     return stream;
   } catch (err) {
     console.error('Error initializing back camera:', err);
@@ -36,26 +34,24 @@ export async function initializeBackCamera(
  * Initializes the front (selfie) camera
  * Updated to handle null ref values
  */
-export async function initializeFrontCamera(
-  videoRef: React.RefObject<HTMLVideoElement>
-): Promise<MediaStream | null> {
+export async function initializeFrontCamera(videoRef: React.RefObject<HTMLVideoElement>): Promise<MediaStream | null> {
   try {
     const constraints: MediaStreamConstraints = {
       audio: false, // No audio needed for selfie
       video: {
-        facingMode: "user", // Use front camera
+        facingMode: 'user', // Use front camera
         width: { ideal: 640 },
-        height: { ideal: 480 }
-      }
+        height: { ideal: 480 },
+      },
     };
-    
+
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    
+
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
     }
-    
+
     return stream;
   } catch (err) {
     console.error('Error initializing front camera:', err);
@@ -70,46 +66,41 @@ export function createMediaRecorder(
   stream: MediaStream,
   onDataAvailable: (event: BlobEvent) => void,
   onStop: () => void,
-  frequency: 'daily' | 'weekly' | 'monthly' = 'daily'
+  frequency: 'daily' | 'weekly' | 'monthly' = 'daily',
 ): MediaRecorder | null {
   try {
     // Determine optimal bitrate and options based on challenge frequency
     // Lower bitrate for longer videos to keep file size manageable
     const bitrates = {
-      daily: 2500000,    // 2.5 Mbps for daily (30s)
-      weekly: 1500000,   // 1.5 Mbps for weekly (1min)
-      monthly: 1000000   // 1 Mbps for monthly (3min)
+      daily: 2500000, // 2.5 Mbps for daily (30s)
+      weekly: 1500000, // 1.5 Mbps for weekly (1min)
+      monthly: 1000000, // 1 Mbps for monthly (3min)
     };
-    
+
     const selectedBitrate = bitrates[frequency];
-    
+
     // Try supported MIME types in order of preference
-    const mimeTypes = [
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm',
-      'video/mp4'
-    ];
-    
+    const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+
     // Find first supported mime type
     let options: MediaRecorderOptions = {};
     for (const mimeType of mimeTypes) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
-        options = { 
+        options = {
           mimeType,
-          videoBitsPerSecond: selectedBitrate
+          videoBitsPerSecond: selectedBitrate,
         };
         break;
       }
     }
-    
+
     // Create recorder with options
     const mediaRecorder = new MediaRecorder(stream, options);
-    
+
     // Set up event handlers
     mediaRecorder.ondataavailable = onDataAvailable;
     mediaRecorder.onstop = onStop;
-    
+
     return mediaRecorder;
   } catch (err) {
     console.error('Error creating MediaRecorder:', err);
@@ -122,18 +113,18 @@ export function createMediaRecorder(
  * Especially important for weekly and monthly challenges
  */
 export async function compressVideo(
-  videoBlob: Blob, 
-  frequency: 'daily' | 'weekly' | 'monthly' = 'daily'
+  videoBlob: Blob,
+  frequency: 'daily' | 'weekly' | 'monthly' = 'daily',
 ): Promise<Blob> {
   // For now, we're just returning the original blob as compression requires a library
   // In a production environment, consider using ffmpeg.wasm or similar
   console.log(`Compression needed for ${frequency} challenge (placeholder)`);
-  
+
   // In a real implementation, we would:
   // 1. Use appropriate compression settings based on challenge frequency
   // 2. Apply compression to reduce file size while maintaining acceptable quality
   // 3. Return the compressed blob
-  
+
   return videoBlob;
 }
 
@@ -142,11 +133,11 @@ export async function compressVideo(
  */
 export function getMaxRecordingDuration(frequency: 'daily' | 'weekly' | 'monthly' = 'daily'): number {
   const durations = {
-    daily: 30,       // 30 seconds
-    weekly: 60,      // 1 minute
-    monthly: 180     // 3 minutes
+    daily: 30, // 30 seconds
+    weekly: 60, // 1 minute
+    monthly: 180, // 3 minutes
   };
-  
+
   return durations[frequency] || 30;
 }
 
@@ -162,17 +153,17 @@ export async function uploadMediaToIPFS(
   videoFile: string,
   selfieFile: string | null,
   challengeId: string,
-  userId: string
+  userId: string,
 ): Promise<MediaMetadata> {
   try {
     console.log('Starting media upload process');
-    
+
     // Format the file name to include challenge ID
     const fileName = `challenge_${challengeId}`;
-    
+
     // Call the API endpoint to upload to IPFS
     console.log('Calling API endpoint for IPFS upload', { fileName });
-    
+
     const response = await fetch('/api/pinChallengeToIPFS', {
       method: 'POST',
       headers: {
@@ -185,19 +176,19 @@ export async function uploadMediaToIPFS(
         userId,
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(`Upload failed: ${response.statusText} - ${JSON.stringify(errorData)}`);
     }
-    
+
     const data = await response.json();
     console.log('Upload API success response:', data);
-    
+
     if (!data || !data.mediaMetadata) {
       throw new Error('Invalid response from upload API');
     }
-    
+
     return data.mediaMetadata;
   } catch (error) {
     console.error('Error in uploadMediaToIPFS:', error);

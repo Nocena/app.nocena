@@ -10,7 +10,7 @@ export enum RecordingState {
   REVIEW = 'review',
   UPLOADING = 'uploading',
   COMPLETE = 'complete',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 // Challenge parameters

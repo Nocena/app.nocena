@@ -15,31 +15,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const pinataApiKey = process.env.PINATA_API_KEY;
     const pinataSecretKey = process.env.PINATA_SECRET_KEY;
-    
+
     if (!pinataApiKey || !pinataSecretKey) {
       return res.status(500).json({ error: 'Pinata API credentials not configured' });
     }
-    
+
     const response = await axios.get(
       `https://api.pinata.cloud/data/pinList?status=pinned&metadata[name]=${encodeURIComponent(fileName)}`,
       {
         headers: {
-          'pinata_api_key': pinataApiKey,
-          'pinata_secret_api_key': pinataSecretKey
-        }
-      }
+          pinata_api_key: pinataApiKey,
+          pinata_secret_api_key: pinataSecretKey,
+        },
+      },
     );
-    
+
     if (response.data?.rows?.length > 0) {
       const file = response.data.rows[0];
       return res.status(200).json({
         cid: file.ipfs_pin_hash,
         name: file.metadata.name,
         size: file.size,
-        timestamp: file.date_pinned
+        timestamp: file.date_pinned,
       });
     }
-    
+
     return res.status(404).json({ error: 'File not found on Pinata' });
   } catch (error) {
     console.error('Error checking Pinata:', error);

@@ -31,11 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       DGRAPH_ENDPOINT,
       {
         query: checkQuery,
-        variables: { code }
+        variables: { code },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (checkResponse.data.errors) {
@@ -44,20 +44,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const invites = checkResponse.data.data.queryDiscordInvite || [];
-    
+
     if (invites.length === 0) {
       return res.status(404).json({ success: false, message: 'Invite code not found' });
     }
-    
+
     const invite = invites[0];
-    
+
     if (invite.isUsed) {
       return res.status(400).json({ success: false, message: 'This invite code has already been used' });
     }
 
     // Update the invite code to mark it as used
     const usedAtValue = usedAt || new Date().toISOString();
-    
+
     const mutationString = `
       mutation updateDiscordInvite($id: String!, $userId: String!, $usedAt: DateTime!) {
         updateDiscordInvite(
@@ -85,25 +85,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       DGRAPH_ENDPOINT,
       {
         query: mutationString,
-        variables: { 
+        variables: {
           id: invite.id,
           userId: userId,
-          usedAt: usedAtValue
-        }
+          usedAt: usedAtValue,
+        },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
-    
+
     if (updateResponse.data.errors) {
       console.error('Dgraph mutation error:', updateResponse.data.errors);
       return res.status(500).json({ success: false, message: 'Error updating database' });
     }
-    
-    return res.status(200).json({ 
-      success: true, 
-      invite: updateResponse.data.data.updateDiscordInvite.discordInvite[0]
+
+    return res.status(200).json({
+      success: true,
+      invite: updateResponse.data.data.updateDiscordInvite.discordInvite[0],
     });
   } catch (error) {
     console.error('Error marking invite code as used:', error);

@@ -20,7 +20,7 @@ interface CustomRouteEvent extends CustomEvent {
 const MapView = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  
+
   // Register page visibility event listeners for PageManager
   useEffect(() => {
     const handlePageVisibility = (event: Event) => {
@@ -29,7 +29,7 @@ const MapView = () => {
         setIsVisible(customEvent.detail.isVisible);
       }
     };
-    
+
     const handleRouteChange = (event: Event) => {
       const customEvent = event as CustomRouteEvent;
       if (customEvent.detail) {
@@ -40,22 +40,22 @@ const MapView = () => {
         }
       }
     };
-    
+
     window.addEventListener('pageVisibilityChange', handlePageVisibility);
     window.addEventListener('routeChange', handleRouteChange);
-    
+
     // Initialize visibility based on current route
     setIsVisible(window.location.pathname === '/map');
-    
+
     // Mark initial load complete
     setIsInitialLoad(false);
-    
+
     return () => {
       window.removeEventListener('pageVisibilityChange', handlePageVisibility);
       window.removeEventListener('routeChange', handleRouteChange);
     };
   }, []);
-  
+
   // React to app foreground/background events
   useEffect(() => {
     const handleAppForeground = () => {
@@ -64,24 +64,24 @@ const MapView = () => {
         console.log('Map view visible and app in foreground');
       }
     };
-    
+
     window.addEventListener('nocena_app_foreground', handleAppForeground);
-    
+
     return () => {
       window.removeEventListener('nocena_app_foreground', handleAppForeground);
     };
   }, [isVisible]);
-  
+
   // When map resources are actually implemented, we can add code to cache
   // and prefetch map data here, similar to how we did with notifications
-  
+
   // Optional - for quick feedback during development
   useEffect(() => {
     if (isVisible) {
       console.log('Map view is now visible');
     }
   }, [isVisible]);
-  
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <h1 className="text-4xl font-bold text-white">Map Page</h1>

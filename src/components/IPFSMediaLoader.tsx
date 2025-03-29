@@ -9,11 +9,7 @@ interface IPFSMediaLoaderProps {
   className?: string;
 }
 
-const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
-  videoUrl,
-  selfieUrl,
-  className = ''
-}) => {
+const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({ videoUrl, selfieUrl, className = '' }) => {
   const [videoError, setVideoError] = useState<boolean>(false);
   const [selfieError, setSelfieError] = useState<boolean>(false);
   const [videoLoading, setVideoLoading] = useState<boolean>(true);
@@ -22,28 +18,28 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
   const [currentSelfieGateway, setCurrentSelfieGateway] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  
+
   // Maximum number of gateway attempts before giving up
   const MAX_GATEWAY_ATTEMPTS = 5;
 
   // Extract media info from URL for better error handling
   const extractMediaInfo = (url: string | null) => {
     if (!url) return null;
-    
+
     try {
       // Parse the URL to extract CID and filename
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split('/');
-      
+
       // For IPFS gateway URLs, the format is typically /ipfs/CID/filename
       if (pathParts.length >= 3 && pathParts[1] === 'ipfs') {
         return {
           cid: pathParts[2],
           fileName: pathParts[3] || '',
-          fullPath: urlObj.pathname
+          fullPath: urlObj.pathname,
         };
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error parsing URL:', url, error);
@@ -71,7 +67,7 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
       setVideoLoading(false);
       // Auto-play the video when it can play
       if (video && !isPlaying) {
-        video.play().catch(err => {
+        video.play().catch((err) => {
           console.error('Error auto-playing video:', err);
         });
       }
@@ -82,7 +78,7 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
       setVideoLoading(false);
       // Auto-play the video when data is loaded
       if (video && !isPlaying) {
-        video.play().catch(err => {
+        video.play().catch((err) => {
           console.error('Error auto-playing video:', err);
         });
       }
@@ -128,22 +124,22 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
   const handleVideoError = () => {
     // Try the next gateway, up to MAX_GATEWAY_ATTEMPTS (increase to 6)
     const MAX_GATEWAY_ATTEMPTS = 6;
-    
+
     if (currentVideoGateway >= MAX_GATEWAY_ATTEMPTS - 1) {
       console.error('Failed to load video after trying multiple gateways');
       setVideoError(true);
       setVideoLoading(false);
       return;
     }
-  
+
     // Try an alternative gateway
     const nextGatewayIndex = currentVideoGateway + 1;
     const backupUrl = getBackupGatewayUrl(videoUrl, nextGatewayIndex);
-    
+
     if (backupUrl) {
       console.log(`Switching to gateway ${nextGatewayIndex} for video: ${backupUrl}`);
       setCurrentVideoGateway(nextGatewayIndex);
-      
+
       // Update the video source with a new URL
       const video = videoRef.current;
       if (video) {
@@ -161,13 +157,13 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
   const handleSelfieError = () => {
     // Try an alternative gateway
     const backupUrl = getBackupGatewayUrl(selfieUrl, currentSelfieGateway + 1);
-    
+
     if (backupUrl && backupUrl !== selfieUrl && currentSelfieGateway < MAX_GATEWAY_ATTEMPTS) {
       console.log(`Trying alternative gateway for selfie: ${backupUrl}`);
       setCurrentSelfieGateway(currentSelfieGateway + 1);
       return;
     }
-    
+
     // If no more gateways to try
     console.error('Failed to load selfie after trying alternative gateways');
     setSelfieError(true);
@@ -178,11 +174,11 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
   const togglePlayPause = () => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isPlaying) {
       video.pause();
     } else {
-      video.play().catch(err => {
+      video.play().catch((err) => {
         console.error('Error playing video:', err);
       });
     }
@@ -197,12 +193,12 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
         console.error('No valid media info available for debugging');
         return;
       }
-      
+
       console.log('Starting IPFS diagnostics with:', mediaInfo);
-      
+
       // Try all gateways directly from browser instead of using API
       const success = await tryAllGateways(mediaInfo.cid);
-      
+
       if (!success) {
         console.log('All gateways failed. The file may not be available on IPFS anymore.');
       }
@@ -216,12 +212,12 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      const response = await fetch(url, { 
+
+      const response = await fetch(url, {
         method: 'HEAD',
-        signal: controller.signal
+        signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
@@ -232,22 +228,22 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
   // Try different gateways directly in browser
   const tryAllGateways = async (cid: string) => {
     console.log('Manually checking gateways for', cid);
-    
+
     const gateways = [
       'https://gateway.pinata.cloud/ipfs',
       'https://jade-elaborate-emu-349.mypinata.cloud/ipfs',
       'https://ipfs.io/ipfs',
       'https://cloudflare-ipfs.com/ipfs',
       'https://dweb.link/ipfs',
-      'https://gateway.ipfs.io/ipfs'
+      'https://gateway.ipfs.io/ipfs',
     ];
-    
+
     for (const gateway of gateways) {
       const url = `${gateway}/${cid}`;
       console.log(`Checking gateway: ${url}`);
       const exists = await checkFile(url);
       console.log(`Gateway ${gateway}: ${exists ? 'Working' : 'Failed'}`);
-      
+
       if (exists) {
         // Update video element if it exists
         const video = videoRef.current;
@@ -258,7 +254,7 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
         }
       }
     }
-    
+
     return false;
   };
 
@@ -272,18 +268,20 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
             </div>
           )}
-          
+
           {videoError ? (
             <div className="flex items-center justify-center h-full w-full bg-gray-800 rounded-lg">
               <div className="text-center p-4">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
                 </svg>
                 <p className="mt-2 text-sm text-gray-400">Video unavailable</p>
-                <button 
-                  onClick={handleDebugClick}
-                  className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
-                >
+                <button onClick={handleDebugClick} className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline">
                   Run diagnostics
                 </button>
               </div>
@@ -298,15 +296,15 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
                 poster="/images/placeholder.avif"
                 onClick={togglePlayPause}
                 style={{
-                  objectFit: "cover",
-                  width: "100%",
-                  height: "100%"
+                  objectFit: 'cover',
+                  width: '100%',
+                  height: '100%',
                 }}
               />
-              
+
               {/* Play/Pause overlay */}
               {!videoLoading && !videoError && (
-                <div 
+                <div
                   className={`absolute inset-0 flex items-center justify-center cursor-pointer z-5 ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'} transition-opacity`}
                   onClick={togglePlayPause}
                 >
@@ -332,11 +330,16 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
             </div>
           )}
-          
+
           {selfieError ? (
             <div className="flex items-center justify-center h-full w-full bg-gray-800">
               <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
           ) : (

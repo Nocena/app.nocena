@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import PrimaryButton from './ui/PrimaryButton';
+import Image from 'next/image';
 
 interface PhoneVerificationProps {
   phoneNumber: string;
@@ -7,11 +8,7 @@ interface PhoneVerificationProps {
   onResend: () => void;
 }
 
-const PhoneVerification: React.FC<PhoneVerificationProps> = ({ 
-  phoneNumber, 
-  onVerify, 
-  onResend 
-}) => {
+const PhoneVerification: React.FC<PhoneVerificationProps> = ({ phoneNumber, onVerify, onResend }) => {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [shake, setShake] = useState(false);
   const [error, setError] = useState('');
@@ -21,12 +18,12 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const handleChange = (value: string, index: number) => {
     // Only allow numbers
     const newValue = value.replace(/[^0-9]/g, '');
-    
+
     // Update code array
     const newCode = [...verificationCode];
     newCode[index] = newValue;
     setVerificationCode(newCode);
-    
+
     // Auto-advance to next input
     if (newValue && index < 5) {
       inputRefs.current[index + 1]?.focus();
@@ -43,14 +40,14 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
-    
+
     if (pastedText) {
       const newCode = [...verificationCode];
       for (let i = 0; i < Math.min(pastedText.length, 6); i++) {
         newCode[i] = pastedText[i];
       }
       setVerificationCode(newCode);
-      
+
       // Focus the field after the pasted content
       const lastIndex = Math.min(pastedText.length, 5);
       inputRefs.current[lastIndex]?.focus();
@@ -59,11 +56,11 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (verificationCode.every(c => c)) {
+
+    if (verificationCode.every((c) => c)) {
       setLoading(true);
       setError('');
-      
+
       try {
         const code = verificationCode.join('');
         onVerify(code);
@@ -82,16 +79,20 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
   return (
     <div className="flex flex-col items-center max-w-md w-full px-4">
-      <img src="/logo/eyes.png" alt="Nocena Logo" className="w-64 mb-20" />
+      <div className="w-64 mb-20 relative">
+        <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
+      </div>
       <h2 className="text-2xl font-bold mb-2 text-center">Verify Your Phone</h2>
       <p className="text-gray-300 mb-8 text-center">We sent a verification code to {phoneNumber}</p>
-      
+
       <form onSubmit={handleSubmit} className="w-full">
         <div className={`flex justify-center mb-6 ${shake ? 'animate-shake' : ''}`}>
           {verificationCode.map((char, index) => (
             <input
               key={index}
-              ref={el => { inputRefs.current[index] = el; }}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
               type="text"
               maxLength={1}
               value={char}
@@ -99,9 +100,10 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
               onKeyDown={(e) => handleKeyDown(e, index)}
               onPaste={index === 0 ? handlePaste : undefined}
               className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
-                ${index < 3 
-                  ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink' 
-                  : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
+                ${
+                  index < 3
+                    ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
+                    : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
                 }
                 ${index === 2 ? 'mr-4' : ''}
               `}
@@ -113,10 +115,10 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
         {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
         <div className="mb-6">
-          <PrimaryButton 
-            text={loading ? "Verifying..." : "Verify"} 
+          <PrimaryButton
+            text={loading ? 'Verifying...' : 'Verify'}
             onClick={handleSubmit}
-            disabled={verificationCode.some(c => !c) || loading}
+            disabled={verificationCode.some((c) => !c) || loading}
             className="w-full"
           />
         </div>
@@ -124,10 +126,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
       <div className="mt-4 text-center">
         <p className="text-gray-400 mb-3">Didn't receive the code?</p>
-        <button 
-          onClick={onResend}
-          className="text-nocenaBlue hover:text-white transition-colors"
-        >
+        <button onClick={onResend} className="text-nocenaBlue hover:text-white transition-colors">
           Resend verification code
         </button>
       </div>

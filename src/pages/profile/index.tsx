@@ -35,20 +35,30 @@ const ProfileView: React.FC = () => {
   const [followers, setFollowers] = useState<string[]>([]);
   const [showFollowersPopup, setShowFollowersPopup] = useState<boolean>(false);
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
-    user?.dailyChallenge.split('').map((char) => char === '1') || []
+    user?.dailyChallenge.split('').map((char) => char === '1') || [],
   );
   const [weeklyChallenges, setWeeklyChallenges] = useState<boolean[]>(
-    user?.weeklyChallenge.split('').map((char) => char === '1') || []
+    user?.weeklyChallenge.split('').map((char) => char === '1') || [],
   );
   const [monthlyChallenges, setMonthlyChallenges] = useState<boolean[]>(
-    user?.monthlyChallenge.split('').map((char) => char === '1') || []
+    user?.monthlyChallenge.split('').map((char) => char === '1') || [],
   );
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   // Check if this page is visible in the PageManager
@@ -59,7 +69,7 @@ const ProfileView: React.FC = () => {
         setIsPageVisible(customEvent.detail.isVisible);
       }
     };
-    
+
     const handleRouteChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail) {
@@ -70,13 +80,13 @@ const ProfileView: React.FC = () => {
         }
       }
     };
-    
+
     window.addEventListener('pageVisibilityChange', handleVisibilityChange);
     window.addEventListener('routeChange', handleRouteChange);
-    
+
     // Initialize visibility based on current route
     setIsPageVisible(window.location.pathname === '/profile');
-    
+
     return () => {
       window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
       window.removeEventListener('routeChange', handleRouteChange);
@@ -84,64 +94,69 @@ const ProfileView: React.FC = () => {
   }, []);
 
   // Function to fetch followers with caching
-  const fetchFollowersData = useCallback(async (showLoading = true) => {
-    if (!user?.id) return;
-    
-    if (showLoading) setIsLoading(true);
-    
-    try {
-      // Try to get from page state first
-      const pageState = getPageState();
-      const profileCacheKey = `profile_${user.id}`;
-      
-      // Check if we have fresh data in PageManager
-      if (pageState && pageState[profileCacheKey] && 
-          Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
-        const { followers } = pageState[profileCacheKey].data;
-        if (Array.isArray(followers)) {
-          setFollowers(followers);
-          setFollowersCount(followers.length);
-          if (!showLoading) return; // Skip API call if silent refresh
+  const fetchFollowersData = useCallback(
+    async (showLoading = true) => {
+      if (!user?.id) return;
+
+      if (showLoading) setIsLoading(true);
+
+      try {
+        // Try to get from page state first
+        const pageState = getPageState();
+        const profileCacheKey = `profile_${user.id}`;
+
+        // Check if we have fresh data in PageManager
+        if (pageState && pageState[profileCacheKey] && Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
+          const { followers } = pageState[profileCacheKey].data;
+          if (Array.isArray(followers)) {
+            setFollowers(followers);
+            setFollowersCount(followers.length);
+            if (!showLoading) return; // Skip API call if silent refresh
+          }
         }
+
+        // If no fresh data or forced refresh, get from API
+        const fetchedFollowers = await fetchUserFollowers(user.id);
+        if (Array.isArray(fetchedFollowers)) {
+          setFollowers(fetchedFollowers);
+          setFollowersCount(fetchedFollowers.length);
+
+          // Update PageManager state
+          updatePageState(profileCacheKey, {
+            followers: fetchedFollowers,
+            bio: user.bio,
+            profilePicture: user.profilePicture,
+          });
+
+          // Also update localStorage for faster loads
+          localStorage.setItem(
+            `nocena_${profileCacheKey}`,
+            JSON.stringify({
+              data: { followers: fetchedFollowers },
+              timestamp: Date.now(),
+            }),
+          );
+        } else if (typeof fetchedFollowers === 'number') {
+          setFollowersCount(fetchedFollowers);
+        }
+      } catch (error) {
+        console.error('Error fetching followers:', error);
+      } finally {
+        if (showLoading) setIsLoading(false);
       }
-      
-      // If no fresh data or forced refresh, get from API
-      const fetchedFollowers = await fetchUserFollowers(user.id);
-      if (Array.isArray(fetchedFollowers)) {
-        setFollowers(fetchedFollowers);
-        setFollowersCount(fetchedFollowers.length);
-        
-        // Update PageManager state
-        updatePageState(profileCacheKey, {
-          followers: fetchedFollowers,
-          bio: user.bio,
-          profilePicture: user.profilePicture
-        });
-        
-        // Also update localStorage for faster loads
-        localStorage.setItem(`nocena_${profileCacheKey}`, JSON.stringify({
-          data: { followers: fetchedFollowers },
-          timestamp: Date.now()
-        }));
-      } else if (typeof fetchedFollowers === 'number') {
-        setFollowersCount(fetchedFollowers);
-      }
-    } catch (error) {
-      console.error('Error fetching followers:', error);
-    } finally {
-      if (showLoading) setIsLoading(false);
-    }
-  }, [user?.id]);
+    },
+    [user?.id],
+  );
 
   // Fetch followers when component mounts or becomes visible
   useEffect(() => {
     if (!user?.id || !isPageVisible) return;
-    
+
     // Check if we have cached data
     try {
       const profileCacheKey = `profile_${user.id}`;
       const cachedData = localStorage.getItem(`nocena_${profileCacheKey}`);
-      
+
       if (cachedData) {
         const { data, timestamp } = JSON.parse(cachedData);
         // Use cache if less than 5 minutes old
@@ -153,22 +168,22 @@ const ProfileView: React.FC = () => {
     } catch (error) {
       console.error('Error reading cached followers', error);
     }
-    
+
     // Always fetch fresh data if page is visible
     fetchFollowersData(followers.length === 0);
-    
+
     // Set up background refresh every 5 minutes when page is visible
     const intervalId = setInterval(() => {
       if (isPageVisible) {
         fetchFollowersData(false); // Silent refresh
       }
     }, 300000); // Every 5 minutes
-    
+
     // Add to tracking for memory optimization
     if (typeof window !== 'undefined' && window.nocena_app_timers) {
       window.nocena_app_timers.push(intervalId as unknown as number);
     }
-    
+
     return () => clearInterval(intervalId);
   }, [user?.id, isPageVisible, fetchFollowersData, followers.length]);
 
@@ -178,9 +193,7 @@ const ProfileView: React.FC = () => {
       const currentMonthIndex = new Date().getMonth();
       const elementWidth = scrollContainerRef.current.scrollWidth / 12;
       scrollContainerRef.current.scrollLeft =
-        elementWidth * currentMonthIndex -
-        scrollContainerRef.current.clientWidth / 2 +
-        elementWidth / 2;
+        elementWidth * currentMonthIndex - scrollContainerRef.current.clientWidth / 2 + elementWidth / 2;
     }
   }, []);
 
@@ -191,9 +204,9 @@ const ProfileView: React.FC = () => {
         fetchFollowersData(false);
       }
     };
-    
+
     window.addEventListener('nocena_app_foreground', handleAppForeground);
-    
+
     return () => {
       window.removeEventListener('nocena_app_foreground', handleAppForeground);
     };
@@ -214,36 +227,38 @@ const ProfileView: React.FC = () => {
           maxSizeMB: 0.5, // Target max file size: 500KB
           maxWidthOrHeight: 512, // Resize to max 512px
           useWebWorker: true,
-          fileType: 'image/webp' // Convert to WebP for better compression
+          fileType: 'image/webp', // Convert to WebP for better compression
         };
-  
+
         // **Compress image before uploading**
         const compressedFile = await imageCompression(file, options);
         console.log(`Original size: ${file.size / 1024} KB`);
         console.log(`Compressed size: ${compressedFile.size / 1024} KB`);
-  
+
         // Convert compressed file to Base64
         const reader = new FileReader();
         reader.onloadend = async () => {
           try {
             const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
-  
+
             // Check if user has an existing profile picture that's not the default
-            if (user.profilePicture && 
-                user.profilePicture !== DEFAULT_PROFILE_PIC && 
-                !user.profilePicture.includes('/images/profile.png')) {
+            if (
+              user.profilePicture &&
+              user.profilePicture !== DEFAULT_PROFILE_PIC &&
+              !user.profilePicture.includes('/images/profile.png')
+            ) {
               // Extract CID from the URL - handle both full URLs and CIDs
               const oldCid = user.profilePicture.includes('/')
                 ? user.profilePicture.split('/').pop()
                 : user.profilePicture;
-                
+
               if (oldCid) {
                 await unpinFromPinata(oldCid).catch((error) => {
                   console.warn('Failed to unpin old profile picture:', error);
                 });
               }
             }
-  
+
             // Upload the compressed image
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
@@ -253,41 +268,41 @@ const ProfileView: React.FC = () => {
                 fileName: `profile-${user.id}-${Date.now()}.webp`, // Add user ID and timestamp for uniqueness
               }),
             });
-  
+
             if (!response.ok) {
               throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
             }
-  
+
             const { url } = await response.json();
-            
+
             // Log the URL to see what's being returned
             console.log('Received URL from upload:', url);
-            
+
             // Update state with the new URL
             setProfilePic(url);
-  
+
             // Update user in database
             await updateProfilePicture(user.id, url);
-  
+
             // Update local user state
             const updatedUser = { ...user, profilePicture: url };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
             // Update PageManager state
             const profileCacheKey = `profile_${user.id}`;
             updatePageState(profileCacheKey, {
-              ...getPageState()[profileCacheKey]?.data || {},
-              profilePicture: url
+              ...(getPageState()[profileCacheKey]?.data || {}),
+              profilePicture: url,
             });
-            
+
             console.log('Profile picture successfully updated.');
           } catch (error) {
             console.error('Upload error:', error);
             alert('Failed to update profile picture. Please try again.');
           }
         };
-  
+
         reader.readAsDataURL(compressedFile);
       } catch (error) {
         console.error('Image compression failed:', error);
@@ -310,14 +325,14 @@ const ProfileView: React.FC = () => {
       const updatedUser = { ...user, bio };
       login(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       // Update PageManager state
       const profileCacheKey = `profile_${user.id}`;
       updatePageState(profileCacheKey, {
-        ...getPageState()[profileCacheKey]?.data || {},
-        bio
+        ...(getPageState()[profileCacheKey]?.data || {}),
+        bio,
       });
-      
+
       console.log('Bio successfully updated.');
       setIsEditingBio(false);
     } catch (error) {
@@ -351,11 +366,10 @@ const ProfileView: React.FC = () => {
   // Memoize challenge indicator to prevent unnecessary re-renders
   const challengeIndicators = useMemo(() => {
     return monthNames.map((month, index) => (
-      <div
-        key={index}
-        className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}
-      >
-        <div className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}>
+      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
+        <div
+          className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
+        >
           <ChallengeIndicator
             dailyChallenges={dailyChallenges}
             weeklyChallenges={weeklyChallenges}
@@ -405,13 +419,7 @@ const ProfileView: React.FC = () => {
         />
 
         <div className="flex flex-col items-center">
-          <Image
-            src={nocenix}
-            alt="Nocenix Token"
-            width={40}
-            height={40}
-            className="w-10 h-10 mb-1"
-          />
+          <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
           <span>{tokenBalance}</span>
         </div>
       </div>
@@ -451,7 +459,11 @@ const ProfileView: React.FC = () => {
 
       <div className="relative z-20 mt-10 text-center w-full">
         <h3 className="text-lg font-semibold">Timed challenge counter</h3>
-        <div className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4" ref={scrollContainerRef} style={{ paddingBottom: '30px' }}>
+        <div
+          className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
+          ref={scrollContainerRef}
+          style={{ paddingBottom: '30px' }}
+        >
           {challengeIndicators}
         </div>
       </div>

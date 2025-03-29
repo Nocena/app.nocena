@@ -36,7 +36,7 @@ const OtherProfileView: React.FC = () => {
   const router = useRouter();
   const { userID } = router.query;
   const { user: currentUser } = useAuth();
-  
+
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -48,23 +48,33 @@ const OtherProfileView: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   // Check if this page is visible in the PageManager
   useEffect(() => {
     if (!userID) return;
-    
+
     const profilePath = `/profile/${userID}`;
-    
+
     const handleVisibilityChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail && customEvent.detail.pageName === 'profile') {
         setIsPageVisible(customEvent.detail.isVisible);
       }
     };
-    
+
     const handleRouteChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail) {
@@ -75,13 +85,13 @@ const OtherProfileView: React.FC = () => {
         }
       }
     };
-    
+
     window.addEventListener('pageVisibilityChange', handleVisibilityChange);
     window.addEventListener('routeChange', handleRouteChange);
-    
+
     // Initialize visibility based on current route
     setIsPageVisible(window.location.pathname === profilePath);
-    
+
     return () => {
       window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
       window.removeEventListener('routeChange', handleRouteChange);
@@ -91,15 +101,14 @@ const OtherProfileView: React.FC = () => {
   // Function to fetch user data with caching
   const fetchUserData = useCallback(async (userId: string, showLoading = true) => {
     if (showLoading) setIsLoading(true);
-    
+
     try {
       // Try to get from PageManager first
       const pageState = getPageState();
       const profileCacheKey = `other_profile_${userId}`;
-      
+
       // Check if we have fresh data in PageManager
-      if (pageState && pageState[profileCacheKey] && 
-          Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
+      if (pageState && pageState[profileCacheKey] && Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
         const cachedUser = pageState[profileCacheKey].data;
         if (cachedUser && cachedUser.id) {
           setUser(cachedUser as ProfileUser);
@@ -118,10 +127,10 @@ const OtherProfileView: React.FC = () => {
           }
         }
       }
-      
+
       // If no fresh data or forced refresh, get from API
       const fullUser = await getUserByIdFromDgraph(userId);
-      
+
       if (fullUser) {
         // Convert the AuthUser to ProfileUser format
         const profileUser: ProfileUser = {
@@ -134,22 +143,25 @@ const OtherProfileView: React.FC = () => {
           weeklyChallenge: fullUser.weeklyChallenge,
           monthlyChallenge: fullUser.monthlyChallenge,
           // Extract follower IDs from User objects
-          followers: Array.isArray(fullUser.followers) 
-            ? fullUser.followers.map((f: FollowerData) => typeof f === 'string' ? f : f.id)
-            : []
+          followers: Array.isArray(fullUser.followers)
+            ? fullUser.followers.map((f: FollowerData) => (typeof f === 'string' ? f : f.id))
+            : [],
         };
-        
+
         setUser(profileUser);
         setError(null);
-        
+
         // Update PageManager state
         updatePageState(profileCacheKey, profileUser);
-        
+
         // Also update localStorage for faster loads
-        localStorage.setItem(`nocena_${profileCacheKey}`, JSON.stringify({
-          data: profileUser,
-          timestamp: Date.now()
-        }));
+        localStorage.setItem(
+          `nocena_${profileCacheKey}`,
+          JSON.stringify({
+            data: profileUser,
+            timestamp: Date.now(),
+          }),
+        );
       } else {
         setError(new Error('User not found'));
       }
@@ -165,11 +177,11 @@ const OtherProfileView: React.FC = () => {
   // Initial data fetch and setup background refresh
   useEffect(() => {
     if (!userID) return;
-    
+
     // Try to load from cache first (this will show UI immediately)
     const userId = userID as string;
     const profileCacheKey = `other_profile_${userId}`;
-    
+
     try {
       // First try PageManager state
       const pageState = getPageState();
@@ -187,22 +199,22 @@ const OtherProfileView: React.FC = () => {
     } catch (error) {
       console.error('Error loading cached profile data', error);
     }
-    
+
     // Fetch fresh data
     fetchUserData(userId, true);
-    
+
     // Set up background refresh when page is visible
     const refreshInterval = setInterval(() => {
       if (isPageVisible) {
         fetchUserData(userId, false); // Silent refresh
       }
     }, 300000); // Every 5 minutes
-    
+
     // Add to tracking for memory optimization
     if (typeof window !== 'undefined' && window.nocena_app_timers) {
       window.nocena_app_timers.push(refreshInterval as unknown as number);
     }
-    
+
     return () => clearInterval(refreshInterval);
   }, [userID, isPageVisible, fetchUserData]);
 
@@ -211,9 +223,7 @@ const OtherProfileView: React.FC = () => {
       const currentMonthIndex = new Date().getMonth();
       const elementWidth = scrollContainerRef.current.scrollWidth / 12;
       scrollContainerRef.current.scrollLeft =
-        elementWidth * currentMonthIndex -
-        scrollContainerRef.current.clientWidth / 2 +
-        elementWidth / 2;
+        elementWidth * currentMonthIndex - scrollContainerRef.current.clientWidth / 2 + elementWidth / 2;
     }
   }, [user]);
 
@@ -224,116 +234,122 @@ const OtherProfileView: React.FC = () => {
         fetchUserData(userID as string, false); // Silent refresh when app comes to foreground
       }
     };
-    
+
     window.addEventListener('nocena_app_foreground', handleAppForeground);
-    
+
     return () => {
       window.removeEventListener('nocena_app_foreground', handleAppForeground);
     };
   }, [isPageVisible, userID, fetchUserData]);
-  
+
   const handleFollowToggle = async () => {
     if (!currentUser || !user || !currentUser.id || isPendingFollow) return;
-    
+
     // Set pending state
     setIsPendingFollow(true);
-    
+
     // Optimistically update UI
-    setUser(prevUser => {
+    setUser((prevUser) => {
       if (!prevUser) return null;
-      
+
       const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
-      const updatedFollowers = isCurrentlyFollowing 
-        ? prevUser.followers.filter(id => id !== currentUser.id)
+      const updatedFollowers = isCurrentlyFollowing
+        ? prevUser.followers.filter((id) => id !== currentUser.id)
         : [...prevUser.followers, currentUser.id];
-        
+
       return {
         ...prevUser,
-        followers: updatedFollowers
+        followers: updatedFollowers,
       };
     });
-    
+
     // Also update the cached state
     if (user) {
       const profileCacheKey = `other_profile_${user.id}`;
       const isCurrentlyFollowing = user.followers.includes(currentUser.id);
-      const updatedFollowers = isCurrentlyFollowing 
-        ? user.followers.filter(id => id !== currentUser.id)
+      const updatedFollowers = isCurrentlyFollowing
+        ? user.followers.filter((id) => id !== currentUser.id)
         : [...user.followers, currentUser.id];
-      
+
       const updatedUser = {
         ...user,
-        followers: updatedFollowers
+        followers: updatedFollowers,
       };
-      
+
       // Update PageManager state
       updatePageState(profileCacheKey, updatedUser);
-      
+
       // Update localStorage
-      localStorage.setItem(`nocena_${profileCacheKey}`, JSON.stringify({
-        data: updatedUser,
-        timestamp: Date.now()
-      }));
+      localStorage.setItem(
+        `nocena_${profileCacheKey}`,
+        JSON.stringify({
+          data: updatedUser,
+          timestamp: Date.now(),
+        }),
+      );
     }
-    
+
     try {
       // Make API call
       const success = await toggleFollowUser(currentUser.id, user.id, currentUser.username);
-      
+
       // If API call fails, revert the UI change
       if (!success) {
-        setUser(prevUser => {
+        setUser((prevUser) => {
           if (!prevUser) return null;
-          
+
           const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
-          const updatedFollowers = isCurrentlyFollowing 
-            ? prevUser.followers.filter(id => id !== currentUser.id)
+          const updatedFollowers = isCurrentlyFollowing
+            ? prevUser.followers.filter((id) => id !== currentUser.id)
             : [...prevUser.followers, currentUser.id];
-            
+
           return {
             ...prevUser,
-            followers: updatedFollowers
+            followers: updatedFollowers,
           };
         });
-        
+
         // Also revert the cached state
         if (user) {
           const profileCacheKey = `other_profile_${user.id}`;
           const isCurrentlyFollowing = user.followers.includes(currentUser.id);
-          const updatedFollowers = isCurrentlyFollowing 
-            ? user.followers.filter(id => id !== currentUser.id)
+          const updatedFollowers = isCurrentlyFollowing
+            ? user.followers.filter((id) => id !== currentUser.id)
             : [...user.followers, currentUser.id];
-          
+
           const updatedUser = {
             ...user,
-            followers: updatedFollowers
+            followers: updatedFollowers,
           };
-          
+
           // Update PageManager state
           updatePageState(profileCacheKey, updatedUser);
-          
+
           // Update localStorage
-          localStorage.setItem(`nocena_${profileCacheKey}`, JSON.stringify({
-            data: updatedUser,
-            timestamp: Date.now()
-          }));
+          localStorage.setItem(
+            `nocena_${profileCacheKey}`,
+            JSON.stringify({
+              data: updatedUser,
+              timestamp: Date.now(),
+            }),
+          );
         }
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
-      
+
       // Revert UI change on error
-      setUser(prevUser => {
+      setUser((prevUser) => {
         if (!prevUser) return null;
-        
+
         const isCurrentlyFollowing = prevUser.followers.includes(currentUser.id);
-        const updatedFollowers = isCurrentlyFollowing 
-          ? prevUser.followers.filter(id => id !== currentUser.id)
+        const updatedFollowers = isCurrentlyFollowing
+          ? prevUser.followers.filter((id) => id !== currentUser.id)
           : [...prevUser.followers, currentUser.id];
-          
+
         return {
           ...prevUser,
-          followers: updatedFollowers
+          followers: updatedFollowers,
         };
       });
     } finally {
@@ -344,13 +360,12 @@ const OtherProfileView: React.FC = () => {
   // Memoize challenge indicators to prevent unnecessary re-renders
   const challengeIndicators = useMemo(() => {
     if (!user) return null;
-    
+
     return monthNames.map((month, index) => (
-      <div
-        key={index}
-        className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}
-      >
-        <div className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}>
+      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
+        <div
+          className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
+        >
           <ChallengeIndicator
             dailyChallenges={user.dailyChallenge.split('').map((char) => char === '1')}
             weeklyChallenges={user.weeklyChallenge.split('').map((char) => char === '1')}
@@ -393,7 +408,7 @@ const OtherProfileView: React.FC = () => {
         </div>
 
         <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-          <div 
+          <div
             className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => setShowFollowersPopup(true)}
           >
@@ -412,20 +427,14 @@ const OtherProfileView: React.FC = () => {
           </ThematicImage>
 
           <div className="flex flex-col items-center">
-            <Image
-              src={nocenix}
-              alt="Nocenix Token"
-              width={40}
-              height={40}
-              className="w-10 h-10 mb-1"
-            />
+            <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
             <span>{user.earnedTokens}</span>
           </div>
         </div>
 
         {/* Followers Popup */}
-        <FollowersPopup 
-          isOpen={showFollowersPopup} 
+        <FollowersPopup
+          isOpen={showFollowersPopup}
           onClose={() => setShowFollowersPopup(false)}
           followers={user.followers}
           isFollowers={true}
@@ -434,20 +443,17 @@ const OtherProfileView: React.FC = () => {
         <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
 
         <div className="relative z-10 mt-4 flex gap-3">
-          <PrimaryButton 
-            text={isPendingFollow ? (isFollowing ? "Following..." : "Unfollowing...") : (isFollowing ? "Following" : "Follow")}
-            onClick={handleFollowToggle} 
+          <PrimaryButton
+            text={
+              isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
+            }
+            onClick={handleFollowToggle}
             className="px-6 py-2"
             isActive={!!isFollowing}
             disabled={isPendingFollow || !currentUser}
           />
-          
-          <PrimaryButton 
-            text="Challenge Me" 
-            onClick={() => {}} 
-            className="px-6 py-2" 
-            disabled 
-          />
+
+          <PrimaryButton text="Challenge Me" onClick={() => {}} className="px-6 py-2" disabled />
         </div>
 
         <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
@@ -456,7 +462,11 @@ const OtherProfileView: React.FC = () => {
 
         <div className="relative z-20 mt-10 text-center w-full">
           <h3 className="text-lg font-semibold">Timed challenge counter</h3>
-          <div className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4" ref={scrollContainerRef} style={{ paddingBottom: '30px' }}>
+          <div
+            className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
+            ref={scrollContainerRef}
+            style={{ paddingBottom: '30px' }}
+          >
             {challengeIndicators}
           </div>
         </div>

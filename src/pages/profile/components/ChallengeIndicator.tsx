@@ -20,13 +20,10 @@ const ChallengeIndicator: React.FC<ChallengeIndicatorProps> = ({
   const startOfMonth = new Date(new Date().getFullYear(), month, 1).getTime();
   const daysSinceStartOfYear = Math.floor((startOfMonth - startOfYear) / (1000 * 60 * 60 * 24));
 
-  const dailyChallengesForMonth = dailyChallenges.slice(
-    daysSinceStartOfYear,
-    daysSinceStartOfYear + daysInMonth
-  );
+  const dailyChallengesForMonth = dailyChallenges.slice(daysSinceStartOfYear, daysSinceStartOfYear + daysInMonth);
   const weeklyChallengesForMonth = weeklyChallenges.slice(
     getWeekIndexForMonth(month),
-    getWeekIndexForMonth(month) + weeksInMonth
+    getWeekIndexForMonth(month) + weeksInMonth,
   );
 
   const dailyRadius = 50;
@@ -40,7 +37,7 @@ const ChallengeIndicator: React.FC<ChallengeIndicatorProps> = ({
     totalSegments: number,
     strokeWidth: number,
     radius: number,
-    segmentType: string
+    segmentType: string,
   ) => {
     const circumference = 2 * Math.PI * radius;
     return segments.map((segment, index) => {
@@ -75,12 +72,7 @@ const ChallengeIndicator: React.FC<ChallengeIndicatorProps> = ({
         {/* Weekly challenge segments */}
         {renderSegments(weeklyChallengesForMonth, '#10CAFF', weeksInMonth, 10, weeklyRadius, 'weekly')}
         {/* Monthly challenge */}
-        <circle
-          r={monthlyRadius}
-          cx="70"
-          cy="70"
-          fill={monthlyChallenge ? 'white' : 'rgba(255, 255, 255, 0.3)'}
-        />
+        <circle r={monthlyRadius} cx="70" cy="70" fill={monthlyChallenge ? 'white' : 'rgba(255, 255, 255, 0.3)'} />
       </svg>
     </div>
   );

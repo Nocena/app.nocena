@@ -18,17 +18,17 @@ export class InviteCodeRateLimiter {
 
   /**
    * Checks if the user is currently rate limited
-   * 
+   *
    * @returns Object containing blocked status and time remaining
    */
   public checkRateLimit(): { blocked: boolean; timeRemaining: number | null } {
     const data = this.getRateLimitData();
-    
+
     // If blocked, check if the block period has expired
     if (data.blockedUntil) {
       const blockedUntil = new Date(data.blockedUntil);
       const now = new Date();
-      
+
       if (now < blockedUntil) {
         // Still blocked
         const timeRemaining = Math.ceil((blockedUntil.getTime() - now.getTime()) / 1000 / 60); // in minutes
@@ -39,25 +39,25 @@ export class InviteCodeRateLimiter {
         return { blocked: false, timeRemaining: null };
       }
     }
-    
+
     // Not blocked
     return { blocked: false, timeRemaining: null };
   }
 
   /**
    * Records a failed attempt and applies rate limiting if necessary
-   * 
+   *
    * @returns Object containing new blocked status and time remaining
    */
   public recordFailedAttempt(): { blocked: boolean; timeRemaining: number | null } {
     const data = this.getRateLimitData();
     data.attempts += 1;
-    
+
     // Check if we should block
     if (data.attempts >= this.MAX_ATTEMPTS) {
       // Apply block
       const now = new Date();
-      
+
       if (data.consecutiveBlocks > 0) {
         // Extended block (24 hours)
         const blockedUntil = new Date(now);
@@ -69,19 +69,19 @@ export class InviteCodeRateLimiter {
         blockedUntil.setMinutes(now.getMinutes() + this.FIRST_BLOCK_MINUTES);
         data.blockedUntil = blockedUntil.toISOString();
       }
-      
+
       data.consecutiveBlocks += 1;
       data.attempts = 0;
-      
+
       this.saveRateLimitData(data);
-      
+
       // Calculate time remaining
       const blockedUntil = new Date(data.blockedUntil);
       const timeRemaining = Math.ceil((blockedUntil.getTime() - now.getTime()) / 1000 / 60); // in minutes
-      
+
       return { blocked: true, timeRemaining };
     }
-    
+
     this.saveRateLimitData(data);
     return { blocked: false, timeRemaining: null };
   }
@@ -118,12 +118,12 @@ export class InviteCodeRateLimiter {
     } catch (error) {
       console.error('Error reading rate limit data:', error);
     }
-    
+
     // Default data if none exists
     return {
       attempts: 0,
       blockedUntil: null,
-      consecutiveBlocks: 0
+      consecutiveBlocks: 0,
     };
   }
 

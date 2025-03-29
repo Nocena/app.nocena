@@ -15,8 +15,8 @@ const PrimaryButton: React.FC<Props> = ({ text, onClick, className = '', isActiv
         disabled
           ? 'bg-gray-500 cursor-not-allowed'
           : isActive
-          ? 'bg-white text-black'
-          : 'bg-gradient-to-r from-nocenaBlue to-nocenaPink text-white'
+            ? 'bg-white text-black'
+            : 'bg-gradient-to-r from-nocenaBlue to-nocenaPink text-white'
       } ${className}`}
     >
       <button

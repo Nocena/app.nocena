@@ -17,13 +17,7 @@ const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ title, reward }) => {
       {/* Challenge Circle Image with AI Icon */}
       <ThematicImage className="rounded-full mb-6">
         <div className="w-24 h-24 flex items-center justify-center overflow-hidden">
-          <Image
-            src="/images/ai.png"
-            alt="Challenge"
-            width={96}
-            height={96}
-            className="w-full h-full object-cover"
-          />
+          <Image src="/images/ai.png" alt="Challenge" width={96} height={96} className="w-full h-full object-cover" />
         </div>
       </ThematicImage>
 
@@ -32,14 +26,8 @@ const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ title, reward }) => {
 
       {/* Token Reward Display */}
       <div className="flex items-center justify-center mb-6 py-2 px-6 rounded-full bg-[#2A3B4D]">
-        <Image 
-          src={nocenixIcon} 
-          alt="Nocenix" 
-          width={24} 
-          height={24}
-          className="mr-2"
-        />
-        <span className="font-bold text-white">{reward || "1"} NOCENIX</span>
+        <Image src={nocenixIcon} alt="Nocenix" width={24} height={24} className="mr-2" />
+        <span className="font-bold text-white">{reward || '1'} NOCENIX</span>
       </div>
     </>
   );

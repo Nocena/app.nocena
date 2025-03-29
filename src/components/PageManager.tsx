@@ -34,18 +34,18 @@ const createPageState = (): GlobalPageState => {
   const state: GlobalPageState = {
     notifications: {
       data: [],
-      lastFetched: 0
+      lastFetched: 0,
     },
     feed: {
       data: [],
-      lastFetched: 0
+      lastFetched: 0,
     },
     challenges: {
       data: [],
-      lastFetched: 0 
-    }
+      lastFetched: 0,
+    },
   };
-  
+
   // Load initial state from localStorage if available
   if (isBrowser) {
     try {
@@ -60,7 +60,7 @@ const createPageState = (): GlobalPageState => {
       console.error('Failed to load page state', error);
     }
   }
-  
+
   return state;
 };
 
@@ -70,24 +70,26 @@ const globalPageState: GlobalPageState = createPageState();
 // Create a custom event for page visibility changes
 const createVisibilityEvent = (pageName: string, isVisible: boolean): CustomEvent => {
   return new CustomEvent('pageVisibilityChange', {
-    detail: { pageName, isVisible }
+    detail: { pageName, isVisible },
   });
 };
 
 // Optimized skeleton loaders using inline components
 const renderSkeleton = () => (
   <div className="w-full p-6 space-y-4">
-    {Array(3).fill(0).map((_, i) => (
-      <div key={i} className="w-full bg-[#1A2734] rounded-lg p-4 animate-pulse">
-        <div className="flex items-center space-x-4">
-          <div className="h-12 w-12 bg-gray-700 rounded-full"></div>
-          <div className="flex-1">
-            <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
-            <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+    {Array(3)
+      .fill(0)
+      .map((_, i) => (
+        <div key={i} className="w-full bg-[#1A2734] rounded-lg p-4 animate-pulse">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-gray-700 rounded-full"></div>
+            <div className="flex-1">
+              <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+            </div>
           </div>
         </div>
-      </div>
-    ))}
+      ))}
   </div>
 );
 
@@ -103,7 +105,7 @@ const lazyLoadWithTracking = (importFn: () => Promise<any>, pageName: string) =>
   return lazy(() => {
     logPerf(`Starting lazy load of ${pageName}`);
     const startTime = performance.now();
-    return importFn().then(module => {
+    return importFn().then((module) => {
       logPerf(`Loaded ${pageName} in ${(performance.now() - startTime).toFixed(2)}ms`);
       return module;
     });
@@ -111,11 +113,23 @@ const lazyLoadWithTracking = (importFn: () => Promise<any>, pageName: string) =>
 };
 
 // Lazy load the page components using their correct paths
-const HomePage = lazyLoadWithTracking(() => import(/* webpackChunkName: "home-page" */ '../pages/home/index'), 'HomePage');
+const HomePage = lazyLoadWithTracking(
+  () => import(/* webpackChunkName: "home-page" */ '../pages/home/index'),
+  'HomePage',
+);
 const MapPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "map-page" */ '../pages/map/index'), 'MapPage');
-const InboxPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "inbox-page" */ '../pages/inbox/index'), 'InboxPage');
-const SearchPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "search-page" */ '../pages/search/index'), 'SearchPage');
-const ProfilePage = lazyLoadWithTracking(() => import(/* webpackChunkName: "profile-page" */ '../pages/profile/index'), 'ProfilePage');
+const InboxPage = lazyLoadWithTracking(
+  () => import(/* webpackChunkName: "inbox-page" */ '../pages/inbox/index'),
+  'InboxPage',
+);
+const SearchPage = lazyLoadWithTracking(
+  () => import(/* webpackChunkName: "search-page" */ '../pages/search/index'),
+  'SearchPage',
+);
+const ProfilePage = lazyLoadWithTracking(
+  () => import(/* webpackChunkName: "profile-page" */ '../pages/profile/index'),
+  'ProfilePage',
+);
 
 // Preload critical assets
 if (isBrowser) {
@@ -152,23 +166,30 @@ interface PageLoadStatus {
 const PageManager: React.FC = () => {
   const startRenderTime = performance.now();
   logPerf(`PageManager render started`);
-  
+
   const router = useRouter();
   const [activeRoute, setActiveRoute] = useState('/home');
   const [loadedPages, setLoadedPages] = useState<string[]>([]);
-  
+
   // Keep track of previous active route for transition effects
   const prevRouteRef = useRef(activeRoute);
-  
+
   // Track when a page has fully loaded
   const [pageLoadStatus, setPageLoadStatus] = useState<PageLoadStatus>({
     home: false,
     map: false,
     inbox: false,
     search: false,
-    profile: false
+    profile: false,
   });
-  
+
+  // Functions to update page load status
+  const onHomeLoaded = () => setPageLoadStatus((prev) => ({ ...prev, home: true }));
+  const onMapLoaded = () => setPageLoadStatus((prev) => ({ ...prev, map: true }));
+  const onInboxLoaded = () => setPageLoadStatus((prev) => ({ ...prev, inbox: true }));
+  const onSearchLoaded = () => setPageLoadStatus((prev) => ({ ...prev, search: true }));
+  const onProfileLoaded = () => setPageLoadStatus((prev) => ({ ...prev, profile: true }));
+
   // Track when component first mounts
   useEffect(() => {
     logPerf(`PageManager mounted at ${new Date().toLocaleTimeString()}`);
@@ -176,17 +197,17 @@ const PageManager: React.FC = () => {
       logPerf(`PageManager unmounted at ${new Date().toLocaleTimeString()}`);
     };
   }, []);
-  
+
   // Update active route when router changes
   useEffect(() => {
     if (router.pathname) {
       const transitionStart = performance.now();
       logPerf(`Route transition started: ${prevRouteRef.current} -> ${router.pathname}`);
-      
+
       const prevRoute = prevRouteRef.current;
       setActiveRoute(router.pathname);
       prevRouteRef.current = router.pathname;
-      
+
       // Show loading state immediately for better UX
       window.requestAnimationFrame(() => {
         // Fire visibility event first to prepare component
@@ -197,33 +218,35 @@ const PageManager: React.FC = () => {
             '/map': 'map',
             '/inbox': 'inbox',
             '/search': 'search',
-            '/profile': 'profile'
+            '/profile': 'profile',
           };
-          
+
           const mainRoute = router.pathname.split('/')[1];
           const componentName = routeToComponentName[`/${mainRoute}`] || mainRoute;
-          
+
           // Fire visibility event first for the new page
           if (componentName) {
             window.dispatchEvent(createVisibilityEvent(componentName, true));
           }
-          
+
           // Then dispatch route change event
-          window.dispatchEvent(new CustomEvent('routeChange', {
-            detail: {
-              from: prevRoute,
-              to: router.pathname
-            } as RouteChangeEvent
-          }));
+          window.dispatchEvent(
+            new CustomEvent('routeChange', {
+              detail: {
+                from: prevRoute,
+                to: router.pathname,
+              } as RouteChangeEvent,
+            }),
+          );
         }
       });
-      
+
       // Add this page to loaded pages if not already loaded
       if (!loadedPages.includes(router.pathname)) {
-        setLoadedPages(prev => [...prev, router.pathname]);
+        setLoadedPages((prev) => [...prev, router.pathname]);
         logPerf(`Added route to loaded pages: ${router.pathname}`);
       }
-      
+
       // Log complete transition time
       window.requestAnimationFrame(() => {
         logPerf(`Route transition completed in ${(performance.now() - transitionStart).toFixed(2)}ms`);
@@ -234,54 +257,54 @@ const PageManager: React.FC = () => {
   // Preload adjacent pages after the first page is loaded
   useEffect(() => {
     if (!isBrowser) return;
-    
+
     if (loadedPages.length === 1) {
       logPerf(`First page loaded, scheduling preload of other pages`);
-      
+
       // After first page load, schedule preloading of other main pages
       // Use requestAnimationFrame to ensure it doesn't compete with current render
       window.requestAnimationFrame(() => {
         const timer = setTimeout(() => {
-          const pagesToPreload = ['/home', '/map', '/inbox', '/search', '/profile']
-            .filter(page => !loadedPages.includes(page));
-            
+          const pagesToPreload = ['/home', '/map', '/inbox', '/search', '/profile'].filter(
+            (page) => !loadedPages.includes(page),
+          );
+
           if (pagesToPreload.length > 0) {
             logPerf(`Preloading pages: ${pagesToPreload.join(', ')}`);
-            setLoadedPages(prevPages => [...prevPages, ...pagesToPreload]);
+            setLoadedPages((prevPages) => [...prevPages, ...pagesToPreload]);
           }
         }, 1000); // 1 second delay
-        
+
         return () => clearTimeout(timer);
       });
     }
   }, [loadedPages]);
-  
+
   // Notify pages about their visibility status
   useEffect(() => {
     if (!isBrowser) return;
-    
+
     // Trigger visibility events for pages
     const routes = [
-      { path: '/home', name: 'home' }, 
-      { path: '/map', name: 'map' }, 
-      { path: '/inbox', name: 'inbox' }, 
-      { path: '/search', name: 'search' }, 
-      { path: '/profile', name: 'profile' }
+      { path: '/home', name: 'home' },
+      { path: '/map', name: 'map' },
+      { path: '/inbox', name: 'inbox' },
+      { path: '/search', name: 'search' },
+      { path: '/profile', name: 'profile' },
     ];
-    
-    routes.forEach(route => {
-      const isVisible = 
-        route.path === activeRoute || 
-        (route.path === '/profile' && activeRoute.startsWith('/profile/'));
-      
+
+    routes.forEach((route) => {
+      const isVisible =
+        route.path === activeRoute || (route.path === '/profile' && activeRoute.startsWith('/profile/'));
+
       window.dispatchEvent(createVisibilityEvent(route.name, isVisible));
     });
   }, [activeRoute]);
-  
+
   // Save state to localStorage periodically
   useEffect(() => {
     if (!isBrowser) return;
-    
+
     const saveInterval = setInterval(() => {
       try {
         localStorage.setItem('nocena_page_state', JSON.stringify(globalPageState));
@@ -289,7 +312,7 @@ const PageManager: React.FC = () => {
         console.error('Failed to save page state', error);
       }
     }, 10000); // Every 10 seconds to reduce overhead
-    
+
     return () => clearInterval(saveInterval);
   }, []);
 
@@ -299,112 +322,131 @@ const PageManager: React.FC = () => {
   const isMapRoute = activeRoute === '/map';
   const isInboxRoute = activeRoute === '/inbox';
   const isSearchRoute = activeRoute === '/search';
-  
-  // Component render callbacks 
-  const onHomeLoaded = () => setPageLoadStatus(prev => ({ ...prev, home: true }));
-  const onMapLoaded = () => setPageLoadStatus(prev => ({ ...prev, map: true }));
-  const onInboxLoaded = () => setPageLoadStatus(prev => ({ ...prev, inbox: true }));
-  const onSearchLoaded = () => setPageLoadStatus(prev => ({ ...prev, search: true }));
-  const onProfileLoaded = () => setPageLoadStatus(prev => ({ ...prev, profile: true }));
-  
+
+  // Effect hooks to handle page loading status
+  useEffect(() => {
+    if (isHomeRoute) {
+      onHomeLoaded();
+    }
+  }, [isHomeRoute]);
+
+  useEffect(() => {
+    if (isMapRoute) {
+      onMapLoaded();
+    }
+  }, [isMapRoute]);
+
+  useEffect(() => {
+    if (isInboxRoute) {
+      onInboxLoaded();
+    }
+  }, [isInboxRoute]);
+
+  useEffect(() => {
+    if (isSearchRoute) {
+      onSearchLoaded();
+    }
+  }, [isSearchRoute]);
+
+  useEffect(() => {
+    if (isProfileRoute) {
+      onProfileLoaded();
+    }
+  }, [isProfileRoute]);
+
   // Pre-render the loading placeholders
   const homeLoadingPlaceholder = <HomeLoading />;
   const mapLoadingPlaceholder = <MapLoading />;
   const inboxLoadingPlaceholder = <InboxLoading />;
   const searchLoadingPlaceholder = <SearchLoading />;
   const profileLoadingPlaceholder = <ProfileLoading />;
-  
+
   logPerf(`PageManager render completed in ${(performance.now() - startRenderTime).toFixed(2)}ms`);
 
   return (
     <div className="page-container">
       {/* Only render pages that have been loaded or are active */}
-      
+
       {(loadedPages.includes('/home') || isHomeRoute) && (
-        <div 
+        <div
           id="home-page-container"
           className="page-transition"
-          style={{ 
+          style={{
             display: isHomeRoute ? 'block' : 'none',
             opacity: isHomeRoute ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         >
           <Suspense fallback={homeLoadingPlaceholder}>
             <HomePage />
           </Suspense>
-          {isHomeRoute && <div style={{ display: 'none' }} onLoad={onHomeLoaded} />}
         </div>
       )}
-      
+
       {(loadedPages.includes('/map') || isMapRoute) && (
-        <div 
+        <div
           id="map-page-container"
           className="page-transition"
-          style={{ 
+          style={{
             display: isMapRoute ? 'block' : 'none',
             opacity: isMapRoute ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         >
           <Suspense fallback={mapLoadingPlaceholder}>
             <MapPage />
           </Suspense>
-          {isMapRoute && <div style={{ display: 'none' }} onLoad={onMapLoaded} />}
         </div>
       )}
-      
+
       {(loadedPages.includes('/inbox') || isInboxRoute) && (
-        <div 
+        <div
           id="inbox-page-container"
           className="page-transition"
-          style={{ 
+          style={{
             display: isInboxRoute ? 'block' : 'none',
             opacity: isInboxRoute ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         >
           <Suspense fallback={inboxLoadingPlaceholder}>
             <InboxPage />
           </Suspense>
-          {isInboxRoute && <div style={{ display: 'none' }} onLoad={onInboxLoaded} />}
         </div>
       )}
-      
+
       {(loadedPages.includes('/search') || isSearchRoute) && (
-        <div 
+        <div
           id="search-page-container"
           className="page-transition"
-          style={{ 
+          style={{
             display: isSearchRoute ? 'block' : 'none',
             opacity: isSearchRoute ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         >
           <Suspense fallback={searchLoadingPlaceholder}>
             <SearchPage />
           </Suspense>
-          {isSearchRoute && <div style={{ display: 'none' }} onLoad={onSearchLoaded} />}
         </div>
       )}
-      
+
       {(loadedPages.includes('/profile') || isProfileRoute) && (
-        <div 
+        <div
           id="profile-page-container"
           className="page-transition"
-          style={{ 
+          style={{
             display: isProfileRoute ? 'block' : 'none',
             opacity: isProfileRoute ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out'
+            transition: 'opacity 0.2s ease-in-out',
           }}
         >
           <Suspense fallback={profileLoadingPlaceholder}>
             <ProfilePage />
           </Suspense>
-          {isProfileRoute && <div style={{ display: 'none' }} onLoad={onProfileLoaded} />}
         </div>
       )}
-      
+
       {/* Export the global state to the window for debugging */}
       {isBrowser && (
         <div style={{ display: 'none' }} id="nocena-debug-state">
@@ -430,22 +472,22 @@ export const updatePageState = (section: string, data: any): void => {
     if (!globalPageState[section]) {
       globalPageState[section] = {
         data: null,
-        lastFetched: 0
+        lastFetched: 0,
       };
     }
-    
+
     // Update the data
     globalPageState[section].data = data;
     globalPageState[section].lastFetched = Date.now();
   }
-  
+
   // Attempt to save immediately - but use a debounced approach
   if (isBrowser) {
     // Clear existing timeout if there is one
     if (window.nocenaSaveTimeout) {
       clearTimeout(window.nocenaSaveTimeout);
     }
-    
+
     // Set a new timeout for 500ms
     window.nocenaSaveTimeout = setTimeout(() => {
       try {
