@@ -15,8 +15,7 @@ import { hashPassword } from '../lib/utils/passwordUtils';
 import Image from 'next/image';
 import 'react-phone-input-2/lib/style.css';
 
-// Import global styles for the phone input
-import '../styles/phone-input.css';
+// No CSS import - we'll use Tailwind and inline styles
 
 const RegisterPage = () => {
   // Registration steps
@@ -51,6 +50,40 @@ const RegisterPage = () => {
       return () => clearTimeout(timer);
     }
   }, [currentStep]);
+
+  // Add custom CSS to page for phone input
+  useEffect(() => {
+    // Create a style element
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .react-tel-input .selected-flag {
+        background-color: #1f2937 !important;
+      }
+      .react-tel-input .selected-flag:hover,
+      .react-tel-input .selected-flag:focus {
+        background-color: #1f2937 !important;
+      }
+      .react-tel-input .country-list .country.highlight,
+      .react-tel-input .country-list .country:hover {
+        background-color: #374151 !important;
+      }
+      .react-tel-input .country-list .country {
+        background-color: #111827 !important;
+        color: white !important;
+      }
+      .react-tel-input .country-list {
+        background-color: #111827 !important;
+        color: white !important;
+        border: 1px solid #374151 !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Cleanup on unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const handleInviteCodeValid = (code: string) => {
     setInviteCode(code);

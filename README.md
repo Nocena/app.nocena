@@ -224,7 +224,6 @@ app.nocena/
 │   ├── scripts/                                # Utility scripts
 │   │   └── generate-all-icons.sh               # Script to generate all required icons
 │   └── styles/                                 # CSS and styling
-│       ├── phone-input.css                     # For phone input react import
 │       └── globals.css                         # Global CSS styles with Tailwind directives
 ├── tailwind.config.js                          # Tailwind CSS configuration
 └── tsconfig.json                               # TypeScript configuration
