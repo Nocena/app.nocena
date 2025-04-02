@@ -17,7 +17,7 @@ const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ title, reward }) => {
       {/* Challenge Circle Image with AI Icon */}
       <ThematicImage className="rounded-full mb-6">
         <div className="w-24 h-24 flex items-center justify-center overflow-hidden">
-          <Image src="/images/ai.png" alt="Challenge" width={96} height={96} className="w-full h-full object-cover" />
+          <Image src="/images/AI.png" alt="Challenge" width={96} height={96} className="w-full h-full object-cover" />
         </div>
       </ThematicImage>
 
