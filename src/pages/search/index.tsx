@@ -428,7 +428,7 @@ const SearchView = () => {
       <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={users} />
 
       {/* User List */}
-      <div className="w-full max-w-md space-y-2 mt-6 px-1">{userList}</div>
+      <div className="w-full max-w-md space-y-2 mt-6 px-1 mb-28">{userList}</div>
     </div>
   );
 };
