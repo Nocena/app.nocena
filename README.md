@@ -160,6 +160,9 @@ app.nocena/
 │   │   ├── completing/                         # Challenge completion functionality
 │   │   │   ├── mediaServices.ts                # Media handling for challenge completion
 │   │   │   └── types.ts                        # Type definitions for challenge completion
+│   │   ├── map/                                # Helpers for map page
+│   │   │   ├── mapService.ts                   # Fetching the public challenge data
+│   │   │   └── types.ts                        # Type definitions for map page
 │   │   └── utils/                              # Utility functions
 │   │       ├── challengeUtils.ts               # Helper functions for challenges
 │   │       ├── pinataUtils.ts                  # Pinata utils used for debugging the pinata upload
@@ -206,6 +209,12 @@ app.nocena/
 │   │   │       ├── NotificationChallenge.tsx   # Challenge notification
 │   │   │       └── NotificationFollower.tsx    # New follower notification
 │   │   ├── map/                                # Map-based challenge discovery
+│   │   │   ├── components/                     # Home page components
+│   │   │   │   ├── ChallengeMarker.tsx         # Custom marker that opens the popup, based on icons/map.tsx
+│   │   │   │   ├── ChallengePopup.tsx          # Popup with challenge details (some styles in globals.css)
+│   │   │   │   ├── LoadingOverlay.tsx          # To give user information on slow networks
+│   │   │   │   ├── UserLocationMarker.tsx      # Displaying the profile picture at users location with a pin
+│   │   │   │   └── MapControls.tsx             # Bottom right action buttons
 │   │   │   └── index.tsx                       # Map page
 │   │   ├── profile/                            # User profiles
 │   │   │   ├── components/                     # Profile page components

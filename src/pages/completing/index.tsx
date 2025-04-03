@@ -613,7 +613,7 @@ const CompletingView = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start px-4 py-8 w-full max-w-md mx-auto overflow-y-auto pb-28">
+    <div className="flex flex-col items-center justify-start px-4 pt-2 w-full max-w-md mx-auto overflow-y-auto pb-28">
       <ChallengeHeader title={title} reward={reward} />
       {renderContent()}
     </div>

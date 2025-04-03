@@ -238,6 +238,7 @@ const MapView = () => {
         mapLoaded={mapLoaded}
         locatingUser={locatingUser}
         onRecenter={handleRecenterMap}
+        userLocation={userLocation}
       />
       
       {/* Loading overlay */}
