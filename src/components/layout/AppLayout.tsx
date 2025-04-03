@@ -175,6 +175,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       '/search': 3,
       '/profile': 4,
       '/completing': 5,
+      '/createchallenge': 7, // Special index for create challenge page
     };
 
     // Handle profile pages with IDs
@@ -196,6 +197,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }, [router.pathname, router.query, user?.wallet]);
 
   const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
+  const isSpecialPage = router.pathname === '/completing' || router.pathname === '/createchallenge';
 
   // We'll pre-compute some values that are used in the render function
   const pageTitle = (() => {
@@ -358,7 +360,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         </div>
         <div className="flex items-center">
           <button onClick={() => handleNavClick(4)}>
-            <ThematicIcon iconName="profile" isActive={currentIndex === 4 && !isUserProfile} />
+            <ThematicIcon 
+              iconName="profile" 
+              isActive={currentIndex === 4 && !isUserProfile && !isSpecialPage} 
+            />
           </button>
         </div>
       </div>
@@ -387,9 +392,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           <button
             key={item}
             onClick={() => handleNavClick(index)}
-            className={`relative text-center flex-grow p-2 ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
+            className={`relative text-center flex-grow p-2 ${
+              currentIndex === index && !isUserProfile && !isSpecialPage ? 'text-active' : 'text-white'
+            }`}
           >
-            <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
+            <ThematicIcon 
+              iconName={item} 
+              isActive={currentIndex === index && !isUserProfile && !isSpecialPage} 
+            />
 
             {item === 'inbox' && unreadCount > 0 && (
               <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />

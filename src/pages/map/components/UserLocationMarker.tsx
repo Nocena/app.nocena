@@ -28,10 +28,45 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
     el.style.height = '60px';
     el.style.position = 'absolute';
     
-    // Simplified marker HTML - removed animations that might interfere
+    // Add the CSS animation classes and HTML structure
     el.innerHTML = `
+      <style>
+        @keyframes rotateGradient {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulseEffect {
+          0% { 
+            transform: scale(1);
+            opacity: 0.7;
+          }
+          70% { 
+            transform: scale(1.5);
+            opacity: 0;
+          }
+          100% { 
+            transform: scale(1.8);
+            opacity: 0;
+          }
+        }
+      </style>
+
       <div style="position: relative; width: 100%; height: 100%;">
-        <!-- Circle background -->
+        <!-- Pulse effect circle -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.3);
+          z-index: 1;
+          animation: pulseEffect 3s infinite;
+        "></div>
+
+        <!-- Gradient circle with rotation -->
         <div style="
           position: absolute;
           top: 0;
@@ -41,6 +76,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
           border-radius: 50%;
           background: linear-gradient(45deg, #FD4EF5, #10CAFF);
           z-index: 2;
+          animation: rotateGradient 4s linear infinite;
         "></div>
         
         <!-- Profile image -->
@@ -68,6 +104,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
           background: white;
           clip-path: polygon(50% 100%, 0 0, 100% 0);
           z-index: 1;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         "></div>
       </div>
     `;
@@ -76,7 +113,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
     const marker = new MapLibre.Marker({
       element: el,
       anchor: 'bottom', // Anchor at bottom of the pin
-      offset: [0, -30], // Half the height of the marker
+      offset: [0, 0], // No need for offset with bottom anchor
       draggable: false,
       rotationAlignment: 'viewport',
       pitchAlignment: 'viewport'

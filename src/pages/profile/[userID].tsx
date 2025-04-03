@@ -357,6 +357,24 @@ const OtherProfileView: React.FC = () => {
     }
   };
 
+  // Handle "Challenge Me" button click
+  const handleChallengeClick = () => {
+    if (!user || !currentUser) return;
+    
+    console.log('Challenge button clicked for user:', user.username);
+    
+    // Navigate to create challenge with private mode and target user data
+    router.push({
+      pathname: '/createchallenge',
+      query: { 
+        isPrivate: 'true',
+        targetUserId: user.id,
+        targetUsername: user.username,
+        targetProfilePic: user.profilePicture || defaultProfilePic
+      }
+    });
+  };
+
   // Memoize challenge indicators to prevent unnecessary re-renders
   const challengeIndicators = useMemo(() => {
     if (!user) return null;
@@ -453,7 +471,12 @@ const OtherProfileView: React.FC = () => {
             disabled={isPendingFollow || !currentUser}
           />
 
-          <PrimaryButton text="Challenge Me" onClick={() => {}} className="px-6 py-2" disabled />
+          <PrimaryButton 
+            text="Challenge Me" 
+            onClick={handleChallengeClick} 
+            className="px-6 py-2" 
+            disabled={!currentUser || currentUser.id === user.id}
+          />
         </div>
 
         <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
