@@ -1,40 +1,37 @@
 // pages/login.tsx
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { NocenaInput, PasswordInput } from '@components/form';
 import { getUserFromDgraph } from '../lib/api/dgraph';
 import PrimaryButton from '../components/ui/PrimaryButton';
-import { useAuth } from '../contexts/AuthContext';
+import { User, useAuth } from '../contexts/AuthContext';
 import { sanitizeInput } from '../lib/utils/security';
 import { verifyPassword } from '../lib/utils/passwordUtils';
-import Image from 'next/image';
+import AuthenticationLayout from '../components/layout/AuthenticationLayout';
+
+type FormValues = {
+  username: string;
+  password: string;
+};
 
 const LoginPage = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmitSignIn = async (values: FormValues) => {
     setError('');
     setLoading(true);
 
-    // Sanitize inputs
-    const sanitizedUsername = sanitizeInput(username);
-    const sanitizedPassword = sanitizeInput(password);
-
-    if (!sanitizedUsername || !sanitizedPassword) {
-      setError('Both username and password are required.');
-      setLoading(false);
-      return;
-    }
-
     try {
       // Get user data from backend
-      const userData = await getUserFromDgraph(sanitizedUsername);
+      const userData = await getUserFromDgraph(values.username);
 
       if (!userData) {
         setError('No account found with this username.');
@@ -45,7 +42,10 @@ const LoginPage = () => {
       console.log('Found user:', userData); // Debug log
 
       // Securely verify password
-      const isPasswordValid = await verifyPassword(sanitizedPassword, userData.passwordHash);
+      const isPasswordValid = await verifyPassword(
+        values.password,
+        userData.passwordHash
+      );
 
       if (!isPasswordValid) {
         setError('Invalid password. Please try again.');
@@ -57,7 +57,7 @@ const LoginPage = () => {
 
       // Format followers and following to ensure they're arrays
       // This helps with the types in the AuthContext
-      const formattedUser = {
+      const formattedUser: User = {
         ...userData,
         followers: Array.isArray(userData.followers) ? userData.followers : [],
         following: Array.isArray(userData.following) ? userData.following : [],
@@ -73,72 +73,63 @@ const LoginPage = () => {
     }
   };
 
-  const redirectToRegister = () => {
-    router.push('/register');
-  };
+  const schema = yup.object().shape({
+    username: yup
+      .string()
+      .transform((value) => sanitizeInput(value))
+      .required('Username is required'),
+    password: yup
+      .string()
+      .transform((value) => sanitizeInput(value))
+      .min(6, 'Password must be at least 6 characters')
+      .required('Password is required'),
+  });
+
+  const { control, handleSubmit } = useForm<FormValues>({
+    resolver: yupResolver(schema),
+  });
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
-      <div className="w-full max-w-md mx-4">
-        <div className="text-center mb-8">
-          <div className="w-64 mb-20 relative">
-            <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
-          <p className="text-gray-300">Login to your account to continue</p>
+    <AuthenticationLayout title="Welcome Back" subtitle="Login to your account to continue">
+      <form
+        onSubmit={handleSubmit(onSubmitSignIn)}
+        className="w-full space-y-4 mb-6"
+      >
+        <NocenaInput
+          control={control}
+          name="username"
+          label="Username"
+          placeholder="Enter your username"
+        />
+
+        <PasswordInput
+          control={control}
+          name="password"
+          label="Password"
+          placeholder="Enter your password"
+        />
+
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        <div className="mb-3">
+          <PrimaryButton
+            text="Login"
+            type="submit"
+            disabled={loading}
+            className="w-full"
+          />
         </div>
+      </form>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-          <div className="mb-3">
-            <label htmlFor="username" className="block mb-1">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div className="mb-3">
-            <label htmlFor="password" className="block mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
-          <div className="mb-3">
-            <PrimaryButton
-              text={loading ? 'Logging in...' : 'Login'}
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full"
-            />
-          </div>
-        </form>
-
-        <div className="text-center">
-          <p>
-            Don't have an account?{' '}
-            <button onClick={redirectToRegister} className="text-nocenaBlue cursor-pointer">
-              Create Account
-            </button>
-          </p>
-        </div>
+      <div className="text-center">
+        <p>
+          Don't have an account?{" "}
+          <Link href="/register" className="text-nocenaBlue cursor-pointer">
+            Create Account
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthenticationLayout>
   );
 };
 
