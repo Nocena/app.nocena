@@ -318,10 +318,9 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
               </svg>
               <p className="text-gray-400 text-lg">Tap to select video</p>
               <p className="text-gray-500 text-sm mt-1">
-                Required:{' '}
                 {frequency === 'weekly'
-                  ? `${formatDuration(minDuration, true)}-${formatDuration(maxDuration, true)}`
-                  : `${formatDuration(minDuration, true)}-${formatDuration(maxDuration, true)}`}
+                  ? `Required: ${formatDuration(minDuration, true)}-${formatDuration(maxDuration, true)}`
+                  : `Required: ${formatDuration(minDuration, true)}-${formatDuration(maxDuration, true)}`}
               </p>
             </div>
           )}

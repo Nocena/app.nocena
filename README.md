@@ -49,16 +49,18 @@ Nocena is a challenge-based social networking application where users can comple
    - TWILIO_AUTH_TOKEN
    - TWILIO_VERIFY_SERVICE_SID
 
-
 ### Development
 
 #### Standard Development Mode
+
 ```bash
 pnpm dev
 ```
+
 - Access the app at [http://localhost:3000](http://localhost:3000)
 
 #### HTTPS Development Mode (for camera access)
+
 Camera functionality requires a secure context (HTTPS). To develop with camera features:
 
 1. Generate SSL certificates for local development:
@@ -75,16 +77,33 @@ Camera functionality requires a secure context (HTTPS). To develop with camera f
 4. Access the app at [https://localhost:3001](https://localhost:3001) or `https://[YOUR-LOCAL-IP]:3001` on mobile devices.
 5. Accept any certificate warnings in your browser (these are expected with self-signed certificates).
 
+### Linting & Formatting
+
+To lint the project:
+
+```bash
+pnpm lint
+```
+
+To format the code:
+
+```bash
+pnpm format
+```
+
 ### Building for Production
+
 ```bash
 pnpm build
 pnpm start
 ```
 
 ## PWA Support
+
 Nocena is configured as a Progressive Web App, allowing users to install it on their devices.
 
 ## Project Structure
+
 ```
 app.nocena/
 ├── package.json                                # Project dependencies and scripts
@@ -238,18 +257,21 @@ app.nocena/
 ## Troubleshooting
 
 ### Camera Access Issues
+
 If you encounter camera access problems:
+
 - Ensure you're using the HTTPS development server (`pnpm dev:https`)
 - Check that your browser allows camera permissions
 - On iOS, make sure you've accepted the certificate warning
 - Verify that the camera permissions are properly set in your browser settings
 
 ### PWA Installation Problems
+
 If the app doesn't install properly as a PWA:
+
 - Verify that icons are correctly referenced in the `manifest.json`
 - Ensure the service worker is properly registered
 - Check the browser console for any PWA-related errors
-
 
 (Created 2.3.2025 - louskac)
 (Last modification 3.15.2025 - louskac)
