@@ -51,14 +51,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const invites = response.data.data?.queryDiscordInvite || [];
 
     if (invites.length === 0) {
-      return res.status(200).json({ valid: false, message: 'Invalid invite code' });
+      return res.status(400).json({ valid: false, message: 'Invalid invite code' });
     }
 
     const invite = invites[0];
 
     // Check if the invite has already been used
     if (invite.isUsed) {
-      return res.status(200).json({ valid: false, message: 'This invite code has already been used' });
+      return res.status(400).json({ valid: false, message: 'This invite code has already been used' });
     }
 
     // Valid invite code
