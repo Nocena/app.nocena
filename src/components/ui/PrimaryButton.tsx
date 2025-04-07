@@ -1,14 +1,22 @@
 import React from 'react';
 
 interface Props {
-  text: string;
-  onClick?: (e: React.FormEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
   className?: string;
   isActive?: boolean;
-  disabled?: boolean;
+  text: string;
+  type?: HTMLButtonElement['type'];
+  onClick?: (e: React.FormEvent<HTMLButtonElement>) => void;
 }
 
-const PrimaryButton: React.FC<Props> = ({ text, onClick, className = '', isActive = false, disabled = false }) => {
+const PrimaryButton: React.FC<Props> = ({
+  text,
+  onClick,
+  className = '',
+  isActive = false,
+  disabled = false,
+  type = 'button',
+}) => {
   return (
     <div
       className={`w-full h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
@@ -20,6 +28,7 @@ const PrimaryButton: React.FC<Props> = ({ text, onClick, className = '', isActiv
       } ${className}`}
     >
       <button
+        type={type}
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
         className="w-full h-full bg-transparent text-base font-medium font-montserrat cursor-pointer flex items-center justify-center focus:outline-none"

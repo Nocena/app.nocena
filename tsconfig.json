@@ -21,6 +21,7 @@
     "baseUrl": "./",
     "paths": {
       "@components/*": ["src/components/*"],
+      "@graphql/*": ["src/graphql/*"],
       "@pages/*": ["src/pages/*"],
       "@views/*": ["src/views/*"],
       "@utils/*": ["src/lib/utils/*"],
