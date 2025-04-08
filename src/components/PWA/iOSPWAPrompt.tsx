@@ -42,8 +42,8 @@ const IOSPWAPrompt: React.FC = () => {
         <div className="flex-grow">
           <p className="font-bold text-base mb-1">Install Nocena App</p>
           <p className="text-sm opacity-90">
-            To get the full experience without the browser you should install this app on your iPhone: tap{' '}
-            <span className="inline-block">
+            To get the full experience without the browser you should install this app on your iPhone: tap
+            <span className="mx-1 inline-block">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -60,7 +60,7 @@ const IOSPWAPrompt: React.FC = () => {
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
               </svg>
-            </span>{' '}
+            </span>
             then "Add to Home Screen"
           </p>
         </div>

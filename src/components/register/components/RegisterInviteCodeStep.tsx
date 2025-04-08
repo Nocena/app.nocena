@@ -1,22 +1,22 @@
-/**
- * @deprecated
- */
-
-// components/InviteCodeInput.tsx
+// components/RegisterInviteCodeStep.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { validateDiscordInviteCode } from '../lib/api/dgraph';
-import PrimaryButton from './ui/PrimaryButton';
-import DiscordLinkButton from './ui/DiscordLinkButton';
+import { Control, Controller, ControllerRenderProps, useWatch } from 'react-hook-form';
+import { validateDiscordInviteCode } from '../../../lib/api/dgraph';
+import PrimaryButton from '../../ui/PrimaryButton';
+import DiscordLinkButton from '../../ui/DiscordLinkButton';
+import NocenaCodeInputs from '../../form/NocenaCodeInput';
+import { FormValues } from '../types';
 
-interface InviteCodeInputProps {
+interface Props {
+  control: Control<FormValues, any>;
+  reset: () => void;
   onValidCode: (code: string) => void;
 }
 
-const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [shake, setShake] = useState(false);
+const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
+  const [shake, setShake] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -28,6 +28,8 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
   const MAX_ATTEMPTS = 3;
   const SHORT_BLOCK_MINUTES = 30;
   const LONG_BLOCK_HOURS = 24;
+
+  const invitationCode = useWatch({ name: `inviteCode`, control })
 
   // Load previous rate limit data from localStorage
   useEffect(() => {
@@ -87,6 +89,12 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
     }
   }, [blocked]);
 
+  useEffect(() => {
+    if (invitationCode.every((c) => c) && invitationCode.length === 6) {
+      validateCode(invitationCode);
+    }
+  }, [invitationCode]);
+
   const saveRateLimitData = (attempts: number, blockUntil: Date | null = null) => {
     try {
       localStorage.setItem(
@@ -134,61 +142,8 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
     }
   };
 
-  const handleChange = (value: string, index: number) => {
-    // Only allow alphanumeric characters and auto-uppercase
-    const newValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-    // Update code array
-    const newCode = [...code];
-    newCode[index] = newValue;
-    setCode(newCode);
-
-    // Auto-advance to next input
-    if (newValue && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Check if all fields are filled
-    if (index === 5 && newValue && newCode.every((c) => c)) {
-      validateCode(newCode);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
-    // Navigate to previous input on backspace if current input is empty
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedText = e.clipboardData
-      .getData('text')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toUpperCase();
-
-    if (pastedText) {
-      const newCode = [...code];
-      for (let i = 0; i < Math.min(pastedText.length, 6); i++) {
-        newCode[i] = pastedText[i];
-      }
-      setCode(newCode);
-
-      // Focus the field after the pasted content
-      const lastIndex = Math.min(pastedText.length, 5);
-      inputRefs.current[lastIndex]?.focus();
-
-      // Validate if all fields are filled
-      if (newCode.every((c) => c) && newCode.length === 6) {
-        validateCode(newCode);
-      }
-    }
-  };
-
   const validateCode = async (codeArray: string[]) => {
     if (loading || blocked) return;
-    if (codeArray.some((c) => !c)) return;
 
     setLoading(true);
     setError('');
@@ -196,7 +151,7 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
     try {
       const codeString = codeArray.join('');
       const isValid = await validateDiscordInviteCode(codeString);
-
+      console.log('isValid', isValid);
       if (isValid) {
         // Reset rate limiting on success
         setAttempts(0);
@@ -206,7 +161,7 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
       } else {
         setShake(true);
         setTimeout(() => setShake(false), 500);
-        setCode(['', '', '', '', '', '']);
+        reset();
 
         applyRateLimit();
 
@@ -217,7 +172,8 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
     } catch (err) {
       console.error(err);
       setError('Failed to validate code. Please try again.');
-      setCode(['', '', '', '', '', '']);
+      reset();
+
       if (inputRefs.current[0]) inputRefs.current[0].focus();
     } finally {
       setLoading(false);
@@ -226,8 +182,8 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.every((c) => c)) {
-      validateCode(code);
+    if (invitationCode.every((c) => c) && invitationCode.length === 6) {
+      validateCode(invitationCode);
     }
   };
 
@@ -239,44 +195,27 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
           <p>Please try again in {countdown}</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="w-full">
+        <>
           <div className={`flex justify-center mb-6 ${shake ? 'animate-shake' : ''}`}>
-            {code.map((char, index) => (
-              <input
-                key={index}
-                ref={(el) => {
-                  inputRefs.current[index] = el;
-                }}
-                type="text"
-                maxLength={1}
-                value={char}
-                onChange={(e) => handleChange(e.target.value, index)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                onPaste={index === 0 ? handlePaste : undefined}
-                className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
-                  ${
-                    index < 3
-                      ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-                      : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
-                  }
-                  ${index === 2 ? 'mr-4' : ''}
-                `}
-                disabled={loading}
-              />
-            ))}
+            <Controller
+              name="inviteCode"
+              control={control}
+              render={({ field }: { field: ControllerRenderProps<FormValues, "inviteCode">; }) => (
+                <NocenaCodeInputs field={field} />
+              )}
+            />
           </div>
-
           {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
           <div className="mb-6">
             <PrimaryButton
               text={loading ? 'Verifying...' : 'Continue'}
               onClick={handleSubmit}
-              disabled={code.some((c) => !c) || loading}
+              disabled={invitationCode.some((c) => !c) || loading}
               className="w-full"
             />
           </div>
-        </form>
+        </>
       )}
 
       <div className="mt-4 flex items-center flex-col text-center">
@@ -297,4 +236,4 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
   );
 };
 
-export default InviteCodeInput;
+export default RegisterInviteCodeStep;
