@@ -17,12 +17,7 @@ export const schema = yup.object().shape({
     .required('Password is required'),
   inviteCode: yup
     .array()
-    .of(
-      yup
-        .string()
-        .length(1, 'Please enter your invite code')
-        .required('Please enter your invite code'),
-    )
+    .of(yup.string().length(1, 'Please enter your invite code').required('Please enter your invite code'))
     .required('Please enter your invite code'),
   verificationCode: yup
     .array()

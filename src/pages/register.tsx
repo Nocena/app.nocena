@@ -12,7 +12,7 @@ import RegisterInviteCodeStep from '@components/register/components/RegisterInvi
 import RegisterWelcomeStep from '@components/register/components/RegisterWelcomeStep';
 import RegisterWalletCreationStep from '@components/register/components/RegisterWalletCreationStep';
 import { useForm } from 'react-hook-form';
-import { yupResolver } from "@hookform/resolvers/yup";
+import { yupResolver } from '@hookform/resolvers/yup';
 import { schema } from '@components/register/schema';
 import { FormValues } from '@components/register/types';
 
@@ -31,13 +31,13 @@ enum RegisterStep {
 }
 
 const RegisterPage = () => {
-  const [currentStep, setCurrentStep] = useState(STEP_WALLET_CREATION);
+  const [currentStep, setCurrentStep] = useState(STEP_INVITE_CODE);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
   const { login } = useAuth();
 
-  const registerSteps: { step: RegisterStep, title?: string, subtitle?: string, fields?: (keyof FormValues)[] }[] = [
+  const registerSteps: { step: RegisterStep; title?: string; subtitle?: string; fields?: (keyof FormValues)[] }[] = [
     {
       step: RegisterStep.INVITE_CODE,
       title: 'Join the Challenge',
@@ -86,7 +86,7 @@ const RegisterPage = () => {
     defaultValues: {
       inviteCode: [],
       verificationCode: [],
-    }
+    },
   });
 
   useEffect(() => {
@@ -96,7 +96,6 @@ const RegisterPage = () => {
         ...prev,
         inviteCode: Array(6).fill(''),
         verificationCode: Array(6).fill(''),
-
       }));
     }
   }, [reset, watch]);
@@ -118,10 +117,13 @@ const RegisterPage = () => {
   };
   console.log('errors', errors);
 
-  const handleCompleteRegistration = async (data: FormValues, walletData?: {
-    address: string;
-    privateKey: string;
-  }) => {
+  const handleCompleteRegistration = async (
+    data: FormValues,
+    walletData?: {
+      address: string;
+      privateKey: string;
+    },
+  ) => {
     if (!walletData) {
       setError('Wallet creation failed. Please try again.');
       setLoading(false);
@@ -144,7 +146,7 @@ const RegisterPage = () => {
         walletData.address,
         '0'.repeat(365),
         '0'.repeat(52),
-        '0'.repeat(12)
+        '0'.repeat(12),
       );
 
       if (addedUser) {
@@ -189,11 +191,7 @@ const RegisterPage = () => {
       const code = data.verificationCode.join('');
       const formattedPhone = formatPhoneToE164(data.phoneNumber);
       // Verify the code using Twilio
-      const isValid = await verifyPhoneNumber(
-        formattedPhone,
-        'VERIFY',
-        code
-      );
+      const isValid = await verifyPhoneNumber(formattedPhone, 'VERIFY', code);
 
       if (isValid) {
         // Create wallet
@@ -221,10 +219,7 @@ const RegisterPage = () => {
       const formattedPhone = formatPhoneToE164(formValues.phoneNumber);
 
       // Resend verification code via Twilio
-      const success = await verifyPhoneNumber(
-        formattedPhone,
-        'SEND'
-      );
+      const success = await verifyPhoneNumber(formattedPhone, 'SEND');
 
       if (!success) {
         setError('Failed to resend verification code. Please try again.');
@@ -246,9 +241,14 @@ const RegisterPage = () => {
         {currentStep === STEP_WELCOME ? <RegisterWelcomeStep /> : null}
         {currentStep === STEP_REGISTER_FORM ? <RegisterFormStep setStep={setNextStep} control={control} /> : null}
         {currentStep === STEP_PHONE_VERIFICATION ? (
-          <RegisterPhoneVerificationStep control={control} onResend={handleResendCode} loading={loading} customError={error} />
+          <RegisterPhoneVerificationStep
+            control={control}
+            onResend={handleResendCode}
+            loading={loading}
+            customError={error}
+          />
         ) : null}
-        {(currentStep === STEP_WALLET_CREATION && wallet) ? <RegisterWalletCreationStep wallet={wallet} /> : null}
+        {currentStep === STEP_WALLET_CREATION && wallet ? <RegisterWalletCreationStep wallet={wallet} /> : null}
       </form>
     </AuthenticationLayout>
   );
