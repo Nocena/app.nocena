@@ -80,7 +80,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
-        setIsAuthenticated(true);
       } catch (err) {
         console.error('Failed to parse stored user data:', err);
         localStorage.removeItem('nocenaUser');
@@ -91,15 +90,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (userData: User): Promise<void> => {
     setUser(userData);
-    setIsAuthenticated(true);
     localStorage.setItem('nocenaUser', JSON.stringify(userData));
   };
 
   const logout = async (): Promise<void> => {
     setUser(null);
-    setIsAuthenticated(false);
     localStorage.removeItem('nocenaUser');
   };
+ 
+  // const updateUser = async () => {
+  //   try {
+  //     const res = await fetch('/api/auth/me');
+
+  //     if (res.ok) {
+  //       const data = await res.json();
+  //       setUser(data.user);
+  //       return data.user;
+  //     } else {
+  //       setUser(null);
+  //       return null;
+  //     }
+  //   } catch (error) {
+  //     console.error('Error refreshing user:', error);
+  //     setUser(null);
+  //     return null;
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   const initAuth = async () => {
+  //     await refreshUser();
+  //     setIsLoading(false);
+  //   };
+
+  //   initAuth();
+  // }, []);
+  // const login = (userData: UserData) => {
+  //   setUser(userData);
+  // };
+
+  // const logout = async () => {
+  //   try {
+  //     await fetch('/api/auth/logout', { method: 'POST' });
+  //     setUser(null);
+  //   } catch (error) {
+  //     console.error('Logout error:', error);
+  //   }
+  // };
 
   const updateUser = (userData: Partial<User>): void => {
     if (user) {
@@ -110,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user,  isAuthenticated: !!user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
