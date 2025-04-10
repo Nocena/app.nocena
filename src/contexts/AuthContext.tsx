@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-// User type that matches your Dgraph schema
+// Updated types to match your new Dgraph schema
 export interface User {
   id: string;
   username: string;
@@ -8,40 +8,128 @@ export interface User {
   bio: string;
   wallet: string;
   passwordHash: string;
-  profilePicture: string; // CID stored in Filecoin
+  profilePicture: string;
   earnedTokens: number;
-  followers: User[]; // Array of User objects
-  following: User[];
+  
+  // Relationships
+  followers: string[]; // Array of user IDs
+  following: string[]; // Array of user IDs
   notifications: Notification[];
+  
+  // Challenge relationships
   completedChallenges: ChallengeCompletion[];
-  upcomingChallenges: Challenge[];
-  dailyChallenge: string; // String of 365 characters
-  weeklyChallenge: string; // String of 52 characters
-  monthlyChallenge: string; // String of 12 characters
+  receivedPrivateChallenges: PrivateChallenge[];
+  createdPrivateChallenges: PrivateChallenge[];
+  createdPublicChallenges: PublicChallenge[];
+  participatingPublicChallenges: PublicChallenge[];
+  
+  // AI challenge tracking
+  dailyChallenge: string; // String of 365 characters (e.g., "000...0")
+  weeklyChallenge: string; // String of 52 characters (e.g., "000...0")
+  monthlyChallenge: string; // String of 12 characters (e.g., "000...0")
 }
 
-// Additional types to match Dgraph schema
-export interface Challenge {
+// GeoPoint for location-based challenges
+export interface GeoPoint {
+  latitude: number;
+  longitude: number;
+}
+
+// Base challenge interface
+interface BaseChallenge {
   id: string;
   title: string;
   description: string;
-  type: string;
+  reward: number;
+  createdAt: string;
+  isActive: boolean;
 }
 
+// Private Challenge
+export interface PrivateChallenge extends BaseChallenge {
+  expiresAt: string;
+  creator: User | string; // Can be full User object or just ID
+  targetUser: User | string;
+  isCompleted: boolean;
+  completions: ChallengeCompletion[];
+}
+
+// Public Challenge
+export interface PublicChallenge extends BaseChallenge {
+  creator: User | string;
+  location: GeoPoint;
+  maxParticipants: number;
+  participantCount: number;
+  participants: User[] | string[];
+  completions: ChallengeCompletion[];
+}
+
+// AI Challenge
+export interface AIChallenge extends BaseChallenge {
+  frequency: string; // "daily", "weekly", "monthly"
+  day?: number; // Day of year (1-365) for daily challenges
+  week?: number; // Week of year (1-52) for weekly challenges
+  month?: number; // Month (1-12) for monthly challenges
+  year: number; // Year
+  completions: ChallengeCompletion[];
+}
+
+// Unified Challenge Completion
 export interface ChallengeCompletion {
   id: string;
-  challenge: Challenge;
-  user: User;
-  completedAt: string;
-  proofCID: string;
+  user: User | string;
+  
+  // Challenge references - only one of these will be set
+  privateChallenge?: PrivateChallenge;
+  publicChallenge?: PublicChallenge;
+  aiChallenge?: AIChallenge;
+  
+  // Timing information
+  completionDate: string;
+  completionDay: number;
+  completionWeek: number;
+  completionMonth: number;
+  completionYear: number;
+  
+  // Media field
+  media: string; // JSON string with metadata
+  
+  // Social elements
+  likes?: string[]; // User IDs
+  likesCount: number;
+  
+  // Classification and status
+  challengeType: string; // "private", "public", "ai"
+  status: string; // "pending", "verified", "rejected"
 }
 
+// Enhanced Notification
 export interface Notification {
   id: string;
-  user: User;
-  type: string;
-  read: boolean;
-  message: string;
+  user: User | string;
+  userId: string;
+  
+  triggeredBy?: User | string;
+  triggeredById?: string;
+  
+  content: string;
+  notificationType: string; // "follow", "private_challenge", "challenge_completed", etc.
+  
+  // Challenge references
+  privateChallenge?: PrivateChallenge;
+  publicChallenge?: PublicChallenge;
+  aiChallenge?: AIChallenge;
+  
+  isRead: boolean;
+  createdAt: string;
+}
+
+// Type for simplified challenge information in the user interface
+export interface SimplifiedChallengeInfo {
+  type: string; // "private", "public", "AI-daily", "AI-weekly", "AI-monthly"
+  title: string;
+  date: string;
+  proofCID: string;
 }
 
 interface AuthContextType {
@@ -80,6 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
+        setIsAuthenticated(true);
       } catch (err) {
         console.error('Failed to parse stored user data:', err);
         localStorage.removeItem('nocenaUser');
@@ -90,53 +179,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (userData: User): Promise<void> => {
     setUser(userData);
+    setIsAuthenticated(true);
     localStorage.setItem('nocenaUser', JSON.stringify(userData));
   };
 
   const logout = async (): Promise<void> => {
     setUser(null);
+    setIsAuthenticated(false);
     localStorage.removeItem('nocenaUser');
   };
-
-  // const updateUser = async () => {
-  //   try {
-  //     const res = await fetch('/api/auth/me');
-
-  //     if (res.ok) {
-  //       const data = await res.json();
-  //       setUser(data.user);
-  //       return data.user;
-  //     } else {
-  //       setUser(null);
-  //       return null;
-  //     }
-  //   } catch (error) {
-  //     console.error('Error refreshing user:', error);
-  //     setUser(null);
-  //     return null;
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   const initAuth = async () => {
-  //     await refreshUser();
-  //     setIsLoading(false);
-  //   };
-
-  //   initAuth();
-  // }, []);
-  // const login = (userData: UserData) => {
-  //   setUser(userData);
-  // };
-
-  // const logout = async () => {
-  //   try {
-  //     await fetch('/api/auth/logout', { method: 'POST' });
-  //     setUser(null);
-  //   } catch (error) {
-  //     console.error('Logout error:', error);
-  //   }
-  // };
 
   const updateUser = (userData: Partial<User>): void => {
     if (user) {
@@ -147,7 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
