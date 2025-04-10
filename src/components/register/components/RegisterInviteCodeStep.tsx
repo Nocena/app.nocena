@@ -29,7 +29,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
   const SHORT_BLOCK_MINUTES = 30;
   const LONG_BLOCK_HOURS = 24;
 
-  const invitationCode = useWatch({ name: `inviteCode`, control })
+  const invitationCode = useWatch({ name: `inviteCode`, control });
 
   // Load previous rate limit data from localStorage
   useEffect(() => {
@@ -200,7 +200,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
             <Controller
               name="inviteCode"
               control={control}
-              render={({ field }: { field: ControllerRenderProps<FormValues, "inviteCode">; }) => (
+              render={({ field }: { field: ControllerRenderProps<FormValues, 'inviteCode'> }) => (
                 <NocenaCodeInputs field={field} />
               )}
             />

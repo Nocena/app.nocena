@@ -1,10 +1,9 @@
-
 import { ControllerRenderProps, FieldError } from 'react-hook-form';
 import { useRef } from 'react';
 import { FormValues } from '../register/types';
 
 interface Props {
-  field: ControllerRenderProps<FormValues, "inviteCode" | "verificationCode">;
+  field: ControllerRenderProps<FormValues, 'inviteCode' | 'verificationCode'>;
   loading?: boolean;
   onlyNumber?: boolean;
 }
@@ -23,10 +22,10 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
     const newValue = value.replace(redexReplace, '').toUpperCase();
     const newFieldValue = [
       ...field.value.slice(0, index),
-      ...((index > -1 && newValue) ? [newValue] : ['']),
+      ...(index > -1 && newValue ? [newValue] : ['']),
       ...field.value.slice(index + 1),
-    ]
-    field.onChange(newFieldValue)
+    ];
+    field.onChange(newFieldValue);
     if (index < 5 && newValue) {
       setTimeout(() => {
         handleFocusNextInput(index + 1);
@@ -42,11 +41,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
   };
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedText = e.clipboardData
-      .getData('text')
-      .replace(redexReplace, '')
-      .toUpperCase();
-
+    const pastedText = e.clipboardData.getData('text').replace(redexReplace, '').toUpperCase();
 
     if (pastedText) {
       const characters = pastedText.split('').slice(0, 6);
@@ -70,10 +65,11 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
           onKeyDown={(e) => handleKeyDown(e, index)}
           onPaste={index === 0 ? handlePaste : undefined}
           className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
-                        ${index < 3
-              ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-              : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
-            }
+                        ${
+                          index < 3
+                            ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
+                            : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
+                        }
                         ${index === 2 ? 'mr-4' : ''}
                       `}
           disabled={loading}
