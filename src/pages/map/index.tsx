@@ -1,91 +1,252 @@
-import React, { useState, useEffect } from 'react';
-import { getPageState, updatePageState } from '../../components/PageManager';
-
-// Custom event type for PageVisibilityChange
-interface CustomVisibilityEvent extends CustomEvent {
-  detail: {
-    pageName: string;
-    isVisible: boolean;
-  };
-}
-
-// Custom event type for RouteChange
-interface CustomRouteEvent extends CustomEvent {
-  detail: {
-    from: string;
-    to: string;
-  };
-}
+import React, { useEffect, useRef, useState } from 'react';
+import type { MapOptions } from 'maplibre-gl';
+import { ChallengeData, LocationData } from '../../lib/map/types';
+import UserLocationMarker from './components/UserLocationMarker';
+import ChallengeMarker from './components/ChallengeMarker';
+import MapControls from './components/MapControls';
+import LoadingOverlay from './components/LoadingOverlay';
+import { 
+  fetchNearbyChallenge, 
+  getMapStyleURL, 
+  getUserLocation,
+  loadMapLibreCSS
+} from '../../lib/map/mapService';
 
 const MapView = () => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  // Refs
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  
+  // State
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapLibrary, setMapLibrary] = useState<any>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedPin, setSelectedPin] = useState<number | null>(null);
+  const [locatingUser, setLocatingUser] = useState(true);
+  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [challenges, setChallenges] = useState<ChallengeData[]>([]);
+  const [initialLocationSet, setInitialLocationSet] = useState(false);
 
-  // Register page visibility event listeners for PageManager
+  // Calculate container dimensions
   useEffect(() => {
-    const handlePageVisibility = (event: Event) => {
-      const customEvent = event as CustomVisibilityEvent;
-      if (customEvent.detail && customEvent.detail.pageName === 'map') {
-        setIsVisible(customEvent.detail.isVisible);
+    const calculateHeight = () => {
+      if (mapContainerRef.current) {
+        const windowHeight = window.innerHeight;
+        const topNavHeight = document.querySelector('.navbar-top')?.clientHeight || 0;
+        const bottomNavHeight = document.querySelector('.navbar-bottom')?.clientHeight || 0;
+        const mainPaddingTop = 12; // pt-3
+        
+        const availableHeight = windowHeight - topNavHeight - bottomNavHeight - mainPaddingTop;
+        mapContainerRef.current.style.height = `${availableHeight}px`;
       }
     };
 
-    const handleRouteChange = (event: Event) => {
-      const customEvent = event as CustomRouteEvent;
-      if (customEvent.detail) {
-        if (customEvent.detail.to === '/map') {
-          setIsVisible(true);
-        } else if (customEvent.detail.from === '/map') {
-          setIsVisible(false);
-        }
-      }
-    };
-
-    window.addEventListener('pageVisibilityChange', handlePageVisibility);
-    window.addEventListener('routeChange', handleRouteChange);
-
-    // Initialize visibility based on current route
-    setIsVisible(window.location.pathname === '/map');
-
-    // Mark initial load complete
-    setIsInitialLoad(false);
-
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    
     return () => {
-      window.removeEventListener('pageVisibilityChange', handlePageVisibility);
-      window.removeEventListener('routeChange', handleRouteChange);
+      window.removeEventListener('resize', calculateHeight);
     };
   }, []);
 
-  // React to app foreground/background events
+  // Get user location first, then initialize map
   useEffect(() => {
-    const handleAppForeground = () => {
-      if (isVisible) {
-        // Will refresh map data when implemented
-        console.log('Map view visible and app in foreground');
+    const getUserLocationFirst = async () => {
+      setLocatingUser(true);
+      
+      try {
+        // Get user location
+        const location = await getUserLocation();
+        setUserLocation(location);
+        setInitialLocationSet(true);
+      } catch (error: any) {
+        console.warn('Error getting user location:', error);
+        
+        // Default location already handled in getUserLocation
+        const defaultLocation = { longitude: 14.4378, latitude: 50.0755 }; // Prague center
+        setUserLocation(defaultLocation);
+        setInitialLocationSet(true);
+        
+        setLoadError('Unable to determine your precise location. Using default location instead.');
+        setTimeout(() => setLoadError(null), 5000);
       }
     };
 
-    window.addEventListener('nocena_app_foreground', handleAppForeground);
+    getUserLocationFirst();
+  }, []);
 
-    return () => {
-      window.removeEventListener('nocena_app_foreground', handleAppForeground);
-    };
-  }, [isVisible]);
-
-  // When map resources are actually implemented, we can add code to cache
-  // and prefetch map data here, similar to how we did with notifications
-
-  // Optional - for quick feedback during development
+  // Load and initialize MapLibre only after we have the user's location
   useEffect(() => {
-    if (isVisible) {
-      console.log('Map view is now visible');
+    if (!initialLocationSet || !userLocation) return;
+    
+    const initializeMap = async () => {
+      try {
+        // Load MapLibre CSS
+        loadMapLibreCSS();
+
+        // Dynamically import MapLibre
+        const MapLibre = await import('maplibre-gl');
+        setMapLibrary(MapLibre);
+        
+        if (!mapContainerRef.current) return;
+
+        // Get token from environment variable
+        const jawgAccessToken = process.env.NEXT_PUBLIC_JAWG_ACCESS_TOKEN;
+        
+        if (!jawgAccessToken) {
+          console.warn('NEXT_PUBLIC_JAWG_ACCESS_TOKEN is not set in environment variables');
+          setLoadError('Map access token not configured. Please contact support.');
+          return;
+        }
+        
+        // Create map with the user's location as center
+        const map = new MapLibre.Map({
+          container: mapContainerRef.current,
+          style: getMapStyleURL(jawgAccessToken),
+          center: [userLocation.longitude, userLocation.latitude],
+          zoom: 15,
+          attributionControl: false,
+          zoomControl: false,
+          renderWorldCopies: false, // Add this
+          interactive: true,
+          pitchWithRotate: false,
+          antialias: true, // Add this for better rendering
+          fadeDuration: 0,
+          preserveDrawingBuffer: true
+        } as MapOptions);
+
+        // Add only a minimal attribution control
+        map.addControl(new MapLibre.AttributionControl({
+          compact: true
+        }), 'bottom-left');
+
+        // When map loads, load challenges
+        map.on('load', async () => {
+          console.log('Map loaded successfully');
+          mapInstanceRef.current = map;
+          setMapLoaded(true);
+          
+          try {
+            // Load nearby challenges
+            const nearbyChallenge = await fetchNearbyChallenge(userLocation);
+            setChallenges(nearbyChallenge);
+          } catch (error) {
+            console.error('Error fetching challenges:', error);
+          } finally {
+            setLocatingUser(false);
+          }
+        });
+
+        map.on('error', (e) => {
+          console.error('Map error:', e);
+          setLoadError('Error loading map. Please try again later.');
+          setLocatingUser(false);
+        });
+
+      } catch (error) {
+        console.error('Failed to initialize map:', error);
+        setLoadError('Failed to load map. Please check your connection and try again.');
+        setLocatingUser(false);
+      }
+    };
+
+    initializeMap();
+
+    // Cleanup
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
+    };
+  }, [initialLocationSet, userLocation]);
+
+  // Handle recenter button click
+  const handleRecenterMap = async () => {
+    if (!mapInstanceRef.current) return;
+    
+    setLocatingUser(true);
+    
+    try {
+      const location = await getUserLocation();
+      setUserLocation(location);
+      
+      mapInstanceRef.current.flyTo({
+        center: [location.longitude, location.latitude],
+        zoom: 16,
+        essential: true,
+        animate: true,
+        duration: 1000 // 1 second animation
+      });
+    } catch (error) {
+      console.warn('Error getting position for recentering:', error);
+    } finally {
+      setLocatingUser(false);
     }
-  }, [isVisible]);
+  };
+
+  // Reset selected pin when map moves
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    
+    const handleMapMove = () => {
+      if (selectedPin !== null) {
+        setSelectedPin(null);
+      }
+    };
+    
+    mapInstanceRef.current.on('movestart', handleMapMove);
+    
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.off('movestart', handleMapMove);
+      }
+    };
+  }, [mapInstanceRef.current, selectedPin]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <h1 className="text-4xl font-bold text-white">Map Page</h1>
-      <p className="text-sm text-gray-400 mt-4">Coming soon...</p>
+    <div className="w-full relative bg-gray-900">
+      {/* Map container */}
+      <div 
+        ref={mapContainerRef} 
+        className="w-full bg-gray-900"
+      />
+      
+      {/* Challenge markers - Render these first so user marker appears on top */}
+      {mapLoaded && mapLibrary && challenges.map((challenge, index) => (
+        <ChallengeMarker
+          key={challenge.id || `challenge-${index}`}
+          map={mapInstanceRef.current}
+          MapLibre={mapLibrary}
+          challenge={challenge}
+          index={index}
+          isSelected={selectedPin === index}
+          onSelect={setSelectedPin}
+        />
+      ))}
+      
+      {/* User location marker - Render last so it appears on top */}
+      {mapLoaded && mapLibrary && userLocation && (
+        <UserLocationMarker
+          map={mapInstanceRef.current}
+          MapLibre={mapLibrary}
+          location={[userLocation.longitude, userLocation.latitude]}
+        />
+      )}
+      
+      {/* Map controls */}
+      <MapControls
+        mapLoaded={mapLoaded}
+        locatingUser={locatingUser}
+        onRecenter={handleRecenterMap}
+        userLocation={userLocation}
+      />
+      
+      {/* Loading overlay */}
+      <LoadingOverlay
+        mapLoaded={mapLoaded}
+        locatingUser={locatingUser}
+        loadError={loadError}
+      />
     </div>
   );
 };

@@ -57,12 +57,20 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=*',
+            value: 'camera=*, geolocation=*',
           },
           {
             key: 'Content-Security-Policy',
             value:
-              "default-src 'self' https: http:; img-src 'self' data: blob: https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https://api.pinata.cloud https: http:; media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;",
+              "default-src 'self' https: http:; " +
+              "img-src 'self' data: blob: https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https: http:; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com blob:; " + 
+              "worker-src 'self' blob:; " +
+              "child-src 'self' blob:; " +
+              "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
+              "font-src 'self' data:; " +
+              "connect-src 'self' https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https: http:; " +
+              "media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;",
           },
           {
             key: 'Access-Control-Allow-Origin',
