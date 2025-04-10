@@ -43,15 +43,15 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
   // Convert AuthUser to FollowerUser
   const convertToFollowerUser = useCallback((user: AuthUser | null): FollowerUser | null => {
     if (!user) return null;
-
+  
     return {
       id: user.id,
       username: user.username,
       profilePicture: user.profilePicture,
       earnedTokens: user.earnedTokens,
       bio: user.bio,
-      // Extract follower IDs from User objects
-      followers: Array.isArray(user.followers) ? user.followers.map((f) => (typeof f === 'string' ? f : f.id)) : [],
+      // Handle followers based on the updated type (now it's just an array of strings)
+      followers: Array.isArray(user.followers) ? user.followers : [],
     };
   }, []);
 
@@ -178,9 +178,8 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
       return !!(
         currentUser &&
         currentUser.following &&
-        (Array.isArray(currentUser.following)
-          ? currentUser.following.some((f) => (typeof f === 'string' ? f === userId : f.id === userId))
-          : false)
+        Array.isArray(currentUser.following) &&
+        currentUser.following.includes(userId)
       );
     },
     [currentUser],

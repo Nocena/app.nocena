@@ -1,6 +1,6 @@
 // lib/completing/types.ts
 
-// Recording states
+// Recording states - maintaining your existing enum values
 export enum RecordingState {
   IDLE = 'idle',
   STARTING = 'starting',
@@ -38,7 +38,7 @@ export interface MediaMetadata {
   timestamp: number;
 }
 
-// Challenge completion data
+// Challenge completion data - updated to match new schema
 export interface ChallengeCompletion {
   id: string;
   userId: string;
@@ -47,4 +47,6 @@ export interface ChallengeCompletion {
   media: MediaMetadata | string;
   visibility: 'public' | 'private' | 'friends';
   likesCount?: number;
+  // New field for challenge type to match updated schema
+  challengeType?: 'ai' | 'private' | 'public';
 }

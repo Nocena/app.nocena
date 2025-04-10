@@ -3,10 +3,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  getOrCreateChallenge,
+  getOrCreateAIChallenge, // Changed from getOrCreateChallenge
   createChallengeCompletion,
   updateUserTokens,
   updateUserChallengeStrings,
+  hasCompletedChallenge,
 } from '../../lib/api/dgraph';
 import { getDayOfYear, getWeekOfYear, getMonth } from '../../lib/utils/dateUtils';
 import { checkPinataForFile, createFallbackMediaMetadata } from '../../lib/utils/pinataUtils';
@@ -372,91 +373,111 @@ const CompletingView = () => {
       setError('Missing required data to complete challenge');
       return;
     }
-
+  
     // Set appropriate size limit based on challenge type
     const MAX_SIZE_MB = frequency === 'monthly' ? 95 : frequency === 'weekly' ? 60 : 30;
     const videoSizeMB = videoBlob.size / (1024 * 1024);
-
+  
     if (videoSizeMB > MAX_SIZE_MB) {
       setError(`Video file is too large (${videoSizeMB.toFixed(1)}MB). Maximum size is ${MAX_SIZE_MB}MB.`);
       return;
     }
-
+  
     setRecordingState(RecordingState.UPLOADING);
     setIsLoading(true);
     setStatusMessage('Processing your challenge completion...');
-
+  
     try {
       // Convert blobs to base64 for upload
       setStatusMessage('Converting media...');
       const videoBase64 = await convertVideoToBase64(videoBlob);
       const selfieBase64 = selfieBlob ? await convertImageToBase64(selfieBlob) : null;
-
+  
       // Generate a unique challenge identifier for upload
       const tempChallengeId = title.replace(/\s+/g, '-').toLowerCase();
-
+  
       // 1. Upload to IPFS - Updated to use 4 arguments
       setStatusMessage('Uploading to decentralized storage...');
       const mediaMetadata = await uploadMediaToIPFS(videoBase64, selfieBase64, tempChallengeId, user.id);
-
+  
       // 2. Get or create the challenge in Dgraph
       setStatusMessage('Processing challenge details...');
       const isAIChallenge = type === 'AI';
 
-      const challengeId = await getOrCreateChallenge(
-        title,
-        description || `${title} challenge`,
-        parseInt(reward),
-        type,
-        isAIChallenge ? frequency : null,
-        visibility || 'public',
-      );
+      let challengeId: string;
+
+      if (isAIChallenge) {
+        // Use getOrCreateAIChallenge for AI challenges
+        challengeId = await getOrCreateAIChallenge(
+          title,
+          description || `${title} challenge`,
+          parseInt(reward),
+          frequency as 'daily' | 'weekly' | 'monthly'
+        );
+      } else {
+        // For non-AI challenges, we'd need different handling
+        // This would need to be implemented based on your requirements
+        throw new Error('Non-AI challenges are not currently supported in this view');
+      }
 
       // 3. Create challenge completion record with the enhanced media metadata
       setStatusMessage('Recording your completion...');
 
-      // Convert MediaMetadata to string or MediaMetadata as expected by the function
-      const mediaMetadataForCompletion = mediaMetadata as any;
-
+      // Determine the challenge type for the completion
+      const challengeType = isAIChallenge ? 'ai' : (visibility === 'private' ? 'private' : 'public');
+      
+      // Create the media metadata string
+      // Your createChallengeCompletion is looking for a string, so we need to convert the object
+      let mediaMetadataString: string;
+      
+      if (typeof mediaMetadata === 'string') {
+        // If it's already a string, use it directly
+        mediaMetadataString = mediaMetadata;
+      } else {
+        // Otherwise, convert the object to a JSON string
+        mediaMetadataString = JSON.stringify(mediaMetadata);
+      }
+      
+      // Call createChallengeCompletion with the string version of the metadata
       const completionId = await createChallengeCompletion(
         user.id,
         challengeId,
-        mediaMetadataForCompletion,
-        isAIChallenge,
-        visibility || 'public',
+        challengeType,
+        mediaMetadataString
       );
-
+      
+  
       // 4. Update user tokens in Dgraph
       setStatusMessage('Updating your rewards...');
       const rewardAmount = parseInt(reward);
       await updateUserTokens(user.id, rewardAmount);
-
+  
       // 5. Update challenge tracking strings if this is an AI challenge
       if (isAIChallenge && frequency) {
         setStatusMessage('Updating your challenge streaks...');
         await updateUserChallengeStrings(user.id, frequency);
       }
-
+  
       // 6. Update user context with new token balance and completion record
       const newCompletedChallenge = {
         type: isAIChallenge ? `AI-${frequency}` : 'Social',
         title: title || 'Unknown Challenge',
         date: new Date().toISOString(),
-        proofCID: mediaMetadata.directoryCID || mediaMetadata.videoCID, // Support both formats
+        proofCID: mediaMetadata.directoryCID || (mediaMetadata as any).videoCID, // Support both formats
         hasVideo: true,
         hasSelfie: mediaMetadata.hasSelfie,
       };
-
+  
       // Update local user context based on frequency
       const userUpdate: any = {
         earnedTokens: (user.earnedTokens || 0) + rewardAmount,
         completedChallenges: [...(user.completedChallenges || []), newCompletedChallenge],
       };
-
+  
       // Update the challenge string in local context if it exists
       if (isAIChallenge && frequency) {
         const now = new Date();
-
+  
         if (frequency === 'daily') {
           const dayOfYear = getDayOfYear(now) - 1;
           let dailyString = user.dailyChallenge || '0'.repeat(365);
@@ -474,14 +495,14 @@ const CompletingView = () => {
           userUpdate.monthlyChallenge = monthlyString;
         }
       }
-
+  
       // Update user in context/local storage
       await updateUser(userUpdate);
-
+  
       // 7. Show success and move to completion state
       setStatusMessage(`Challenge completed! You earned ${reward} NOCENIX`);
       setRecordingState(RecordingState.COMPLETE);
-
+  
       // 8. Navigate back to home page after a delay
       setTimeout(() => {
         router.push('/home');

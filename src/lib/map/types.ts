@@ -71,6 +71,11 @@ export interface ChallengeFormData {
   reward: number;
   participants?: number;
   totalCost: number;
+  // Add these properties for private and public challenges
+  targetUserId?: string;
+  latitude?: number;
+  longitude?: number;
+  expiresAt?: string;
 }
 
 // API Request type for challenge creation

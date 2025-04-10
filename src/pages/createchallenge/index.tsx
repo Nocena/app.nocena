@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useContext } from 'react';
+import AuthContext from '../../contexts/AuthContext';
+import { toast } from 'react-hot-toast'; 
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import ThematicImage from '../../components/ui/ThematicImage';
@@ -28,6 +31,7 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
   lng,
   onSubmit
 }) => {
+  const { user: currentUser } = useContext(AuthContext);
   const router = useRouter();
   const [challengeName, setChallengeName] = useState('');
   const [description, setDescription] = useState('');
@@ -54,8 +58,17 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
     }
   }, [customReward]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user is logged in
+    if (!currentUser || !currentUser.id) {
+      toast.error("You must be logged in to create a challenge");
+      return;
+    }
+    
+    // Show loading state (you might want to add a loading state to your component)
+    // setIsLoading(true);
     
     const challengeData: ChallengeFormData = {
       challengeName,
@@ -63,23 +76,53 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
       reward,
       participants: mode === 'public' ? participants : 1,
       totalCost,
-      ...(mode === 'private' && { targetUserId }), // Include targetUserId for private challenges
-      ...(mode === 'public' && lat && lng && { // Include location for public challenges
+      ...(mode === 'private' && targetUserId && { targetUserId }),
+      ...(mode === 'public' && lat && lng && {
         latitude: parseFloat(lat),
         longitude: parseFloat(lng)
       })
     };
     
+    try {
+      const response = await fetch('/api/challenge/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          challengeData,
+          mode
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Show success message
+        toast.success(result.message);
+        
+        // Redirect based on mode
+        if (mode === 'private' && targetUserId) {
+          router.push(`/profile/${targetUserId}`);
+        } else {
+          router.push('/map');
+        }
+      } else {
+        // Show error message
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error creating challenge:', error);
+      toast.error('Failed to create challenge. Please try again.');
+    } finally {
+      // Hide loading state
+      // setIsLoading(false);
+    }
+    
+    // If onSubmit prop is provided, call it with the challenge data
     if (onSubmit) {
       onSubmit(challengeData);
-    } else {
-      console.log("Challenge data:", challengeData);
-      // Redirect based on mode
-      if (mode === 'private' && targetUserId) {
-        router.push(`/profile/${targetUserId}`);
-      } else {
-        router.push('/map');
-      }
     }
   };
 
