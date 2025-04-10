@@ -26,6 +26,30 @@ body {
   width: 0%;
 }
 
+/* Base popup styles */
+.maplibregl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Hide the popup triangle/tip */
+.maplibregl-popup-tip {
+  display: none !important;
+}
+
+/* Ensure proper stacking order */
+.maplibregl-marker {
+  z-index: 1;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.maplibregl-popup {
+  z-index: 10;
+}
+
 .react-tel-input .selected-flag {
   background-color: #1f2937 !important;
 }
