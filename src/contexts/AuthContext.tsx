@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     localStorage.removeItem('nocenaUser');
   };
- 
+
   // const updateUser = async () => {
   //   try {
   //     const res = await fetch('/api/auth/me');
@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user,  isAuthenticated: !!user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

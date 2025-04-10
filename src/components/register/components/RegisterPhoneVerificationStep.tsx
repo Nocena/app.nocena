@@ -21,7 +21,7 @@ interface Props {
 const INPUT_NAME = 'verificationCode';
 
 const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend }: Props) => {
-  const verificationCode = useWatch({ control, name: INPUT_NAME })
+  const verificationCode = useWatch({ control, name: INPUT_NAME });
   const { errors } = useFormState({ control, name: INPUT_NAME });
   const error = errors?.[INPUT_NAME]?.slice?.(-1)?.[0];
 
@@ -31,13 +31,18 @@ const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend
         <Controller
           name={INPUT_NAME}
           control={control}
-          render={({ field }: { field: ControllerRenderProps<FormValues, "verificationCode">; fieldState: ControllerFieldState; }) => (
-            <NocenaCodeInputs field={field} onlyNumber />
-          )}
+          render={({
+            field,
+          }: {
+            field: ControllerRenderProps<FormValues, 'verificationCode'>;
+            fieldState: ControllerFieldState;
+          }) => <NocenaCodeInputs field={field} onlyNumber />}
         />
       </div>
 
-      {customError || error ? <p className="text-red-500 text-sm mb-4 text-center">{customError || error?.message}</p> : null}
+      {customError || error ? (
+        <p className="text-red-500 text-sm mb-4 text-center">{customError || error?.message}</p>
+      ) : null}
 
       <div className="mb-6">
         <PrimaryButton

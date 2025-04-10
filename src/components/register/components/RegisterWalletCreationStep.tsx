@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import PrimaryButton from "../../ui/PrimaryButton";
+import PrimaryButton from '../../ui/PrimaryButton';
 
 interface Props {
   wallet: {
@@ -14,10 +14,9 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedPrivateKey, setCopiedPrivateKey] = useState(false);
 
-
-  const copyToClipboard = (text: string, type: "address" | "privateKey") => {
+  const copyToClipboard = (text: string, type: 'address' | 'privateKey') => {
     navigator.clipboard.writeText(text).then(() => {
-      if (type === "address") {
+      if (type === 'address') {
         setCopiedAddress(true);
         setTimeout(() => setCopiedAddress(false), 2000);
       } else {
@@ -34,34 +33,26 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
           <div className="flex justify-between items-center mb-2">
             <label className="text-sm text-gray-400">Public Address</label>
             <button
-              onClick={() =>
-                wallet && copyToClipboard(wallet.address, "address")
-              }
+              onClick={() => wallet && copyToClipboard(wallet.address, 'address')}
               className="text-xs text-nocenaBlue"
             >
-              {copiedAddress ? "Copied!" : "Copy"}
+              {copiedAddress ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">
-            {wallet?.address}
-          </p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.address}</p>
         </div>
 
         <div className="bg-gray-800 p-4 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-sm text-gray-400">Private Key</label>
             <button
-              onClick={() =>
-                wallet && copyToClipboard(wallet.privateKey, "privateKey")
-              }
+              onClick={() => wallet && copyToClipboard(wallet.privateKey, 'privateKey')}
               className="text-xs text-nocenaBlue"
             >
-              {copiedPrivateKey ? "Copied!" : "Copy"}
+              {copiedPrivateKey ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">
-            {wallet?.privateKey}
-          </p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.privateKey}</p>
         </div>
 
         <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 p-4 rounded-lg text-yellow-400 text-sm">
@@ -76,10 +67,7 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
       </div>
 
       <div className="mb-3">
-        <PrimaryButton
-          text="I Have Saved My Wallet Information"
-          onClick={() => router.push('/home')}
-        />
+        <PrimaryButton text="I Have Saved My Wallet Information" onClick={() => router.push('/home')} />
       </div>
     </>
   );
