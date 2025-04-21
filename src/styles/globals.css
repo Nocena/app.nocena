@@ -47,7 +47,7 @@ body {
 }
 
 .maplibregl-popup {
-  z-index: 10;
+  z-index: 200;
 }
 
 .react-tel-input .selected-flag {

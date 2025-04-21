@@ -7,17 +7,30 @@ import ThematicText from '../../../components/ui/ThematicText';
 interface ChallengeHeaderProps {
   title: string;
   reward: string;
+  type?: string; // Added type prop
 }
 
 const nocenixIcon = '/nocenix.ico';
 
-const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ title, reward }) => {
+const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ title, reward, type = 'AI' }) => {
+  // Choose the appropriate icon based on challenge type
+  const getIconSrc = () => {
+    switch (type) {
+      case 'PUBLIC':
+        return '/icons/map.png'; // Assuming you have a map icon
+      case 'PRIVATE':
+        return '/icons/followers.png'; // Assuming you have a followers icon
+      default:
+        return '/images/AI.png'; // Default AI icon
+    }
+  };
+
   return (
     <>
-      {/* Challenge Circle Image with AI Icon */}
+      {/* Challenge Circle Image with Icon */}
       <ThematicImage className="rounded-full mb-6">
         <div className="w-24 h-24 flex items-center justify-center overflow-hidden">
-          <Image src="/images/AI.png" alt="Challenge" width={96} height={96} className="w-full h-full object-cover" />
+          <Image src={getIconSrc()} alt="Challenge" width={96} height={96} className="w-full h-full object-cover" />
         </div>
       </ThematicImage>
 

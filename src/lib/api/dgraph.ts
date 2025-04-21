@@ -2021,7 +2021,7 @@ export const handleChallengeCreation = async (
       await createChallengeNotification(
         challengeData.targetUserId,
         userId,
-        `You've been challenged by ${userId}!`,
+        `You've been challenged!`,
         'challenge',
         'private',
         challengeId
@@ -2067,4 +2067,199 @@ export const handleChallengeCreation = async (
       message: error instanceof Error ? error.message : 'Failed to create challenge'
     };
   }
+};
+
+// Public challenges
+
+// Add this function to your backend file
+
+/**
+ * Fetches all active public challenges
+ * @returns Array of public challenges
+ */
+export const fetchAllPublicChallenges = async (): Promise<any[]> => {
+  const query = `
+    query {
+      queryPublicChallenge(filter: { isActive: true }) {
+        id
+        title
+        description
+        reward
+        location {
+          longitude
+          latitude
+        }
+        creator {
+          id
+          username
+          profilePicture
+        }
+        participantCount
+        maxParticipants
+        createdAt
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      throw new Error('Error querying public challenges');
+    }
+
+    return response.data.data?.queryPublicChallenge || [];
+  } catch (error) {
+    console.error('Error fetching public challenges:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches public challenges near a specific location
+ * @param longitude The longitude coordinate
+ * @param latitude The latitude coordinate
+ * @param radiusKm Optional radius in kilometers (default: 10)
+ * @returns Array of nearby public challenges
+ */
+export const fetchNearbyPublicChallenges = async (
+  longitude: number, 
+  latitude: number, 
+  radiusKm: number = 10
+): Promise<any[]> => {
+  try {
+    // First fetch all challenges since Dgraph doesn't support geospatial queries directly
+    const allChallenges = await fetchAllPublicChallenges();
+    
+    // Then filter them by distance
+    return allChallenges.filter(challenge => {
+      const distance = calculateDistance(
+        latitude, 
+        longitude, 
+        challenge.location.latitude, 
+        challenge.location.longitude
+      );
+      
+      return distance <= radiusKm;
+    });
+  } catch (error) {
+    console.error('Error fetching nearby public challenges:', error);
+    throw error;
+  }
+};
+
+/**
+ * Joins a public challenge
+ * @param userId User ID who is joining
+ * @param challengeId Challenge ID to join
+ * @returns Updated challenge
+ */
+export const joinPublicChallenge = async (userId: string, challengeId: string): Promise<any> => {
+  // First check if the user is already participating
+  const checkQuery = `
+    query {
+      getPublicChallenge(id: "${challengeId}") {
+        id
+        participantCount
+        maxParticipants
+        participants {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    const checkResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query: checkQuery },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (checkResponse.data.errors) {
+      throw new Error(`Dgraph query error: ${checkResponse.data.errors[0].message}`);
+    }
+
+    const challenge = checkResponse.data.data.getPublicChallenge;
+    if (!challenge) {
+      throw new Error('Challenge not found');
+    }
+
+    // Check if the user is already participating
+    const isParticipating = challenge.participants.some((p: any) => p.id === userId);
+    if (isParticipating) {
+      throw new Error('You are already participating in this challenge');
+    }
+
+    // Check if the challenge is full
+    if (challenge.participantCount >= challenge.maxParticipants) {
+      throw new Error('This challenge is already full');
+    }
+
+    // Join the challenge
+    const mutation = `
+      mutation {
+        updatePublicChallenge(
+          input: {
+            filter: { id: { eq: "${challengeId}" } },
+            set: {
+              participants: [{ id: "${userId}" }],
+              participantCount: ${challenge.participantCount + 1}
+            }
+          }
+        ) {
+          publicChallenge {
+            id
+            participantCount
+            maxParticipants
+          }
+        }
+      }
+    `;
+
+    const joinResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query: mutation },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (joinResponse.data.errors) {
+      throw new Error(`Dgraph mutation error: ${joinResponse.data.errors[0].message}`);
+    }
+
+    return joinResponse.data.data.updatePublicChallenge.publicChallenge[0];
+  } catch (error) {
+    console.error('Error joining public challenge:', error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to calculate distance between two coordinates using the Haversine formula
+ * @param lat1 Latitude of first point
+ * @param lon1 Longitude of first point
+ * @param lat2 Latitude of second point
+ * @param lon2 Longitude of second point
+ * @returns Distance in kilometers
+ */
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const distance = R * c; // Distance in km
+  return distance;
+};
+
+const deg2rad = (deg: number): number => {
+  return deg * (Math.PI/180);
 };

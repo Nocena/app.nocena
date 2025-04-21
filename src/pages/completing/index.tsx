@@ -70,7 +70,20 @@ const CompletingView = () => {
     description = '',
     reward = '1',
     visibility = 'public',
-  } = router.query as ChallengeParams;
+    challengeId = '',
+    longitude = '',
+    latitude = '',
+  } = router.query as {
+    type: string;
+    frequency: string;
+    title: string;
+    description: string;
+    reward: string;
+    visibility: string;
+    challengeId?: string;
+    longitude?: string;
+    latitude?: string;
+  };
 
   // Clean up resources on unmount
   useEffect(() => {
@@ -373,111 +386,135 @@ const CompletingView = () => {
       setError('Missing required data to complete challenge');
       return;
     }
-  
+
     // Set appropriate size limit based on challenge type
     const MAX_SIZE_MB = frequency === 'monthly' ? 95 : frequency === 'weekly' ? 60 : 30;
     const videoSizeMB = videoBlob.size / (1024 * 1024);
-  
+
     if (videoSizeMB > MAX_SIZE_MB) {
       setError(`Video file is too large (${videoSizeMB.toFixed(1)}MB). Maximum size is ${MAX_SIZE_MB}MB.`);
       return;
     }
-  
+
     setRecordingState(RecordingState.UPLOADING);
     setIsLoading(true);
     setStatusMessage('Processing your challenge completion...');
-  
+
     try {
       // Convert blobs to base64 for upload
       setStatusMessage('Converting media...');
       const videoBase64 = await convertVideoToBase64(videoBlob);
       const selfieBase64 = selfieBlob ? await convertImageToBase64(selfieBlob) : null;
-  
+
       // Generate a unique challenge identifier for upload
       const tempChallengeId = title.replace(/\s+/g, '-').toLowerCase();
-  
-      // 1. Upload to IPFS - Updated to use 4 arguments
+
+      // 1. Upload to IPFS
       setStatusMessage('Uploading to decentralized storage...');
       const mediaMetadata = await uploadMediaToIPFS(videoBase64, selfieBase64, tempChallengeId, user.id);
-  
-      // 2. Get or create the challenge in Dgraph
+
+      // 2. Get or create the challenge in Dgraph based on type
       setStatusMessage('Processing challenge details...');
-      const isAIChallenge = type === 'AI';
+      let challengeDbId: string;
 
-      let challengeId: string;
-
-      if (isAIChallenge) {
+      if (type === 'AI') {
         // Use getOrCreateAIChallenge for AI challenges
-        challengeId = await getOrCreateAIChallenge(
+        challengeDbId = await getOrCreateAIChallenge(
           title,
           description || `${title} challenge`,
           parseInt(reward),
           frequency as 'daily' | 'weekly' | 'monthly'
         );
+      } else if (type === 'PUBLIC' || type === 'PRIVATE') {
+        // For public and private challenges, we use the provided challengeId
+        if (!challengeId) {
+          throw new Error(`Challenge ID is required for ${type.toLowerCase()} challenges`);
+        }
+        
+        // Validate the challengeId exists in your database if needed
+        // (This is optional and depends on your security requirements)
+        
+        challengeDbId = challengeId;
       } else {
-        // For non-AI challenges, we'd need different handling
-        // This would need to be implemented based on your requirements
-        throw new Error('Non-AI challenges are not currently supported in this view');
+        throw new Error('Unsupported challenge type: ' + type);
       }
 
-      // 3. Create challenge completion record with the enhanced media metadata
+      // 3. Create challenge completion record
       setStatusMessage('Recording your completion...');
 
-      // Determine the challenge type for the completion
-      const challengeType = isAIChallenge ? 'ai' : (visibility === 'private' ? 'private' : 'public');
-      
       // Create the media metadata string
-      // Your createChallengeCompletion is looking for a string, so we need to convert the object
       let mediaMetadataString: string;
       
       if (typeof mediaMetadata === 'string') {
-        // If it's already a string, use it directly
         mediaMetadataString = mediaMetadata;
       } else {
-        // Otherwise, convert the object to a JSON string
         mediaMetadataString = JSON.stringify(mediaMetadata);
       }
       
-      // Call createChallengeCompletion with the string version of the metadata
+      // Determine the actual challenge type for the database
+      const challengeType = type === 'AI' ? 'ai' : 
+                            type === 'PUBLIC' ? 'public' : 
+                            type === 'PRIVATE' ? 'private' : 'public';
+
+      // Optional location data for public/private challenges
+      const locationData = (type === 'PUBLIC' || type === 'PRIVATE') && longitude && latitude 
+        ? {
+            longitude: parseFloat(longitude),
+            latitude: parseFloat(latitude)
+          }
+        : null;
+
+      // Create the completion record
       const completionId = await createChallengeCompletion(
         user.id,
-        challengeId,
-        challengeType,
+        challengeDbId,
+        challengeType as 'ai' | 'public' | 'private', // Cast to the expected union type
         mediaMetadataString
       );
-      
-  
+
       // 4. Update user tokens in Dgraph
       setStatusMessage('Updating your rewards...');
       const rewardAmount = parseInt(reward);
       await updateUserTokens(user.id, rewardAmount);
-  
-      // 5. Update challenge tracking strings if this is an AI challenge
-      if (isAIChallenge && frequency) {
+
+      // 5. Update challenge specific tracking based on type
+      if (type === 'AI' && frequency) {
         setStatusMessage('Updating your challenge streaks...');
         await updateUserChallengeStrings(user.id, frequency);
+      } else if (type === 'PUBLIC' && challengeId) {
+        setStatusMessage('Public challenge detected');
+      } else if (type === 'PRIVATE' && challengeId) {
+        setStatusMessage('Private challenge detected');
       }
-  
+
       // 6. Update user context with new token balance and completion record
       const newCompletedChallenge = {
-        type: isAIChallenge ? `AI-${frequency}` : 'Social',
+        type: type === 'AI' ? `AI-${frequency}` : type,
         title: title || 'Unknown Challenge',
         date: new Date().toISOString(),
-        proofCID: mediaMetadata.directoryCID || (mediaMetadata as any).videoCID, // Support both formats
+        proofCID: mediaMetadata.directoryCID || (mediaMetadata as any).videoCID,
         hasVideo: true,
         hasSelfie: mediaMetadata.hasSelfie,
+        // Include location and challengeId for non-AI challenges
+        ...(type !== 'AI' && challengeId ? { challengeId } : {}),
+        ...(type !== 'AI' && longitude && latitude ? {
+          location: {
+            longitude: parseFloat(longitude),
+            latitude: parseFloat(latitude)
+          }
+        } : {})
       };
-  
-      // Update local user context based on frequency
+
+      // Update local user context
       const userUpdate: any = {
         earnedTokens: (user.earnedTokens || 0) + rewardAmount,
         completedChallenges: [...(user.completedChallenges || []), newCompletedChallenge],
       };
-  
-      // Update the challenge string in local context if it exists
-      if (isAIChallenge && frequency) {
+
+      // Update the challenge string in local context for AI challenges
+      if (type === 'AI' && frequency) {
         const now = new Date();
-  
+
         if (frequency === 'daily') {
           const dayOfYear = getDayOfYear(now) - 1;
           let dailyString = user.dailyChallenge || '0'.repeat(365);
@@ -495,17 +532,23 @@ const CompletingView = () => {
           userUpdate.monthlyChallenge = monthlyString;
         }
       }
-  
+
       // Update user in context/local storage
       await updateUser(userUpdate);
-  
+
       // 7. Show success and move to completion state
       setStatusMessage(`Challenge completed! You earned ${reward} NOCENIX`);
       setRecordingState(RecordingState.COMPLETE);
-  
-      // 8. Navigate back to home page after a delay
+
+      // 8. Navigate to appropriate page based on challenge type
       setTimeout(() => {
-        router.push('/home');
+        if (type === 'PUBLIC') {
+          router.push('/map?completed=true');
+        } else if (type === 'PRIVATE') {
+          router.push('/inbox?completed=true');
+        } else {
+          router.push('/home?completed=true');
+        }
       }, 2000);
     } catch (error: any) {
       console.error('Challenge submission error:', error);
@@ -514,7 +557,7 @@ const CompletingView = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, videoBlob, selfieBlob, type, frequency, title, description, reward, visibility, router, updateUser]);
+  }, [user, videoBlob, selfieBlob, type, frequency, title, description, reward, visibility, challengeId, longitude, latitude, router, updateUser]);
 
   // Retake only the video
   const handleRetakeVideo = useCallback(() => {
@@ -567,6 +610,7 @@ const CompletingView = () => {
   }, [videoPreviewUrl, selfiePreviewUrl]);
 
   // Render content based on current state
+  // Render content based on current state
   const renderContent = () => {
     // Create a challenge params object to pass to components
     const challengeParams: ChallengeParams = {
@@ -576,6 +620,9 @@ const CompletingView = () => {
       description,
       reward,
       visibility,
+      challengeId,
+      longitude,
+      latitude
     };
 
     switch (recordingState) {
@@ -635,7 +682,7 @@ const CompletingView = () => {
 
   return (
     <div className="flex flex-col items-center justify-start px-4 pt-2 w-full max-w-md mx-auto overflow-y-auto pb-28">
-      <ChallengeHeader title={title} reward={reward} />
+      <ChallengeHeader title={title} reward={reward} type={type} />
       {renderContent()}
     </div>
   );

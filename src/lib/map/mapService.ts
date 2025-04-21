@@ -1,42 +1,79 @@
+// src/lib/map/mapService.ts
 import { ChallengeData, LocationData } from './types';
+import axios from 'axios';
 
-// Function to fetch challenges near a location
+// Function to fetch public challenges from Dgraph
 export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<ChallengeData[]> => {
-  // Return fixed marker positions in Prague
-  return [
-    {
-      id: 'challenge-1',
-      position: [14.3896, 50.0891], // Prague Castle area
-      color: '#FF5722',
-      title: 'Photo Challenge',
-      description: 'Take a creative photo at this historic location',
-      reward: 50
-    },
-    {
-      id: 'challenge-2',
-      position: [14.3700, 50.0980], // Letná Park
-      color: '#9C27B0',
-      title: 'Street Art Hunt',
-      description: 'Find the hidden artwork nearby',
-      reward: 75
-    },
-    {
-      id: 'challenge-3',
-      position: [14.3450, 50.0835], // Břevnov Monastery
-      color: '#2196F3',
-      title: 'Local Monument',
-      description: 'Visit this historical landmark',
-      reward: 100
-    },
-    {
-      id: 'challenge-4',
-      position: [14.3540, 50.1010], // Stromovka Park
-      color: '#4CAF50',
-      title: 'Nature Spot',
-      description: 'Capture the natural beauty here',
-      reward: 60
+  try {
+    // Query Dgraph directly
+    const query = `
+      query {
+        queryPublicChallenge(filter: { isActive: true }) {
+          id
+          title
+          description
+          reward
+          location {
+            longitude
+            latitude
+          }
+          creator {
+            id
+            username
+            profilePicture
+          }
+          participantCount
+          maxParticipants
+          createdAt
+        }
+      }
+    `;
+
+    const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
+    
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      return [];
     }
-  ];
+
+    const allChallenges = response.data.data?.queryPublicChallenge || [];
+    
+    // Filter challenges by distance (10km radius)
+    const nearbyPublicChallenges = allChallenges.filter((challenge: any) => {
+      const distance = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        challenge.location.latitude,
+        challenge.location.longitude
+      );
+      
+      return distance <= 10; // 10km radius
+    });
+    
+    // Transform Dgraph challenge data to match our ChallengeData type
+    return nearbyPublicChallenges.map((challenge: any, index: number) => ({
+      id: challenge.id,
+      position: [challenge.location.longitude, challenge.location.latitude],
+      title: challenge.title,
+      description: challenge.description,
+      reward: challenge.reward,
+      // Additional data for UI
+      creatorName: challenge.creator.username,
+      creatorAvatar: challenge.creator.profilePicture,
+      participantCount: challenge.participantCount,
+      maxParticipants: challenge.maxParticipants
+    }));
+  } catch (error) {
+    console.error('Error fetching public challenges:', error);
+    // Return empty array in case of error
+    return [];
+  }
 };
 
 // Helper for loading map styles
@@ -132,4 +169,29 @@ export const loadMapLibreCSS = () => {
   link.rel = 'stylesheet';
   link.href = 'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css';
   document.head.appendChild(link);
+};
+
+/**
+ * Helper function to calculate distance between two coordinates using the Haversine formula
+ * @param lat1 Latitude of first point
+ * @param lon1 Longitude of first point
+ * @param lat2 Latitude of second point
+ * @param lon2 Longitude of second point
+ * @returns Distance in kilometers
+ */
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const distance = R * c; // Distance in km
+  return distance;
+};
+
+const deg2rad = (deg: number): number => {
+  return deg * (Math.PI/180);
 };
