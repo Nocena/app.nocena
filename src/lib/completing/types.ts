@@ -1,5 +1,11 @@
 // lib/completing/types.ts
 
+export enum ChallengeType {
+  AI = 'AI',
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE'
+}
+
 // Recording states - maintaining your existing enum values
 export enum RecordingState {
   IDLE = 'idle',
@@ -15,12 +21,17 @@ export enum RecordingState {
 
 // Challenge parameters
 export interface ChallengeParams {
-  type?: string;
-  frequency?: 'daily' | 'weekly' | 'monthly';
-  title?: string;
-  description?: string;
-  reward?: string;
-  visibility?: 'public' | 'private' | 'friends';
+  type: string;
+  frequency: string;
+  title: string;
+  description: string;
+  reward: string;
+  visibility: string;
+  challengeId?: string;
+  longitude?: string;
+  latitude?: string;
+  invitedUsers?: string[]; // For private challenges
+  creatorId?: string; // User who created the private challenge
 }
 
 // Media metadata returned from IPFS upload

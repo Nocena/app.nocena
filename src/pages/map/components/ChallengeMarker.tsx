@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import { ChallengeData } from '../../../lib/map/types';
 import ChallengePopup from './ChallengePopup';
 
@@ -21,6 +22,7 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
 }) => {
   const markerRef = useRef<any>(null);
   const popupRef = useRef<any>(null);
+  const router = useRouter();
   
   useEffect(() => {
     if (!map || !MapLibre) return;
@@ -45,6 +47,8 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
     el.style.position = 'absolute';
     el.style.cursor = 'pointer';
     el.style.transition = 'width 0.2s ease, height 0.2s ease';
+    // Ensure challenge markers have a higher z-index
+    el.style.zIndex = '10'; 
     
     // Simple SVG without complex styling or animations
     el.innerHTML = `
@@ -64,7 +68,7 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
       </svg>
     `;
 
-    // Create marker with specific options
+    // Create marker with specific options and a high z-index
     const marker = new MapLibre.Marker({
       element: el,
       anchor: 'center', // Center is more stable for this icon type
@@ -76,8 +80,35 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
     .setLngLat(challenge.position)
     .addTo(map);
 
-    // Create popup with class for styling
-    const popupContent = ChallengePopup({ challenge });
+    // Set the marker to a higher z-index to display above user location
+    const markerElement = marker.getElement();
+    markerElement.style.zIndex = '100'; // Higher z-index to ensure it's above user location
+
+    // Function to handle challenge completion
+    const handleCompleteChallenge = (challengeData: ChallengeData) => {
+      // Navigate to the completing page with challenge details
+      router.push({
+        pathname: '/completing',
+        query: {
+          type: 'PUBLIC', // Use PUBLIC instead of AI
+          frequency: 'once', // Public challenges are completed once
+          title: challengeData.title,
+          description: challengeData.description,
+          reward: challengeData.reward.toString(),
+          visibility: 'public',
+          challengeId: challengeData.id, // Pass the challenge ID
+          longitude: challengeData.position[0].toString(),
+          latitude: challengeData.position[1].toString()
+        },
+      });
+    };
+
+    // Create popup with challenge details and completion handler
+    const popupContent = ChallengePopup({ 
+      challenge, 
+      onComplete: handleCompleteChallenge 
+    });
+
     const popup = new MapLibre.Popup({
       className: 'custom-popup',
       closeButton: popupContent.options.closeButton,
@@ -108,6 +139,14 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
         onSelect(index);
         if (popupRef.current) {
           popupRef.current.addTo(map);
+          
+          // Setup event listeners after the popup is added to the DOM
+          if (popupContent.setupEventListeners) {
+            const popupElement = popup.getElement();
+            if (popupElement) {
+              popupContent.setupEventListeners(popupElement);
+            }
+          }
         }
       }
     };
@@ -117,6 +156,14 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
     // Show popup initially if selected
     if (isSelected && popupRef.current) {
       popupRef.current.addTo(map);
+      
+      // Setup event listeners for initially selected popups too
+      if (popupContent.setupEventListeners) {
+        const popupElement = popup.getElement();
+        if (popupElement) {
+          popupContent.setupEventListeners(popupElement);
+        }
+      }
     }
 
     return () => {
@@ -124,7 +171,7 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
       if (markerRef.current) markerRef.current.remove();
       if (popupRef.current) popupRef.current.remove();
     };
-  }, [map, MapLibre, challenge, index, isSelected, onSelect]);
+  }, [map, MapLibre, challenge, index, isSelected, onSelect, router]);
 
   // Update popup visibility when selection changes
   useEffect(() => {
@@ -132,6 +179,35 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
     
     if (isSelected) {
       popupRef.current.addTo(map);
+      
+      // Re-setup event listeners when popup becomes visible
+      const popupContent = ChallengePopup({ 
+        challenge, 
+        onComplete: (challengeData) => {
+          // Navigate to the completing page with challenge details
+          router.push({
+            pathname: '/completing',
+            query: {
+              type: 'PUBLIC',
+              frequency: 'once',
+              title: challengeData.title,
+              description: challengeData.description,
+              reward: challengeData.reward.toString(),
+              visibility: 'public',
+              challengeId: challengeData.id,
+              longitude: challengeData.position[0].toString(),
+              latitude: challengeData.position[1].toString()
+            },
+          });
+        }
+      });
+      
+      if (popupContent.setupEventListeners) {
+        const popupElement = popupRef.current.getElement();
+        if (popupElement) {
+          popupContent.setupEventListeners(popupElement);
+        }
+      }
     } else {
       popupRef.current.remove();
     }
@@ -145,7 +221,7 @@ const ChallengeMarker: React.FC<ChallengeMarkerProps> = ({
         markerRef.current.setOffset([0, isSelected ? -20 : -16]);
       }
     }
-  }, [isSelected, map]);
+  }, [isSelected, map, challenge, router]);
 
   return null;
 };
