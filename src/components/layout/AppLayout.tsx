@@ -336,13 +336,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }
 
   return (
-    <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
+    <div className="app-container bg-nocena-bg min-h-screen w-full text-white flex flex-col">
       {/* Add the memory optimizer for background/foreground handling */}
       <MemoryOptimizer />
 
       {/* Top Navbar - with top safe area padding */}
       <div
-        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg"
+        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocena-bg"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
           height: 'calc(3rem + env(safe-area-inset-top))',
@@ -353,7 +353,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
             <ThematicIcon iconName="menu" isActive={isMenuOpen} />
           </button>
         </div>
-        <div className="flex-grow text-center">
+        <div className="grow text-center">
           <ThematicText text={pageTitle} isActive />
         </div>
         <div className="flex items-center">
@@ -368,7 +368,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       {/* Main Content - conditionally use PageManager or children */}
       <main
-        className="flex-grow pt-3"
+        className="grow pt-3"
         style={{
           marginTop: 'calc(3rem + env(safe-area-inset-top))',
         }}
@@ -378,7 +378,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       {/* Bottom Navbar - with bottom safe area padding */}
       <div
-        className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocenaBg z-50 font-light"
+        className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocena-bg z-50 font-light"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
@@ -387,12 +387,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           <button
             key={item}
             onClick={() => handleNavClick(index)}
-            className={`relative text-center flex-grow p-2 ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
+            className={`relative text-center grow p-2 ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
           >
             <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
 
             {item === 'inbox' && unreadCount > 0 && (
-              <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
+              <span className="absolute top-1 right-6 w-2 h-2 bg-nocena-pink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
             )}
 
             <div className="mt-2 capitalize">{item}</div>

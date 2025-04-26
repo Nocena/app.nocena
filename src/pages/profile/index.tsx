@@ -366,7 +366,7 @@ const ProfileView: React.FC = () => {
   // Memoize challenge indicator to prevent unnecessary re-renders
   const challengeIndicators = useMemo(() => {
     return monthNames.map((month, index) => (
-      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
+      <div key={index} className={`w-[200px] shrink-0 flex flex-col items-center justify-center`}>
         <div
           className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
         >
@@ -435,7 +435,7 @@ const ProfileView: React.FC = () => {
           {isEditingBio ? (
             <>
               <textarea
-                className="w-full p-2 bg-transparent text-white rounded"
+                className="w-full p-2 bg-transparent text-white rounded-sm"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />

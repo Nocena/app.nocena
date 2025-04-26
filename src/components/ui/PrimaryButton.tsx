@@ -24,14 +24,14 @@ const PrimaryButton: React.FC<Props> = ({
           ? 'bg-gray-500 cursor-not-allowed'
           : isActive
             ? 'bg-white text-black'
-            : 'bg-gradient-to-r from-nocenaBlue to-nocenaPink text-white'
+            : 'bg-linear-to-r from-nocena-blue to-nocena-pink text-white'
       } ${className}`}
     >
       <button
         type={type}
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
-        className="w-full h-full bg-transparent text-base font-medium font-montserrat cursor-pointer flex items-center justify-center focus:outline-none"
+        className="w-full h-full bg-transparent text-base font-medium font-montserrat cursor-pointer flex items-center justify-center focus:outline-hidden"
       >
         {text}
       </button>

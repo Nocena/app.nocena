@@ -253,11 +253,11 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
                 onChange={(e) => handleChange(e.target.value, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
+                className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-hidden focus:ring-2 focus:ring-opacity-50 rounded-lg
                   ${
                     index < 3
-                      ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-                      : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
+                      ? 'text-nocena-pink border-nocena-pink focus:ring-nocena-pink'
+                      : 'text-nocena-blue border-nocena-blue focus:ring-nocena-blue'
                   }
                   ${index === 2 ? 'mr-4' : ''}
                 `}
@@ -289,7 +289,7 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
 
       <div className="mt-6 text-center">
         Already have an account?
-        <Link href="/login" className="ml-1 text-nocenaBlue cursor-pointer">
+        <Link href="/login" className="ml-1 text-nocena-blue cursor-pointer">
           Login
         </Link>
       </div>

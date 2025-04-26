@@ -131,7 +131,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
         <input
           type="text"
           placeholder="Search by username"
-          className="w-full p-3 bg-gray-800 text-white rounded-lg focus:outline-none"
+          className="w-full p-3 bg-gray-800 text-white rounded-lg focus:outline-hidden"
           value={searchQuery}
           onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
           onFocus={() => searchQuery.trim() !== '' && suggestedUsers.length > 0 && setIsDropdownOpen(true)}
@@ -152,7 +152,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
               onClick={() => handleProfileRedirect(suggestedUser)}
               className="flex items-center gap-4 p-3 hover:bg-gray-700 cursor-pointer transition-colors"
             >
-              <ThematicImage className="rounded-full flex-shrink-0">
+              <ThematicImage className="rounded-full shrink-0">
                 <Image
                   src={suggestedUser.profilePicture || '/images/profile.png'}
                   alt="Profile"

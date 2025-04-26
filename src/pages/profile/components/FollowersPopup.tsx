@@ -297,14 +297,14 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
               return (
                 <div
                   key={userData.id}
-                  className="w-full bg-nocenaBg/80 p-3 rounded-lg flex flex-col cursor-pointer overflow-hidden"
+                  className="w-full bg-nocena-bg/80 p-3 rounded-lg flex flex-col cursor-pointer overflow-hidden"
                 >
                   <div className="flex items-center">
                     <div
                       className="flex items-center gap-3 flex-1 min-w-0"
                       onClick={() => handleProfileRedirect(userData)}
                     >
-                      <ThematicImage className="rounded-full flex-shrink-0">
+                      <ThematicImage className="rounded-full shrink-0">
                         <Image
                           src={userData.profilePicture || '/images/profile.png'}
                           alt="Profile"
@@ -328,7 +328,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
                     </div>
 
                     {/* Follow Button - show for all users but disable for current user */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <PrimaryButton
                         text={
                           isCurrentUser

@@ -25,7 +25,7 @@ const NocenaInput = ({ control, label, name, placeholder, required, type = 'text
             type={type}
             id={name}
             placeholder={placeholder}
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           />
           {fieldState.error ? <p className="text-sm text-red-600 mt-2">{fieldState.error.message}</p> : null}
         </div>

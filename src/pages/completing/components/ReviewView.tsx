@@ -102,7 +102,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
       <div className="w-full mb-4 relative">
         <video
           ref={videoRef}
-          className="w-full aspect-[3/4] object-cover rounded-lg"
+          className="w-full aspect-3/4 object-cover rounded-lg"
           controls
           playsInline
           autoPlay={false}
@@ -146,7 +146,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
 
       {/* Display debugging info in development */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="w-full mb-3 p-2 bg-gray-900 text-white text-xs rounded">
+        <div className="w-full mb-3 p-2 bg-gray-900 text-white text-xs rounded-sm">
           <div>Selfie URL: {selfieUrl ? '✓' : '✗'}</div>
           <div>Selfie Loaded: {selfieLoaded ? '✓' : '✗'}</div>
           <div>Selfie Error: {selfieError ? '✓' : '✗'}</div>

@@ -12,13 +12,13 @@ const ThematicImage: React.FC<ThematicImageProps> = ({ className = '', isActive 
       {/* Glitch Effect */}
       {isActive && (
         <>
-          <div className="absolute inset-0 rounded-full border-[1px] border-nocenaPink transform -translate-x-[2px] -translate-y-[2px] animate-glitchPink z-10"></div>
-          <div className="absolute inset-0 rounded-full border-[1px] border-nocenaBlue transform translate-x-[2px] translate-y-[2px] animate-glitchBlue z-10"></div>
+          <div className="absolute inset-0 rounded-full border-[1px] border-nocena-pink transform -translate-x-[2px] -translate-y-[2px] animate-glitch-pink z-10"></div>
+          <div className="absolute inset-0 rounded-full border-[1px] border-nocena-blue transform translate-x-[2px] translate-y-[2px] animate-glitch-blue z-10"></div>
         </>
       )}
       {/* Main Border */}
-      <div className="absolute inset-0 border-[1px] border-nocenaPink rounded-full transform translate-y-[-3px] z-10"></div>
-      <div className="absolute inset-0 border-[1px] border-nocenaBlue rounded-full transform translate-y-[3px] z-10"></div>
+      <div className="absolute inset-0 border-[1px] border-nocena-pink rounded-full transform translate-y-[-3px] z-10"></div>
+      <div className="absolute inset-0 border-[1px] border-nocena-blue rounded-full transform translate-y-[3px] z-10"></div>
       {/* Content */}
       <div className="relative rounded-full border-[1px] border-white">{children}</div>
     </div>

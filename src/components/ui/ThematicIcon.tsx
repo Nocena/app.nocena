@@ -38,8 +38,8 @@ const ThematicIcon: React.FC<ThematicIconProps> = ({ iconName, isActive = false 
       {/* Glitch Effect */}
       {isActive && (
         <>
-          <IconComponent className="absolute -translate-x-[2px] -translate-y-[2px] text-nocenaPink animate-glitchPink" />
-          <IconComponent className="absolute translate-x-[2px] translate-y-[2px] text-nocenaBlue animate-glitchBlue" />
+          <IconComponent className="absolute -translate-x-[2px] -translate-y-[2px] text-nocena-pink animate-glitch-pink" />
+          <IconComponent className="absolute translate-x-[2px] translate-y-[2px] text-nocena-blue animate-glitch-blue" />
         </>
       )}
       {/* Primary Icon */}

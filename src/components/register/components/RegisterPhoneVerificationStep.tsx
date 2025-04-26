@@ -55,7 +55,7 @@ const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend
 
       <div className="mt-4 text-center">
         <p className="text-gray-400 mb-3">Didn't receive the code?</p>
-        <button onClick={onResend} className="text-nocenaBlue hover:text-white transition-colors">
+        <button onClick={onResend} className="text-nocena-blue hover:text-white transition-colors">
           Resend verification code
         </button>
       </div>

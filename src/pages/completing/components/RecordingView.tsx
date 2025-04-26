@@ -33,7 +33,7 @@ const RecordingView: React.FC<RecordingViewProps> = ({
 
   return (
     <div className="w-full flex flex-col items-center relative mb-10">
-      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-4">
+      <div className="relative w-full aspect-3/4 rounded-lg overflow-hidden mb-4">
         {/* Add key prop to force re-render */}
         <video
           ref={videoRef}

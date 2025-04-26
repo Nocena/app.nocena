@@ -26,12 +26,12 @@ const PasswordInput = ({ control, label, name, placeholder }: NocenaInputProps) 
               {...field}
               type={showPassword ? 'text' : 'password'}
               placeholder={placeholder}
-              className="w-full block px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full block px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute inset-y-0 end-0 flex items-center z-20 px-3 cursor-pointer text-white rounded-e-md focus:outline-none focus:text-nocenaBlue"
+              className="absolute inset-y-0 end-0 flex items-center z-20 px-3 cursor-pointer text-white rounded-e-md focus:outline-hidden focus:text-nocena-blue"
             >
               <svg
                 className="shrink-0 size-3.5"

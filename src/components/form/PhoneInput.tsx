@@ -63,8 +63,8 @@ const PhoneInput = ({ control, name, label, placeholder, required, ...rest }: Pr
               borderRadius: '0',
             }}
             containerClass="w-full"
-            dropdownClass="!bg-gray-900 !text-white"
-            searchClass="!bg-gray-800 !text-white !border-gray-700"
+            dropdownClass="bg-gray-900! text-white!"
+            searchClass="bg-gray-800! text-white! border-gray-700!"
             containerStyle={{
               width: '100%',
             }}

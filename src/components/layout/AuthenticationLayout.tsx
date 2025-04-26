@@ -9,7 +9,7 @@ interface AuthenticationLayoutProps {
 
 const AuthenticationLayout = ({ children, title, subtitle }: AuthenticationLayoutProps) => {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
+    <div className="flex items-center justify-center min-h-screen bg-nocena-bg text-white">
       <div className="w-full max-w-md mx-4">
         <div className="flex flex-col items-center max-w-md w-full px-4">
           <div className="max-w-full h-auto mx-auto mb-20 relative">

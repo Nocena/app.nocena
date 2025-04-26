@@ -34,12 +34,12 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
             <label className="text-sm text-gray-400">Public Address</label>
             <button
               onClick={() => wallet && copyToClipboard(wallet.address, 'address')}
-              className="text-xs text-nocenaBlue"
+              className="text-xs text-nocena-blue"
             >
               {copiedAddress ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.address}</p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded-sm">{wallet?.address}</p>
         </div>
 
         <div className="bg-gray-800 p-4 rounded-lg">
@@ -47,12 +47,12 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
             <label className="text-sm text-gray-400">Private Key</label>
             <button
               onClick={() => wallet && copyToClipboard(wallet.privateKey, 'privateKey')}
-              className="text-xs text-nocenaBlue"
+              className="text-xs text-nocena-blue"
             >
               {copiedPrivateKey ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.privateKey}</p>
+          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded-sm">{wallet?.privateKey}</p>
         </div>
 
         <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 p-4 rounded-lg text-yellow-400 text-sm">

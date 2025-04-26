@@ -212,7 +212,7 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
                 <div className="px-4 py-3 rounded-lg text-sm bg-red-900 bg-opacity-40 text-red-200 border border-red-700 mb-4 flex items-center mt-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2 flex-shrink-0"
+                    className="h-5 w-5 mr-2 shrink-0"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >

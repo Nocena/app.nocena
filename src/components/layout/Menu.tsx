@@ -51,14 +51,14 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout }) => {
   return (
     <>
       {/* Overlay for clicking outside */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onClose} />}
+      {isOpen && <div className="fixed inset-0 bg-black/50 z-9998" onClick={onClose} />}
 
       {/* Menu panel */}
       <div
         ref={menuRef}
-        className={`fixed top-0 left-0 h-full bg-nocenaBg/90 text-white transform w-[70%] ${
+        className={`fixed top-0 left-0 h-full bg-nocena-bg/90 text-white transform w-[70%] ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } transition-transform duration-300 ease-in-out z-[9999] pt-[env(safe-area-inset-top)]`}
+        } transition-transform duration-300 ease-in-out z-9999 pt-[env(safe-area-inset-top)]`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

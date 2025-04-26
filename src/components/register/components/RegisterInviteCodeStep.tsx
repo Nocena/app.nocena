@@ -228,7 +228,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
 
       <div className="mt-6 text-center">
         Already have an account?
-        <Link href="/login" className="ml-1 text-nocenaBlue cursor-pointer">
+        <Link href="/login" className="ml-1 text-nocena-blue cursor-pointer">
           Login
         </Link>
       </div>

@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 const OfflinePage: React.FC = () => {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-nocenaBg text-white">
+    <div className="flex items-center justify-center min-h-screen bg-nocena-bg text-white">
       <Head>
         <title>Offline - Nocena</title>
       </Head>

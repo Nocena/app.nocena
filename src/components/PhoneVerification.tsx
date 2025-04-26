@@ -103,11 +103,11 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({ phoneNumber, onVe
               onChange={(e) => handleChange(e.target.value, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               onPaste={index === 0 ? handlePaste : undefined}
-              className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
+              className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-hidden focus:ring-2 focus:ring-opacity-50 rounded-lg
                 ${
                   index < 3
-                    ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-                    : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
+                    ? 'text-nocena-pink border-nocena-pink focus:ring-nocena-pink'
+                    : 'text-nocena-blue border-nocena-blue focus:ring-nocena-blue'
                 }
                 ${index === 2 ? 'mr-4' : ''}
               `}
@@ -130,7 +130,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({ phoneNumber, onVe
 
       <div className="mt-4 text-center">
         <p className="text-gray-400 mb-3">Didn't receive the code?</p>
-        <button onClick={onResend} className="text-nocenaBlue hover:text-white transition-colors">
+        <button onClick={onResend} className="text-nocena-blue hover:text-white transition-colors">
           Resend verification code
         </button>
       </div>
