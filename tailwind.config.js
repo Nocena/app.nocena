@@ -4,9 +4,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        nocenaBg: '#0A141D',
-        nocenaBlue: '#10CAFF',
-        nocenaPink: '#FD4EF5',
+        nocenaBg: '#000000',
+        nocenaBlue: '#2353FF',
+        nocenaPurple: '#6024FB',
+        nocenaPink: '#FF15C9',
       },
       fontFamily: {
         sans: ['Montserrat', 'sans-serif'],

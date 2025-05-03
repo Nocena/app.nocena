@@ -130,14 +130,14 @@ const HomeView = () => {
   // Show loading state while auth is being checked
   if (loading) {
     return (
-      <div className="bg-[#0A141D] text-white p-4 min-h-screen flex items-center justify-center">
+      <div className="text-white p-4 min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0A141D] text-white p-4 min-h-screen">
+    <div className="text-white p-4 min-h-screen">
       <div className="max-w-4xl mx-auto">
         {/* Challenge Type Tabs - always renders immediately */}
         <ChallengeHeader selectedTab={selectedTab} onTabChange={setSelectedTab} />

@@ -19,7 +19,7 @@ const PrimaryButton: React.FC<Props> = ({
 }) => {
   return (
     <div
-      className={`w-full h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+      className={`w-full h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
         disabled
           ? 'bg-gray-500 cursor-not-allowed'
           : isActive

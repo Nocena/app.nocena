@@ -4,11 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchUnreadNotificationsCount, markNotificationsAsRead } from '../../lib/api/dgraph';
 
 import Menu from './Menu';
-import ThematicText from '../ui/ThematicText';
-import ThematicIcon from '../ui/ThematicIcon';
-import { ThematicIconProps } from '../ui/ThematicIcon';
-import PageManager from '../PageManager';
 import MemoryOptimizer from '../MemoryOptimizer';
+import PageManager from '../PageManager';
+import TopNavbar from './TopNavbar';
+import BottomNavbar from './BottomNavbar';
+import VideoBackground from './BackgroundVideo';
 
 // Check if we're running in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -25,9 +25,6 @@ interface AppLayoutProps {
   handleLogout: () => void;
   children?: React.ReactNode;
 }
-
-// Cache common components to prevent recreating on each render
-const navIcons = ['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][];
 
 const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const startRenderTime = isBrowser ? performance.now() : 0;
@@ -199,23 +196,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
   const isSpecialPage = router.pathname === '/completing' || router.pathname === '/createchallenge';
 
-  // We'll pre-compute some values that are used in the render function
-  const pageTitle = (() => {
-    if (isUserProfile) return 'USER PROFILE';
-
-    const titles = [
-      'HOME',
-      'MAP',
-      'INBOX',
-      'SEARCH',
-      'PROFILE',
-      'COMPLETING CHALLENGE',
-      'USER PROFILE',
-      'CREATE CHALLENGE',
-    ];
-    return titles[currentIndex] || 'HOME';
-  })();
-
   // Memoized navigation handler to prevent unnecessary rerenders
   const handleNavClick = useCallback(
     async (index: number) => {
@@ -337,80 +317,68 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     logPerf(`AppLayout render completed in ${(performance.now() - startRenderTime).toFixed(2)}ms`);
   }
 
-  return (
-    <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
-      {/* Add the memory optimizer for background/foreground handling */}
-      <MemoryOptimizer />
+  // Determine if bottom navbar should be shown based on the current route
+  const showBottomNavbar = true;
 
-      {/* Top Navbar - with top safe area padding */}
-      <div
-        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg"
-        style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
-          height: 'calc(3rem + env(safe-area-inset-top))',
-        }}
-      >
-        <div className="flex items-center">
-          <button onClick={handleMenuToggle} className="z-50">
-            <ThematicIcon iconName="menu" isActive={isMenuOpen} />
-          </button>
-        </div>
-        <div className="flex-grow text-center">
-          <ThematicText text={pageTitle} isActive />
-        </div>
-        <div className="flex items-center">
-          <button onClick={() => handleNavClick(4)}>
-            <ThematicIcon 
-              iconName="profile" 
-              isActive={currentIndex === 4 && !isUserProfile && !isSpecialPage} 
-            />
-          </button>
-        </div>
-      </div>
+  console.log("Current path:", router.pathname);
+  console.log("showBottomNavbar:", showBottomNavbar);
 
-      {/* Side Menu - pass the new logout handler */}
-      <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
+// In your AppLayout.tsx file
 
-      {/* Main Content - conditionally use PageManager or children */}
-      <main
-        className="flex-grow pt-3"
-        style={{
-          marginTop: 'calc(3rem + env(safe-area-inset-top))',
-        }}
-      >
-        {usePageManager ? <PageManager /> : children}
-      </main>
+// 1. Make sure you update the BottomNavbar props interface to include className
+interface BottomNavbarProps {
+  currentIndex: number;
+  handleNavClick: (index: number) => Promise<void>;
+  unreadCount: number;
+  // Add className to the interface
+  className?: string;
+}
 
-      {/* Bottom Navbar - with bottom safe area padding */}
-      <div
-        className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocenaBg z-50 font-light"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
-        {navIcons.map((item, index) => (
-          <button
-            key={item}
-            onClick={() => handleNavClick(index)}
-            className={`relative text-center flex-grow p-2 ${
-              currentIndex === index && !isUserProfile && !isSpecialPage ? 'text-active' : 'text-white'
-            }`}
-          >
-            <ThematicIcon 
-              iconName={item} 
-              isActive={currentIndex === index && !isUserProfile && !isSpecialPage} 
-            />
+// Now your return statement can use the correct props
+return (
+  <div className="app-container min-h-screen w-full text-white flex flex-col relative">
+    {/* Add the video background first */}
+    <VideoBackground videoSrc="/AppBG.mp4" />
 
-            {item === 'inbox' && unreadCount > 0 && (
-              <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
-            )}
+    {/* Add the memory optimizer for background/foreground handling */}
+    <MemoryOptimizer />
 
-            <div className="mt-2 capitalize">{item}</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+    {/* Top Navbar - extracted to its own component */}
+    <TopNavbar
+      currentIndex={currentIndex}
+      isUserProfile={isUserProfile}
+      isSpecialPage={isSpecialPage}
+      handleMenuToggle={handleMenuToggle}
+      handleNavClick={handleNavClick}
+    />
+
+    {/* Side Menu - pass the new logout handler */}
+    <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
+
+    {/* Main Content - modified to remove spacing for map and special pages */}
+    <main
+      className={`flex-grow relative z-10 ${
+        router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
+      }`}
+      style={{
+        // Remove the margin-top for map and special pages
+        marginTop: router.pathname === '/map' || isSpecialPage ? 0 : 'env(safe-area-inset-top)',
+      }}
+    >
+      {usePageManager ? <PageManager /> : children}
+    </main>
+
+    {/* Bottom Navbar - using className instead of style */}
+    {showBottomNavbar && (
+      <BottomNavbar
+        currentIndex={currentIndex}
+        handleNavClick={handleNavClick}
+        unreadCount={unreadCount}
+        className="relative z-10"
+      />
+    )}
+  </div>
+);
 };
 
 export default AppLayout;
