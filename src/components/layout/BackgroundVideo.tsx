@@ -51,6 +51,7 @@ const BackgroundVideo: React.FC<VideoBackgroundProps> = ({ videoSrc }) => {
         loop
         playsInline
       />
+      <div className="absolute inset-0 bg-black opacity-60" />
     </div>
   );
 };

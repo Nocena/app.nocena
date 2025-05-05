@@ -383,7 +383,7 @@ const ProfileView: React.FC = () => {
   }, [dailyChallenges, weeklyChallenges, monthlyChallenges, monthNames]);
 
   return (
-    <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
+    <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden mt-16">
       <div className="absolute inset-0">
         <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
         <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>

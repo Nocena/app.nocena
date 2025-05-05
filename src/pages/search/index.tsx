@@ -423,7 +423,7 @@ const SearchView = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 text-white">
+    <div className="min-h-screen flex flex-col items-center p-4 text-white mt-20">
       {/* SearchBox Component */}
       <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={users} />
 

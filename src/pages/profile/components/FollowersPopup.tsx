@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import Popup from '../../../components/Popup';
+import ThematicContainer from '../../../components/ui/ThematicContainer';
 import ThematicImage from '../../../components/ui/ThematicImage';
 import ThematicText from '../../../components/ui/ThematicText';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
@@ -127,9 +127,6 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
     const fetchFollowers = async () => {
       setIsLoading(true);
       try {
-        // If we already have the user data in the currentUser's following/followers,
-        // we could use it here to avoid unnecessary API calls
-
         // Batch requests in groups of 5 to avoid overwhelming the server
         const batchSize = 5;
         const results: FollowerUser[] = [];
@@ -266,107 +263,129 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
     [isLoading, followerUsers.length],
   );
 
+  if (!isOpen) return null;
+
   return (
-    <Popup isOpen={isOpen} onClose={onClose} title={isFollowers ? 'Followers' : 'Following'}>
-      <div
-        ref={contentRef}
-        className="p-2 overflow-y-auto"
-        style={{
-          height: 'calc(90vh - 4rem)',
-          maxHeight: 'calc(90vh - 4rem)',
-          WebkitOverflowScrolling: 'touch',
-        }}
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+      <ThematicContainer
+        asButton={false}
+        color="nocenaBlue"
+        rounded="xl"
+        className="!p-0 max-w-lg w-full mx-4 max-h-[70vh] overflow-hidden"
       >
-        {isLoading && followerUsers.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <LoadingSpinner />
-          </div>
-        ) : showPartialResults && followerUsers.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            {isFollowers ? 'No followers yet' : 'Not following anyone yet'}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {followerUsers.map((userData) => {
-              // Use our getIsFollowing helper to check follow status
-              const isFollowing = getIsFollowing(userData.id);
-              const isCurrentUser = userData.id === currentUser?.id;
-              const isPending = pendingFollowActions.has(userData.id);
+        {/* Header */}
+        <div className="relative p-6 pb-3">
+          <h2 className="text-2xl font-bold text-center">{isFollowers ? 'Followers' : 'Following'}</h2>
+          
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-              return (
-                <div
-                  key={userData.id}
-                  className="w-full bg-nocenaBg/80 p-3 rounded-lg flex flex-col cursor-pointer overflow-hidden"
-                >
-                  <div className="flex items-center">
-                    <div
-                      className="flex items-center gap-3 flex-1 min-w-0"
-                      onClick={() => handleProfileRedirect(userData)}
-                    >
-                      <ThematicImage className="rounded-full flex-shrink-0">
-                        <Image
-                          src={userData.profilePicture || '/images/profile.png'}
-                          alt="Profile"
-                          width={96}
-                          height={96}
-                          className="w-10 h-10 object-cover rounded-full"
-                        />
-                      </ThematicImage>
+        {/* Content */}
+        <div
+          ref={contentRef}
+          className="px-6 overflow-y-auto"
+          style={{
+            height: 'calc(90vh - 8rem)', // Adjusted for header/footer
+            maxHeight: 'calc(90vh - 8rem)',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {isLoading && followerUsers.length === 0 ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : showPartialResults && followerUsers.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              {isFollowers ? 'No followers yet' : 'Not following anyone yet'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {followerUsers.map((userData) => {
+                // Use our getIsFollowing helper to check follow status
+                const isFollowing = getIsFollowing(userData.id);
+                const isCurrentUser = userData.id === currentUser?.id;
+                const isPending = pendingFollowActions.has(userData.id);
 
-                      <div className="flex-1 min-w-0 mr-2">
-                        <ThematicText
-                          text={userData.username}
-                          isActive={true}
-                          className="truncate text-left max-w-full text-sm font-medium"
-                        />
-                        <div className="flex items-center mt-0.5">
-                          <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
-                          <span className="text-xs ml-1 text-gray-400">{userData.earnedTokens}</span>
+                return (
+                  <div
+                    key={userData.id}
+                    className="py-3 cursor-pointer"
+                    onClick={() => handleProfileRedirect(userData)}
+                  >
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <ThematicImage className="rounded-full flex-shrink-0">
+                          <Image
+                            src={userData.profilePicture || '/images/profile.png'}
+                            alt="Profile"
+                            width={48}
+                            height={48}
+                            className="w-12 h-12 object-cover rounded-full"
+                          />
+                        </ThematicImage>
+
+                        <div className="flex-1 min-w-0 mr-2">
+                          <div className="text-lg font-bold truncate">{userData.username}</div>
+                          <div className="flex items-center mt-0.5">
+                            <Image src={nocenixIcon} alt="Nocenix" width={16} height={16} />
+                            <span className="text-sm ml-1 text-gray-400">{userData.earnedTokens} NOCENIX</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Follow Button - show for all users but disable for current user */}
-                    <div className="flex-shrink-0">
-                      <PrimaryButton
-                        text={
-                          isCurrentUser
-                            ? 'Your Profile'
-                            : isPending
-                              ? isFollowing
-                                ? 'Following...'
-                                : 'Following...'
-                              : isFollowing
-                                ? 'Following'
-                                : 'Follow'
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent profile navigation when clicking the button
-                          if (!isCurrentUser) handleFollow(userData.id);
-                        }}
-                        className="px-3 py-1 text-xs min-w-[5rem] h-8"
-                        isActive={!!isFollowing}
-                        disabled={isCurrentUser || isPending}
-                      />
+                      {/* Follow Button - using PrimaryButton */}
+                      <div className="flex-shrink-0">
+                        <PrimaryButton
+                          text={
+                            isCurrentUser
+                              ? 'Your Profile'
+                              : isPending
+                                ? isFollowing
+                                  ? 'Following...'
+                                  : 'Following...'
+                                : isFollowing
+                                  ? 'Following'
+                                  : 'Follow'
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent profile navigation when clicking the button
+                            if (!isCurrentUser) handleFollow(userData.id);
+                          }}
+                          className="px-4 py-1 text-sm min-w-[5rem] h-8"
+                          isActive={!!isFollowing}
+                          disabled={isCurrentUser || isPending}
+                        />
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+
+              {/* Show loading indicator at bottom when loading more */}
+              {isLoading && followerUsers.length > 0 && (
+                <div className="flex justify-center py-4">
+                  <LoadingSpinner size="sm" />
                 </div>
-              );
-            })}
+              )}
+            </div>
+          )}
+        </div>
 
-            {/* Show loading indicator at bottom when loading more */}
-            {isLoading && followerUsers.length > 0 && (
-              <div className="flex justify-center py-4">
-                <LoadingSpinner size="sm" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Pull down to close indicator */}
-        <div className="text-center text-xs text-gray-500 mt-3 mb-1">Pull down to close</div>
-      </div>
-    </Popup>
+        {/* Footer */}
+        <div className="text-center text-sm text-gray-400 py-4">
+          Pull down to close
+          <div className="mt-2 opacity-50">↓</div>
+        </div>
+      </ThematicContainer>
+    </div>
   );
 };
 

@@ -469,6 +469,7 @@ const InboxView = () => {
             username={notification.triggeredBy?.username ?? 'Unknown'}
             profilePicture={notification.triggeredBy?.profilePicture ?? '/images/profile.png'}
             id={notification.triggeredBy?.id}
+            notification={notification} // ADD this line!
           />
         );
       } else {
@@ -526,7 +527,7 @@ const InboxView = () => {
     <div
       id="inbox-page"
       ref={contentRef}
-      className="flex flex-col items-center w-full h-full max-w-md mx-auto overflow-y-auto"
+      className="flex flex-col items-center w-full h-full max-w-md mx-auto overflow-y-auto mt-20"
       style={{
         minHeight: '100%',
         paddingTop: `${pullDistance}px`, // Dynamic padding based on pull distance

@@ -38,8 +38,8 @@ const NAV_ITEMS = [
     name: 'Search', 
     icon: 'search',
     label: 'Search',
-    color: '#1F86FF',
-    gradientColor: '#5AA9FF'
+    color: '#2353FF',
+    gradientColor: '#002ED3'
   }
 ];
 
@@ -62,7 +62,7 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999]">
       <div className="flex justify-center items-center p-1 pb-3">
-        <div className="relative flex items-center justify-center p-1 rounded-full border border-white bg-white bg-opacity-50 backdrop-blur-md">
+        <div className="relative flex items-center justify-center p-1 rounded-full border border-white border-[1px] bg-white bg-opacity-10 backdrop-blur-md">
           {NAV_ITEMS.map((item, index, array) => {
             const isActive = currentIndex === index;
             const isFirst = index === 0;
@@ -131,7 +131,7 @@ function renderIcon(item: typeof NAV_ITEMS[0], unreadCount: number) {
             alt="Home" 
             width={32}
             height={32}
-            className="object-contain"
+            className="object-contain scale-150"
           />
         </div>
       );

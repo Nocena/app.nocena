@@ -74,7 +74,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
           width: 48px;
           height: 48px;
           border-radius: 50%;
-          background: linear-gradient(45deg, #FD4EF5, #10CAFF);
+          background: linear-gradient(45deg, #FF15C9, #6024FB, #2353FF);
           z-index: 2;
           animation: rotateGradient 4s linear infinite;
         "></div>

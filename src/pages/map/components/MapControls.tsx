@@ -43,7 +43,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   }
 
   return (
-    <div className="absolute bottom-4 right-4 flex flex-col space-y-2 z-10">
+    <div className="absolute bottom-24 right-4 flex flex-col space-y-2 z-10">
       {/* Recenter button - White with gradient arrow */}
       <button 
         onClick={onRecenter}
