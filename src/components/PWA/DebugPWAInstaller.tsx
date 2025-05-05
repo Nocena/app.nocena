@@ -170,7 +170,7 @@ const DebugPWAInstaller: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={handleInstallClick}
-              className="px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-500 text-white rounded-md font-medium"
+              className="px-4 py-2 bg-linear-to-r from-blue-400 to-purple-500 text-white rounded-md font-medium"
             >
               Install App
             </button>

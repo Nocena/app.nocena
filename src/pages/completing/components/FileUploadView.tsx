@@ -193,7 +193,7 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
             {videoDuration !== null && (
               <span
                 className={`px-2 py-1 rounded text-xs font-medium ${
-                  durationValid ? 'bg-green-500 bg-opacity-30 text-green-200' : 'bg-red-500 bg-opacity-30 text-red-200'
+                  durationValid ? 'bg-green-500/30 text-green-200' : 'bg-red-500/30 text-red-200'
                 }`}
               >
                 {formatDuration(videoDuration)}
@@ -209,10 +209,10 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
 
               {/* Duration validation banner */}
               {videoDuration !== null && !durationValid && (
-                <div className="px-4 py-3 rounded-lg text-sm bg-red-900 bg-opacity-40 text-red-200 border border-red-700 mb-4 flex items-center mt-2">
+                <div className="px-4 py-3 rounded-lg text-sm bg-red-900/40 text-red-200 border border-red-700 mb-4 flex items-center mt-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2 flex-shrink-0"
+                    className="h-5 w-5 mr-2 shrink-0"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -253,7 +253,7 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
                       />
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-black bg-opacity-60 rounded-full flex items-center justify-center">
+                      <div className="w-16 h-16 bg-black/60 rounded-full flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
                           <polygon points="5,3 19,12 5,21" />
                         </svg>
@@ -397,7 +397,7 @@ const FileUploadView: React.FC<FileUploadViewProps> = ({ onFilesSelected, onCanc
         </div>
 
         {error && (
-          <div className="bg-red-900 bg-opacity-40 p-3 rounded-lg mt-4 mb-4 text-red-200 border border-red-800">
+          <div className="bg-red-900/40 p-3 rounded-lg mt-4 mb-4 text-red-200 border border-red-800">
             {error}
           </div>
         )}

@@ -28,36 +28,36 @@ const RegisterWalletCreationStep = ({ wallet }: Props) => {
 
   return (
     <>
-      <div className="space-y-4 mb-4">
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
+      <div className="mb-4 space-y-4">
+        <div className="rounded-lg bg-gray-800 p-4">
+          <div className="mb-2 flex items-center justify-between">
             <label className="text-sm text-gray-400">Public Address</label>
             <button
               onClick={() => wallet && copyToClipboard(wallet.address, 'address')}
-              className="text-xs text-nocenaBlue"
+              className="text-nocena-blue text-xs"
             >
               {copiedAddress ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.address}</p>
+          <p className="rounded-sm bg-gray-900 p-2 font-mono text-sm break-all">{wallet?.address}</p>
         </div>
 
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
+        <div className="rounded-lg bg-gray-800 p-4">
+          <div className="mb-2 flex items-center justify-between">
             <label className="text-sm text-gray-400">Private Key</label>
             <button
               onClick={() => wallet && copyToClipboard(wallet.privateKey, 'privateKey')}
-              className="text-xs text-nocenaBlue"
+              className="text-nocena-blue text-xs"
             >
               {copiedPrivateKey ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <p className="text-sm font-mono break-all bg-gray-900 p-2 rounded">{wallet?.privateKey}</p>
+          <p className="rounded-sm bg-gray-900 p-2 font-mono text-sm break-all">{wallet?.privateKey}</p>
         </div>
 
-        <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 p-4 rounded-lg text-yellow-400 text-sm">
-          <p className="font-bold mb-1">⚠️ Important</p>
-          <ul className="list-disc pl-5 space-y-1">
+        <div className="rounded-lg border border-yellow-600 bg-yellow-900/30 p-4 text-sm text-yellow-400">
+          <p className="mb-1 font-bold">⚠️ Important</p>
+          <ul className="list-disc space-y-1 pl-5">
             <li>This information will only be shown once.</li>
             <li>Save your private key in a secure place.</li>
             <li>Never share your private key with anyone.</li>

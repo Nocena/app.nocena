@@ -12,17 +12,17 @@ const ThematicText: React.FC<ThematicTextProps> = ({ text, isActive = false }) =
       {/* Glitch Effect */}
       {isActive && (
         <>
-          <span className="absolute top-[-1px] left-0 text-nocenaPink font-thematic uppercase animate-glitchPink">
+          <span className="text-nocena-pink font-thematic animate-glitch-pink absolute top-[-1px] left-0 uppercase">
             {text}
           </span>
-          <span className="absolute top-[1px] left-0 text-nocenaBlue font-thematic uppercase animate-glitchBlue">
+          <span className="text-nocena-blue font-thematic animate-glitch-blue absolute top-[1px] left-0 uppercase">
             {text}
           </span>
         </>
       )}
       {/* Thematic Text */}
       <span
-        className={`relative text-white font-thematic uppercase transition-all duration-300 ${
+        className={`font-thematic relative text-white uppercase transition-all duration-300 ${
           isActive ? 'opacity-100' : 'opacity-70'
         }`}
       >

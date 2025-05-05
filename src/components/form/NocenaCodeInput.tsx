@@ -40,7 +40,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
       handleFocusNextInput(index - 1);
     }
   };
-  
+
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text').replace(redexReplace, '').toUpperCase();
@@ -53,9 +53,9 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
   };
 
   const getInputColor = (index: number, isFilled: boolean) => {
-    if (!isFilled) return 'nocenaBlue';
-    if (index < 3) return 'nocenaPurple';
-    return 'nocenaPink';
+    if (!isFilled) return 'nocena-blue';
+    if (index < 3) return 'nocena-purple';
+    return 'nocena-pink';
   };
 
   return (
@@ -66,7 +66,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
           asButton={false}
           color={getInputColor(index, !!value)}
           // Remove isActive prop to keep the gradient background
-          className={`w-10 h-14 m-1 ${index === 2 ? 'mr-4' : ''} !rounded-xl`}
+          className={`m-1 h-14 w-10 ${index === 2 ? 'mr-4' : ''} rounded-xl!`}
         >
           <input
             ref={(el) => {
@@ -78,7 +78,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
             onChange={(e) => handleChange(e.target.value, index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             onPaste={index === 0 ? handlePaste : undefined}
-            className="w-full h-full text-2xl text-center bg-transparent border-0 focus:outline-none text-white"
+            className="h-full w-full border-0 bg-transparent text-center text-2xl text-white focus:outline-hidden"
             disabled={loading}
           />
         </ThematicContainer>

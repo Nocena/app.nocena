@@ -17,7 +17,7 @@ const PasswordInput = ({ control, label, name, placeholder }: NocenaInputProps) 
       control={control}
       render={({ field, fieldState }) => (
         <div className="mb-3">
-          <label htmlFor={name} className="block mb-1">
+          <label htmlFor={name} className="mb-1 block">
             {label}
           </label>
           <div className="relative">
@@ -26,15 +26,15 @@ const PasswordInput = ({ control, label, name, placeholder }: NocenaInputProps) 
               {...field}
               type={showPassword ? 'text' : 'password'}
               placeholder={placeholder}
-              className="w-full block px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="block w-full rounded-2xl border border-gray-600 bg-gray-700 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute inset-y-0 end-0 flex items-center z-20 px-3 cursor-pointer text-white rounded-e-md focus:outline-none focus:text-nocenaBlue"
+              className="focus:text-nocena-blue absolute inset-y-0 end-0 z-20 flex cursor-pointer items-center rounded-e-md px-3 text-white focus:outline-hidden"
             >
               <svg
-                className="shrink-0 size-3.5"
+                className="size-3.5 shrink-0"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -62,7 +62,7 @@ const PasswordInput = ({ control, label, name, placeholder }: NocenaInputProps) 
               </svg>
             </button>
           </div>
-          {fieldState.error ? <p className="text-sm text-red-600 mt-2">{fieldState.error.message}</p> : null}
+          {fieldState.error ? <p className="mt-2 text-sm text-red-600">{fieldState.error.message}</p> : null}
         </div>
       )}
     />

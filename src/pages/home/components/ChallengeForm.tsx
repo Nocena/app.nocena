@@ -18,7 +18,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
   return (
     <ThematicContainer
       asButton={false}
-      color="nocenaBlue"
+      color="nocena-blue"
       rounded="xl"
       className="px-12 py-8"
     >
@@ -33,7 +33,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
 
         <ThematicContainer
           asButton={false}
-          color="nocenaPink"
+          color="nocena-pink"
           className="px-4 py-1"
         >
           <div className="flex items-center space-x-1">

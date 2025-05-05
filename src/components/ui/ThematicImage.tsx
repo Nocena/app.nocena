@@ -7,7 +7,7 @@ export interface ThematicImageProps {
 
 const ThematicImage: React.FC<ThematicImageProps> = ({ className = '', children }) => {
   return (
-    <div className={`relative inline-block rounded-full border-[1px] border-nocenaPink p-1 ${className}`}>
+    <div className={`border-nocena-pink relative inline-block rounded-full border-[1px] p-1 ${className}`}>
       {children}
     </div>
   );

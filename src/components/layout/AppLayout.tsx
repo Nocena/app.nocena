@@ -357,7 +357,7 @@ return (
 
     {/* Main Content - modified to remove spacing for map and special pages */}
     <main
-      className={`flex-grow relative z-10 ${
+      className={`grow relative z-10 ${
         router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
       }`}
       style={{

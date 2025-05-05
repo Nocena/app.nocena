@@ -1,100 +1,195 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-body {
-  @apply font-sans;
+@theme {
+  --color-nocena-bg: #000000;
+  --color-nocena-blue: #2353ff;
+  --color-nocena-purple: #6024fb;
+  --color-nocena-pink: #ff15c9;
+
+  --font-sans: Montserrat, sans-serif;
+  --font-thematic: 'Montserrat Alt 1', sans-serif;
+
+  --animate-glitch-pink: glitchPink 1s infinite;
+  --animate-glitch-blue: glitchBlue 1s infinite;
+  --animate-fade-in: fadeIn 0.5s ease-in;
+
+  @keyframes glitchPink {
+    0%,
+    100% {
+      transform: translate(0, 0);
+      opacity: 1;
+    }
+    20% {
+      transform: translate(-2px, -2px);
+      opacity: 0.9;
+    }
+    40% {
+      transform: translate(2px, 2px);
+      opacity: 0.8;
+    }
+    60% {
+      transform: translate(-1px, 1px);
+      opacity: 0.9;
+    }
+    80% {
+      transform: translate(1px, -1px);
+      opacity: 0.8;
+    }
+  }
+  @keyframes glitchBlue {
+    0%,
+    100% {
+      transform: translate(0, 0);
+      opacity: 1;
+    }
+    20% {
+      transform: translate(2px, 2px);
+      opacity: 0.9;
+    }
+    40% {
+      transform: translate(-2px, -2px);
+      opacity: 0.8;
+    }
+    60% {
+      transform: translate(1px, -1px);
+      opacity: 0.9;
+    }
+    80% {
+      transform: translate(-1px, 1px);
+      opacity: 0.8;
+    }
+  }
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 }
 
-@font-face {
-  font-family: 'Montserrat Alt 1';
-  src: url('/fonts/MontserratAlt1-Light.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
 }
 
-@keyframes progressBar {
-  0% { width: 0%; }
-  20% { width: 25%; }
-  50% { width: 60%; }
-  80% { width: 85%; }
-  100% { width: 100%; }
+@utility bg-nocena-bg {
+  /* Video background utilities */
+  @apply bg-transparent!;
 }
 
-.animate-progressBar {
-  animation: progressBar 0.6s ease-in-out forwards;
-  width: 0%;
+@utility min-h-screen-ios {
+  /* Fix for iOS height issues */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
-/* Base popup styles */
-.maplibregl-popup-content {
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+@utility z-content {
+  /* Content z-indexing */
+  @apply relative z-10;
 }
 
-/* Hide the popup triangle/tip */
-.maplibregl-popup-tip {
-  display: none !important;
-}
-
-/* Ensure proper stacking order */
-.maplibregl-marker {
-  z-index: 1;
-  will-change: transform;
-  backface-visibility: hidden;
-}
-
-.maplibregl-popup {
-  z-index: 200;
-}
-
-.react-tel-input .selected-flag {
-  background-color: #1f2937 !important;
-}
-
-.react-tel-input .selected-flag:hover,
-.react-tel-input .selected-flag:focus {
-  background-color: #1f2937 !important;
-}
-
-.react-tel-input .country-list .country.highlight,
-.react-tel-input .country-list .country:hover {
-  background-color: #374151 !important;
-}
-
-.react-tel-input .country-list .country {
-  background-color: #111827 !important;
-  color: white !important;
-}
-
-.react-tel-input .country-list {
-  background-color: #111827 !important;
-  color: white !important;
-  border: 1px solid #374151 !important;
+@utility video-overlay {
+  /* Video overlay for better text readability */
+  @apply after:absolute after:inset-0 after:bg-black/20 after:pointer-events-none;
 }
 
 @layer utilities {
-  /* Video background utilities */
-  .bg-nocenaBg {
-    @apply bg-transparent !important;
+  body {
+    @apply font-sans;
   }
-  
-  /* Fix for iOS height issues */
-  .min-h-screen-ios {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
+
+  @font-face {
+    font-family: 'Montserrat Alt 1';
+    src: url('/fonts/MontserratAlt1-Light.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
   }
-  
-  /* Content z-indexing */
-  .z-content {
-    @apply relative z-10;
+
+  @keyframes progressBar {
+    0% {
+      width: 0%;
+    }
+    20% {
+      width: 25%;
+    }
+    50% {
+      width: 60%;
+    }
+    80% {
+      width: 85%;
+    }
+    100% {
+      width: 100%;
+    }
   }
-  
-  /* Video overlay for better text readability */
-  .video-overlay {
-    @apply after:absolute after:inset-0 after:bg-black/20 after:pointer-events-none;
+
+  .animate-progressBar {
+    animation: progressBar 0.6s ease-in-out forwards;
+    width: 0%;
+  }
+
+  /* Base popup styles */
+  .maplibregl-popup-content {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide the popup triangle/tip */
+  .maplibregl-popup-tip {
+    display: none !important;
+  }
+
+  /* Ensure proper stacking order */
+  .maplibregl-marker {
+    z-index: 1;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .maplibregl-popup {
+    z-index: 200;
+  }
+
+  .react-tel-input .selected-flag {
+    background-color: #1f2937 !important;
+  }
+
+  .react-tel-input .selected-flag:hover,
+  .react-tel-input .selected-flag:focus {
+    background-color: #1f2937 !important;
+  }
+
+  .react-tel-input .country-list .country.highlight,
+  .react-tel-input .country-list .country:hover {
+    background-color: #374151 !important;
+  }
+
+  .react-tel-input .country-list .country {
+    background-color: #111827 !important;
+    color: white !important;
+  }
+
+  .react-tel-input .country-list {
+    background-color: #111827 !important;
+    color: white !important;
+    border: 1px solid #374151 !important;
   }
 }
 
@@ -105,5 +200,5 @@ body {
 
 /* Ensure app container is always transparent to show video */
 .app-container {
-  @apply bg-transparent !important;
+  @apply bg-transparent!;
 }

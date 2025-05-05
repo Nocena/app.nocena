@@ -31,19 +31,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
       {/* Menu button - rotated 180 degrees */}
       <button 
         onClick={handleMenuToggle} 
-        className="focus:outline-none p-2 pointer-events-auto transform rotate-180"
+        className="focus:outline-hidden p-2 pointer-events-auto transform rotate-180"
         aria-label="Menu"
       >
         <MenuIcon />
       </button>
       
       {/* Empty middle section */}
-      <div className="flex-grow"></div>
+      <div className="grow"></div>
       
       {/* Profile button with glassmorphic background */}
       <button 
         onClick={() => handleNavClick(4)}
-        className="focus:outline-none p-2 pointer-events-auto"
+        className="focus:outline-hidden p-2 pointer-events-auto"
         aria-label="Profile"
       >
         <div 

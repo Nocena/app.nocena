@@ -234,13 +234,13 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
   return (
     <>
       {blocked ? (
-        <div className="text-center p-6 bg-red-900 bg-opacity-30 border border-red-800 rounded-lg w-full mb-6">
-          <p className="text-lg mb-2">Too many failed attempts</p>
+        <div className="mb-6 w-full rounded-lg border border-red-800 bg-red-900/30 p-6 text-center">
+          <p className="mb-2 text-lg">Too many failed attempts</p>
           <p>Please try again in {countdown}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="w-full">
-          <div className={`flex justify-center mb-6 ${shake ? 'animate-shake' : ''}`}>
+          <div className={`mb-6 flex justify-center ${shake ? 'animate-shake' : ''}`}>
             {code.map((char, index) => (
               <input
                 key={index}
@@ -253,34 +253,30 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
                 onChange={(e) => handleChange(e.target.value, index)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
-                  ${
-                    index < 3
-                      ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-                      : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
-                  }
-                  ${index === 2 ? 'mr-4' : ''}
-                `}
+                className={`focus:ring-opacity-50 m-1 h-12 w-12 rounded-lg border bg-gray-800 text-center text-2xl focus:ring-2 focus:outline-hidden ${
+                  index < 3
+                    ? 'text-nocena-pink border-nocena-pink focus:ring-nocena-pink'
+                    : 'text-nocena-blue border-nocena-blue focus:ring-nocena-blue'
+                } ${index === 2 ? 'mr-4' : ''} `}
                 disabled={loading}
               />
             ))}
           </div>
 
-          {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+          {error && <p className="mb-4 text-center text-sm text-red-500">{error}</p>}
 
           <div className="mb-6">
             <PrimaryButton
               text={loading ? 'Verifying...' : 'Continue'}
               onClick={handleSubmit}
               disabled={code.some((c) => !c) || loading}
-              className="w-full"
             />
           </div>
         </form>
       )}
 
-      <div className="mt-4 flex items-center flex-col text-center">
-        <p className="text-gray-400 mb-3">
+      <div className="mt-4 flex flex-col items-center text-center">
+        <p className="mb-3 text-gray-400">
           Don't have an invite code? You can get one on our Discord server after completing short quiz in our
           invite-codes channel.
         </p>
@@ -289,7 +285,7 @@ const InviteCodeInput: React.FC<InviteCodeInputProps> = ({ onValidCode }) => {
 
       <div className="mt-6 text-center">
         Already have an account?
-        <Link href="/login" className="ml-1 text-nocenaBlue cursor-pointer">
+        <Link href="/login" className="text-nocena-blue ml-1 cursor-pointer">
           Login
         </Link>
       </div>

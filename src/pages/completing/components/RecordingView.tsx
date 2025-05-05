@@ -33,7 +33,7 @@ const RecordingView: React.FC<RecordingViewProps> = ({
 
   return (
     <div className="w-full flex flex-col items-center relative mb-10">
-      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-4">
+      <div className="relative w-full aspect-3/4 rounded-lg overflow-hidden mb-4">
         {/* Add key prop to force re-render */}
         <video
           ref={videoRef}
@@ -45,13 +45,13 @@ const RecordingView: React.FC<RecordingViewProps> = ({
         />
 
         {/* Recording indicator */}
-        <div className="absolute top-4 left-4 flex items-center bg-black bg-opacity-60 rounded-full px-3 py-1">
+        <div className="absolute top-4 left-4 flex items-center bg-black/60 rounded-full px-3 py-1">
           <div className="w-3 h-3 bg-red-500 rounded-full mr-2 animate-pulse"></div>
           <span className="text-white text-sm">{recordingTime}s</span>
         </div>
 
         {/* Guidance overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 p-2">
+        <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2">
           <p className="text-white text-center text-sm">{description}</p>
         </div>
       </div>

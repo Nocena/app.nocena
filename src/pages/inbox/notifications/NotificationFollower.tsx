@@ -65,7 +65,7 @@ const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, p
   return (
     <ThematicContainer
       asButton={false}
-      color="nocenaBlue"
+      color="nocena-blue"
       rounded="xl"
       className="w-full max-w-lg px-6 py-2 cursor-pointer hover:brightness-110 transition-all relative"
       onClick={handleProfileRedirect}
@@ -95,7 +95,7 @@ const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, p
           <div className="absolute top-2 right-6 transform translate-y-[-100%]">
             <ThematicContainer
               asButton={false}
-              color="nocenaBlue"
+              color="nocena-blue"
               isActive={true}
               className="text-xs font-medium px-4"
               rounded="xl"

@@ -269,9 +269,9 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
       <ThematicContainer
         asButton={false}
-        color="nocenaBlue"
+        color="nocena-blue"
         rounded="xl"
-        className="!p-0 max-w-lg w-full mx-4 max-h-[70vh] overflow-hidden"
+        className="p-0! max-w-lg w-full mx-4 max-h-[70vh] overflow-hidden"
       >
         {/* Header */}
         <div className="relative p-6 pb-3">
@@ -322,7 +322,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
                   >
                     <div className="flex items-center">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <ThematicImage className="rounded-full flex-shrink-0">
+                        <ThematicImage className="rounded-full shrink-0">
                           <Image
                             src={userData.profilePicture || '/images/profile.png'}
                             alt="Profile"
@@ -342,7 +342,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
                       </div>
 
                       {/* Follow Button - using PrimaryButton */}
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <PrimaryButton
                           text={
                             isCurrentUser
@@ -359,7 +359,8 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
                             e.stopPropagation(); // Prevent profile navigation when clicking the button
                             if (!isCurrentUser) handleFollow(userData.id);
                           }}
-                          className="px-4 py-1 text-sm min-w-[5rem] h-8"
+                          className="min-w-[5rem]"
+                          size="sm"
                           isActive={!!isFollowing}
                           disabled={isCurrentUser || isPending}
                         />

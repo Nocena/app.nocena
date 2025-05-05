@@ -18,7 +18,7 @@ const PhoneInput = ({ control, name, label, placeholder, required, ...rest }: Pr
       rules={{ required: true }}
       render={({ field: { ref, ...field }, fieldState }) => (
         <div className="mb-3">
-          <label htmlFor={name} className="block mb-1">
+          <label htmlFor={name} className="mb-1 block">
             {label}
           </label>
           <ReactPhoneInput
@@ -63,13 +63,13 @@ const PhoneInput = ({ control, name, label, placeholder, required, ...rest }: Pr
               borderRadius: '0',
             }}
             containerClass="w-full"
-            dropdownClass="!bg-gray-900 !text-white"
-            searchClass="!bg-gray-800 !text-white !border-gray-700"
+            dropdownClass="bg-gray-900! text-white!"
+            searchClass="bg-gray-800! text-white! border-gray-700!"
             containerStyle={{
               width: '100%',
             }}
           />
-          {fieldState.error ? <p className="text-sm text-red-600 mt-2">{fieldState.error.message}</p> : null}
+          {fieldState.error ? <p className="mt-2 text-sm text-red-600">{fieldState.error.message}</p> : null}
         </div>
       )}
     />

@@ -103,7 +103,7 @@ const LoginPage = () => {
       <div className="text-center">
         <p>
           Don't have an account?{' '}
-          <Link href="/register" className="text-nocenaBlue cursor-pointer">
+          <Link href="/register" className="text-nocena-blue cursor-pointer">
             Create Account
           </Link>
         </p>

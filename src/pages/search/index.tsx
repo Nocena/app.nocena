@@ -352,11 +352,11 @@ const SearchView = () => {
       return (
         <div
           key={userData.id}
-          className="w-full bg-nocenaBg/80 py-3 px-3 rounded-lg flex flex-col cursor-pointer overflow-hidden transition-all hover:bg-nocenaBg"
+          className="w-full bg-nocena-bg/80 py-3 px-3 rounded-lg flex flex-col cursor-pointer overflow-hidden transition-all hover:bg-nocena-bg"
         >
           <div className="flex items-center">
             <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => handleProfileRedirect(userData)}>
-              <ThematicImage className="rounded-full flex-shrink-0">
+              <ThematicImage className="rounded-full shrink-0">
                 <Image
                   src={userData.profilePicture || '/images/profile.png'}
                   alt="Profile"
@@ -380,7 +380,7 @@ const SearchView = () => {
             </div>
 
             {/* Follow Button */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <PrimaryButton
                 text={
                   isCurrentUser
@@ -397,7 +397,8 @@ const SearchView = () => {
                   e.stopPropagation(); // Prevent profile navigation when clicking the button
                   if (!isCurrentUser) handleFollow(userData.id);
                 }}
-                className="px-3 py-1 text-xs min-w-[5rem] h-8"
+                className="min-w-[5rem]"
+                size="sm"
                 isActive={!!isFollowing}
                 disabled={isCurrentUser || isPending}
               />

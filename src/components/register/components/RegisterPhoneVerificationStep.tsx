@@ -27,7 +27,7 @@ const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend
 
   return (
     <>
-      <div className={`flex justify-center mb-6 ${error ? 'animate-shake' : ''}`}>
+      <div className={`mb-6 flex justify-center ${error ? 'animate-shake' : ''}`}>
         <Controller
           name={INPUT_NAME}
           control={control}
@@ -41,7 +41,7 @@ const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend
       </div>
 
       {customError || error ? (
-        <p className="text-red-500 text-sm mb-4 text-center">{customError || error?.message}</p>
+        <p className="mb-4 text-center text-sm text-red-500">{customError || error?.message}</p>
       ) : null}
 
       <div className="mb-6">
@@ -49,13 +49,12 @@ const RegisterPhoneVerificationStep = ({ control, customError, loading, onResend
           text={loading ? 'Verifying...' : 'Verify'}
           type="submit"
           disabled={verificationCode.some((c) => !c) || loading}
-          className="w-full"
         />
       </div>
 
       <div className="mt-4 text-center">
-        <p className="text-gray-400 mb-3">Didn't receive the code?</p>
-        <button onClick={onResend} className="text-nocenaBlue hover:text-white transition-colors">
+        <p className="mb-3 text-gray-400">Didn't receive the code?</p>
+        <button onClick={onResend} className="text-nocena-blue transition-colors hover:text-white">
           Resend verification code
         </button>
       </div>

@@ -21,12 +21,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
       <PasswordInput control={control} name="password" label="Password" placeholder="Enter password" />
 
       <div className="mb-3">
-        <PrimaryButton
-          text={loading ? 'Processing...' : 'Continue'}
-          onClick={setStep}
-          disabled={loading}
-          className="w-full"
-        />
+        <PrimaryButton text={loading ? 'Processing...' : 'Continue'} onClick={setStep} disabled={loading} />
       </div>
     </>
   );

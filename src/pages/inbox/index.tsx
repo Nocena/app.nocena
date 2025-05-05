@@ -47,8 +47,8 @@ const NotificationSkeleton = () => (
     <div className="flex items-center space-x-4">
       <div className="h-12 w-12 bg-gray-700 rounded-full"></div>
       <div className="flex-1">
-        <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+        <div className="h-4 bg-gray-700 rounded-sm w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-700 rounded-sm w-1/2"></div>
       </div>
     </div>
   </div>

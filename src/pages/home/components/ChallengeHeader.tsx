@@ -13,13 +13,13 @@ const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ selectedTab, onTabCha
   const getButtonColor = (tab: ChallengeType) => {
     switch (tab) {
       case 'daily':
-        return 'nocenaPink';
+        return 'nocena-pink';
       case 'weekly':
-        return 'nocenaPurple';
+        return 'nocena-purple';
       case 'monthly':
-        return 'nocenaBlue';
+        return 'nocena-blue';
       default:
-        return 'nocenaBlue';
+        return 'nocena-blue';
     }
   };
 

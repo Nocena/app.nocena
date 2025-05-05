@@ -190,13 +190,13 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
   return (
     <>
       {blocked ? (
-        <div className="text-center p-6 bg-red-900 bg-opacity-30 border border-red-800 rounded-lg w-full mb-6">
-          <p className="text-lg mb-2">Too many failed attempts</p>
+        <div className="mb-6 w-full rounded-lg border border-red-800 bg-red-900/30 p-6 text-center">
+          <p className="mb-2 text-lg">Too many failed attempts</p>
           <p>Please try again in {countdown}</p>
         </div>
       ) : (
         <>
-          <div className={`flex justify-center mb-6 ${shake ? 'animate-shake' : ''}`}>
+          <div className={`mb-6 flex justify-center ${shake ? 'animate-shake' : ''}`}>
             <Controller
               name="inviteCode"
               control={control}
@@ -205,21 +205,20 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
               )}
             />
           </div>
-          {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+          {error && <p className="mb-4 text-center text-sm text-red-500">{error}</p>}
 
           <div className="mb-6">
             <PrimaryButton
               text={loading ? 'Verifying...' : 'Continue'}
               onClick={handleSubmit}
               disabled={invitationCode.some((c) => !c) || loading}
-              className="w-full"
             />
           </div>
         </>
       )}
 
-      <div className="mt-4 flex items-center flex-col text-center">
-        <p className="text-gray-400 mb-3">
+      <div className="mt-4 flex flex-col items-center text-center">
+        <p className="mb-3 text-gray-400">
           Don't have an invite code? You can get one on our Discord server after completing short quiz in our
           invite-codes channel.
         </p>
@@ -228,7 +227,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
 
       <div className="mt-6 text-center">
         Already have an account?
-        <Link href="/login" className="ml-1 text-nocenaBlue cursor-pointer">
+        <Link href="/login" className="text-nocena-blue ml-1 cursor-pointer">
           Login
         </Link>
       </div>

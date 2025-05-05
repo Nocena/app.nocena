@@ -41,7 +41,7 @@ const AndroidPWAPrompt: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-400 to-purple-500 p-4 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-r from-blue-400 to-purple-500 p-4 shadow-lg">
       <div className="flex items-center justify-between text-white">
         <div>
           <strong className="text-lg">Install Nocena</strong>
@@ -49,7 +49,7 @@ const AndroidPWAPrompt: React.FC = () => {
         </div>
         <button
           onClick={handleDismiss}
-          className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full"
+          className="p-2 hover:bg-white/20 rounded-full"
           aria-label="Close"
         >
           <svg

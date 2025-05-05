@@ -84,7 +84,7 @@ const MapControls: React.FC<MapControlsProps> = ({
         onClick={handleCreateChallenge}
         className={`w-14 h-14 rounded-full ${
           userLocation 
-            ? 'bg-gradient-to-r from-nocenaBlue to-nocenaPink' 
+            ? 'bg-linear-to-r from-nocena-blue to-nocena-pink' 
             : 'bg-gray-500'
         } text-white flex items-center justify-center shadow-lg`}
         aria-label="Create a challenge at your location"

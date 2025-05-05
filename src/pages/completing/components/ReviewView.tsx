@@ -102,7 +102,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
       <div className="w-full mb-4 relative">
         <video
           ref={videoRef}
-          className="w-full aspect-[3/4] object-cover rounded-lg"
+          className="w-full aspect-3/4 object-cover rounded-lg"
           controls
           playsInline
           autoPlay={false}
@@ -110,7 +110,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
 
         {/* Play button overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black bg-opacity-40 rounded-full p-4">
+          <div className="bg-black/40 rounded-full p-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" viewBox="0 0 20 20" fill="white">
               <path
                 fillRule="evenodd"
@@ -146,7 +146,7 @@ const ReviewView: React.FC<ReviewViewProps> = ({
 
       {/* Display debugging info in development */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="w-full mb-3 p-2 bg-gray-900 text-white text-xs rounded">
+        <div className="w-full mb-3 p-2 bg-gray-900 text-white text-xs rounded-sm">
           <div>Selfie URL: {selfieUrl ? '✓' : '✗'}</div>
           <div>Selfie Loaded: {selfieLoaded ? '✓' : '✗'}</div>
           <div>Selfie Error: {selfieError ? '✓' : '✗'}</div>

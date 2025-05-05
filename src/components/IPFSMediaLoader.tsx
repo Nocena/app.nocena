@@ -262,7 +262,7 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({ videoUrl, selfieUrl, 
     <div className={`ipfs-media-container relative ${className}`}>
       {/* Video Section */}
       {videoUrl && (
-        <div className="video-container relative bg-black rounded-lg overflow-hidden aspect-[3/4] w-full">
+        <div className="video-container relative bg-black rounded-lg overflow-hidden aspect-3/4 w-full">
           {videoLoading && !videoError && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
@@ -309,7 +309,7 @@ const IPFSMediaLoader: React.FC<IPFSMediaLoaderProps> = ({ videoUrl, selfieUrl, 
                   onClick={togglePlayPause}
                 >
                   {!isPlaying && (
-                    <div className="w-20 h-20 rounded-full bg-black bg-opacity-60 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-black/60 flex items-center justify-center">
                       <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>

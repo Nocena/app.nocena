@@ -60,9 +60,9 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999]">
+    <div className="fixed bottom-0 left-0 right-0 z-9999">
       <div className="flex justify-center items-center p-1 pb-3">
-        <div className="relative flex items-center justify-center p-1 rounded-full border border-white border-[1px] bg-white bg-opacity-10 backdrop-blur-md">
+        <div className="relative flex items-center justify-center p-1 rounded-full border border-white border-[1px] bg-white/10 backdrop-blur-md">
           {NAV_ITEMS.map((item, index, array) => {
             const isActive = currentIndex === index;
             const isFirst = index === 0;

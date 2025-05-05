@@ -380,7 +380,7 @@ const OtherProfileView: React.FC = () => {
     if (!user) return null;
 
     return monthNames.map((month, index) => (
-      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
+      <div key={index} className={`w-[200px] shrink-0 flex flex-col items-center justify-center`}>
         <div
           className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
         >
@@ -466,7 +466,7 @@ const OtherProfileView: React.FC = () => {
               isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
             }
             onClick={handleFollowToggle}
-            className="px-6 py-2 mb-2"
+            className="mb-2"
             isActive={!!isFollowing}
             disabled={isPendingFollow || !currentUser}
           />
@@ -474,7 +474,6 @@ const OtherProfileView: React.FC = () => {
           <PrimaryButton 
             text="Challenge Me" 
             onClick={handleChallengeClick} 
-            className="px-6 py-2" 
             disabled={!currentUser || currentUser.id === user.id}
           />
         </div>

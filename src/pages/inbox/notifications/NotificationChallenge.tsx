@@ -80,7 +80,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
   return (
     <ThematicContainer
       asButton={false}
-      color="nocenaPink"
+      color="nocena-pink"
       rounded="xl"
       className="w-full max-w-lg px-6 py-2 cursor-pointer hover:brightness-110 transition-all relative"
       onClick={handleCardClick}
@@ -112,7 +112,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
             <div className="absolute -top-8 right-0 transform translate-y-[-100%]">
               <ThematicContainer
                 asButton={false}
-                color="nocenaBlue"
+                color="nocena-blue"
                 isActive={true}
                 className="text-xs font-medium px-4"
                 rounded="xl"
@@ -124,7 +124,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
           
           <ThematicContainer
             asButton={false}
-            color="nocenaPink"
+            color="nocena-pink"
             className="px-4 py-1"
           >
             <div className="flex items-center space-x-1">

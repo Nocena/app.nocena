@@ -39,7 +39,7 @@ const IOSPWAPrompt: React.FC = () => {
   return (
     <div className="fixed top-0 left-0 right-0 bg-black text-white z-50 shadow-lg p-4">
       <div className="flex items-start">
-        <div className="flex-grow">
+        <div className="grow">
           <p className="font-bold text-base mb-1">Install Nocena App</p>
           <p className="text-sm opacity-90">
             To get the full experience without the browser you should install this app on your iPhone: tap

@@ -148,7 +148,7 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
           placeholder="Name of the challenge"
           value={challengeName}
           onChange={(e) => setChallengeName(e.target.value)}
-          className="w-full p-4 bg-gray-800 text-white rounded-lg focus:outline-none"
+          className="w-full p-4 bg-gray-800 text-white rounded-lg focus:outline-hidden"
           required
         />
         
@@ -175,7 +175,7 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
                   }}
                   min="1"
                   onClick={(e) => e.stopPropagation()}
-                  className="w-14 text-right bg-transparent text-lg font-medium mr-1 focus:outline-none"
+                  className="w-14 text-right bg-transparent text-lg font-medium mr-1 focus:outline-hidden"
                 />
                 <Image 
                   src="/nocenix.ico" 
@@ -312,7 +312,7 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-4 bg-gray-800 text-white rounded-lg resize-none focus:outline-none"
+          className="w-full p-4 bg-gray-800 text-white rounded-lg resize-none focus:outline-hidden"
           rows={5}
           required
         />
@@ -321,7 +321,6 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
         <PrimaryButton
           text={mode === 'private' ? `Challenge ${targetUsername || 'user'}` : 'Challenge public'}
           onClick={handleSubmit}
-          className="w-full"
           disabled={!challengeName || !description || parseInt(customReward) < 1}
         />
       </form>

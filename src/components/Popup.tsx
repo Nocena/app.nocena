@@ -55,7 +55,7 @@ const Popup: React.FC<PopupProps> = ({ isOpen, onClose, title, children, fullScr
       <div
         ref={popupRef}
         className={`
-          bg-nocenaBg border border-nocenaBorder rounded-t-xl sm:rounded-xl
+          bg-nocena-bg border border-nocenaBorder rounded-t-xl sm:rounded-xl
           shadow-xl text-white overflow-hidden
           animate-slide-up
           ${fullScreen ? 'w-full h-[90vh] sm:h-[80vh] sm:max-w-2xl sm:w-full' : 'w-full max-w-md sm:max-w-lg'}

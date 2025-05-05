@@ -17,7 +17,7 @@ const NocenaInput = ({ control, label, name, placeholder, required, type = 'text
       rules={{ required: required ? 'Toto pole je povinné' : undefined }}
       render={({ field, fieldState }) => (
         <div className="mb-3">
-          <label htmlFor={name} className="block mb-1">
+          <label htmlFor={name} className="mb-1 block">
             {label}
           </label>
           <input
@@ -25,9 +25,9 @@ const NocenaInput = ({ control, label, name, placeholder, required, type = 'text
             type={type}
             id={name}
             placeholder={placeholder}
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-2xl border border-gray-600 bg-gray-700 px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
           />
-          {fieldState.error ? <p className="text-sm text-red-600 mt-2">{fieldState.error.message}</p> : null}
+          {fieldState.error ? <p className="mt-2 text-sm text-red-600">{fieldState.error.message}</p> : null}
         </div>
       )}
     />

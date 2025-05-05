@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ThematicColor = 'nocenaPink' | 'nocenaPurple' | 'nocenaBlue';
+type ThematicColor = 'nocena-pink' | 'nocena-purple' | 'nocena-blue';
 
 interface Props {
   disabled?: boolean;
@@ -27,11 +27,11 @@ const ThematicContainer: React.FC<Props> = ({
 }) => {
   const getHexColor = () => {
     switch (color) {
-      case 'nocenaPink':
+      case 'nocena-pink':
         return '#FF15C9';
-      case 'nocenaPurple':
+      case 'nocena-purple':
         return '#6024FB';
-      case 'nocenaBlue':
+      case 'nocena-blue':
         return '#2353FF';
       default:
         return '#2353FF';
