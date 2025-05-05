@@ -2,16 +2,47 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../../contexts/AuthContext';
 import Image from 'next/image';
-import ThematicText from '../../../components/ui/ThematicText';
+import ThematicContainer from '../../../components/ui/ThematicContainer';
 import ThematicImage from '../../../components/ui/ThematicImage';
+
+interface NotificationBase {
+  id: string;
+  content?: string;
+  createdAt: string;
+  notificationType: string;
+  isRead?: boolean;
+  triggeredBy?: {
+    id?: string;
+    username?: string;
+    profilePicture?: string;
+  };
+  reward?: number;
+  privateChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+  };
+  publicChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+  };
+  aiChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+    frequency: string;
+  };
+}
 
 interface NotificationFollowerProps {
   username: string;
   profilePicture: string;
   id?: string;
+  notification?: NotificationBase; // Use full notification type
 }
 
-const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, profilePicture, id }) => {
+const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, profilePicture, id, notification }) => {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -25,33 +56,56 @@ const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, p
     }
   };
 
+  // Display NEW tag if isRead is true (for testing)
+  const shouldShowNew = notification && notification.isRead === false;
+  console.log('NotificationFollower - notification:', notification);
+  console.log('NotificationFollower - isRead:', notification?.isRead);
+  console.log('NotificationFollower - shouldShowNew:', shouldShowNew);
+
   return (
-    <div
-      className="relative flex items-center justify-between p-4 rounded-[15px] bg-white/10 backdrop-blur-md shadow-md w-full max-w-lg overflow-hidden cursor-pointer hover:bg-white/20 transition"
+    <ThematicContainer
+      asButton={false}
+      color="nocenaBlue"
+      rounded="xl"
+      className="w-full max-w-lg px-6 py-2 cursor-pointer hover:brightness-110 transition-all relative"
       onClick={handleProfileRedirect}
     >
-      <div
-        className="absolute top-1/2 left-[70%] w-[80%] h-[80%] transform -translate-x-1/2 -translate-y-1/2 rounded-full z-0"
-        style={{
-          background: 'radial-gradient(circle, rgba(16, 202, 255, 0.5) 0%, rgba(16, 202, 255, 0) 70%)',
-          filter: 'blur(40px)',
-        }}
-      />
-      <span className="text-white text-md font-light">New follower!</span>
-
-      <div className="flex items-center space-x-3">
-        <ThematicText text={username} isActive={true} className="capitalize" />
-        <ThematicImage className="rounded-full">
-          <Image
-            src={profilePicture}
-            alt="User Profile"
-            width={40}
-            height={40}
-            className="w-10 h-10 object-cover rounded-full"
-          />
-        </ThematicImage>
+      {/* New Follower Text - smaller and less bold */}
+      <div className="text-lg font-light mb-2">New follower!</div>
+      
+      {/* User Info Row */}
+      <div className="flex items-center justify-between">
+        {/* User Info */}
+        <div className="flex items-center space-x-5">
+          <ThematicImage className="rounded-full">
+            <Image
+              src={profilePicture}
+              alt="User Profile"
+              width={40}
+              height={40}
+              className="w-8 h-8 object-cover rounded-full"
+            />
+          </ThematicImage>
+          {/* Username - bigger and bold */}
+          <span className="text-lg font-bold">{username}</span>
+        </div>
+        
+        {/* NEW tag for unread notifications - positioned in upper right */}
+        {shouldShowNew && (
+          <div className="absolute top-2 right-6 transform translate-y-[-100%]">
+            <ThematicContainer
+              asButton={false}
+              color="nocenaBlue"
+              isActive={true}
+              className="text-xs font-medium px-4"
+              rounded="xl"
+            >
+              NEW
+            </ThematicContainer>
+          </div>
+        )}
       </div>
-    </div>
+    </ThematicContainer>
   );
 };
 

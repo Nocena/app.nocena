@@ -1,5 +1,6 @@
 import { ControllerRenderProps, FieldError } from 'react-hook-form';
 import { useRef } from 'react';
+import ThematicContainer from '../ui/ThematicContainer';
 import { FormValues } from '../register/types';
 
 interface Props {
@@ -39,6 +40,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
       handleFocusNextInput(index - 1);
     }
   };
+  
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text').replace(redexReplace, '').toUpperCase();
@@ -50,30 +52,36 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
     }
   };
 
+  const getInputColor = (index: number, isFilled: boolean) => {
+    if (!isFilled) return 'nocenaBlue';
+    if (index < 3) return 'nocenaPurple';
+    return 'nocenaPink';
+  };
+
   return (
     <>
       {field.value.map((value, index) => (
-        <input
+        <ThematicContainer
           key={index}
-          ref={(el) => {
-            inputRefs.current[index] = el;
-          }}
-          type="text"
-          maxLength={1}
-          value={value}
-          onChange={(e) => handleChange(e.target.value, index)}
-          onKeyDown={(e) => handleKeyDown(e, index)}
-          onPaste={index === 0 ? handlePaste : undefined}
-          className={`w-12 h-12 m-1 text-2xl text-center bg-gray-800 border focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded-lg
-                        ${
-                          index < 3
-                            ? 'text-nocenaPink border-nocenaPink focus:ring-nocenaPink'
-                            : 'text-nocenaBlue border-nocenaBlue focus:ring-nocenaBlue'
-                        }
-                        ${index === 2 ? 'mr-4' : ''}
-                      `}
-          disabled={loading}
-        />
+          asButton={false}
+          color={getInputColor(index, !!value)}
+          // Remove isActive prop to keep the gradient background
+          className={`w-10 h-14 m-1 ${index === 2 ? 'mr-4' : ''} !rounded-xl`}
+        >
+          <input
+            ref={(el) => {
+              inputRefs.current[index] = el;
+            }}
+            type="text"
+            maxLength={1}
+            value={value}
+            onChange={(e) => handleChange(e.target.value, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+            onPaste={index === 0 ? handlePaste : undefined}
+            className="w-full h-full text-2xl text-center bg-transparent border-0 focus:outline-none text-white"
+            disabled={loading}
+          />
+        </ThematicContainer>
       ))}
     </>
   );

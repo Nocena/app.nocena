@@ -22,7 +22,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
 
   return (
     <div
-      className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none"
+      className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: '0.5rem',

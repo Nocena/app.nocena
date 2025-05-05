@@ -137,50 +137,35 @@ const HomeView = () => {
   }
 
   return (
-    <div className="text-white p-4 min-h-screen">
+    <div className="text-white p-4 min-h-screen mt-20">
       <div className="max-w-4xl mx-auto">
         {/* Challenge Type Tabs - always renders immediately */}
         <ChallengeHeader selectedTab={selectedTab} onTabChange={setSelectedTab} />
 
         {/* Challenge container - structure always renders */}
-        <div className="bg-[#1A2734] rounded-xl p-8 shadow-xl">
-          {!hasCompleted ? (
-            <ChallengeForm
-              challenge={currentChallenge}
-              reward={reward}
-              selectedTab={selectedTab}
-              onCompleteChallenge={handleCompleteChallenge}
-            />
-          ) : (
-            <>
-              <div className="flex items-center justify-center mb-6">
-                <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-medium">
-                  Challenge Completed! 🎉
-                </div>
+        {!hasCompleted ? (
+          <ChallengeForm
+            challenge={currentChallenge}
+            reward={reward}
+            selectedTab={selectedTab}
+            onCompleteChallenge={handleCompleteChallenge}
+          />
+        ) : (
+          <>
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-medium">
+                Challenge Completed! 🎉
               </div>
-
-              <CompletionFeed
-                user={user}
-                isLoading={isFetchingCompletions}
-                followerCompletions={followerCompletions}
-                selectedTab={selectedTab}
-              />
-            </>
-          )}
-        </div>
-
-        {/* Footer with improved wallet display */}
-        <div className="mt-8 text-center text-gray-400">
-          <p>Powered by Polygon Testnet</p>
-          {user && (
-            <div className="mt-2 space-y-1">
-              <p>
-                Wallet: {user.wallet.slice(0, 6)}...{user.wallet.slice(-4)}
-              </p>
-              <p>Balance: {user.earnedTokens} NOCENIX</p>
             </div>
-          )}
-        </div>
+
+            <CompletionFeed
+              user={user}
+              isLoading={isFetchingCompletions}
+              followerCompletions={followerCompletions}
+              selectedTab={selectedTab}
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -32,11 +32,31 @@ const MapView = () => {
     const calculateHeight = () => {
       if (mapContainerRef.current) {
         const windowHeight = window.innerHeight;
-        const topNavHeight = document.querySelector('.navbar-top')?.clientHeight || 0;
-        const bottomNavHeight = document.querySelector('.navbar-bottom')?.clientHeight || 0;
-        const mainPaddingTop = 12; // pt-3
+        // Use the correct selectors for your nav elements
+        const topNavHeight = document.querySelector('nav')?.clientHeight || 0;
+        const bottomNavElement = document.querySelector('.navbar-bottom') || 
+                                   document.querySelector('.bottom-nav') || 
+                                   document.querySelector('footer');
+        const bottomNavHeight = bottomNavElement?.clientHeight || 0;
         
-        const availableHeight = windowHeight - topNavHeight - bottomNavHeight - mainPaddingTop;
+        // Get the actual padding from the parent if it exists
+        const parent = mapContainerRef.current.parentElement;
+        let parentPadding = 0;
+        if (parent) {
+          const styles = window.getComputedStyle(parent);
+          parentPadding = parseInt(styles.paddingTop) + parseInt(styles.paddingBottom);
+        }
+        
+        const availableHeight = windowHeight - topNavHeight - bottomNavHeight - parentPadding;
+        
+        console.log('Height calculation:', {
+          windowHeight,
+          topNavHeight,
+          bottomNavHeight,
+          parentPadding,
+          availableHeight
+        });
+        
         mapContainerRef.current.style.height = `${availableHeight}px`;
       }
     };
@@ -152,10 +172,11 @@ const MapView = () => {
 
     initializeMap();
 
-    // Cleanup
+    // Cleanup - FIX HERE
     return () => {
-      if (mapInstanceRef.current) {
+      if (mapInstanceRef.current && mapInstanceRef.current.remove) {
         mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
     };
   }, [initialLocationSet, userLocation]);
@@ -184,7 +205,7 @@ const MapView = () => {
     }
   };
 
-  // Reset selected pin when map moves
+  // Reset selected pin when map moves - FIX HERE
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     
@@ -194,21 +215,22 @@ const MapView = () => {
       }
     };
     
-    mapInstanceRef.current.on('movestart', handleMapMove);
+    const mapInstance = mapInstanceRef.current;
+    mapInstance.on('movestart', handleMapMove);
     
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.off('movestart', handleMapMove);
+      if (mapInstance && mapInstance.off) {
+        mapInstance.off('movestart', handleMapMove);
       }
     };
-  }, [mapInstanceRef.current, selectedPin]);
+  }, [selectedPin]);
 
   return (
-    <div className="w-full relative bg-gray-900">
+    <div className="w-full h-screen relative bg-gray-900">
       {/* Map container */}
       <div 
         ref={mapContainerRef} 
-        className="w-full bg-gray-900"
+        className="w-full h-full bg-gray-900"
       />
       
       {/* Challenge markers - Render these first so user marker appears on top */}

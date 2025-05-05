@@ -78,7 +78,9 @@ export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<
 
 // Helper for loading map styles
 export const getMapStyleURL = (accessToken: string): string => {
-  return `https://api.jawg.io/styles/jawg-dark.json?access-token=${accessToken}`;
+  // Use your custom NOCENA style ID with the correct URL format
+  const customStyleId = '43a6bd45-bb06-45ab-a7df-6e52d3fc98cb';
+  return `https://api.jawg.io/styles/${customStyleId}.json?access-token=${accessToken}`;
 };
 
 // Get user location with reliable caching
