@@ -80,6 +80,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
   return (
     <ThematicContainer
       asButton={false}
+      glassmorphic={true}
       color="nocenaPink"
       rounded="xl"
       className="w-full max-w-lg px-6 py-2 cursor-pointer hover:brightness-110 transition-all relative"

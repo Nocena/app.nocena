@@ -3,6 +3,7 @@ import Image from 'next/image';
 import MapIcon from '../icons/map';
 import InboxIcon from '../icons/inbox';
 import SearchIcon from '../icons/search';
+import ThematicContainer from '../ui/ThematicContainer';
 
 interface BottomNavbarProps {
   currentIndex: number;
@@ -18,28 +19,32 @@ const NAV_ITEMS = [
     icon: 'home',
     label: 'Home',
     color: '#000000',
-    gradientColor: '#00006A'
+    gradientColor: '#00006A',
+    thematicColor: 'nocenaBlue'
   },
   { 
     name: 'Map', 
     icon: 'map',
     label: 'Map',
     color: '#FF40A9',
-    gradientColor: '#F95FD6'
+    gradientColor: '#F95FD6',
+    thematicColor: 'nocenaPink'
   },
   { 
     name: 'Inbox', 
     icon: 'inbox',
     label: 'Inbox',
     color: '#6A4CFF',
-    gradientColor: '#8965FF'
+    gradientColor: '#8965FF',
+    thematicColor: 'nocenaPurple'
   },
   { 
     name: 'Search', 
     icon: 'search',
     label: 'Search',
     color: '#2353FF',
-    gradientColor: '#002ED3'
+    gradientColor: '#002ED3',
+    thematicColor: 'nocenaBlue'
   }
 ];
 
@@ -59,10 +64,25 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Get the current thematic color based on active tab
+  const getThematicColor = () => {
+    if (currentIndex >= 0 && currentIndex < NAV_ITEMS.length) {
+      return NAV_ITEMS[currentIndex].thematicColor as any; // Cast to any to avoid type issues
+    }
+    return 'nocenaPurple'; // Default color
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999]">
       <div className="flex justify-center items-center p-1 pb-3">
-        <div className="relative flex items-center justify-center p-1 rounded-full border border-white border-[1px] bg-white bg-opacity-10 backdrop-blur-md">
+        {/* Using ThematicContainer as a wrapper with dynamic color */}
+        <ThematicContainer
+          color={getThematicColor()}
+          glassmorphic={true}
+          asButton={false}
+          rounded="full"
+          className="p-1 flex items-center justify-center"
+        >
           {NAV_ITEMS.map((item, index, array) => {
             const isActive = currentIndex === index;
             const isFirst = index === 0;
@@ -114,7 +134,7 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({
               </div>
             );
           })}
-        </div>
+        </ThematicContainer>
       </div>
     </div>
   );

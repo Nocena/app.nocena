@@ -1,6 +1,7 @@
 import React from 'react';
 import MenuIcon from '../icons/menu';
 import ProfileIcon from '../icons/profile';
+import ThematicContainer from '../ui/ThematicContainer'; // Import ThematicContainer
 
 interface TopNavbarProps {
   currentIndex: number;
@@ -40,25 +41,24 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
       {/* Empty middle section */}
       <div className="flex-grow"></div>
       
-      {/* Profile button with glassmorphic background */}
+      {/* Profile button using ThematicContainer */}
       <button 
         onClick={() => handleNavClick(4)}
-        className="focus:outline-none p-2 pointer-events-auto"
+        className="focus:outline-none pointer-events-auto"
         aria-label="Profile"
       >
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center"
-          style={{
-            background: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.5)'
-          }}
+        <ThematicContainer
+          color={isProfileActive ? "nocenaPink" : "nocenaBlue"}
+          glassmorphic={true}
+          asButton={false}
+          rounded="full"
+          className="w-12 h-12 flex items-center justify-center"
         >
           <ProfileIcon 
             className="transition-colors duration-300"
-            style={{ color: isProfileActive ? '#FF40A9' : 'white' }} 
+            style={{ color: 'white' }}
           />
-        </div>
+        </ThematicContainer>
       </button>
     </div>
   );

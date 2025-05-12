@@ -11,10 +11,11 @@ import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
 import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
-import ThematicIcon from '../../components/ui/ThematicIcon';
 import FollowersPopup from './components/FollowersPopup';
 
 import FollowersIcon from '../../components/icons/followers';
+import SaveIcon from '../../components/icons/save';
+import PenIcon from '../../components/icons/pen';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -440,17 +441,17 @@ const ProfileView: React.FC = () => {
                 onChange={(e) => setBio(e.target.value)}
               />
               <div onClick={handleSaveBioClick} className="ml-4 cursor-pointer">
-                <ThematicIcon iconName="save" isActive={false} />
+                <SaveIcon className="w-6 h-6" />
               </div>
               <div onClick={handleCancelEdit} className="ml-4 cursor-pointer">
-                <ThematicIcon iconName="pen" isActive={true} />
+                <PenIcon className="w-6 h-6" />
               </div>
             </>
           ) : (
             <>
               <p>{bio}</p>
               <div onClick={handleEditBioClick} className="cursor-pointer">
-                <ThematicIcon iconName="pen" isActive={false} />
+                <PenIcon className="w-6 h-6" />
               </div>
             </>
           )}

@@ -9,6 +9,8 @@ import PageManager from '../PageManager';
 import TopNavbar from './TopNavbar';
 import BottomNavbar from './BottomNavbar';
 import VideoBackground from './BackgroundVideo';
+import ArrowBackIcon from '../icons/back';
+import ThematicContainer from '../ui/ThematicContainer';
 
 // Check if we're running in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -24,6 +26,14 @@ const logPerf = (message: string) => {
 interface AppLayoutProps {
   handleLogout: () => void;
   children?: React.ReactNode;
+}
+
+// BottomNavbar props interface
+interface BottomNavbarProps {
+  currentIndex: number;
+  handleNavClick: (index: number) => Promise<void>;
+  unreadCount: number;
+  className?: string;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
@@ -282,6 +292,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     setIsMenuOpen(false);
   }, []);
 
+  // Handle going back from special pages
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
   // Create a proper logout handler that ensures full page reload
   const handleAppLogout = useCallback(() => {
     // First close the menu
@@ -318,67 +333,93 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }
 
   // Determine if bottom navbar should be shown based on the current route
-  const showBottomNavbar = true;
+  const showBottomNavbar = !isSpecialPage;
 
   console.log("Current path:", router.pathname);
   console.log("showBottomNavbar:", showBottomNavbar);
 
-// In your AppLayout.tsx file
+  return (
+    <div className="app-container min-h-screen w-full text-white flex flex-col relative">
+      {/* Add the video background first */}
+      <VideoBackground videoSrc="/AppBG.mp4" />
 
-// 1. Make sure you update the BottomNavbar props interface to include className
-interface BottomNavbarProps {
-  currentIndex: number;
-  handleNavClick: (index: number) => Promise<void>;
-  unreadCount: number;
-  // Add className to the interface
-  className?: string;
-}
+      {/* Add the memory optimizer for background/foreground handling */}
+      <MemoryOptimizer />
 
-// Now your return statement can use the correct props
-return (
-  <div className="app-container min-h-screen w-full text-white flex flex-col relative">
-    {/* Add the video background first */}
-    <VideoBackground videoSrc="/AppBG.mp4" />
+      {/* Conditional rendering based on page type */}
+      {isSpecialPage ? (
+        /* Special Page Header with styled Back Button */
+        <div 
+          className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: '0.5rem',
+          }}
+        >
+          {/* Back button styled like the profile button */}
+          <button 
+            onClick={handleBack} 
+            className="focus:outline-none pointer-events-auto"
+            aria-label="Back"
+          >
+            <ThematicContainer
+              color="nocenaBlue"
+              glassmorphic={true}
+              asButton={false}
+              rounded="full"
+              className="w-12 h-12 flex items-center justify-center"
+            >
+              <ArrowBackIcon 
+                className="transition-colors duration-300"
+                style={{ color: 'white' }}
+              />
+            </ThematicContainer>
+          </button>
+          
+          {/* Empty middle and right sections to match TopNavbar layout */}
+          <div className="flex-grow"></div>
+          <div className="w-12"></div> {/* Empty space to balance the layout */}
+        </div>
+      ) : (
+        /* Standard Top Navbar for regular pages */
+        <TopNavbar
+          currentIndex={currentIndex}
+          isUserProfile={isUserProfile}
+          isSpecialPage={false}
+          handleMenuToggle={handleMenuToggle}
+          handleNavClick={handleNavClick}
+        />
+      )}
 
-    {/* Add the memory optimizer for background/foreground handling */}
-    <MemoryOptimizer />
+      {/* Side Menu - pass the new logout handler */}
+      <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
 
-    {/* Top Navbar - extracted to its own component */}
-    <TopNavbar
-      currentIndex={currentIndex}
-      isUserProfile={isUserProfile}
-      isSpecialPage={isSpecialPage}
-      handleMenuToggle={handleMenuToggle}
-      handleNavClick={handleNavClick}
-    />
+      {/* Main Content - modified to adjust spacing based on page type */}
+      <main
+        className={`flex-grow relative z-10 ${
+          router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
+        }`}
+        style={{
+          // Adjust margin-top for different page types
+          marginTop: router.pathname === '/map' ? 0 : 
+                    isSpecialPage ? 'calc(env(safe-area-inset-top) + 56px)' : 
+                    'env(safe-area-inset-top)',
+        }}
+      >
+        {usePageManager ? <PageManager /> : children}
+      </main>
 
-    {/* Side Menu - pass the new logout handler */}
-    <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
-
-    {/* Main Content - modified to remove spacing for map and special pages */}
-    <main
-      className={`flex-grow relative z-10 ${
-        router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
-      }`}
-      style={{
-        // Remove the margin-top for map and special pages
-        marginTop: router.pathname === '/map' || isSpecialPage ? 0 : 'env(safe-area-inset-top)',
-      }}
-    >
-      {usePageManager ? <PageManager /> : children}
-    </main>
-
-    {/* Bottom Navbar - using className instead of style */}
-    {showBottomNavbar && (
-      <BottomNavbar
-        currentIndex={currentIndex}
-        handleNavClick={handleNavClick}
-        unreadCount={unreadCount}
-        className="relative z-10"
-      />
-    )}
-  </div>
-);
+      {/* Bottom Navbar - only show for non-special pages */}
+      {showBottomNavbar && (
+        <BottomNavbar
+          currentIndex={currentIndex}
+          handleNavClick={handleNavClick}
+          unreadCount={unreadCount}
+          className="relative z-10"
+        />
+      )}
+    </div>
+  );
 };
 
 export default AppLayout;

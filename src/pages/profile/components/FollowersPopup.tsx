@@ -269,6 +269,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
       <ThematicContainer
         asButton={false}
+        glassmorphic={true}
         color="nocenaBlue"
         rounded="xl"
         className="!p-0 max-w-lg w-full mx-4 max-h-[70vh] overflow-hidden"
