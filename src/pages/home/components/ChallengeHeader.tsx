@@ -29,6 +29,7 @@ const ChallengeHeader: React.FC<ChallengeHeaderProps> = ({ selectedTab, onTabCha
         <ThematicContainer
           key={tab}
           asButton={true}
+          glassmorphic={false}
           color={getButtonColor(tab)}
           isActive={selectedTab === tab}
           onClick={() => onTabChange(tab)}

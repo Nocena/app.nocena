@@ -18,6 +18,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
   return (
     <ThematicContainer
       asButton={false}
+      glassmorphic={true}
       color="nocenaBlue"
       rounded="xl"
       className="px-12 py-8"

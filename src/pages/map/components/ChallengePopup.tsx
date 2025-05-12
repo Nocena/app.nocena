@@ -40,10 +40,19 @@ const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupCo
   // Convert the JSX to an HTML string
   const popupHtml = `
     <div class="challenge-popup-container">
-      <!-- Main ThematicContainer -->
-      <div class="relative p-8 border-2 border-gray-700 text-white rounded-xl" style="background: linear-gradient(to bottom, #101010, #000740);">
+      <!-- Main Glassmorphic Container with milky effect -->
+      <div class="relative p-8 border border-white/20 text-white rounded-xl backdrop-blur-md" 
+           style="background: linear-gradient(to bottom, rgba(59, 60, 152, 0.2), rgba(37, 37, 90, 0.3)); 
+                  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);">
+        <!-- White/blue milky overlay -->
+        <div class="absolute inset-0 rounded-xl" 
+             style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(143, 164, 252, 0.05)); 
+                    z-index: -1;"></div>
+                    
         <!-- Blue glow effect on top -->
-        <div class="absolute -top-px left-0 w-full h-[1.5px]" style="background: radial-gradient(circle at center, #2353FF 0%, transparent 50%); transform: translateY(-1px); border-radius: 9999px;"></div>
+        <div class="absolute -top-px left-0 w-full h-[1.5px]" 
+             style="background: radial-gradient(circle at center, #2353FF 0%, transparent 50%); 
+                    transform: translateY(-1px); border-radius: 9999px;"></div>
         
         <!-- Title -->
         <h2 class="text-3xl font-bold mb-4 text-center">
@@ -66,9 +75,12 @@ const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupCo
         
         <!-- Reward ThematicContainer (centered) -->
         <div class="flex justify-center">
-          <div class="relative px-4 py-1 border-2 border-gray-700 text-white rounded-full inline-flex items-center space-x-1" style="background: linear-gradient(to bottom, #101010, #000740);">
+          <div class="relative px-4 py-1 border border-gray-700 text-white rounded-full inline-flex items-center space-x-1" 
+               style="background: linear-gradient(to bottom, #101010, #000740);">
             <!-- Pink glow effect on top -->
-            <div class="absolute -top-px left-0 w-full h-[1.5px]" style="background: radial-gradient(circle at center, #FF15C9 0%, transparent 50%); transform: translateY(-1px); border-radius: 9999px;"></div>
+            <div class="absolute -top-px left-0 w-full h-[1.5px]" 
+                 style="background: radial-gradient(circle at center, #FF15C9 0%, transparent 50%); 
+                        transform: translateY(-1px); border-radius: 9999px;"></div>
             <span class="text-xl font-semibold">${challenge.reward}</span>
             <img src="/nocenix.ico" alt="Nocenix" class="w-8 h-8" />
           </div>
@@ -90,6 +102,18 @@ const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupCo
     }
     .challenge-popup-container button:hover {
       opacity: 0.9;
+    }
+    /* For browsers that support backdrop-filter */
+    @supports (backdrop-filter: blur(10px)) {
+      .challenge-popup-container .backdrop-blur-md {
+        backdrop-filter: blur(12px) saturate(150%);
+      }
+    }
+    /* Fallback for browsers that don't support backdrop-filter */
+    @supports not (backdrop-filter: blur(10px)) {
+      .challenge-popup-container .backdrop-blur-md {
+        background: rgba(59, 60, 152, 0.5);
+      }
     }
   `;
   document.head.appendChild(styleEl);
