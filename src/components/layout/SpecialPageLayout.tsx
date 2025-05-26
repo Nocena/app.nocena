@@ -21,7 +21,7 @@ const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ title, children }
       <VideoBackground videoSrc="/AppBG.mp4" />
 
       {/* Special Page Header with Back Button */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] pt-[env(safe-area-inset-top)]">
+      <div className="fixed top-0 left-0 right-0 z-[9990] pt-[env(safe-area-inset-top)]">
         <div className="flex items-center p-4">
           <div 
             className="rounded-full bg-[#212121] bg-opacity-50 backdrop-blur-md p-2 cursor-pointer"

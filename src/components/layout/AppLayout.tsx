@@ -388,11 +388,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           isSpecialPage={false}
           handleMenuToggle={handleMenuToggle}
           handleNavClick={handleNavClick}
+          isMenuOpen={isMenuOpen} // Add this new prop
         />
       )}
 
-      {/* Side Menu - pass the new logout handler */}
-      <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
+      {/* Side Menu - pass the new logout handler and showBottomNavbar prop */}
+      <Menu 
+        isOpen={isMenuOpen} 
+        onClose={handleMenuClose} 
+        onLogout={handleAppLogout} 
+        showBottomNavbar={showBottomNavbar}
+      />
 
       {/* Main Content - modified to adjust spacing based on page type */}
       <main
@@ -409,13 +415,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         {usePageManager ? <PageManager /> : children}
       </main>
 
-      {/* Bottom Navbar - only show for non-special pages */}
-      {showBottomNavbar && (
+      {/* Bottom Navbar - only show for non-special pages with slide animation */}
+      {showBottomNavbar && !isMenuOpen && (
         <BottomNavbar
           currentIndex={currentIndex}
           handleNavClick={handleNavClick}
           unreadCount={unreadCount}
-          className="relative z-10"
+          className="fixed bottom-0 left-0 right-0 z-10 transition-all duration-300 ease-in-out"
+          style={{
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
         />
       )}
     </div>

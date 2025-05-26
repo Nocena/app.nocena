@@ -10,6 +10,7 @@ interface BottomNavbarProps {
   handleNavClick: (index: number) => void;
   unreadCount: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 // Navigation items configuration
@@ -73,7 +74,7 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999]">
+    <div className="fixed bottom-0 left-0 right-0 z-[9990]">
       <div className="flex justify-center items-center p-1 pb-3">
         {/* Using ThematicContainer as a wrapper with dynamic color */}
         <ThematicContainer
