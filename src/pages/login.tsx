@@ -87,11 +87,12 @@ const LoginPage = () => {
   });
 
   return (
-    <AuthenticationLayout title="Welcome Back" subtitle="Login to your account to continue">
+    <AuthenticationLayout title="Welcome player" subtitle="Login with your account to start the game">
       <form onSubmit={handleSubmit(onSubmitSignIn)} className="w-full space-y-4 mb-6">
-        <NocenaInput control={control} name="username" label="Username" placeholder="Enter your username" />
-
-        <PasswordInput control={control} name="password" label="Password" placeholder="Enter your password" />
+       <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600 divide-y divide-gray-600">
+          <NocenaInput control={control} name="username" placeholder="Enter your username" />
+          <PasswordInput control={control} name="password" placeholder="Enter your password" />
+        </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -102,9 +103,9 @@ const LoginPage = () => {
 
       <div className="text-center">
         <p>
-          Don't have an account?{' '}
-          <Link href="/register" className="text-nocenaBlue cursor-pointer">
-            Create Account
+          If you are new here{' '}
+          <Link href="/register" className="text-nocenaPink cursor-pointer">
+            enter invite code
           </Link>
         </p>
       </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import MenuIcon from '../icons/menu';
 import ProfileIcon from '../icons/profile';
-import ThematicContainer from '../ui/ThematicContainer'; // Import ThematicContainer
+import ThematicContainer from '../ui/ThematicContainer';
 
 interface TopNavbarProps {
   currentIndex: number;
@@ -9,6 +9,7 @@ interface TopNavbarProps {
   isSpecialPage: boolean;
   handleMenuToggle: () => void;
   handleNavClick: (index: number) => void;
+  isMenuOpen?: boolean; // New prop to track menu state
 }
 
 const TopNavbar: React.FC<TopNavbarProps> = ({
@@ -17,6 +18,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
   isSpecialPage,
   handleMenuToggle,
   handleNavClick,
+  isMenuOpen = false, // Default to false
 }) => {
   // Determine if profile is active
   const isProfileActive = currentIndex === 4 && !isUserProfile && !isSpecialPage;
@@ -29,13 +31,20 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
         paddingBottom: '0.5rem',
       }}
     >
-      {/* Menu button - rotated 180 degrees */}
+      {/* Menu button - rotated 180 degrees with visual feedback when menu is open */}
       <button 
         onClick={handleMenuToggle} 
         className="focus:outline-none p-2 pointer-events-auto transform rotate-180"
         aria-label="Menu"
       >
-        <MenuIcon />
+        <div
+          className="w-12 h-12 flex items-center justify-center transition-all duration-300"
+        >
+          <MenuIcon 
+            className="transition-colors duration-300"
+            style={{ color: 'white' }}
+          />
+        </div>
       </button>
       
       {/* Empty middle section */}
