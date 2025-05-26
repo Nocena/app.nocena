@@ -6,19 +6,40 @@
  * @returns Formatted phone number in E.164 format (+12345678900)
  */
 export const formatPhoneToE164 = (phoneNumber: string): string => {
-  // Remove all non-numeric characters
-  let digits = phoneNumber.replace(/\D/g, '');
-
-  // Ensure the number has a + prefix
-  if (!phoneNumber.startsWith('+')) {
-    // If the number doesn't have a country code (assuming US/Canada as default)
-    if (digits.length === 10) {
-      digits = '1' + digits; // Add US/Canada country code
-    }
-    return '+' + digits;
+  if (!phoneNumber) {
+    throw new Error('Phone number is required');
   }
 
-  return phoneNumber;
+  console.log('Original phone number:', phoneNumber);
+
+  // Remove all non-numeric characters except the leading +
+  let result = phoneNumber.trim();
+  
+  // If it starts with +, keep it and extract only digits after the +
+  if (result.startsWith('+')) {
+    const digits = result.substring(1).replace(/\D/g, '');
+    result = '+' + digits;
+  } else {
+    // Remove all non-numeric characters
+    const digits = result.replace(/\D/g, '');
+    
+    // If the number doesn't have a country code (assuming US/Canada as default)
+    if (digits.length === 10) {
+      result = '+1' + digits; // Add US/Canada country code
+    } else {
+      result = '+' + digits;
+    }
+  }
+
+  console.log('Formatted phone number:', result);
+  
+  // Basic validation - E.164 should be 7-15 digits after the +
+  const digitsOnly = result.substring(1);
+  if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+    throw new Error(`Invalid phone number format: ${phoneNumber} -> ${result}`);
+  }
+
+  return result;
 };
 
 /**

@@ -4,11 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchUnreadNotificationsCount, markNotificationsAsRead } from '../../lib/api/dgraph';
 
 import Menu from './Menu';
-import ThematicText from '../ui/ThematicText';
-import ThematicIcon from '../ui/ThematicIcon';
-import { ThematicIconProps } from '../ui/ThematicIcon';
-import PageManager from '../PageManager';
 import MemoryOptimizer from '../MemoryOptimizer';
+import PageManager from '../PageManager';
+import TopNavbar from './TopNavbar';
+import BottomNavbar from './BottomNavbar';
+import VideoBackground from './BackgroundVideo';
+import ArrowBackIcon from '../icons/back';
+import ThematicContainer from '../ui/ThematicContainer';
 
 // Check if we're running in a browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -26,8 +28,13 @@ interface AppLayoutProps {
   children?: React.ReactNode;
 }
 
-// Cache common components to prevent recreating on each render
-const navIcons = ['home', 'map', 'inbox', 'search'] as ThematicIconProps['iconName'][];
+// BottomNavbar props interface
+interface BottomNavbarProps {
+  currentIndex: number;
+  handleNavClick: (index: number) => Promise<void>;
+  unreadCount: number;
+  className?: string;
+}
 
 const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const startRenderTime = isBrowser ? performance.now() : 0;
@@ -175,6 +182,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       '/search': 3,
       '/profile': 4,
       '/completing': 5,
+      '/createchallenge': 7, // Special index for create challenge page
     };
 
     // Handle profile pages with IDs
@@ -196,23 +204,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   }, [router.pathname, router.query, user?.wallet]);
 
   const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
-
-  // We'll pre-compute some values that are used in the render function
-  const pageTitle = (() => {
-    if (isUserProfile) return 'USER PROFILE';
-
-    const titles = [
-      'HOME',
-      'MAP',
-      'INBOX',
-      'SEARCH',
-      'PROFILE',
-      'COMPLETING CHALLENGE',
-      'USER PROFILE',
-      'CREATE CHALLENGE',
-    ];
-    return titles[currentIndex] || 'HOME';
-  })();
+  const isSpecialPage = router.pathname === '/completing' || router.pathname === '/createchallenge';
 
   // Memoized navigation handler to prevent unnecessary rerenders
   const handleNavClick = useCallback(
@@ -300,6 +292,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     setIsMenuOpen(false);
   }, []);
 
+  // Handle going back from special pages
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
   // Create a proper logout handler that ensures full page reload
   const handleAppLogout = useCallback(() => {
     // First close the menu
@@ -335,70 +332,101 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     logPerf(`AppLayout render completed in ${(performance.now() - startRenderTime).toFixed(2)}ms`);
   }
 
+  // Determine if bottom navbar should be shown based on the current route
+  const showBottomNavbar = !isSpecialPage;
+
+  console.log("Current path:", router.pathname);
+  console.log("showBottomNavbar:", showBottomNavbar);
+
   return (
-    <div className="app-container bg-nocenaBg min-h-screen w-full text-white flex flex-col">
+    <div className="app-container min-h-screen w-full text-white flex flex-col relative">
+      {/* Add the video background first */}
+      <VideoBackground videoSrc="/AppBG.mp4" />
+
       {/* Add the memory optimizer for background/foreground handling */}
       <MemoryOptimizer />
 
-      {/* Top Navbar - with top safe area padding */}
-      <div
-        className="navbar-top flex justify-between items-center px-3 py-2 fixed top-0 left-0 right-0 z-50 bg-nocenaBg"
-        style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
-          height: 'calc(3rem + env(safe-area-inset-top))',
-        }}
-      >
-        <div className="flex items-center">
-          <button onClick={handleMenuToggle} className="z-50">
-            <ThematicIcon iconName="menu" isActive={isMenuOpen} />
+      {/* Conditional rendering based on page type */}
+      {isSpecialPage ? (
+        /* Special Page Header with styled Back Button */
+        <div 
+          className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: '0.5rem',
+          }}
+        >
+          {/* Back button styled like the profile button */}
+          <button 
+            onClick={handleBack} 
+            className="focus:outline-none pointer-events-auto"
+            aria-label="Back"
+          >
+            <ThematicContainer
+              color="nocenaBlue"
+              glassmorphic={true}
+              asButton={false}
+              rounded="full"
+              className="w-12 h-12 flex items-center justify-center"
+            >
+              <ArrowBackIcon 
+                className="transition-colors duration-300"
+                style={{ color: 'white' }}
+              />
+            </ThematicContainer>
           </button>
+          
+          {/* Empty middle and right sections to match TopNavbar layout */}
+          <div className="flex-grow"></div>
+          <div className="w-12"></div> {/* Empty space to balance the layout */}
         </div>
-        <div className="flex-grow text-center">
-          <ThematicText text={pageTitle} isActive />
-        </div>
-        <div className="flex items-center">
-          <button onClick={() => handleNavClick(4)}>
-            <ThematicIcon iconName="profile" isActive={currentIndex === 4 && !isUserProfile} />
-          </button>
-        </div>
-      </div>
+      ) : (
+        /* Standard Top Navbar for regular pages */
+        <TopNavbar
+          currentIndex={currentIndex}
+          isUserProfile={isUserProfile}
+          isSpecialPage={false}
+          handleMenuToggle={handleMenuToggle}
+          handleNavClick={handleNavClick}
+          isMenuOpen={isMenuOpen} // Add this new prop
+        />
+      )}
 
-      {/* Side Menu - pass the new logout handler */}
-      <Menu isOpen={isMenuOpen} onClose={handleMenuClose} onLogout={handleAppLogout} />
+      {/* Side Menu - pass the new logout handler and showBottomNavbar prop */}
+      <Menu 
+        isOpen={isMenuOpen} 
+        onClose={handleMenuClose} 
+        onLogout={handleAppLogout} 
+        showBottomNavbar={showBottomNavbar}
+      />
 
-      {/* Main Content - conditionally use PageManager or children */}
+      {/* Main Content - modified to adjust spacing based on page type */}
       <main
-        className="flex-grow pt-3"
+        className={`flex-grow relative z-10 ${
+          router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
+        }`}
         style={{
-          marginTop: 'calc(3rem + env(safe-area-inset-top))',
+          // Adjust margin-top for different page types
+          marginTop: router.pathname === '/map' ? 0 : 
+                    isSpecialPage ? 'calc(env(safe-area-inset-top) + 56px)' : 
+                    'env(safe-area-inset-top)',
         }}
       >
         {usePageManager ? <PageManager /> : children}
       </main>
 
-      {/* Bottom Navbar - with bottom safe area padding */}
-      <div
-        className="navbar-bottom fixed bottom-0 left-0 right-0 flex justify-around bg-nocenaBg z-50 font-light"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
-        {navIcons.map((item, index) => (
-          <button
-            key={item}
-            onClick={() => handleNavClick(index)}
-            className={`relative text-center flex-grow p-2 ${currentIndex === index && !isUserProfile ? 'text-active' : 'text-white'}`}
-          >
-            <ThematicIcon iconName={item} isActive={currentIndex === index && !isUserProfile} />
-
-            {item === 'inbox' && unreadCount > 0 && (
-              <span className="absolute top-1 right-6 w-2 h-2 bg-nocenaPink rounded-full animate-pulse transition-all duration-700 ease-in-out" />
-            )}
-
-            <div className="mt-2 capitalize">{item}</div>
-          </button>
-        ))}
-      </div>
+      {/* Bottom Navbar - only show for non-special pages with slide animation */}
+      {showBottomNavbar && !isMenuOpen && (
+        <BottomNavbar
+          currentIndex={currentIndex}
+          handleNavClick={handleNavClick}
+          unreadCount={unreadCount}
+          className="fixed bottom-0 left-0 right-0 z-10 transition-all duration-300 ease-in-out"
+          style={{
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        />
+      )}
     </div>
   );
 };

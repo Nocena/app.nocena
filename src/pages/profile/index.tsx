@@ -11,10 +11,11 @@ import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
 import ChallengeIndicator from './components/ChallengeIndicator';
 import ThematicText from '../../components/ui/ThematicText';
-import ThematicIcon from '../../components/ui/ThematicIcon';
 import FollowersPopup from './components/FollowersPopup';
 
 import FollowersIcon from '../../components/icons/followers';
+import SaveIcon from '../../components/icons/save';
+import PenIcon from '../../components/icons/pen';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -383,7 +384,7 @@ const ProfileView: React.FC = () => {
   }, [dailyChallenges, weeklyChallenges, monthlyChallenges, monthNames]);
 
   return (
-    <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
+    <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden mt-16">
       <div className="absolute inset-0">
         <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
         <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
@@ -440,17 +441,17 @@ const ProfileView: React.FC = () => {
                 onChange={(e) => setBio(e.target.value)}
               />
               <div onClick={handleSaveBioClick} className="ml-4 cursor-pointer">
-                <ThematicIcon iconName="save" isActive={false} />
+                <SaveIcon className="w-6 h-6" />
               </div>
               <div onClick={handleCancelEdit} className="ml-4 cursor-pointer">
-                <ThematicIcon iconName="pen" isActive={true} />
+                <PenIcon className="w-6 h-6" />
               </div>
             </>
           ) : (
             <>
               <p>{bio}</p>
               <div onClick={handleEditBioClick} className="cursor-pointer">
-                <ThematicIcon iconName="pen" isActive={false} />
+                <PenIcon className="w-6 h-6" />
               </div>
             </>
           )}

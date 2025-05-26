@@ -192,7 +192,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
       {blocked ? (
         <div className="text-center p-6 bg-red-900 bg-opacity-30 border border-red-800 rounded-lg w-full mb-6">
           <p className="text-lg mb-2">Too many failed attempts</p>
-          <p>Please try again in {countdown}</p>
+          <p>Get a real invite and try again in: {countdown}</p>
         </div>
       ) : (
         <>
@@ -218,19 +218,11 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
         </>
       )}
 
-      <div className="mt-4 flex items-center flex-col text-center">
+      <div className="pt-10 flex items-center flex-col text-center">
         <p className="text-gray-400 mb-3">
-          Don't have an invite code? You can get one on our Discord server after completing short quiz in our
-          invite-codes channel.
+          This is an invite only app. But if you really want to het in you can try to search thru our server
         </p>
         <DiscordLinkButton href="https://discord.gg/4xwXAB2zhp" text="Join our Discord" />
-      </div>
-
-      <div className="mt-6 text-center">
-        Already have an account?
-        <Link href="/login" className="ml-1 text-nocenaBlue cursor-pointer">
-          Login
-        </Link>
       </div>
     </>
   );

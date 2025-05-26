@@ -22,6 +22,23 @@ interface NotificationBase {
     profilePicture?: string;
   };
   reward?: number;
+  // Add challenge reference properties
+  privateChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+  };
+  publicChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+  };
+  aiChallenge?: {
+    id: string;
+    title: string;
+    description: string;
+    frequency: string;
+  };
 }
 
 // Skeleton component for loading states
@@ -408,6 +425,39 @@ const InboxView = () => {
     };
   }, [pullDistance, fetchUserNotifications]);
 
+  // Helper function to determine reward amount based on notification type
+  // MOVED THIS FUNCTION BEFORE IT'S USED
+  const getRewardForNotification = (notification: NotificationBase) => {
+    // Default reward
+    let reward = 10;
+    
+    // Try to get reward from challenge if available
+    if (notification.privateChallenge) {
+      // Assume private challenges have a standard reward of 15
+      reward = 15;
+    } else if (notification.publicChallenge) {
+      // Assume public challenges have a standard reward of 20
+      reward = 20;
+    } else if (notification.aiChallenge) {
+      // Assign reward based on frequency
+      switch (notification.aiChallenge.frequency) {
+        case 'daily':
+          reward = 5;
+          break;
+        case 'weekly':
+          reward = 15;
+          break;
+        case 'monthly':
+          reward = 25;
+          break;
+        default:
+          reward = 10;
+      }
+    }
+    
+    return reward;
+  };
+
   // Memoize notification rendering to prevent unnecessary re-renders
   const notificationList = useMemo(() => {
     console.time('render-notification-list');
@@ -419,16 +469,33 @@ const InboxView = () => {
             username={notification.triggeredBy?.username ?? 'Unknown'}
             profilePicture={notification.triggeredBy?.profilePicture ?? '/images/profile.png'}
             id={notification.triggeredBy?.id}
+            notification={notification} // ADD this line!
           />
         );
       } else {
+        // For challenge and other notification types
+        let challengeTitle = notification.content ?? '';
+        
+        // Use the title from the specific challenge if available
+        if (notification.privateChallenge) {
+          challengeTitle = notification.privateChallenge.title || challengeTitle;
+        } else if (notification.publicChallenge) {
+          challengeTitle = notification.publicChallenge.title || challengeTitle;
+        } else if (notification.aiChallenge) {
+          challengeTitle = notification.aiChallenge.title || challengeTitle;
+        }
+        
+        // Get reward amount - could be determined by challenge type
+        const rewardAmount = getRewardForNotification(notification);
+        
         return (
           <NotificationChallenge
             key={notification.id}
-            title={notification.content ?? ''}
+            title={challengeTitle}
             challengerName={notification.triggeredBy?.username ?? 'Unknown'}
             challengerProfile={notification.triggeredBy?.profilePicture ?? '/images/profile.png'}
-            reward={notification.reward ?? 10}
+            reward={rewardAmount}
+            notification={notification}
           />
         );
       }
@@ -436,7 +503,7 @@ const InboxView = () => {
     console.timeEnd('render-notification-list');
     return result;
   }, [notifications]);
-
+  
   // For initial render with no data, show skeletons
   console.log(`[PERF] Render decision - isLoading: ${isLoading}, notifications: ${notifications.length}`);
 
@@ -460,7 +527,7 @@ const InboxView = () => {
     <div
       id="inbox-page"
       ref={contentRef}
-      className="flex flex-col items-center w-full h-full max-w-md mx-auto overflow-y-auto"
+      className="flex flex-col items-center w-full h-full max-w-md mx-auto overflow-y-auto mt-20"
       style={{
         minHeight: '100%',
         paddingTop: `${pullDistance}px`, // Dynamic padding based on pull distance

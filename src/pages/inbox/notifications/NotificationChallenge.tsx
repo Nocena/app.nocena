@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
-import ThematicText from '../../../components/ui/ThematicText';
+import { useRouter } from 'next/router';
+import ThematicContainer from '../../../components/ui/ThematicContainer';
 import ThematicImage from '../../../components/ui/ThematicImage';
 
 interface NotificationChallengeProps {
@@ -8,6 +9,7 @@ interface NotificationChallengeProps {
   challengerName: string;
   challengerProfile: string;
   reward: number;
+  notification: any; // Using any to avoid TypeScript errors
 }
 
 const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
@@ -15,44 +17,125 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
   challengerName,
   challengerProfile,
   reward,
+  notification
 }) => {
+  const router = useRouter();
+
+  const handleCompleteChallenge = () => {
+    // Determine challenge type and details
+    let challengeType = 'AI';
+    let challengeId = '';
+    let description = '';
+    let frequency = 'daily';
+
+    if (notification.privateChallenge) {
+      challengeType = 'PRIVATE';
+      challengeId = notification.privateChallenge.id;
+      description = notification.privateChallenge.description || '';
+    } else if (notification.publicChallenge) {
+      challengeType = 'PUBLIC';
+      challengeId = notification.publicChallenge.id;
+      description = notification.publicChallenge.description || '';
+    } else if (notification.aiChallenge) {
+      challengeType = 'AI';
+      challengeId = notification.aiChallenge.id;
+      description = notification.aiChallenge.description || '';
+      frequency = notification.aiChallenge.frequency || 'daily';
+    }
+
+    if (!challengeId) return;
+
+    // Navigate to the completing page with challenge details
+    router.push({
+      pathname: '/completing',
+      query: {
+        type: challengeType,
+        frequency,
+        title,
+        description,
+        reward: reward.toString(),
+        visibility: challengeType === 'PRIVATE' ? 'private' : 'public',
+        challengeId,
+        creatorId: notification.triggeredBy?.id || '',
+      },
+    });
+  };
+
+  // Make the entire notification card clickable for challenges that can be completed
+  const handleCardClick = () => {
+    const hasCompletableChallenge = notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
+    
+    // If there's a completable challenge, navigate to the completion page
+    if (hasCompletableChallenge) {
+      handleCompleteChallenge();
+    }
+  };
+
+  // Determine if this notification has a challenge that can be completed
+  const hasCompletableChallenge = notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
+
+  // Display NEW tag if isRead is false
+  const shouldShowNew = notification.isRead === false;
+
   return (
-    <div className="relative flex flex-col p-4 rounded-[15px] bg-white/10 backdrop-blur-md shadow-md w-full max-w-lg overflow-hidden">
-      {/* Background Ellipse */}
-      <div
-        className="absolute top-1/2 left-[70%] w-[80%] h-[80%] transform -translate-x-1/2 -translate-y-1/2 rounded-full z-0"
-        style={{
-          background: 'radial-gradient(circle, rgba(253, 78, 245, 0.5) 0%, rgba(253, 78, 245, 0) 70%)',
-          filter: 'blur(40px)',
-        }}
-      />
-
-      {/* Challenge Text (First Line) */}
-      <span className="text-white text-md font-light">{title}</span>
-
-      {/* Reward & User Info (Second Line) */}
-      <div className="flex justify-between items-center mt-2">
-        {/* Token Amount */}
-        <div className="flex items-center text-white">
-          <Image src="/nocenix.ico" alt="Token" width={20} height={20} className="w-5 h-5 mr-2" />
-          <span>{reward}</span>
-        </div>
-
-        {/* Username & Profile Picture */}
-        <div className="flex items-center space-x-3">
-          <ThematicText text={challengerName} isActive={true} className="capitalize" />
+    <ThematicContainer
+      asButton={false}
+      glassmorphic={true}
+      color="nocenaPink"
+      rounded="xl"
+      className="w-full max-w-lg px-6 py-2 cursor-pointer hover:brightness-110 transition-all relative"
+      onClick={handleCardClick}
+    >
+      {/* Challenge Text - smaller and less bold */}
+      <div className="text-lg font-light mb-2">{title}</div>
+      
+      {/* User and Reward Info Row */}
+      <div className="flex items-center justify-between">
+        {/* User Info */}
+        <div className="flex items-center space-x-5">
           <ThematicImage className="rounded-full">
             <Image
               src={challengerProfile}
               alt="Challenger Profile"
               width={40}
               height={40}
-              className="w-10 h-10 object-cover"
+              className="w-8 h-8 object-cover"
             />
           </ThematicImage>
+          {/* Username - bigger and bold */}
+          <span className="text-lg font-bold">{challengerName}</span>
+        </div>
+
+        {/* Reward Display - now has relative positioning */}
+        <div className="relative">
+          {/* NEW tag for unread notifications - positioned above reward */}
+          {shouldShowNew && (
+            <div className="absolute -top-8 right-0 transform translate-y-[-100%]">
+              <ThematicContainer
+                asButton={false}
+                color="nocenaBlue"
+                isActive={true}
+                className="text-xs font-medium px-4"
+                rounded="xl"
+              >
+                NEW
+              </ThematicContainer>
+            </div>
+          )}
+          
+          <ThematicContainer
+            asButton={false}
+            color="nocenaPink"
+            className="px-4 py-1"
+          >
+            <div className="flex items-center space-x-1">
+              <span className="text-xl font-semibold">{reward}</span>
+              <Image src="/nocenix.ico" alt="Nocenix" width={32} height={32} />
+            </div>
+          </ThematicContainer>
         </div>
       </div>
-    </div>
+    </ThematicContainer>
   );
 };
 

@@ -167,7 +167,11 @@ const RegisterPage = () => {
           passwordHash: securePasswordHash,
           notifications: [],
           completedChallenges: [],
-          upcomingChallenges: [],
+          // Remove upcomingChallenges and add the new fields from our updated User type
+          receivedPrivateChallenges: [],
+          createdPrivateChallenges: [],
+          createdPublicChallenges: [],
+          participatingPublicChallenges: []
         };
 
         // Mark the invite code as used

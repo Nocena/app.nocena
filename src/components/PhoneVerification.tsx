@@ -84,7 +84,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({ phoneNumber, onVe
   return (
     <div className="flex flex-col items-center max-w-md w-full px-4">
       <div className="w-64 mb-20 relative">
-        <Image src="/logo/eyes.png" alt="Nocena Logo" width={256} height={256} priority />
+        <Image src="/logo/horizontal.png" alt="Nocena Logo" width={256} height={256} priority />
       </div>
       <h2 className="text-2xl font-bold mb-2 text-center">Verify Your Phone</h2>
       <p className="text-gray-300 mb-8 text-center">We sent a verification code to {phoneNumber}</p>
