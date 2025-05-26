@@ -11,9 +11,16 @@ interface IdleViewProps {
 const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }) => {
   // Default to daily if not specified
   const frequency = challengeParams?.frequency || 'daily';
+  const type = challengeParams?.type || 'AI';
 
-  // Define recording duration text based on challenge frequency
+  // Define recording duration text based on challenge type and frequency
   const getDurationText = () => {
+    if (type === 'PUBLIC') {
+      return 'Record a 30-second video showing your completion of this location challenge';
+    } else if (type === 'PRIVATE') {
+      return 'Record a 30-second video showing your completion of this private challenge';
+    }
+    
     switch (frequency) {
       case 'daily':
         return 'Record a 30-second video showing your completion';
@@ -26,27 +33,29 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
     }
   };
 
-  // Define selfie requirement text based on challenge frequency
+  // Define selfie requirement text based on challenge type
   const getSelfieText = () => {
-    switch (frequency) {
-      case 'daily':
-        return "Take a quick selfie to verify it's you";
-      case 'weekly':
-        return "Take a quick selfie to verify it's you";
-      case 'monthly':
-        return "Take a quick selfie to verify it's you";
-      default:
-        return "Take a quick selfie to verify it's you";
+    if (type === 'PUBLIC') {
+      return "Take a selfie at this location to verify you're actually there";
+    } else if (type === 'PRIVATE') {
+      return "Take a selfie to verify it's you completing this private challenge";
     }
+    return "Take a quick selfie to verify it's you";
   };
 
-  // Explanation text bellow
+  // Explanation text below
   const getExplanationText = () => {
+    if (type === 'PUBLIC') {
+      return "You need to be physically at this location to complete the challenge. Make sure your GPS is enabled and you're at the exact spot!";
+    } else if (type === 'PRIVATE') {
+      return "This private challenge was created for a select group. Complete it to earn rewards and show your progress!";
+    }
+    
     switch (frequency) {
       case 'daily':
-        return "You need to record completing this  in the moment, so make sure you're looking great and your camera is ready!";
+        return "You need to record completing this in the moment, so make sure you're looking great and your camera is ready!";
       case 'weekly':
-        return 'Weekly challenges are more complex so you should create a better submision documnting your journey.';
+        return 'Weekly challenges are more complex so you should create a better submission documenting your journey.';
       case 'monthly':
         return 'Monthly challenges are the longest challenges you can make here - so let your creativity grab the wheel!';
       default:
@@ -54,17 +63,23 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
     }
   };
 
-  // Explanation text bellow
+  // CTA button text
   const getCTAText = () => {
+    if (type === 'PUBLIC') {
+      return 'Complete Location Challenge';
+    } else if (type === 'PRIVATE') {
+      return 'Complete Private Challenge';
+    }
+    
     switch (frequency) {
       case 'daily':
-        return 'Lets go';
+        return 'Let\'s Go';
       case 'weekly':
-        return 'Upload this weeks adventure';
+        return 'Upload This Week\'s Adventure';
       case 'monthly':
-        return 'Submit monthly challenge';
+        return 'Submit Monthly Challenge';
       default:
-        return "Take a quick selfie to verify it's you";
+        return "Let's Go";
     }
   };
 

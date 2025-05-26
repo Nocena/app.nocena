@@ -26,23 +26,84 @@ body {
   width: 0%;
 }
 
+/* Base popup styles */
+.maplibregl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Hide the popup triangle/tip */
+.maplibregl-popup-tip {
+  display: none !important;
+}
+
+/* Ensure proper stacking order */
+.maplibregl-marker {
+  z-index: 1;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.maplibregl-popup {
+  z-index: 200;
+}
+
 .react-tel-input .selected-flag {
   background-color: #1f2937 !important;
 }
+
 .react-tel-input .selected-flag:hover,
 .react-tel-input .selected-flag:focus {
   background-color: #1f2937 !important;
 }
+
 .react-tel-input .country-list .country.highlight,
 .react-tel-input .country-list .country:hover {
   background-color: #374151 !important;
 }
+
 .react-tel-input .country-list .country {
   background-color: #111827 !important;
   color: white !important;
 }
+
 .react-tel-input .country-list {
   background-color: #111827 !important;
   color: white !important;
   border: 1px solid #374151 !important;
+}
+
+@layer utilities {
+  /* Video background utilities */
+  .bg-nocenaBg {
+    @apply bg-transparent !important;
+  }
+  
+  /* Fix for iOS height issues */
+  .min-h-screen-ios {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Content z-indexing */
+  .z-content {
+    @apply relative z-10;
+  }
+  
+  /* Video overlay for better text readability */
+  .video-overlay {
+    @apply after:absolute after:inset-0 after:bg-black/20 after:pointer-events-none;
+  }
+}
+
+/* Global fixes */
+body {
+  @apply bg-black font-sans;
+}
+
+/* Ensure app container is always transparent to show video */
+.app-container {
+  @apply bg-transparent !important;
 }

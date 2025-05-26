@@ -15,10 +15,17 @@ interface Props {
 const RegisterFormStep = ({ control, loading, setStep }: Props) => {
   return (
     <>
-      <NocenaInput control={control} name="username" label="Username" placeholder="Enter username" required />
-
-      <PhoneInput control={control} name="phoneNumber" label="Phone Number" placeholder="Search" required />
-      <PasswordInput control={control} name="password" label="Password" placeholder="Enter password" />
+      <div className="bg-white bg-opacity-10 rounded-2xl overflow-hidden mb-6 backdrop-blur-sm">
+        <div className="border-b border-white border-opacity-20">
+          <NocenaInput control={control} name="username" placeholder="Enter username" required />
+        </div>
+        <div className="border-b border-white border-opacity-20">
+          <PhoneInput control={control} name="phoneNumber" placeholder="722 183 412" required />
+        </div>
+        <div>
+          <PasswordInput control={control} name="password" placeholder="Enter password" />
+        </div>
+      </div>
 
       <div className="mb-3">
         <PrimaryButton

@@ -1,6 +1,12 @@
 // lib/completing/types.ts
 
-// Recording states
+export enum ChallengeType {
+  AI = 'AI',
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE'
+}
+
+// Recording states - maintaining your existing enum values
 export enum RecordingState {
   IDLE = 'idle',
   STARTING = 'starting',
@@ -15,12 +21,17 @@ export enum RecordingState {
 
 // Challenge parameters
 export interface ChallengeParams {
-  type?: string;
-  frequency?: 'daily' | 'weekly' | 'monthly';
-  title?: string;
-  description?: string;
-  reward?: string;
-  visibility?: 'public' | 'private' | 'friends';
+  type: string;
+  frequency: string;
+  title: string;
+  description: string;
+  reward: string;
+  visibility: string;
+  challengeId?: string;
+  longitude?: string;
+  latitude?: string;
+  invitedUsers?: string[]; // For private challenges
+  creatorId?: string; // User who created the private challenge
 }
 
 // Media metadata returned from IPFS upload
@@ -38,7 +49,7 @@ export interface MediaMetadata {
   timestamp: number;
 }
 
-// Challenge completion data
+// Challenge completion data - updated to match new schema
 export interface ChallengeCompletion {
   id: string;
   userId: string;
@@ -47,4 +58,6 @@ export interface ChallengeCompletion {
   media: MediaMetadata | string;
   visibility: 'public' | 'private' | 'friends';
   likesCount?: number;
+  // New field for challenge type to match updated schema
+  challengeType?: 'ai' | 'private' | 'public';
 }

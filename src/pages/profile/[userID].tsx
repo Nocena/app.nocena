@@ -357,6 +357,24 @@ const OtherProfileView: React.FC = () => {
     }
   };
 
+  // Handle "Challenge Me" button click
+  const handleChallengeClick = () => {
+    if (!user || !currentUser) return;
+    
+    console.log('Challenge button clicked for user:', user.username);
+    
+    // Navigate to create challenge with private mode and target user data
+    router.push({
+      pathname: '/createchallenge',
+      query: { 
+        isPrivate: 'true',
+        targetUserId: user.id,
+        targetUsername: user.username,
+        targetProfilePic: user.profilePicture || defaultProfilePic
+      }
+    });
+  };
+
   // Memoize challenge indicators to prevent unnecessary re-renders
   const challengeIndicators = useMemo(() => {
     if (!user) return null;
@@ -401,7 +419,7 @@ const OtherProfileView: React.FC = () => {
     const isFollowing = !!(currentUser && user.followers.includes(currentUser.id));
 
     return (
-      <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden">
+      <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden mt-16">
         <div className="absolute inset-0">
           <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
           <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
@@ -442,18 +460,23 @@ const OtherProfileView: React.FC = () => {
 
         <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
 
-        <div className="relative z-10 mt-4 flex gap-3">
+        <div className="relative z-10 mt-4">
           <PrimaryButton
             text={
               isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
             }
             onClick={handleFollowToggle}
-            className="px-6 py-2"
+            className="px-6 py-2 mb-2"
             isActive={!!isFollowing}
             disabled={isPendingFollow || !currentUser}
           />
 
-          <PrimaryButton text="Challenge Me" onClick={() => {}} className="px-6 py-2" disabled />
+          <PrimaryButton 
+            text="Challenge Me" 
+            onClick={handleChallengeClick} 
+            className="px-6 py-2" 
+            disabled={!currentUser || currentUser.id === user.id}
+          />
         </div>
 
         <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
