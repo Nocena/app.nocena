@@ -1,28 +1,27 @@
-// components/RegisterInviteCodeStep.tsx
-
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Control, Controller, ControllerRenderProps, useWatch } from 'react-hook-form';
-import { validateDiscordInviteCode } from '../../../lib/api/dgraph';
 import PrimaryButton from '../../ui/PrimaryButton';
-import DiscordLinkButton from '../../ui/DiscordLinkButton';
 import NocenaCodeInputs from '../../form/NocenaCodeInput';
+import XButton from '../../ui/XButton';
 import { FormValues } from '../types';
 
 interface Props {
   control: Control<FormValues, any>;
   reset: () => void;
-  onValidCode: (code: string) => void;
+  onValidCode: (code: string, ownerUsername?: string, ownerId?: string) => void;
+  loading: boolean;
+  error: string;
 }
 
-const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
-  const [shake, setShake] = useState(true);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }: Props) => {
+  const [shake, setShake] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [attempts, setAttempts] = useState(0);
   const [blocked, setBlocked] = useState(false);
   const [blockEndTime, setBlockEndTime] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState('');
+  const [validationLoading, setValidationLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const MAX_ATTEMPTS = 3;
@@ -89,6 +88,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
     }
   }, [blocked]);
 
+  // Auto-validate when all 6 characters are entered
   useEffect(() => {
     if (invitationCode.every((c) => c) && invitationCode.length === 6) {
       validateCode(invitationCode);
@@ -134,30 +134,39 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
       setBlockEndTime(blockUntil);
       saveRateLimitData(0, blockUntil); // Reset attempts counter but set block
 
-      setError(`Too many failed attempts. Please try again later.`);
+      setLocalError(`Too many failed attempts. Please try again later.`);
     } else {
       saveRateLimitData(newAttempts);
       const remaining = MAX_ATTEMPTS - newAttempts;
-      setError(`Invalid invite code. You have ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`);
+      setLocalError(`Invalid invite code. You have ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`);
     }
   };
 
   const validateCode = async (codeArray: string[]) => {
-    if (loading || blocked) return;
+    if (validationLoading || blocked || loading) return;
 
-    setLoading(true);
-    setError('');
+    setValidationLoading(true);
+    setLocalError('');
 
     try {
       const codeString = codeArray.join('');
-      const isValid = await validateDiscordInviteCode(codeString);
-      console.log('isValid', isValid);
-      if (isValid) {
+      
+      // Call the new invite validation API
+      const response = await fetch('/api/registration/validate-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: codeString })
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
         // Reset rate limiting on success
         setAttempts(0);
         saveRateLimitData(0);
 
-        onValidCode(codeString);
+        // Call success callback with invite info
+        onValidCode(codeString, data.invite.ownerUsername, data.invite.ownerId);
       } else {
         setShake(true);
         setTimeout(() => setShake(false), 500);
@@ -170,13 +179,13 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
         }
       }
     } catch (err) {
-      console.error(err);
-      setError('Failed to validate code. Please try again.');
+      console.error('Error validating invite code:', err);
+      setLocalError('Failed to validate code. Please try again.');
       reset();
 
       if (inputRefs.current[0]) inputRefs.current[0].focus();
     } finally {
-      setLoading(false);
+      setValidationLoading(false);
     }
   };
 
@@ -187,12 +196,16 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
     }
   };
 
+  // Use local error if available, otherwise use prop error
+  const displayError = localError || error;
+  const isCurrentlyLoading = loading || validationLoading;
+
   return (
     <>
       {blocked ? (
         <div className="text-center p-6 bg-red-900 bg-opacity-30 border border-red-800 rounded-lg w-full mb-6">
           <p className="text-lg mb-2">Too many failed attempts</p>
-          <p>Get a real invite and try again in: {countdown}</p>
+          <p>Please try again in: {countdown}</p>
         </div>
       ) : (
         <>
@@ -201,28 +214,53 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode }: Props) => {
               name="inviteCode"
               control={control}
               render={({ field }: { field: ControllerRenderProps<FormValues, 'inviteCode'> }) => (
-                <NocenaCodeInputs field={field} />
+                <NocenaCodeInputs 
+                  field={field} 
+                  loading={isCurrentlyLoading}
+                  onValidateInvite={(code) => validateCode(code.split(''))}
+                  validationError={displayError}
+                />
               )}
             />
           </div>
-          {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+
+          {/* Loading indicator for validation */}
+          {validationLoading && (
+            <div className="flex justify-center mb-4">
+              <div className="flex items-center space-x-2 text-nocenaBlue text-sm">
+                <div className="w-4 h-4 border-2 border-nocenaBlue border-t-transparent rounded-full animate-spin"></div>
+                <span>Validating invite code...</span>
+              </div>
+            </div>
+          )}
+
+          {displayError && (
+            <p className="text-red-500 text-sm mb-4 text-center">{displayError}</p>
+          )}
 
           <div className="mb-6">
             <PrimaryButton
-              text={loading ? 'Verifying...' : 'Continue'}
+              text={isCurrentlyLoading ? 'Verifying...' : 'Continue'}
               onClick={handleSubmit}
-              disabled={invitationCode.some((c) => !c) || loading}
+              disabled={invitationCode.some((c) => !c) || isCurrentlyLoading}
               className="w-full"
             />
           </div>
         </>
       )}
 
+      {/* Updated help text - removed Discord references */}
       <div className="pt-10 flex items-center flex-col text-center">
-        <p className="text-gray-400 mb-3">
-          This is an invite only app. But if you really want to het in you can try to search thru our server
-        </p>
-        <DiscordLinkButton href="https://discord.gg/4xwXAB2zhp" text="Join our Discord" />
+        <XButton />
+        
+        <div className="text-center">
+          <p className="text-sm mt-10">
+            Already have an account?{' '}
+            <Link href="/login" className="text-nocenaPink hover:text-nocenaPurple transition-colors">
+              Login here
+            </Link>
+          </p>
+        </div>
       </div>
     </>
   );

@@ -1,5 +1,5 @@
-import { ControllerRenderProps, FieldError } from 'react-hook-form';
-import { useRef } from 'react';
+import { ControllerRenderProps } from 'react-hook-form';
+import { useRef, useState } from 'react';
 import ThematicContainer from '../ui/ThematicContainer';
 import { FormValues } from '../register/types';
 
@@ -7,10 +7,13 @@ interface Props {
   field: ControllerRenderProps<FormValues, 'inviteCode' | 'verificationCode'>;
   loading?: boolean;
   onlyNumber?: boolean;
+  onValidateInvite?: (code: string) => Promise<void>; // Add validation callback
+  validationError?: string; // Add validation error prop
 }
 
-const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
+const NocenaCodeInputs = ({ field, loading, onlyNumber, onValidateInvite, validationError }: Props) => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
   const redexReplace = onlyNumber ? /[^0-9]/g : /[^a-zA-Z0-9]/g;
 
   const handleFocusNextInput = (index: number) => {
@@ -19,7 +22,7 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
     }
   };
 
-  const handleChange = (value: string, index: number) => {
+  const handleChange = async (value: string, index: number) => {
     const newValue = value.replace(redexReplace, '').toUpperCase();
     const newFieldValue = [
       ...field.value.slice(0, index),
@@ -27,10 +30,26 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
       ...field.value.slice(index + 1),
     ];
     field.onChange(newFieldValue);
+
     if (index < 5 && newValue) {
       setTimeout(() => {
         handleFocusNextInput(index + 1);
       }, 0);
+    }
+
+    // Auto-validate when all 6 characters are entered (for invite codes only)
+    if (!onlyNumber && newFieldValue.every((char) => char !== '') && onValidateInvite) {
+      const fullCode = newFieldValue.join('');
+      if (fullCode.length === 6) {
+        setIsValidating(true);
+        try {
+          await onValidateInvite(fullCode);
+        } catch (error) {
+          // Error handling is done in parent component
+        } finally {
+          setIsValidating(false);
+        }
+      }
     }
   };
 
@@ -40,8 +59,8 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
       handleFocusNextInput(index - 1);
     }
   };
-  
-  const handlePaste = (e: React.ClipboardEvent) => {
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text').replace(redexReplace, '').toUpperCase();
 
@@ -49,41 +68,82 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber }: Props) => {
       const characters = pastedText.split('').slice(0, 6);
       field.onChange(characters);
       handleFocusNextInput(5);
+
+      // Auto-validate pasted invite code
+      if (!onlyNumber && characters.length === 6 && onValidateInvite) {
+        const fullCode = characters.join('');
+        setIsValidating(true);
+        try {
+          await onValidateInvite(fullCode);
+        } catch (error) {
+          // Error handling is done in parent component
+        } finally {
+          setIsValidating(false);
+        }
+      }
     }
   };
 
   const getInputColor = (index: number, isFilled: boolean) => {
+    // Show error state if there's a validation error
+    if (validationError && !onlyNumber) {
+      return 'nocenaPink';
+    }
+
     if (!isFilled) return 'nocenaBlue';
     if (index < 3) return 'nocenaPurple';
     return 'nocenaPink';
   };
 
+  const isCurrentlyLoading = loading || isValidating;
+
   return (
-    <>
-      {field.value.map((value, index) => (
-        <ThematicContainer
-          key={index}
-          asButton={false}
-          color={getInputColor(index, !!value)}
-          // Remove isActive prop to keep the gradient background
-          className={`w-10 h-14 m-1 ${index === 2 ? 'mr-4' : ''} !rounded-xl`}
-        >
-          <input
-            ref={(el) => {
-              inputRefs.current[index] = el;
-            }}
-            type="text"
-            maxLength={1}
-            value={value}
-            onChange={(e) => handleChange(e.target.value, index)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            onPaste={index === 0 ? handlePaste : undefined}
-            className="w-full h-full text-2xl text-center bg-transparent border-0 focus:outline-none text-white"
-            disabled={loading}
-          />
-        </ThematicContainer>
-      ))}
-    </>
+    <div className="relative">
+      {/* Code Input Grid */}
+      <div className="flex justify-center items-center">
+        {field.value.map((value, index) => (
+          <ThematicContainer
+            key={index}
+            asButton={false}
+            color={getInputColor(index, !!value)}
+            className={`w-10 h-14 m-1 ${index === 2 ? 'mr-4' : ''} !rounded-xl ${
+              validationError && !onlyNumber ? 'border-red-500 border-2' : ''
+            }`}
+          >
+            <input
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
+              type="text"
+              maxLength={1}
+              value={value}
+              onChange={(e) => handleChange(e.target.value, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              onPaste={index === 0 ? handlePaste : undefined}
+              className="w-full h-full text-2xl text-center bg-transparent border-0 focus:outline-none text-white"
+              disabled={isCurrentlyLoading}
+            />
+          </ThematicContainer>
+        ))}
+      </div>
+
+      {/* Loading Indicator for Validation */}
+      {isValidating && !onlyNumber && (
+        <div className="flex justify-center mt-3">
+          <div className="flex items-center space-x-2 text-nocenaBlue text-sm">
+            <div className="w-4 h-4 border-2 border-nocenaBlue border-t-transparent rounded-full animate-spin"></div>
+            <span>Validating invite code...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Error */}
+      {validationError && !onlyNumber && (
+        <div className="text-center mt-3">
+          <p className="text-red-400 text-sm">{validationError}</p>
+        </div>
+      )}
+    </div>
   );
 };
 

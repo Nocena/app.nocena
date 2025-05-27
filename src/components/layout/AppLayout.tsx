@@ -335,8 +335,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   // Determine if bottom navbar should be shown based on the current route
   const showBottomNavbar = !isSpecialPage;
 
-  console.log("Current path:", router.pathname);
-  console.log("showBottomNavbar:", showBottomNavbar);
+  console.log('Current path:', router.pathname);
+  console.log('showBottomNavbar:', showBottomNavbar);
 
   return (
     <div className="app-container min-h-screen w-full text-white flex flex-col relative">
@@ -349,7 +349,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       {/* Conditional rendering based on page type */}
       {isSpecialPage ? (
         /* Special Page Header with styled Back Button */
-        <div 
+        <div
           className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
           style={{
             paddingTop: 'env(safe-area-inset-top)',
@@ -357,11 +357,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           }}
         >
           {/* Back button styled like the profile button */}
-          <button 
-            onClick={handleBack} 
-            className="focus:outline-none pointer-events-auto"
-            aria-label="Back"
-          >
+          <button onClick={handleBack} className="focus:outline-none pointer-events-auto" aria-label="Back">
             <ThematicContainer
               color="nocenaBlue"
               glassmorphic={true}
@@ -369,13 +365,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
               rounded="full"
               className="w-12 h-12 flex items-center justify-center"
             >
-              <ArrowBackIcon 
-                className="transition-colors duration-300"
-                style={{ color: 'white' }}
-              />
+              <ArrowBackIcon className="transition-colors duration-300" style={{ color: 'white' }} />
             </ThematicContainer>
           </button>
-          
           {/* Empty middle and right sections to match TopNavbar layout */}
           <div className="flex-grow"></div>
           <div className="w-12"></div> {/* Empty space to balance the layout */}
@@ -393,10 +385,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       )}
 
       {/* Side Menu - pass the new logout handler and showBottomNavbar prop */}
-      <Menu 
-        isOpen={isMenuOpen} 
-        onClose={handleMenuClose} 
-        onLogout={handleAppLogout} 
+      <Menu
+        isOpen={isMenuOpen}
+        onClose={handleMenuClose}
+        onLogout={handleAppLogout}
         showBottomNavbar={showBottomNavbar}
       />
 
@@ -407,9 +399,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         }`}
         style={{
           // Adjust margin-top for different page types
-          marginTop: router.pathname === '/map' ? 0 : 
-                    isSpecialPage ? 'calc(env(safe-area-inset-top) + 56px)' : 
-                    'env(safe-area-inset-top)',
+          marginTop:
+            router.pathname === '/map'
+              ? 0
+              : isSpecialPage
+                ? 'calc(env(safe-area-inset-top) + 56px)'
+                : 'env(safe-area-inset-top)',
         }}
       >
         {usePageManager ? <PageManager /> : children}

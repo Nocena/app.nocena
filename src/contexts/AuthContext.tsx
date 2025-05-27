@@ -10,19 +10,19 @@ export interface User {
   passwordHash: string;
   profilePicture: string;
   earnedTokens: number;
-  
+
   // Relationships
   followers: string[]; // Array of user IDs
   following: string[]; // Array of user IDs
   notifications: Notification[];
-  
+
   // Challenge relationships
   completedChallenges: ChallengeCompletion[];
   receivedPrivateChallenges: PrivateChallenge[];
   createdPrivateChallenges: PrivateChallenge[];
   createdPublicChallenges: PublicChallenge[];
   participatingPublicChallenges: PublicChallenge[];
-  
+
   // AI challenge tracking
   dailyChallenge: string; // String of 365 characters (e.g., "000...0")
   weeklyChallenge: string; // String of 52 characters (e.g., "000...0")
@@ -78,26 +78,26 @@ export interface AIChallenge extends BaseChallenge {
 export interface ChallengeCompletion {
   id: string;
   user: User | string;
-  
+
   // Challenge references - only one of these will be set
   privateChallenge?: PrivateChallenge;
   publicChallenge?: PublicChallenge;
   aiChallenge?: AIChallenge;
-  
+
   // Timing information
   completionDate: string;
   completionDay: number;
   completionWeek: number;
   completionMonth: number;
   completionYear: number;
-  
+
   // Media field
   media: string; // JSON string with metadata
-  
+
   // Social elements
   likes?: string[]; // User IDs
   likesCount: number;
-  
+
   // Classification and status
   challengeType: string; // "private", "public", "ai"
   status: string; // "pending", "verified", "rejected"
@@ -108,18 +108,18 @@ export interface Notification {
   id: string;
   user: User | string;
   userId: string;
-  
+
   triggeredBy?: User | string;
   triggeredById?: string;
-  
+
   content: string;
   notificationType: string; // "follow", "private_challenge", "challenge_completed", etc.
-  
+
   // Challenge references
   privateChallenge?: PrivateChallenge;
   publicChallenge?: PublicChallenge;
   aiChallenge?: AIChallenge;
-  
+
   isRead: boolean;
   createdAt: string;
 }

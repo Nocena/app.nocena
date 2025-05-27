@@ -42,17 +42,17 @@ const ThematicContainer: React.FC<Props> = ({
 
   const getContainerClasses = () => {
     let classes = 'relative text-lg font-medium font-sans transition-all duration-300';
-    
+
     // Add rounded classes based on prop
     classes += rounded === 'full' ? ' rounded-full' : ' rounded-3xl';
-    
+
     // Add border classes - thinner for glassmorphic
     if (glassmorphic) {
       classes += ' border border-white/20'; // Thin, semi-transparent white border for glass effect
     } else {
       classes += ' border-[1.5px]'; // Original border width
     }
-    
+
     if (disabled) {
       classes += ' border-gray-700 text-gray-500 cursor-not-allowed';
     } else if (isActive) {
@@ -62,22 +62,20 @@ const ThematicContainer: React.FC<Props> = ({
       classes += glassmorphic ? ' border-white/20 text-white' : ' border-gray-700 text-white';
       classes += asButton ? ' cursor-pointer' : '';
     }
-    
+
     // Add backdrop-blur for glassmorphic effect
     if (glassmorphic) {
       classes += ' backdrop-blur-md';
     }
-    
+
     return classes;
   };
 
   const getBackgroundStyle = () => {
     if (disabled) {
-      return glassmorphic 
-        ? { background: 'rgba(30, 30, 60, 0.3)' }
-        : {};
+      return glassmorphic ? { background: 'rgba(30, 30, 60, 0.3)' } : {};
     }
-    
+
     if (isActive) {
       // For active state
       if (glassmorphic) {
@@ -97,7 +95,7 @@ const ThematicContainer: React.FC<Props> = ({
         };
       }
     }
-    
+
     // Default state background
     if (glassmorphic) {
       return {
@@ -113,15 +111,15 @@ const ThematicContainer: React.FC<Props> = ({
 
   const getGlowEffect = () => {
     if (disabled) return null;
-    
+
     if (isActive && !glassmorphic) return null;
-    
+
     return (
       <div
         className="absolute inset-x-0 top-0 h-[3px] overflow-hidden pointer-events-none"
-        style={{ 
+        style={{
           top: glassmorphic ? '-1px' : '-1.5px',
-          borderRadius: rounded === 'full' ? '9999px' : '16px' 
+          borderRadius: rounded === 'full' ? '9999px' : '16px',
         }}
       >
         <div
@@ -138,14 +136,14 @@ const ThematicContainer: React.FC<Props> = ({
   // This adds the milky glass overlay for glassmorphic containers
   const getMilkyOverlay = () => {
     if (!glassmorphic || disabled) return null;
-    
+
     return (
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(143, 164, 252, 0.05))',
           borderRadius: rounded === 'full' ? '9999px' : '16px',
-          zIndex: -1
+          zIndex: -1,
         }}
       />
     );
@@ -159,12 +157,7 @@ const ThematicContainer: React.FC<Props> = ({
   if (asButton) {
     return (
       <div className="inline-block">
-        <button
-          type={type}
-          onClick={disabled ? undefined : onClick}
-          disabled={disabled}
-          {...commonProps}
-        >
+        <button type={type} onClick={disabled ? undefined : onClick} disabled={disabled} {...commonProps}>
           {getGlowEffect()}
           {getMilkyOverlay()}
           {children}
@@ -174,10 +167,7 @@ const ThematicContainer: React.FC<Props> = ({
   } else {
     // Render as a div
     return (
-      <div
-        {...commonProps}
-        onClick={onClick ? (disabled ? undefined : onClick) : undefined}
-      >
+      <div {...commonProps} onClick={onClick ? (disabled ? undefined : onClick) : undefined}>
         {getGlowEffect()}
         {getMilkyOverlay()}
         {children}

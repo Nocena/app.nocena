@@ -423,17 +423,17 @@ const CompletingView = () => {
           title,
           description || `${title} challenge`,
           parseInt(reward),
-          frequency as 'daily' | 'weekly' | 'monthly'
+          frequency as 'daily' | 'weekly' | 'monthly',
         );
       } else if (type === 'PUBLIC' || type === 'PRIVATE') {
         // For public and private challenges, we use the provided challengeId
         if (!challengeId) {
           throw new Error(`Challenge ID is required for ${type.toLowerCase()} challenges`);
         }
-        
+
         // Validate the challengeId exists in your database if needed
         // (This is optional and depends on your security requirements)
-        
+
         challengeDbId = challengeId;
       } else {
         throw new Error('Unsupported challenge type: ' + type);
@@ -444,32 +444,32 @@ const CompletingView = () => {
 
       // Create the media metadata string
       let mediaMetadataString: string;
-      
+
       if (typeof mediaMetadata === 'string') {
         mediaMetadataString = mediaMetadata;
       } else {
         mediaMetadataString = JSON.stringify(mediaMetadata);
       }
-      
+
       // Determine the actual challenge type for the database
-      const challengeType = type === 'AI' ? 'ai' : 
-                            type === 'PUBLIC' ? 'public' : 
-                            type === 'PRIVATE' ? 'private' : 'public';
+      const challengeType =
+        type === 'AI' ? 'ai' : type === 'PUBLIC' ? 'public' : type === 'PRIVATE' ? 'private' : 'public';
 
       // Optional location data for public/private challenges
-      const locationData = (type === 'PUBLIC' || type === 'PRIVATE') && longitude && latitude 
-        ? {
-            longitude: parseFloat(longitude),
-            latitude: parseFloat(latitude)
-          }
-        : null;
+      const locationData =
+        (type === 'PUBLIC' || type === 'PRIVATE') && longitude && latitude
+          ? {
+              longitude: parseFloat(longitude),
+              latitude: parseFloat(latitude),
+            }
+          : null;
 
       // Create the completion record
       const completionId = await createChallengeCompletion(
         user.id,
         challengeDbId,
         challengeType as 'ai' | 'public' | 'private', // Cast to the expected union type
-        mediaMetadataString
+        mediaMetadataString,
       );
 
       // 4. Update user tokens in Dgraph
@@ -497,12 +497,14 @@ const CompletingView = () => {
         hasSelfie: mediaMetadata.hasSelfie,
         // Include location and challengeId for non-AI challenges
         ...(type !== 'AI' && challengeId ? { challengeId } : {}),
-        ...(type !== 'AI' && longitude && latitude ? {
-          location: {
-            longitude: parseFloat(longitude),
-            latitude: parseFloat(latitude)
-          }
-        } : {})
+        ...(type !== 'AI' && longitude && latitude
+          ? {
+              location: {
+                longitude: parseFloat(longitude),
+                latitude: parseFloat(latitude),
+              },
+            }
+          : {}),
       };
 
       // Update local user context
@@ -557,7 +559,22 @@ const CompletingView = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, videoBlob, selfieBlob, type, frequency, title, description, reward, visibility, challengeId, longitude, latitude, router, updateUser]);
+  }, [
+    user,
+    videoBlob,
+    selfieBlob,
+    type,
+    frequency,
+    title,
+    description,
+    reward,
+    visibility,
+    challengeId,
+    longitude,
+    latitude,
+    router,
+    updateUser,
+  ]);
 
   // Retake only the video
   const handleRetakeVideo = useCallback(() => {
@@ -622,7 +639,7 @@ const CompletingView = () => {
       visibility,
       challengeId,
       longitude,
-      latitude
+      latitude,
     };
 
     switch (recordingState) {
