@@ -89,7 +89,7 @@ const LoginPage = () => {
   return (
     <AuthenticationLayout title="Welcome player" subtitle="Login with your account to start the game">
       <form onSubmit={handleSubmit(onSubmitSignIn)} className="w-full space-y-4 mb-6">
-       <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600 divide-y divide-gray-600">
+        <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600 divide-y divide-gray-600">
           <NocenaInput control={control} name="username" placeholder="Enter your username" />
           <PasswordInput control={control} name="password" placeholder="Enter your password" />
         </div>

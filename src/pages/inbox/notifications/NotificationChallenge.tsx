@@ -17,7 +17,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
   challengerName,
   challengerProfile,
   reward,
-  notification
+  notification,
 }) => {
   const router = useRouter();
 
@@ -63,8 +63,9 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
 
   // Make the entire notification card clickable for challenges that can be completed
   const handleCardClick = () => {
-    const hasCompletableChallenge = notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
-    
+    const hasCompletableChallenge =
+      notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
+
     // If there's a completable challenge, navigate to the completion page
     if (hasCompletableChallenge) {
       handleCompleteChallenge();
@@ -72,7 +73,8 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
   };
 
   // Determine if this notification has a challenge that can be completed
-  const hasCompletableChallenge = notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
+  const hasCompletableChallenge =
+    notification.privateChallenge || notification.publicChallenge || notification.aiChallenge;
 
   // Display NEW tag if isRead is false
   const shouldShowNew = notification.isRead === false;
@@ -88,7 +90,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
     >
       {/* Challenge Text - smaller and less bold */}
       <div className="text-lg font-light mb-2">{title}</div>
-      
+
       {/* User and Reward Info Row */}
       <div className="flex items-center justify-between">
         {/* User Info */}
@@ -122,12 +124,8 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
               </ThematicContainer>
             </div>
           )}
-          
-          <ThematicContainer
-            asButton={false}
-            color="nocenaPink"
-            className="px-4 py-1"
-          >
+
+          <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
             <div className="flex items-center space-x-1">
               <span className="text-xl font-semibold">{reward}</span>
               <Image src="/nocenix.ico" alt="Nocenix" width={32} height={32} />

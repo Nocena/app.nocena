@@ -43,7 +43,7 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
   // Convert AuthUser to FollowerUser
   const convertToFollowerUser = useCallback((user: AuthUser | null): FollowerUser | null => {
     if (!user) return null;
-  
+
     return {
       id: user.id,
       username: user.username,
@@ -277,12 +277,9 @@ const FollowersPopup: React.FC<FollowersPopupProps> = ({ isOpen, onClose, follow
         {/* Header */}
         <div className="relative p-6 pb-3">
           <h2 className="text-2xl font-bold text-center">{isFollowers ? 'Followers' : 'Following'}</h2>
-          
+
           {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors"
-          >
+          <button onClick={onClose} className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

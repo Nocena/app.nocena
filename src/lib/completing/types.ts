@@ -3,7 +3,7 @@
 export enum ChallengeType {
   AI = 'AI',
   PUBLIC = 'PUBLIC',
-  PRIVATE = 'PRIVATE'
+  PRIVATE = 'PRIVATE',
 }
 
 // Recording states - maintaining your existing enum values

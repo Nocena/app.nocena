@@ -13,7 +13,7 @@ const AuthenticationLayout = ({ children, title, subtitle }: AuthenticationLayou
     <div className="min-h-screen w-full text-white flex flex-col relative">
       {/* Add the same video background as the main app */}
       <VideoBackground videoSrc="/AppBG.mp4" />
-      
+
       {/* Content container with proper z-index to appear over video */}
       <div className="flex items-center justify-center min-h-screen relative z-10">
         <div className="w-full max-w-md mx-4">

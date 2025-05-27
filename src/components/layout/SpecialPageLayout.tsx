@@ -23,7 +23,7 @@ const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ title, children }
       {/* Special Page Header with Back Button */}
       <div className="fixed top-0 left-0 right-0 z-[9990] pt-[env(safe-area-inset-top)]">
         <div className="flex items-center p-4">
-          <div 
+          <div
             className="rounded-full bg-[#212121] bg-opacity-50 backdrop-blur-md p-2 cursor-pointer"
             onClick={handleBack}
           >
@@ -34,9 +34,7 @@ const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ title, children }
       </div>
 
       {/* Main Content */}
-      <main className="flex-grow relative z-10 pt-16 pb-0 px-4">
-        {children}
-      </main>
+      <main className="flex-grow relative z-10 pt-16 pb-0 px-4">{children}</main>
     </div>
   );
 };

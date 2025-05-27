@@ -9,32 +9,29 @@ interface MapControlsProps {
   userLocation?: LocationData | null;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ 
-  mapLoaded, 
-  locatingUser, 
-  onRecenter,
-  userLocation
-}) => {
+const MapControls: React.FC<MapControlsProps> = ({ mapLoaded, locatingUser, onRecenter, userLocation }) => {
   const router = useRouter();
 
   const handleCreateChallenge = () => {
     console.log('Create challenge button clicked');
-    
+
     if (!userLocation) {
-      alert('Location access is required to create a challenge. Please enable location access in your browser settings and try again.');
+      alert(
+        'Location access is required to create a challenge. Please enable location access in your browser settings and try again.',
+      );
       return;
     }
-    
+
     console.log('Navigating to create challenge with location:', userLocation);
-    
+
     // Navigate to create challenge with public flag and location data
     router.push({
       pathname: '/createchallenge',
-      query: { 
+      query: {
         isPublic: 'true',
         lat: userLocation.latitude.toString(),
-        lng: userLocation.longitude.toString()
-      }
+        lng: userLocation.longitude.toString(),
+      },
     });
   };
 
@@ -45,12 +42,12 @@ const MapControls: React.FC<MapControlsProps> = ({
   return (
     <div className="absolute bottom-24 right-4 flex flex-col space-y-2 z-10">
       {/* Recenter button - White with gradient arrow */}
-      <button 
+      <button
         onClick={onRecenter}
         className="w-14 h-14 rounded-full bg-white text-white flex items-center justify-center shadow-lg"
         aria-label="Center map on my location"
         disabled={locatingUser}
-        style={{ 
+        style={{
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
         }}
       >
@@ -71,25 +68,19 @@ const MapControls: React.FC<MapControlsProps> = ({
               <stop offset="100%" stopColor="#FD4EF5" />
             </linearGradient>
           </defs>
-          <path 
-            d="M12 2L19 21L12 17L5 21L12 2Z" 
-            fill="url(#locationGradient)" 
-            stroke="url(#locationGradient)" 
-          />
+          <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="url(#locationGradient)" stroke="url(#locationGradient)" />
         </svg>
       </button>
 
       {/* Create Challenge button */}
-      <button 
+      <button
         onClick={handleCreateChallenge}
         className={`w-14 h-14 rounded-full ${
-          userLocation 
-            ? 'bg-gradient-to-r from-nocenaBlue to-nocenaPink' 
-            : 'bg-gray-500'
+          userLocation ? 'bg-gradient-to-r from-nocenaBlue to-nocenaPink' : 'bg-gray-500'
         } text-white flex items-center justify-center shadow-lg`}
         aria-label="Create a challenge at your location"
-        title={userLocation ? "Create a challenge" : "Location access required"}
-        style={{ 
+        title={userLocation ? 'Create a challenge' : 'Location access required'}
+        style={{
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
         }}
       >

@@ -9,10 +9,7 @@ type ResponseData = {
   challengeId?: string;
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -41,19 +38,19 @@ export default async function handler(
       return res.status(200).json({
         success: true,
         message: result.message,
-        challengeId: result.challengeId
+        challengeId: result.challengeId,
       });
     } else {
       return res.status(400).json({
         success: false,
-        message: result.message
+        message: result.message,
       });
     }
   } catch (error) {
     console.error('Error in challenge creation API route:', error);
     return res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      message: error instanceof Error ? error.message : 'An unexpected error occurred',
     });
   }
 }
