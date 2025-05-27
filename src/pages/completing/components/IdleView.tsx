@@ -20,7 +20,7 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
     } else if (type === 'PRIVATE') {
       return 'Record a 30-second video showing your completion of this private challenge';
     }
-    
+
     switch (frequency) {
       case 'daily':
         return 'Record a 30-second video showing your completion';
@@ -48,9 +48,9 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
     if (type === 'PUBLIC') {
       return "You need to be physically at this location to complete the challenge. Make sure your GPS is enabled and you're at the exact spot!";
     } else if (type === 'PRIVATE') {
-      return "This private challenge was created for a select group. Complete it to earn rewards and show your progress!";
+      return 'This private challenge was created for a select group. Complete it to earn rewards and show your progress!';
     }
-    
+
     switch (frequency) {
       case 'daily':
         return "You need to record completing this in the moment, so make sure you're looking great and your camera is ready!";
@@ -70,12 +70,12 @@ const IdleView: React.FC<IdleViewProps> = ({ onStartRecording, challengeParams }
     } else if (type === 'PRIVATE') {
       return 'Complete Private Challenge';
     }
-    
+
     switch (frequency) {
       case 'daily':
-        return 'Let\'s Go';
+        return "Let's Go";
       case 'weekly':
-        return 'Upload This Week\'s Adventure';
+        return "Upload This Week's Adventure";
       case 'monthly':
         return 'Submit Monthly Challenge';
       default:

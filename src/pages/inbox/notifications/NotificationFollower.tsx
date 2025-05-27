@@ -73,7 +73,7 @@ const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, p
     >
       {/* New Follower Text - smaller and less bold */}
       <div className="text-lg font-light mb-2">New follower!</div>
-      
+
       {/* User Info Row */}
       <div className="flex items-center justify-between">
         {/* User Info */}
@@ -90,7 +90,7 @@ const NotificationFollower: React.FC<NotificationFollowerProps> = ({ username, p
           {/* Username - bigger and bold */}
           <span className="text-lg font-bold">{username}</span>
         </div>
-        
+
         {/* NEW tag for unread notifications - positioned in upper right */}
         {shouldShowNew && (
           <div className="absolute top-2 right-6 transform translate-y-[-100%]">

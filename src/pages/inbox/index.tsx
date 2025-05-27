@@ -430,7 +430,7 @@ const InboxView = () => {
   const getRewardForNotification = (notification: NotificationBase) => {
     // Default reward
     let reward = 10;
-    
+
     // Try to get reward from challenge if available
     if (notification.privateChallenge) {
       // Assume private challenges have a standard reward of 15
@@ -454,7 +454,7 @@ const InboxView = () => {
           reward = 10;
       }
     }
-    
+
     return reward;
   };
 
@@ -475,7 +475,7 @@ const InboxView = () => {
       } else {
         // For challenge and other notification types
         let challengeTitle = notification.content ?? '';
-        
+
         // Use the title from the specific challenge if available
         if (notification.privateChallenge) {
           challengeTitle = notification.privateChallenge.title || challengeTitle;
@@ -484,10 +484,10 @@ const InboxView = () => {
         } else if (notification.aiChallenge) {
           challengeTitle = notification.aiChallenge.title || challengeTitle;
         }
-        
+
         // Get reward amount - could be determined by challenge type
         const rewardAmount = getRewardForNotification(notification);
-        
+
         return (
           <NotificationChallenge
             key={notification.id}
@@ -503,7 +503,7 @@ const InboxView = () => {
     console.timeEnd('render-notification-list');
     return result;
   }, [notifications]);
-  
+
   // For initial render with no data, show skeletons
   console.log(`[PERF] Render decision - isLoading: ${isLoading}, notifications: ${notifications.length}`);
 

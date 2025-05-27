@@ -32,41 +32,29 @@ const TopNavbar: React.FC<TopNavbarProps> = ({
       }}
     >
       {/* Menu button - rotated 180 degrees with visual feedback when menu is open */}
-      <button 
-        onClick={handleMenuToggle} 
+      <button
+        onClick={handleMenuToggle}
         className="focus:outline-none p-2 pointer-events-auto transform rotate-180"
         aria-label="Menu"
       >
-        <div
-          className="w-12 h-12 flex items-center justify-center transition-all duration-300"
-        >
-          <MenuIcon 
-            className="transition-colors duration-300"
-            style={{ color: 'white' }}
-          />
+        <div className="w-12 h-12 flex items-center justify-center transition-all duration-300">
+          <MenuIcon className="transition-colors duration-300" style={{ color: 'white' }} />
         </div>
       </button>
-      
+
       {/* Empty middle section */}
       <div className="flex-grow"></div>
-      
+
       {/* Profile button using ThematicContainer */}
-      <button 
-        onClick={() => handleNavClick(4)}
-        className="focus:outline-none pointer-events-auto"
-        aria-label="Profile"
-      >
+      <button onClick={() => handleNavClick(4)} className="focus:outline-none pointer-events-auto" aria-label="Profile">
         <ThematicContainer
-          color={isProfileActive ? "nocenaPink" : "nocenaBlue"}
+          color={isProfileActive ? 'nocenaPink' : 'nocenaBlue'}
           glassmorphic={true}
           asButton={false}
           rounded="full"
           className="w-12 h-12 flex items-center justify-center"
         >
-          <ProfileIcon 
-            className="transition-colors duration-300"
-            style={{ color: 'white' }}
-          />
+          <ProfileIcon className="transition-colors duration-300" style={{ color: 'white' }} />
         </ThematicContainer>
       </button>
     </div>

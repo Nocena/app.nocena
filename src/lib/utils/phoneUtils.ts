@@ -14,7 +14,7 @@ export const formatPhoneToE164 = (phoneNumber: string): string => {
 
   // Remove all non-numeric characters except the leading +
   let result = phoneNumber.trim();
-  
+
   // If it starts with +, keep it and extract only digits after the +
   if (result.startsWith('+')) {
     const digits = result.substring(1).replace(/\D/g, '');
@@ -22,7 +22,7 @@ export const formatPhoneToE164 = (phoneNumber: string): string => {
   } else {
     // Remove all non-numeric characters
     const digits = result.replace(/\D/g, '');
-    
+
     // If the number doesn't have a country code (assuming US/Canada as default)
     if (digits.length === 10) {
       result = '+1' + digits; // Add US/Canada country code
@@ -32,7 +32,7 @@ export const formatPhoneToE164 = (phoneNumber: string): string => {
   }
 
   console.log('Formatted phone number:', result);
-  
+
   // Basic validation - E.164 should be 7-15 digits after the +
   const digitsOnly = result.substring(1);
   if (digitsOnly.length < 7 || digitsOnly.length > 15) {

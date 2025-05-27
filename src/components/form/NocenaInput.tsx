@@ -23,10 +23,10 @@ const NocenaInput = ({ control, name, placeholder, required, type = 'text' }: No
             </svg>
           </div>
           <input
-              {...field}
-              type={type}
-              id={name}
-              placeholder={placeholder}
+            {...field}
+            type={type}
+            id={name}
+            placeholder={placeholder}
             className="w-full pl-20 pr-4 py-3 bg-transparent text-white placeholder-gray-400 focus:outline-none focus:bg-gray-700/50 transition-colors"
           />
           {fieldState.error ? <p className="text-sm text-red-600 mt-2">{fieldState.error.message}</p> : null}

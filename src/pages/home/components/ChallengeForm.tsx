@@ -16,13 +16,7 @@ interface ChallengeFormProps {
 
 const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, selectedTab, onCompleteChallenge }) => {
   return (
-    <ThematicContainer
-      asButton={false}
-      glassmorphic={true}
-      color="nocenaBlue"
-      rounded="xl"
-      className="px-12 py-8"
-    >
+    <ThematicContainer asButton={false} glassmorphic={true} color="nocenaBlue" rounded="xl" className="px-12 py-8">
       <h2 className="text-3xl font-bold mb-4 text-center">{challenge.title}</h2>
       <p className="text-lg text-gray-300 mb-8 text-center font-light">{challenge.description}</p>
 
@@ -32,11 +26,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
           onClick={() => onCompleteChallenge('AI', selectedTab)} // Pass 'AI' as type and the selectedTab as frequency
         />
 
-        <ThematicContainer
-          asButton={false}
-          color="nocenaPink"
-          className="px-4 py-1"
-        >
+        <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
           <div className="flex items-center space-x-1">
             <span className="text-xl font-semibold">{reward}</span>
             <Image src={nocenixIcon} alt="Nocenix" width={32} height={32} />
