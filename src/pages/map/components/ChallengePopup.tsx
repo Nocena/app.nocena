@@ -22,7 +22,7 @@ interface PopupContent {
 
 /**
  * This component returns the HTML content for a map popup.
- * It's not a React component that gets rendered directly - 
+ * It's not a React component that gets rendered directly -
  * instead it renders to an HTML string that MapLibre will use.
  */
 const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupContent => {
@@ -31,12 +31,12 @@ const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupCo
     closeButton: false,
     closeOnClick: true,
     offset: [0, -10],
-    maxWidth: '320px'
+    maxWidth: '320px',
   };
-  
+
   // Create a unique ID for the button based on the challenge ID
   const buttonId = `challenge-complete-btn-${challenge.id}`;
-  
+
   // Convert the JSX to an HTML string
   const popupHtml = `
     <div class="challenge-popup-container">
@@ -131,7 +131,7 @@ const ChallengePopup = ({ challenge, onComplete }: ChallengePopupProps): PopupCo
   return {
     html: popupHtml,
     options,
-    setupEventListeners
+    setupEventListeners,
   };
 };
 

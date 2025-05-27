@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { registerUser, markDiscordInviteAsUsed } from '../lib/api/dgraph';
+import { registerUser, generateInviteCode } from '../lib/api/dgraph';
 import { createPolygonWallet } from '../lib/api/polygon';
 import { verifyPhoneNumber } from '../lib/utils/verification';
 import { formatPhoneToE164 } from '../lib/utils/phoneUtils';
@@ -35,6 +35,9 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
+  const [validatedInviteCode, setValidatedInviteCode] = useState('');
+  const [inviteOwner, setInviteOwner] = useState('');
+  const [invitedById, setInvitedById] = useState('');
   const { login } = useAuth();
 
   const registerSteps: { step: RegisterStep; title?: string; subtitle?: string; fields?: (keyof FormValues)[] }[] = [
@@ -100,6 +103,40 @@ const RegisterPage = () => {
     }
   }, [reset, watch]);
 
+  // Updated invite validation handler
+  const handleValidInviteCode = async (code: string, ownerUsername?: string, ownerId?: string) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Validate the invite code with the backend
+      const response = await fetch('/api/registration/validate-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: code }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        // Store invite information
+        setValidatedInviteCode(code);
+        setInviteOwner(data.invite.ownerUsername || 'Someone');
+        setInvitedById(data.invite.ownerId || '');
+
+        // Proceed to welcome step
+        setCurrentStep(STEP_WELCOME);
+      } else {
+        setError(data.error || 'Invalid invite code');
+      }
+    } catch (err) {
+      console.error('Error validating invite:', err);
+      setError('Failed to validate invite code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const setNextStep = async () => {
     const fields = registerSteps[currentStep].fields;
     if (fields) {
@@ -115,7 +152,6 @@ const RegisterPage = () => {
       setCurrentStep((step) => step + 1);
     }
   };
-  console.log('errors', errors);
 
   const handleCompleteRegistration = async (
     data: FormValues,
@@ -131,26 +167,28 @@ const RegisterPage = () => {
     }
 
     try {
-      // Securely hash the password - the salt will be generated automatically
+      // Securely hash the password
       const securePasswordHash = await hashPassword(data.password);
 
       // Format phone number to E.164 format before storing
       const formattedPhone = formatPhoneToE164(data.phoneNumber);
 
-      // Register user with properly formatted phone number and secure password hash
+      // Register user with invite information
       const addedUser = await registerUser(
         data.username,
         formattedPhone,
-        securePasswordHash, // Securely hashed password
+        securePasswordHash,
         '/images/profile.png',
         walletData.address,
         '0'.repeat(365),
         '0'.repeat(52),
         '0'.repeat(12),
+        validatedInviteCode, // Pass the validated invite code
+        invitedById, // Pass the inviter's ID
       );
 
       if (addedUser) {
-        // Create user data object with formatted phoneNumber
+        // Create user data object
         const userData: User = {
           id: addedUser.id,
           username: data.username,
@@ -158,7 +196,7 @@ const RegisterPage = () => {
           wallet: walletData.address,
           bio: '',
           profilePicture: '/images/profile.png',
-          earnedTokens: 0,
+          earnedTokens: 50, // New users get 50 tokens
           dailyChallenge: '0'.repeat(365),
           weeklyChallenge: '0'.repeat(52),
           monthlyChallenge: '0'.repeat(12),
@@ -167,22 +205,37 @@ const RegisterPage = () => {
           passwordHash: securePasswordHash,
           notifications: [],
           completedChallenges: [],
-          // Remove upcomingChallenges and add the new fields from our updated User type
           receivedPrivateChallenges: [],
           createdPrivateChallenges: [],
           createdPublicChallenges: [],
-          participatingPublicChallenges: []
+          participatingPublicChallenges: [],
         };
 
-        // Mark the invite code as used
-        await markDiscordInviteAsUsed(data.inviteCode.join(''), addedUser.id);
+        // Mark the invite code as used and award tokens
+        await fetch('/api/registration/use-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inviteCode: validatedInviteCode,
+            newUserId: addedUser.id,
+          }),
+        });
+
+        // Generate initial invite codes for the new user
+        try {
+          await generateInviteCode(addedUser.id, 'initial');
+          await generateInviteCode(addedUser.id, 'initial');
+        } catch (inviteError) {
+          console.error('Error generating initial invite codes:', inviteError);
+          // Don't fail registration if invite generation fails
+        }
 
         await login(userData);
       } else {
         setError('Failed to register. Please try again.');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Registration error:', err);
       setError('Failed to register. Please try again.');
     }
   };
@@ -194,6 +247,7 @@ const RegisterPage = () => {
     try {
       const code = data.verificationCode.join('');
       const formattedPhone = formatPhoneToE164(data.phoneNumber);
+
       // Verify the code using Twilio
       const isValid = await verifyPhoneNumber(formattedPhone, 'VERIFY', code);
 
@@ -201,7 +255,7 @@ const RegisterPage = () => {
         // Create wallet
         const newWallet = createPolygonWallet();
         setWallet(newWallet);
-        handleCompleteRegistration(data, newWallet);
+        await handleCompleteRegistration(data, newWallet);
         setCurrentStep(STEP_WALLET_CREATION);
       } else {
         setError('Invalid verification code. Please try again.');
@@ -236,14 +290,37 @@ const RegisterPage = () => {
     }
   }, [formValues.phoneNumber]);
 
+  // Update subtitle for welcome step to show invite owner
+  const getStepSubtitle = (step: RegisterStep) => {
+    if (step === RegisterStep.WELCOME && inviteOwner) {
+      return `Welcome! You were invited by ${inviteOwner}`;
+    }
+    if (step === RegisterStep.PHONE_VERIFICATION) {
+      return registerSteps[currentStep].subtitle?.replace('{phoneNumber}', formValues.phoneNumber);
+    }
+    return registerSteps[currentStep]?.subtitle;
+  };
+
   return (
-    <AuthenticationLayout title={registerSteps[currentStep]?.title} subtitle={registerSteps[currentStep].subtitle}>
+    <AuthenticationLayout
+      title={registerSteps[currentStep]?.title}
+      subtitle={getStepSubtitle(registerSteps[currentStep].step)}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
         {currentStep === STEP_INVITE_CODE ? (
-          <RegisterInviteCodeStep control={control} onValidCode={setNextStep} reset={reset} />
+          <RegisterInviteCodeStep
+            control={control}
+            onValidCode={handleValidInviteCode}
+            reset={reset}
+            loading={loading}
+            error={error}
+          />
         ) : null}
-        {currentStep === STEP_WELCOME ? <RegisterWelcomeStep /> : null}
+
+        {currentStep === STEP_WELCOME ? <RegisterWelcomeStep inviteOwner={inviteOwner} /> : null}
+
         {currentStep === STEP_REGISTER_FORM ? <RegisterFormStep setStep={setNextStep} control={control} /> : null}
+
         {currentStep === STEP_PHONE_VERIFICATION ? (
           <RegisterPhoneVerificationStep
             control={control}
@@ -252,6 +329,7 @@ const RegisterPage = () => {
             customError={error}
           />
         ) : null}
+
         {currentStep === STEP_WALLET_CREATION && wallet ? <RegisterWalletCreationStep wallet={wallet} /> : null}
       </form>
     </AuthenticationLayout>

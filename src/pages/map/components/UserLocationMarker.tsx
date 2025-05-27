@@ -11,15 +11,15 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
   const { user } = useAuth();
   const defaultProfilePic = '/images/profile.png';
   const markerRef = useRef<any>(null);
-  
+
   useEffect(() => {
     if (!map || !MapLibre) return;
-    
+
     // Remove existing marker if it exists
     if (markerRef.current) {
       markerRef.current.remove();
     }
-    
+
     const profilePicture = user?.profilePicture || defaultProfilePic;
 
     const el = document.createElement('div');
@@ -27,7 +27,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
     el.style.width = '48px';
     el.style.height = '60px';
     el.style.position = 'absolute';
-    
+
     // Add the CSS animation classes and HTML structure
     el.innerHTML = `
       <style>
@@ -108,7 +108,7 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
         "></div>
       </div>
     `;
-    
+
     // Create marker with proper anchor and offset
     const marker = new MapLibre.Marker({
       element: el,
@@ -116,13 +116,13 @@ const UserLocationMarker: React.FC<UserLocationMarkerProps> = ({ map, MapLibre, 
       offset: [0, 0], // No need for offset with bottom anchor
       draggable: false,
       rotationAlignment: 'viewport',
-      pitchAlignment: 'viewport'
+      pitchAlignment: 'viewport',
     })
-    .setLngLat(location)
-    .addTo(map);
-    
+      .setLngLat(location)
+      .addTo(map);
+
     markerRef.current = marker;
-    
+
     return () => {
       if (markerRef.current) {
         markerRef.current.remove();

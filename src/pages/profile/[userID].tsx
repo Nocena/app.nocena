@@ -360,18 +360,18 @@ const OtherProfileView: React.FC = () => {
   // Handle "Challenge Me" button click
   const handleChallengeClick = () => {
     if (!user || !currentUser) return;
-    
+
     console.log('Challenge button clicked for user:', user.username);
-    
+
     // Navigate to create challenge with private mode and target user data
     router.push({
       pathname: '/createchallenge',
-      query: { 
+      query: {
         isPrivate: 'true',
         targetUserId: user.id,
         targetUsername: user.username,
-        targetProfilePic: user.profilePicture || defaultProfilePic
-      }
+        targetProfilePic: user.profilePicture || defaultProfilePic,
+      },
     });
   };
 
@@ -471,10 +471,10 @@ const OtherProfileView: React.FC = () => {
             disabled={isPendingFollow || !currentUser}
           />
 
-          <PrimaryButton 
-            text="Challenge Me" 
-            onClick={handleChallengeClick} 
-            className="px-6 py-2" 
+          <PrimaryButton
+            text="Challenge Me"
+            onClick={handleChallengeClick}
+            className="px-6 py-2"
             disabled={!currentUser || currentUser.id === user.id}
           />
         </div>

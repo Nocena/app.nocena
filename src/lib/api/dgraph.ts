@@ -2,12 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { User } from '../../contexts/AuthContext';
 import { getDayOfYear, getWeekOfYear } from '../utils/dateUtils';
-import { 
-  ChallengeFormData, 
-  CreateChallengeResponse, 
-  PublicChallenge, 
-  PrivateChallenge 
-} from '../map/types';
+import { ChallengeFormData, CreateChallengeResponse, PublicChallenge, PrivateChallenge } from '../map/types';
 
 const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
@@ -26,7 +21,17 @@ export const registerUser = async (
   dailyChallenge: string,
   weeklyChallenge: string,
   monthlyChallenge: string,
+  inviteCode: string,
+  invitedById?: string,
 ) => {
+  console.log('🔧 REGISTER: Starting user registration with:', {
+    username,
+    phoneNumber,
+    wallet,
+    inviteCode,
+    invitedById,
+  });
+
   const mutation = `
     mutation RegisterUser($input: AddUserInput!) {
       addUser(input: [$input]) {
@@ -52,30 +57,32 @@ export const registerUser = async (
     }
   `;
 
+  const userId = uuidv4();
+  console.log('🔧 REGISTER: Generated user ID:', userId);
+
   const variables = {
     input: {
-      id: uuidv4(),
-      username,
-      phoneNumber,
+      id: userId,
+      username: username,           // Make sure this is explicitly set
+      phoneNumber: phoneNumber,
       bio: '',
-      wallet,
-      passwordHash,
-      profilePicture,
-      earnedTokens: 0,
-      followers: [],
-      following: [],
-      completedChallenges: [],
-      // Remove upcomingChallenges as it's no longer in the schema
-      // Add empty arrays for the new challenge relationships
-      receivedPrivateChallenges: [],
-      createdPrivateChallenges: [],
-      createdPublicChallenges: [],
-      participatingPublicChallenges: [],
-      dailyChallenge,
-      weeklyChallenge,
-      monthlyChallenge,
+      wallet: wallet,
+      passwordHash: passwordHash,
+      profilePicture: profilePicture,
+      earnedTokens: 50,
+      dailyChallenge: dailyChallenge,
+      weeklyChallenge: weeklyChallenge,
+      monthlyChallenge: monthlyChallenge,
+      inviteCode: inviteCode,
+      invitedById: invitedById || null,
+      // Only add invitedBy reference if invitedById exists and is not 'system'
+      ...(invitedById && invitedById !== 'system' && {
+        invitedBy: { id: invitedById }
+      }),
     },
   };
+
+  console.log('🔧 REGISTER: Mutation variables:', JSON.stringify(variables, null, 2));
 
   try {
     const response = await axios.post(DGRAPH_ENDPOINT, {
@@ -83,8 +90,11 @@ export const registerUser = async (
       variables,
     });
 
+    console.log('🔧 REGISTER: Registration response:', JSON.stringify(response.data, null, 2));
+
     if (response.data.errors) {
       const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      console.error('🔧 REGISTER: GraphQL errors:', response.data.errors);
       throw new Error(`GraphQL Error: ${errorMessages}`);
     }
 
@@ -101,9 +111,10 @@ export const registerUser = async (
       userData.completedChallenges = [];
     }
 
+    console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username);
     return userData;
   } catch (error) {
-    console.error('Error during user registration:', error);
+    console.error('🔧 REGISTER: Error during user registration:', error);
 
     // Narrowing the type of error
     if (error instanceof Error) {
@@ -111,6 +122,536 @@ export const registerUser = async (
     } else {
       throw new Error('An unknown error occurred during user registration.');
     }
+  }
+};
+
+/**
+ * Validates an invite code - FIXED GraphQL types
+ */
+export const validateInviteCode = async (
+  code: string,
+): Promise<{ valid: boolean; ownerId?: string; ownerUsername?: string }> => {
+  const query = `
+    query ValidateInvite($code: String!) {
+      queryInviteCode(filter: { code: { eq: $code }, isUsed: false }) {
+        id
+        ownerId
+        owner {
+          username
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+      variables: { code: code.toUpperCase() },
+    });
+
+    console.log('🔧 VALIDATE: Validation response:', JSON.stringify(response.data, null, 2));
+
+    const invite = response.data?.data?.queryInviteCode?.[0];
+
+    if (!invite) {
+      console.log('🔧 VALIDATE: No invite found for code:', code);
+      return { valid: false };
+    }
+
+    console.log('🔧 VALIDATE: Found invite:', invite);
+
+    // Handle system codes (which don't have an owner reference)
+    let ownerUsername = 'Unknown';
+    if (invite.ownerId === 'system') {
+      ownerUsername = 'Nocena';
+    } else if (invite.owner?.username) {
+      ownerUsername = invite.owner.username;
+    } else {
+      // If there's no owner reference but ownerId exists, try to fetch username separately
+      if (invite.ownerId && invite.ownerId !== 'system') {
+        try {
+          const userQuery = `
+            query GetUserById($userId: String!) {
+              getUser(id: $userId) {
+                username
+              }
+            }
+          `;
+          
+          const userResponse = await axios.post(DGRAPH_ENDPOINT, {
+            query: userQuery,
+            variables: { userId: invite.ownerId },
+          });
+
+          if (userResponse.data?.data?.getUser?.username) {
+            ownerUsername = userResponse.data.data.getUser.username;
+          }
+        } catch (userError) {
+          console.log('🔧 VALIDATE: Could not fetch owner username:', userError);
+          // Continue with 'Unknown' username
+        }
+      }
+    }
+
+    console.log('🔧 VALIDATE: Returning valid invite with owner:', ownerUsername);
+
+    return {
+      valid: true,
+      ownerId: invite.ownerId,
+      ownerUsername: ownerUsername,
+    };
+  } catch (error) {
+    console.error('🔧 VALIDATE: Error validating invite code:', error);
+    return { valid: false };
+  }
+};
+
+/**
+ * Marks an invite code as used - FIXED GraphQL types
+ */
+export const markInviteAsUsed = async (code: string, userId: string): Promise<boolean> => {
+  const mutation = `
+    mutation markInviteAsUsed($code: String!, $userId: String!, $usedAt: DateTime!) {
+      updateInviteCode(
+        input: {
+          filter: { code: { eq: $code } },
+          set: {
+            isUsed: true,
+            usedById: $userId,
+            usedBy: { id: $userId },
+            usedAt: $usedAt
+          }
+        }
+      ) {
+        inviteCode {
+          id
+          code
+          ownerId
+        }
+      }
+    }
+  `;
+
+  try {
+    console.log('🔧 MARK_USED: Marking invite code as used:', code, 'by user:', userId);
+
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query: mutation,
+      variables: {
+        code: code.toUpperCase(),
+        userId,
+        usedAt: new Date().toISOString(),
+      },
+    });
+
+    console.log('🔧 MARK_USED: Response:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.errors) {
+      console.error('🔧 MARK_USED: Error marking invite as used:', response.data.errors);
+      return false;
+    }
+
+    const updatedInvite = response.data?.data?.updateInviteCode?.inviteCode?.[0];
+    console.log('🔧 MARK_USED: Successfully marked invite as used:', updatedInvite);
+
+    return true;
+  } catch (error) {
+    console.error('🔧 MARK_USED: Error using invite code:', error);
+    return false;
+  }
+};
+
+/**
+ * Generates invite codes for a user - FIXED GraphQL types
+ */
+export const generateInviteCode = async (userId: string, source: string = 'earned'): Promise<string | null> => {
+  console.log(`🚀 BOOTSTRAP: Starting generateInviteCode for userId: ${userId}, source: ${source}`);
+  
+  try {
+    if (!DGRAPH_ENDPOINT) {
+      throw new Error('DGRAPH_ENDPOINT is not configured');
+    }
+
+    // For system/admin codes, skip user validation entirely
+    if (userId !== 'system') {
+      console.log('🚀 BOOTSTRAP: Checking user limits for regular user');
+      
+      // Check current unused invites for regular users
+      const checkQuery = `
+        query CheckUserInvites($userId: String!) {
+          queryInviteCode(filter: { ownerId: { eq: $userId }, isUsed: false }) {
+            id
+          }
+        }
+      `;
+
+      const checkResponse = await axios.post(DGRAPH_ENDPOINT, {
+        query: checkQuery,
+        variables: { userId },
+      });
+
+      const unusedCount = checkResponse.data?.data?.queryInviteCode?.length || 0;
+      
+      // Set limits based on source
+      let maxCodes = 2;
+      if (source === 'initial') {
+        maxCodes = 2;
+      } else if (source === 'earned') {
+        maxCodes = 5;
+      }
+
+      if (unusedCount >= maxCodes) {
+        throw new Error('Maximum invite codes reached');
+      }
+    } else {
+      console.log('🚀 BOOTSTRAP: Creating system code - no user validation needed');
+    }
+
+    // Generate unique code
+    let code: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    console.log('🚀 BOOTSTRAP: Starting code generation loop');
+    
+    do {
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      attempts++;
+      console.log(`🚀 BOOTSTRAP: Attempt ${attempts}, generated code: ${code}`);
+
+      // Check if code already exists
+      const checkCodeQuery = `
+        query CheckCodeExists($code: String!) {
+          queryInviteCode(filter: { code: { eq: $code } }) {
+            id
+          }
+        }
+      `;
+
+      const codeCheckResponse = await axios.post(DGRAPH_ENDPOINT, {
+        query: checkCodeQuery,
+        variables: { code },
+      }, {
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY
+          })
+        },
+      });
+
+      if (codeCheckResponse.data.errors) {
+        console.error('🚀 BOOTSTRAP: GraphQL errors in code check:', codeCheckResponse.data.errors);
+        throw new Error(`GraphQL error: ${codeCheckResponse.data.errors[0].message}`);
+      }
+
+      const existingCodes = codeCheckResponse.data?.data?.queryInviteCode || [];
+      console.log('🚀 BOOTSTRAP: Existing codes found:', existingCodes.length);
+      
+      if (existingCodes.length === 0) {
+        console.log('🚀 BOOTSTRAP: Code is unique, breaking loop');
+        break;
+      }
+    } while (attempts < maxAttempts);
+
+    if (attempts >= maxAttempts) {
+      throw new Error(`Failed to generate unique invite code after ${maxAttempts} attempts`);
+    }
+
+    console.log(`🚀 BOOTSTRAP: Found unique code: ${code} after ${attempts} attempts`);
+
+    // Generate a unique ID
+    const inviteId = `invite_${code}_${Date.now()}`;
+
+    // Try different mutation approaches based on whether it's system or user
+    let mutation: string;
+    let variables: any;
+
+    if (userId === 'system') {
+      // For system codes - try without owner reference
+      console.log('🚀 BOOTSTRAP: Creating system code without owner reference');
+      mutation = `
+        mutation CreateSystemInviteCode($id: String!, $code: String!, $ownerId: String!, $source: String!, $createdAt: DateTime!) {
+          addInviteCode(input: [{
+            id: $id,
+            code: $code,
+            ownerId: $ownerId,
+            isUsed: false,
+            source: $source,
+            createdAt: $createdAt
+          }]) {
+            inviteCode {
+              id
+              code
+              ownerId
+            }
+          }
+        }
+      `;
+
+      variables = {
+        id: inviteId,
+        code,
+        ownerId: 'system',
+        source,
+        createdAt: new Date().toISOString(),
+      };
+    } else {
+      // For user codes - include owner reference
+      console.log('🚀 BOOTSTRAP: Creating user code with owner reference');
+      mutation = `
+        mutation CreateUserInviteCode($id: String!, $code: String!, $ownerId: String!, $source: String!, $createdAt: DateTime!) {
+          addInviteCode(input: [{
+            id: $id,
+            code: $code,
+            ownerId: $ownerId,
+            owner: { id: $ownerId },
+            isUsed: false,
+            source: $source,
+            createdAt: $createdAt
+          }]) {
+            inviteCode {
+              id
+              code
+              ownerId
+            }
+          }
+        }
+      `;
+
+      variables = {
+        id: inviteId,
+        code,
+        ownerId: userId,
+        source,
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    console.log('🚀 BOOTSTRAP: Creating invite code...');
+    console.log('🚀 BOOTSTRAP: Variables:', JSON.stringify(variables, null, 2));
+
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query: mutation,
+      variables,
+    }, {
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+          'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY
+        })
+      },
+    });
+
+    console.log('🚀 BOOTSTRAP: Create response status:', response.status);
+
+    if (response.data.errors) {
+      console.error('🚀 BOOTSTRAP: GraphQL errors in creation:', response.data.errors);
+      
+      // If it's a system code and the error is about owner being required,
+      // let's try a workaround
+      if (userId === 'system' && response.data.errors.some((err: any) => 
+        err.message.includes('owner') || err.message.includes('UserRef'))) {
+        
+        console.log('🚀 BOOTSTRAP: Owner field required - this is the bootstrap problem!');
+        console.log('🚀 BOOTSTRAP: You need to either:');
+        console.log('🚀 BOOTSTRAP: 1. Make the owner field optional in your schema');
+        console.log('🚀 BOOTSTRAP: 2. Or create the first user manually and use their ID');
+        
+        return null;
+      }
+      
+      throw new Error(`GraphQL error: ${response.data.errors[0].message}`);
+    }
+
+    const createdInvite = response.data?.data?.addInviteCode?.inviteCode?.[0];
+    console.log('🚀 BOOTSTRAP: Created invite:', createdInvite);
+
+    if (!createdInvite?.code) {
+      console.error('🚀 BOOTSTRAP: No code returned from creation mutation');
+      return null;
+    }
+
+    console.log(`✅ BOOTSTRAP: Successfully generated invite code: ${createdInvite.code}`);
+    return createdInvite.code;
+
+  } catch (error) {
+    console.error('🚀 BOOTSTRAP: Error in generateInviteCode:', error);
+    if (error instanceof Error) {
+      console.error('🚀 BOOTSTRAP: Error message:', error.message);
+    }
+    return null;
+  }
+};
+
+/**
+ * Gets user's invite statistics - FIXED GraphQL types
+ */
+export const getUserInviteStats = async (userId: string) => {
+  const query = `
+    query GetUserInvites($userId: String!) {
+      unusedInvites: queryInviteCode(filter: { ownerId: { eq: $userId }, isUsed: false }) {
+        code
+        createdAt
+        source
+      }
+      usedInvites: queryInviteCode(filter: { ownerId: { eq: $userId }, isUsed: true }) {
+        code
+        usedAt
+        source
+        usedBy {
+          username
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+      variables: { userId },
+    });
+
+    if (response.data.errors) {
+      console.error('Error fetching user invite stats:', response.data.errors);
+      return {
+        availableInvites: 0,
+        totalInvites: 0,
+        inviteCode: null,
+        friendsInvited: 0,
+        tokensEarned: 0,
+        canEarnMoreInvites: true,
+        inviteCodes: [],
+      };
+    }
+
+    const data = response.data?.data;
+    const unusedInvites = data?.unusedInvites || [];
+    const usedInvites = data?.usedInvites || [];
+
+    return {
+      availableInvites: unusedInvites.length,
+      totalInvites: unusedInvites.length + usedInvites.length,
+      inviteCode: unusedInvites[0]?.code || null,
+      inviteCodes: unusedInvites.map((invite: any) => ({
+        code: invite.code,
+        createdAt: invite.createdAt,
+        source: invite.source,
+      })),
+      friendsInvited: usedInvites.length,
+      tokensEarned: usedInvites.length * 50,
+      canEarnMoreInvites: unusedInvites.length < 5,
+      usedInviteDetails: usedInvites.map((invite: any) => ({
+        code: invite.code,
+        usedAt: invite.usedAt,
+        usedByUsername: invite.usedBy?.username || 'Unknown',
+        source: invite.source,
+      })),
+    };
+  } catch (error) {
+    console.error('Error fetching user invite stats:', error);
+    return {
+      availableInvites: 0,
+      totalInvites: 0,
+      inviteCode: null,
+      friendsInvited: 0,
+      tokensEarned: 0,
+      canEarnMoreInvites: true,
+      inviteCodes: [],
+    };
+  }
+};
+
+/**
+ * Get admin statistics about invite codes - FIXED GraphQL types
+ */
+export const getAdminInviteStats = async () => {
+  const query = `
+    query GetAdminInviteStats {
+      totalInvites: queryInviteCode {
+        id
+        source
+        isUsed
+        createdAt
+      }
+      systemInvites: queryInviteCode(filter: { ownerId: { eq: "system" } }) {
+        id
+        code
+        isUsed
+        source
+        createdAt
+        usedAt
+        usedBy {
+          username
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+    });
+
+    if (response.data.errors) {
+      console.error('Error fetching admin invite stats:', response.data.errors);
+      return null;
+    }
+
+    const data = response.data?.data;
+    const totalInvites = data?.totalInvites || [];
+    const systemInvites = data?.systemInvites || [];
+
+    // Calculate statistics
+    const totalCount = totalInvites.length;
+    const usedCount = totalInvites.filter((invite: any) => invite.isUsed).length;
+    const unusedCount = totalCount - usedCount;
+    
+    const systemUsedCount = systemInvites.filter((invite: any) => invite.isUsed).length;
+    const systemUnusedCount = systemInvites.length - systemUsedCount;
+
+    // Group by source
+    const bySource = totalInvites.reduce((acc: any, invite: any) => {
+      const source = invite.source || 'unknown';
+      if (!acc[source]) {
+        acc[source] = { total: 0, used: 0, unused: 0 };
+      }
+      acc[source].total++;
+      if (invite.isUsed) {
+        acc[source].used++;
+      } else {
+        acc[source].unused++;
+      }
+      return acc;
+    }, {});
+
+    return {
+      total: {
+        count: totalCount,
+        used: usedCount,
+        unused: unusedCount,
+        usageRate: totalCount > 0 ? Math.round((usedCount / totalCount) * 100) : 0,
+      },
+      system: {
+        count: systemInvites.length,
+        used: systemUsedCount,
+        unused: systemUnusedCount,
+        usageRate: systemInvites.length > 0 ? Math.round((systemUsedCount / systemInvites.length) * 100) : 0,
+      },
+      bySource,
+      recentSystemUsage: systemInvites
+        .filter((invite: any) => invite.isUsed)
+        .sort((a: any, b: any) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
+        .slice(0, 10)
+        .map((invite: any) => ({
+          code: invite.code,
+          usedAt: invite.usedAt,
+          usedBy: invite.usedBy?.username || 'Unknown',
+        })),
+    };
+  } catch (error) {
+    console.error('Error fetching admin invite stats:', error);
+    return null;
   }
 };
 
@@ -183,20 +724,20 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.completedChallenges =
         userData.completedChallenges?.map((c: any) => {
           // Determine which challenge type this completion refers to
-          let challengeTitle = "";
-          let challengeType = "";
-          
+          let challengeTitle = '';
+          let challengeType = '';
+
           if (c.aiChallenge) {
             challengeTitle = c.aiChallenge.title;
             challengeType = `AI-${c.aiChallenge.frequency}`;
           } else if (c.privateChallenge) {
             challengeTitle = c.privateChallenge.title;
-            challengeType = "private";
+            challengeType = 'private';
           } else if (c.publicChallenge) {
             challengeTitle = c.publicChallenge.title;
-            challengeType = "public";
+            challengeType = 'public';
           }
-          
+
           return {
             type: challengeType,
             title: challengeTitle,
@@ -285,20 +826,20 @@ export const getUserFromDgraph = async (identifier: string) => {
       userData.completedChallenges =
         userData.completedChallenges?.map((c: any) => {
           // Determine which challenge type this completion refers to
-          let challengeTitle = "";
-          let challengeType = "";
-          
+          let challengeTitle = '';
+          let challengeType = '';
+
           if (c.aiChallenge) {
             challengeTitle = c.aiChallenge.title;
             challengeType = `AI-${c.aiChallenge.frequency}`;
           } else if (c.privateChallenge) {
             challengeTitle = c.privateChallenge.title;
-            challengeType = "private";
+            challengeType = 'private';
           } else if (c.publicChallenge) {
             challengeTitle = c.publicChallenge.title;
-            challengeType = "public";
+            challengeType = 'public';
           }
-          
+
           return {
             type: challengeType,
             title: challengeTitle,
@@ -709,7 +1250,7 @@ export const createPrivateChallenge = async (
   title: string,
   description: string,
   reward: number,
-  expiresInDays: number = 30
+  expiresInDays: number = 30,
 ): Promise<string> => {
   const id = uuidv4();
   const now = new Date();
@@ -759,7 +1300,7 @@ export const createPrivateChallenge = async (
           createdAt,
           expiresAt,
           creatorId,
-          targetUserId
+          targetUserId,
         },
       },
       {
@@ -789,7 +1330,7 @@ export const createPublicChallenge = async (
   reward: number,
   latitude: number,
   longitude: number,
-  maxParticipants: number = 100
+  maxParticipants: number = 100,
 ): Promise<string> => {
   const id = uuidv4();
   const createdAt = new Date().toISOString();
@@ -843,7 +1384,7 @@ export const createPublicChallenge = async (
           creatorId,
           latitude,
           longitude,
-          maxParticipants
+          maxParticipants,
         },
       },
       {
@@ -870,17 +1411,17 @@ export const createAIChallenge = async (
   title: string,
   description: string,
   reward: number,
-  frequency: string
+  frequency: string,
 ): Promise<string> => {
   const id = uuidv4();
   const now = new Date();
   const createdAt = now.toISOString();
-  
+
   // Set the specific time period identifiers based on frequency
   let day = null;
   let week = null;
   let month = null;
-  
+
   if (frequency === 'daily') {
     day = getDayOfYear(now);
   } else if (frequency === 'weekly') {
@@ -888,7 +1429,7 @@ export const createAIChallenge = async (
   } else if (frequency === 'monthly') {
     month = now.getMonth() + 1;
   }
-  
+
   const year = now.getFullYear();
 
   const mutation = `
@@ -939,7 +1480,7 @@ export const createAIChallenge = async (
           day,
           week,
           month,
-          year
+          year,
         },
       },
       {
@@ -972,9 +1513,9 @@ export const createChallengeCompletion = async (
   console.log('Creating challenge completion with parameters:', {
     userId,
     challengeId,
-    challengeType
+    challengeType,
   });
-  
+
   const id = uuidv4();
   const now = new Date();
 
@@ -1064,7 +1605,7 @@ export const createChallengeCompletion = async (
           completionWeek,
           completionMonth,
           completionYear,
-          challengeType
+          challengeType,
         },
       },
       {
@@ -1077,7 +1618,7 @@ export const createChallengeCompletion = async (
       throw new Error('Failed to create challenge completion');
     }
 
-    // If this is an AI challenge and the completion was successful, 
+    // If this is an AI challenge and the completion was successful,
     // update the user's challenge strings
     if (challengeType === 'ai') {
       try {
@@ -1089,7 +1630,7 @@ export const createChallengeCompletion = async (
             }
           }
         `;
-        
+
         const challengeResponse = await axios.post(
           DGRAPH_ENDPOINT,
           {
@@ -1100,7 +1641,7 @@ export const createChallengeCompletion = async (
             headers: { 'Content-Type': 'application/json' },
           },
         );
-        
+
         if (challengeResponse.data.errors) {
           console.error('Error fetching AI challenge:', challengeResponse.data.errors);
         } else {
@@ -1328,16 +1869,16 @@ export const getOrCreateAIChallenge = async (
   title: string,
   description: string,
   reward: number,
-  frequency: string
+  frequency: string,
 ): Promise<string> => {
   const now = new Date();
   const year = now.getFullYear();
-  
+
   // Set query parameters based on frequency
   let dayParam = null;
   let weekParam = null;
   let monthParam = null;
-  
+
   if (frequency === 'daily') {
     dayParam = getDayOfYear(now);
   } else if (frequency === 'weekly') {
@@ -1345,16 +1886,16 @@ export const getOrCreateAIChallenge = async (
   } else if (frequency === 'monthly') {
     monthParam = now.getMonth() + 1;
   }
-  
+
   // Build the filter conditions based on which parameters are set
   let filterConditions = '';
   if (dayParam) filterConditions += `day: { eq: ${dayParam} }, `;
   if (weekParam) filterConditions += `week: { eq: ${weekParam} }, `;
   if (monthParam) filterConditions += `month: { eq: ${monthParam} }, `;
-  
+
   // Add year and frequency to the filter conditions
   filterConditions += `year: { eq: ${year} }, frequency: { eq: "${frequency}" }`;
-  
+
   // First, try to find an existing AI challenge with the matching criteria
   const query = `
     query GetExistingAIChallenge {
@@ -1368,7 +1909,7 @@ export const getOrCreateAIChallenge = async (
     const queryResponse = await axios.post(
       DGRAPH_ENDPOINT,
       { query },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (queryResponse.data.errors) {
@@ -1535,7 +2076,7 @@ export const fetchFollowerCompletions = async (userId: string, date: string): Pr
             ...completion,
             date: completion.completionDate, // Normalize property name
             type: completion.aiChallenge ? `AI-${completion.aiChallenge.frequency}` : 'ai',
-            title: completion.aiChallenge?.title || 'Unknown Challenge'
+            title: completion.aiChallenge?.title || 'Unknown Challenge',
           },
         };
       });
@@ -1573,7 +2114,7 @@ export const createChallengeNotification = async (
   content: string,
   notificationType: string,
   challengeType: 'private' | 'public' | 'ai' | null = null,
-  challengeId: string | null = null
+  challengeId: string | null = null,
 ): Promise<boolean> => {
   const id = generateId();
   const createdAt = new Date().toISOString();
@@ -1915,63 +2456,10 @@ export const updateUserTokens = async (userId: string, tokenAmount: number): Pro
   }
 };
 
-/**
- * Checks if a Discord invite code exists and is valid (not used)
- *
- * @param code The 6-character invite code to check
- * @returns Promise<boolean> True if the code is valid and unused
- */
-export const validateDiscordInviteCode = async (code: string): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/registration/validate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code }),
-    });
-
-    const data = await response.json();
-    return data.valid;
-  } catch (error) {
-    console.error('Error validating Discord invite code:', error);
-    return false;
-  }
-};
-
-/**
- * Marks a Discord invite code as used by associating it with a user
- *
- * @param code The 6-character invite code
- * @param userId The Nocena user ID who used this code
- * @returns Promise<boolean> Success status
- */
-export const markDiscordInviteAsUsed = async (code: string, userId: string): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/registration/markAsUsed', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code,
-        userId,
-        usedAt: new Date().toISOString(),
-      }),
-    });
-
-    const data = await response.json();
-    return data.success;
-  } catch (error) {
-    console.error('Error marking Discord invite as used:', error);
-    return false;
-  }
-};
-
 export const handleChallengeCreation = async (
   userId: string,
   challengeData: ChallengeFormData,
-  mode: 'private' | 'public'
+  mode: 'private' | 'public',
 ) => {
   try {
     if (mode === 'private') {
@@ -1983,7 +2471,7 @@ export const handleChallengeCreation = async (
 
       // The existing createPrivateChallenge doesn't use expiresAt directly, it uses expiresInDays
       // So we'll calculate days from now to the expiresAt date, or use default of 7 days
-      const expiresInDays = challengeData.expiresAt 
+      const expiresInDays = challengeData.expiresAt
         ? Math.ceil((new Date(challengeData.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : 7;
 
@@ -1993,7 +2481,7 @@ export const handleChallengeCreation = async (
         challengeData.challengeName,
         challengeData.description,
         challengeData.reward,
-        expiresInDays
+        expiresInDays,
       );
 
       // Fetch the target user's username to include in the success message
@@ -2010,8 +2498,8 @@ export const handleChallengeCreation = async (
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: targetUserQuery,
-          variables: { userId: challengeData.targetUserId }
-        })
+          variables: { userId: challengeData.targetUserId },
+        }),
       });
 
       const data = await response.json();
@@ -2024,19 +2512,19 @@ export const handleChallengeCreation = async (
         `You've been challenged!`,
         'challenge',
         'private',
-        challengeId
+        challengeId,
       );
 
       return {
         success: true,
         challengeId: challengeId,
-        message: `Successfully challenged ${targetUsername}!`
+        message: `Successfully challenged ${targetUsername}!`,
       };
     } else {
       // Handle public challenge creation
       // First check if the necessary properties exist
       if (
-        !('latitude' in challengeData) || 
+        !('latitude' in challengeData) ||
         !('longitude' in challengeData) ||
         challengeData.latitude === undefined ||
         challengeData.longitude === undefined
@@ -2051,20 +2539,20 @@ export const handleChallengeCreation = async (
         challengeData.reward,
         challengeData.latitude,
         challengeData.longitude,
-        challengeData.participants || 10
+        challengeData.participants || 10,
       );
 
       return {
         success: true,
         challengeId: challengeId,
-        message: 'Public challenge created successfully!'
+        message: 'Public challenge created successfully!',
       };
     }
   } catch (error) {
     console.error('Error creating challenge:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to create challenge'
+      message: error instanceof Error ? error.message : 'Failed to create challenge',
     };
   }
 };
@@ -2102,11 +2590,7 @@ export const fetchAllPublicChallenges = async (): Promise<any[]> => {
   `;
 
   try {
-    const response = await axios.post(
-      DGRAPH_ENDPOINT,
-      { query },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    const response = await axios.post(DGRAPH_ENDPOINT, { query }, { headers: { 'Content-Type': 'application/json' } });
 
     if (response.data.errors) {
       console.error('Dgraph query error:', response.data.errors);
@@ -2128,23 +2612,23 @@ export const fetchAllPublicChallenges = async (): Promise<any[]> => {
  * @returns Array of nearby public challenges
  */
 export const fetchNearbyPublicChallenges = async (
-  longitude: number, 
-  latitude: number, 
-  radiusKm: number = 10
+  longitude: number,
+  latitude: number,
+  radiusKm: number = 10,
 ): Promise<any[]> => {
   try {
     // First fetch all challenges since Dgraph doesn't support geospatial queries directly
     const allChallenges = await fetchAllPublicChallenges();
-    
+
     // Then filter them by distance
-    return allChallenges.filter(challenge => {
+    return allChallenges.filter((challenge) => {
       const distance = calculateDistance(
-        latitude, 
-        longitude, 
-        challenge.location.latitude, 
-        challenge.location.longitude
+        latitude,
+        longitude,
+        challenge.location.latitude,
+        challenge.location.longitude,
       );
-      
+
       return distance <= radiusKm;
     });
   } catch (error) {
@@ -2178,7 +2662,7 @@ export const joinPublicChallenge = async (userId: string, challengeId: string): 
     const checkResponse = await axios.post(
       DGRAPH_ENDPOINT,
       { query: checkQuery },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (checkResponse.data.errors) {
@@ -2225,7 +2709,7 @@ export const joinPublicChallenge = async (userId: string, challengeId: string): 
     const joinResponse = await axios.post(
       DGRAPH_ENDPOINT,
       { query: mutation },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (joinResponse.data.errors) {
@@ -2251,15 +2735,14 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 6371; // Radius of the earth in km
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c; // Distance in km
   return distance;
 };
 
 const deg2rad = (deg: number): number => {
-  return deg * (Math.PI/180);
+  return deg * (Math.PI / 180);
 };

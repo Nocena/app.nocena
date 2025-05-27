@@ -14,7 +14,7 @@ const BackgroundVideo: React.FC<VideoBackgroundProps> = ({ videoSrc }) => {
     // Enable special playback attributes for better performance
     video.playsInline = true;
     video.muted = true;
-    
+
     // Start playback
     const playVideo = () => {
       video.play().catch(() => {}); // Silent error handling
@@ -33,7 +33,7 @@ const BackgroundVideo: React.FC<VideoBackgroundProps> = ({ videoSrc }) => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       video.pause();
