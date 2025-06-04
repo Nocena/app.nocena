@@ -150,12 +150,12 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
 
     try {
       const codeString = codeArray.join('');
-      
+
       // Call the new invite validation API
       const response = await fetch('/api/registration/validate-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inviteCode: codeString })
+        body: JSON.stringify({ inviteCode: codeString }),
       });
 
       const data = await response.json();
@@ -214,8 +214,8 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
               name="inviteCode"
               control={control}
               render={({ field }: { field: ControllerRenderProps<FormValues, 'inviteCode'> }) => (
-                <NocenaCodeInputs 
-                  field={field} 
+                <NocenaCodeInputs
+                  field={field}
                   loading={isCurrentlyLoading}
                   onValidateInvite={(code) => validateCode(code.split(''))}
                   validationError={displayError}
@@ -234,9 +234,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
             </div>
           )}
 
-          {displayError && (
-            <p className="text-red-500 text-sm mb-4 text-center">{displayError}</p>
-          )}
+          {displayError && <p className="text-red-500 text-sm mb-4 text-center">{displayError}</p>}
 
           <div className="mb-6">
             <PrimaryButton
@@ -252,7 +250,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
       {/* Updated help text - removed Discord references */}
       <div className="pt-10 flex items-center flex-col text-center">
         <XButton />
-        
+
         <div className="text-center">
           <p className="text-sm mt-10">
             Already have an account?{' '}

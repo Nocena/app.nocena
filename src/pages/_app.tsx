@@ -62,8 +62,15 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       setIsAndroid(/android/.test(ua));
     }
 
-    // Redirect to login if user is not authenticated and not already on login or register page
-    if (!loading && !user && !['/login', '/register'].includes(router.pathname)) {
+    // Define public routes that don't require authentication
+    const publicRoutes = ['/login', '/register', '/admin/seed-invites', '/test-admin'];
+
+    // Check if current route is public (including any admin routes)
+    const isPublicRoute =
+      publicRoutes.some((route) => router.pathname.startsWith(route)) || router.pathname.startsWith('/admin/');
+
+    // Redirect to login if user is not authenticated and not on a public route
+    if (!loading && !user && !isPublicRoute) {
       router.replace('/login');
     }
   }, [user, loading, router]);
@@ -117,12 +124,19 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     return null;
   };
 
-  // List of pages that shouldn't use AppLayout
+  // List of pages that shouldn't use AppLayout (including admin pages)
   const noLayoutPages = ['/login', '/register'];
-  const shouldUseAppLayout = !noLayoutPages.includes(router.pathname);
+  const isAdminPage = router.pathname.startsWith('/admin/') || router.pathname === '/test-admin';
+  const shouldUseAppLayout = !noLayoutPages.includes(router.pathname) && !isAdminPage;
 
-  if (!user) {
-    // Show login or register page based on current route
+  // If user is not authenticated and on public route, show the appropriate page
+  if (
+    !user &&
+    (router.pathname === '/login' ||
+      router.pathname === '/register' ||
+      router.pathname.startsWith('/admin/') ||
+      router.pathname === '/test-admin')
+  ) {
     return (
       <>
         <Head>
@@ -138,7 +152,38 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <link rel="manifest" href="/manifest.json" />
         </Head>
         {isRouteChanging && <LoadingIndicator />}
-        {router.pathname === '/register' ? <RegisterPage /> : <LoginPage />}
+        {router.pathname === '/register' ? (
+          <RegisterPage />
+        ) : router.pathname === '/login' ? (
+          <LoginPage />
+        ) : (
+          <Component {...pageProps} />
+        )}
+        {renderPWAPrompt()}
+      </>
+    );
+  }
+
+  // If user is not authenticated and not on a public route, they'll be redirected by the useEffect above
+  if (!user) {
+    return (
+      <>
+        <Head>
+          <title>Nocena</title>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+          />
+          <meta name="theme-color" content="#000000" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+          <link rel="manifest" href="/manifest.json" />
+        </Head>
+        {isRouteChanging && <LoadingIndicator />}
+        <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        </div>
         {renderPWAPrompt()}
       </>
     );

@@ -107,3 +107,19 @@ body {
 .app-container {
   @apply bg-transparent !important;
 }
+
+/* Recording circle to square animation */
+@keyframes circle-to-square {
+  0% {
+    border-radius: 50%;
+    background: #6b7280;
+  }
+  100% {
+    border-radius: 20%;
+    background: #ff15c9;
+  }
+}
+
+.animate-circle-to-square {
+  animation: circle-to-square 0.8s ease-out forwards;
+}

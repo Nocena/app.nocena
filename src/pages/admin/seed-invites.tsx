@@ -1,5 +1,4 @@
-// Create this file: pages/admin/seed-invites.tsx
-
+// pages/admin/seed-invites.tsx
 import React, { useState } from 'react';
 import { Copy, Plus, Download } from 'lucide-react';
 import Head from 'next/head';
@@ -17,7 +16,7 @@ const AdminSeedInvites: React.FC = () => {
       setError('Admin key is required');
       return;
     }
-    
+
     setLoading(true);
     setError('');
     setSuccess('');
@@ -26,7 +25,7 @@ const AdminSeedInvites: React.FC = () => {
       const response = await fetch('/api/admin/seed-initial-invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey, count })
+        body: JSON.stringify({ adminKey, count }),
       });
 
       const data = await response.json();
@@ -88,26 +87,20 @@ const AdminSeedInvites: React.FC = () => {
         <title>Admin - Seed Invite Codes | Nocena</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      
-      <div className="min-h-screen p-6 mt-20">
+
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-nocenaBg to-gray-900 p-6">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Nocena Admin - Seed Invite Codes
-            </h1>
-            <p className="text-white/60">
-              Generate initial invite codes for app launch
-            </p>
+            <h1 className="text-3xl font-bold text-white mb-2">Nocena Admin - Seed Invite Codes</h1>
+            <p className="text-white/60">Generate initial invite codes for app launch</p>
           </div>
 
           {/* Seed Form */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 mb-8">
             <div className="space-y-6">
               <div>
-                <label className="block text-white/80 text-sm font-medium mb-2">
-                  Admin Key
-                </label>
+                <label className="block text-white/80 text-sm font-medium mb-2">Admin Key</label>
                 <input
                   type="password"
                   value={adminKey}
@@ -119,9 +112,7 @@ const AdminSeedInvites: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-white/80 text-sm font-medium mb-2">
-                  Number of Codes to Generate
-                </label>
+                <label className="block text-white/80 text-sm font-medium mb-2">Number of Codes to Generate</label>
                 <input
                   type="number"
                   value={count}
@@ -132,9 +123,7 @@ const AdminSeedInvites: React.FC = () => {
                   placeholder="100"
                   required
                 />
-                <p className="text-white/40 text-xs mt-1">
-                  Maximum 1000 codes per batch
-                </p>
+                <p className="text-white/40 text-xs mt-1">Maximum 1000 codes per batch</p>
               </div>
 
               <button
@@ -166,10 +155,8 @@ const AdminSeedInvites: React.FC = () => {
           {generatedCodes.length > 0 && (
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">
-                  Generated Invite Codes ({generatedCodes.length})
-                </h2>
-                
+                <h2 className="text-xl font-bold text-white">Generated Invite Codes ({generatedCodes.length})</h2>
+
                 <div className="flex space-x-3">
                   <button
                     onClick={handleCopyAllCodes}
@@ -178,7 +165,7 @@ const AdminSeedInvites: React.FC = () => {
                     <Copy className="w-4 h-4" />
                     <span>Copy All</span>
                   </button>
-                  
+
                   <button
                     onClick={handleDownloadCodes}
                     className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center space-x-2"
@@ -198,26 +185,20 @@ const AdminSeedInvites: React.FC = () => {
                     onClick={() => handleCopyCode(code)}
                     title="Click to copy"
                   >
-                    <span className="font-mono text-white font-medium text-sm">
-                      {code}
-                    </span>
+                    <span className="font-mono text-white font-medium text-sm">{code}</span>
                   </div>
                 ))}
               </div>
 
               <div className="mt-6 text-center">
-                <p className="text-white/60 text-sm">
-                  Click any code to copy it individually
-                </p>
+                <p className="text-white/60 text-sm">Click any code to copy it individually</p>
               </div>
             </div>
           )}
 
           {/* Instructions */}
           <div className="mt-8 bg-blue-600/10 rounded-2xl p-6 border border-blue-600/20">
-            <h3 className="text-white font-medium text-lg mb-3">
-              📋 Distribution Instructions
-            </h3>
+            <h3 className="text-white font-medium text-lg mb-3">📋 Distribution Instructions</h3>
             <ul className="text-white/70 text-sm space-y-2">
               <li>• Share these codes with your initial user base</li>
               <li>• Each code can only be used once</li>

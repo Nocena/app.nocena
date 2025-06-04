@@ -31,7 +31,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
     try {
       const response = await fetch(`/api/invite/user-invites?userId=${user.id}`);
       const data = await response.json();
-      
+
       if (response.ok) {
         // Ensure user has exactly 2 invite codes
         if (data.inviteCodes.length < 2) {
@@ -44,7 +44,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
           // Keep only the 2 most recent codes
           setInviteStats({
             ...data,
-            inviteCodes: data.inviteCodes.slice(0, 2)
+            inviteCodes: data.inviteCodes.slice(0, 2),
           });
         } else {
           setInviteStats(data);
@@ -69,9 +69,9 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
         await fetch('/api/invite/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userId: user.id, 
-            source: 'initial' 
+          body: JSON.stringify({
+            userId: user.id,
+            source: 'initial',
           }),
         });
       }
@@ -96,7 +96,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
   }, []);
 
   // Get available invite codes (unused ones first)
-  const availableCodes = inviteStats?.inviteCodes?.filter(code => !code.isUsed) || [];
+  const availableCodes = inviteStats?.inviteCodes?.filter((code) => !code.isUsed) || [];
   const primaryCode = availableCodes[0]?.code;
 
   const createInviteMessage = (code: string) => `🎯 Join me on Nocena! Complete fun challenges and earn tokens together.
@@ -168,7 +168,15 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
       <div className="sticky top-0 z-10 bg-nocenaBg/50 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between p-4">
           <button onClick={onBack} className="flex items-center text-white/70 hover:text-white transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="mr-2"
+            >
               <polyline points="15,18 9,12 15,6" />
             </svg>
             Back
@@ -187,7 +195,8 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
               <div>
                 <h3 className="text-orange-200 font-medium mb-1">Open in Browser Required</h3>
                 <p className="text-orange-300/80 text-sm">
-                  You're in an in-app browser. For the best experience sharing invites, tap the menu (⋯) and select "Open in Browser".
+                  You're in an in-app browser. For the best experience sharing invites, tap the menu (⋯) and select
+                  "Open in Browser".
                 </p>
               </div>
             </div>
@@ -215,7 +224,8 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
           <div>
             <h2 className="text-2xl font-bold mb-2">Share the Fun</h2>
             <p className="text-white/60 text-sm">
-              You have {availableCodes.length} invite code{availableCodes.length !== 1 ? 's' : ''} ready. Both earn 50 Nocenix tokens!
+              You have {availableCodes.length} invite code{availableCodes.length !== 1 ? 's' : ''} ready. Both earn 50
+              Nocenix tokens!
             </p>
           </div>
         </div>
@@ -224,7 +234,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
         {inviteStats && inviteStats.inviteCodes.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-white/80 font-medium text-sm">Your Invite Codes</h3>
-            
+
             {inviteStats.inviteCodes.map((invite, index) => (
               <div key={invite.code} className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center justify-between mb-4">
@@ -246,7 +256,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
                       <Share className="w-5 h-5" />
                       <span className="text-xs">Share</span>
                     </button>
-                    
+
                     <button
                       onClick={() => handleSMS(invite.code)}
                       className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
@@ -255,7 +265,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
                       <MessageCircle className="w-5 h-5" />
                       <span className="text-xs">SMS</span>
                     </button>
-                    
+
                     <button
                       onClick={() => handleCopy(createInviteMessage(invite.code))}
                       className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
