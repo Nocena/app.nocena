@@ -21,21 +21,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Validate admin key
   console.log('Admin key provided:', adminKey ? 'Yes' : 'No');
   console.log('Expected admin key:', ADMIN_SECRET_KEY);
-  
+
   if (!adminKey || adminKey !== ADMIN_SECRET_KEY) {
     console.log('Admin key validation failed');
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Invalid admin key',
-      success: false 
+      success: false,
     });
   }
 
   // Validate count
   if (!count || count < 1 || count > 1000) {
     console.log('Count validation failed:', count);
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Count must be between 1 and 1000',
-      success: false 
+      success: false,
     });
   }
 
@@ -52,10 +52,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (let i = 0; i < Math.min(testBatchSize, count); i++) {
       try {
         console.log(`Generating code ${i + 1}/${Math.min(testBatchSize, count)}...`);
-        
+
         // Use 'system' as the userId for admin-generated codes
         const inviteCode = await generateInviteCode('system', 'admin_seed');
-        
+
         if (inviteCode) {
           generatedCodes.push(inviteCode);
           console.log(`✓ Generated code: ${inviteCode}`);
@@ -72,13 +72,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Small delay between generations
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     // If test batch worked, continue with the rest
     if (generatedCodes.length > 0 && count > testBatchSize) {
       console.log(`Test batch successful! Continuing with remaining ${count - testBatchSize} codes...`);
-      
+
       const remainingCount = count - testBatchSize;
       const batchSize = 10; // Smaller batches for reliability
       const batches = Math.ceil(remainingCount / batchSize);
@@ -93,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         for (let i = 0; i < batchCount; i++) {
           try {
             const inviteCode = await generateInviteCode('system', 'admin_seed');
-            
+
             if (inviteCode) {
               generatedCodes.push(inviteCode);
             } else {
@@ -106,12 +106,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
 
           // Small delay between each code
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
 
         // Delay between batches
         if (batch < batches - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     }
@@ -135,13 +135,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         adminKeyValid: true,
         countValid: true,
         dgraphEndpoint: process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT ? 'Set' : 'Not set',
-      }
+      },
     });
-
   } catch (error) {
     console.error('Critical error in seed-initial-invites:', error);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to generate invite codes',
       success: false,
       details: error instanceof Error ? error.message : 'Unknown error',
@@ -150,7 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         countValid: true,
         dgraphEndpoint: process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT ? 'Set' : 'Not set',
         errorType: error instanceof Error ? error.constructor.name : typeof error,
-      }
+      },
     });
   }
 }

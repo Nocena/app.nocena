@@ -63,7 +63,7 @@ export const registerUser = async (
   const variables = {
     input: {
       id: userId,
-      username: username,           // Make sure this is explicitly set
+      username: username, // Make sure this is explicitly set
       phoneNumber: phoneNumber,
       bio: '',
       wallet: wallet,
@@ -76,9 +76,10 @@ export const registerUser = async (
       inviteCode: inviteCode,
       invitedById: invitedById || null,
       // Only add invitedBy reference if invitedById exists and is not 'system'
-      ...(invitedById && invitedById !== 'system' && {
-        invitedBy: { id: invitedById }
-      }),
+      ...(invitedById &&
+        invitedById !== 'system' && {
+          invitedBy: { id: invitedById },
+        }),
     },
   };
 
@@ -177,7 +178,7 @@ export const validateInviteCode = async (
               }
             }
           `;
-          
+
           const userResponse = await axios.post(DGRAPH_ENDPOINT, {
             query: userQuery,
             variables: { userId: invite.ownerId },
@@ -266,7 +267,7 @@ export const markInviteAsUsed = async (code: string, userId: string): Promise<bo
  */
 export const generateInviteCode = async (userId: string, source: string = 'earned'): Promise<string | null> => {
   console.log(`🚀 BOOTSTRAP: Starting generateInviteCode for userId: ${userId}, source: ${source}`);
-  
+
   try {
     if (!DGRAPH_ENDPOINT) {
       throw new Error('DGRAPH_ENDPOINT is not configured');
@@ -275,7 +276,7 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
     // For system/admin codes, skip user validation entirely
     if (userId !== 'system') {
       console.log('🚀 BOOTSTRAP: Checking user limits for regular user');
-      
+
       // Check current unused invites for regular users
       const checkQuery = `
         query CheckUserInvites($userId: String!) {
@@ -291,7 +292,7 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
       });
 
       const unusedCount = checkResponse.data?.data?.queryInviteCode?.length || 0;
-      
+
       // Set limits based on source
       let maxCodes = 2;
       if (source === 'initial') {
@@ -313,7 +314,7 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
     const maxAttempts = 10;
 
     console.log('🚀 BOOTSTRAP: Starting code generation loop');
-    
+
     do {
       code = Math.random().toString(36).substring(2, 8).toUpperCase();
       attempts++;
@@ -328,17 +329,21 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
         }
       `;
 
-      const codeCheckResponse = await axios.post(DGRAPH_ENDPOINT, {
-        query: checkCodeQuery,
-        variables: { code },
-      }, {
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
-            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY
-          })
+      const codeCheckResponse = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query: checkCodeQuery,
+          variables: { code },
         },
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+              'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY,
+            }),
+          },
+        },
+      );
 
       if (codeCheckResponse.data.errors) {
         console.error('🚀 BOOTSTRAP: GraphQL errors in code check:', codeCheckResponse.data.errors);
@@ -347,7 +352,7 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
 
       const existingCodes = codeCheckResponse.data?.data?.queryInviteCode || [];
       console.log('🚀 BOOTSTRAP: Existing codes found:', existingCodes.length);
-      
+
       if (existingCodes.length === 0) {
         console.log('🚀 BOOTSTRAP: Code is unique, breaking loop');
         break;
@@ -431,36 +436,41 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
     console.log('🚀 BOOTSTRAP: Creating invite code...');
     console.log('🚀 BOOTSTRAP: Variables:', JSON.stringify(variables, null, 2));
 
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query: mutation,
-      variables,
-    }, {
-      headers: { 
-        'Content-Type': 'application/json',
-        ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
-          'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY
-        })
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
       },
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY,
+          }),
+        },
+      },
+    );
 
     console.log('🚀 BOOTSTRAP: Create response status:', response.status);
 
     if (response.data.errors) {
       console.error('🚀 BOOTSTRAP: GraphQL errors in creation:', response.data.errors);
-      
+
       // If it's a system code and the error is about owner being required,
       // let's try a workaround
-      if (userId === 'system' && response.data.errors.some((err: any) => 
-        err.message.includes('owner') || err.message.includes('UserRef'))) {
-        
+      if (
+        userId === 'system' &&
+        response.data.errors.some((err: any) => err.message.includes('owner') || err.message.includes('UserRef'))
+      ) {
         console.log('🚀 BOOTSTRAP: Owner field required - this is the bootstrap problem!');
         console.log('🚀 BOOTSTRAP: You need to either:');
         console.log('🚀 BOOTSTRAP: 1. Make the owner field optional in your schema');
         console.log('🚀 BOOTSTRAP: 2. Or create the first user manually and use their ID');
-        
+
         return null;
       }
-      
+
       throw new Error(`GraphQL error: ${response.data.errors[0].message}`);
     }
 
@@ -474,7 +484,6 @@ export const generateInviteCode = async (userId: string, source: string = 'earne
 
     console.log(`✅ BOOTSTRAP: Successfully generated invite code: ${createdInvite.code}`);
     return createdInvite.code;
-
   } catch (error) {
     console.error('🚀 BOOTSTRAP: Error in generateInviteCode:', error);
     if (error instanceof Error) {
@@ -606,7 +615,7 @@ export const getAdminInviteStats = async () => {
     const totalCount = totalInvites.length;
     const usedCount = totalInvites.filter((invite: any) => invite.isUsed).length;
     const unusedCount = totalCount - usedCount;
-    
+
     const systemUsedCount = systemInvites.filter((invite: any) => invite.isUsed).length;
     const systemUnusedCount = systemInvites.length - systemUsedCount;
 

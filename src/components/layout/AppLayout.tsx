@@ -46,12 +46,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [appIsVisible, setAppIsVisible] = useState(true);
+  const [hasCustomBackHandler, setHasCustomBackHandler] = useState(false);
 
   // Track when component first mounts
   useEffect(() => {
     logPerf(`AppLayout mounted at ${new Date().toLocaleTimeString()}`);
     return () => {
       logPerf(`AppLayout unmounted at ${new Date().toLocaleTimeString()}`);
+    };
+  }, []);
+
+  // Listen for custom back handler registration
+  useEffect(() => {
+    const handleCustomBackRegistration = (event: CustomEvent) => {
+      setHasCustomBackHandler(event.detail.hasCustomBack);
+    };
+
+    window.addEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
+
+    return () => {
+      window.removeEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
     };
   }, []);
 
@@ -294,8 +308,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // Handle going back from special pages
   const handleBack = useCallback(() => {
-    router.back();
-  }, [router]);
+    if (hasCustomBackHandler) {
+      // Dispatch custom back event for pages that need it
+      window.dispatchEvent(new CustomEvent('nocena_custom_back'));
+    } else {
+      // Use default router.back() for normal pages
+      router.back();
+    }
+  }, [router, hasCustomBackHandler]);
 
   // Create a proper logout handler that ensures full page reload
   const handleAppLogout = useCallback(() => {
