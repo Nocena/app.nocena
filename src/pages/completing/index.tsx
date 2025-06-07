@@ -171,7 +171,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
       case 'AI':
         return {
           badge: 'AI Challenge',
-          subtitle: 'Neural verified human protocol engaging',
+          subtitle: 'AI verified human protocol engaging',
           action: 'Initialize Challenge',
         };
       case 'PRIVATE':
@@ -282,7 +282,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
   return (
     <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
       {/* Content */}
-      <div className="h-full flex flex-col p-6">
+      <div className="h-full flex flex-col px-6">
         {/* Challenge Type Badge */}
         <div className="flex justify-center mb-6 mt-4">
           <ThematicContainer asButton={false} color={challenge.color as any} className="px-6 py-2" rounded="xl">
@@ -372,11 +372,6 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
         {/* Action Button - Clean and Futuristic */}
         <PrimaryButton className="w-full mb-4" onClick={handleStartChallenge} text={typeInfo.action} />
-
-        {/* Bottom text - Mysterious */}
-        <div className="text-center">
-          <div className="text-sm text-gray-400 font-light opacity-80">Proceed when ready</div>
-        </div>
       </div>
     </div>
   );

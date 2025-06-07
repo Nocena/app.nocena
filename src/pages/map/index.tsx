@@ -22,46 +22,32 @@ const MapView = () => {
   const [challenges, setChallenges] = useState<ChallengeData[]>([]);
   const [initialLocationSet, setInitialLocationSet] = useState(false);
 
-  // Calculate container dimensions
+  // Force full viewport height for map container
   useEffect(() => {
-    const calculateHeight = () => {
+    const setMapHeight = () => {
       if (mapContainerRef.current) {
-        const windowHeight = window.innerHeight;
-        // Use the correct selectors for your nav elements
-        const topNavHeight = document.querySelector('nav')?.clientHeight || 0;
-        const bottomNavElement =
-          document.querySelector('.navbar-bottom') ||
-          document.querySelector('.bottom-nav') ||
-          document.querySelector('footer');
-        const bottomNavHeight = bottomNavElement?.clientHeight || 0;
-
-        // Get the actual padding from the parent if it exists
-        const parent = mapContainerRef.current.parentElement;
-        let parentPadding = 0;
-        if (parent) {
-          const styles = window.getComputedStyle(parent);
-          parentPadding = parseInt(styles.paddingTop) + parseInt(styles.paddingBottom);
+        // Force the map to take full viewport height
+        mapContainerRef.current.style.height = '100vh';
+        mapContainerRef.current.style.width = '100vw';
+        
+        // Also set position to ensure it covers everything
+        const parentContainer = mapContainerRef.current.parentElement;
+        if (parentContainer) {
+          parentContainer.style.position = 'fixed';
+          parentContainer.style.top = '0';
+          parentContainer.style.left = '0';
+          parentContainer.style.right = '0';
+          parentContainer.style.bottom = '0';
+          parentContainer.style.zIndex = '1';
         }
-
-        const availableHeight = windowHeight - topNavHeight - bottomNavHeight - parentPadding;
-
-        console.log('Height calculation:', {
-          windowHeight,
-          topNavHeight,
-          bottomNavHeight,
-          parentPadding,
-          availableHeight,
-        });
-
-        mapContainerRef.current.style.height = `${availableHeight}px`;
       }
     };
 
-    calculateHeight();
-    window.addEventListener('resize', calculateHeight);
+    setMapHeight();
+    window.addEventListener('resize', setMapHeight);
 
     return () => {
-      window.removeEventListener('resize', calculateHeight);
+      window.removeEventListener('resize', setMapHeight);
     };
   }, []);
 
@@ -123,10 +109,10 @@ const MapView = () => {
           zoom: 15,
           attributionControl: false,
           zoomControl: false,
-          renderWorldCopies: false, // Add this
+          renderWorldCopies: false,
           interactive: true,
           pitchWithRotate: false,
-          antialias: true, // Add this for better rendering
+          antialias: true,
           fadeDuration: 0,
           preserveDrawingBuffer: true,
         } as MapOptions);
@@ -170,7 +156,7 @@ const MapView = () => {
 
     initializeMap();
 
-    // Cleanup - FIX HERE
+    // Cleanup
     return () => {
       if (mapInstanceRef.current && mapInstanceRef.current.remove) {
         mapInstanceRef.current.remove();
@@ -203,7 +189,7 @@ const MapView = () => {
     }
   };
 
-  // Reset selected pin when map moves - FIX HERE
+  // Reset selected pin when map moves
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -224,9 +210,28 @@ const MapView = () => {
   }, [selectedPin]);
 
   return (
-    <div className="w-full h-screen relative bg-gray-900">
+    <div 
+      className="fixed inset-0 bg-gray-900"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+        width: '100vw',
+        height: '100vh'
+      }}
+    >
       {/* Map container */}
-      <div ref={mapContainerRef} className="w-full h-full bg-gray-900" />
+      <div 
+        ref={mapContainerRef} 
+        className="w-full h-full bg-gray-900"
+        style={{
+          width: '100vw',
+          height: '100vh'
+        }}
+      />
 
       {/* Challenge markers - Render these first so user marker appears on top */}
       {mapLoaded &&

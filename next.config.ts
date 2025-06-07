@@ -4,8 +4,8 @@ import withPWA from 'next-pwa';
 
 const pwaConfig = withPWA({
   dest: 'public',
-  register: true,
-  skipWaiting: true,
+  disable: true, // Add this to disable PWA
+  register: false, // Add this to disable service worker registration
 });
 
 /** @type {NextConfig} */
@@ -64,7 +64,7 @@ const nextConfig: NextConfig = {
             value:
               "default-src 'self' https: http:; " +
               "img-src 'self' data: blob: https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https: http:; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com blob:; " + 
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com blob:; " +
               "worker-src 'self' blob:; " +
               "child-src 'self' blob:; " +
               "style-src 'self' 'unsafe-inline' https://unpkg.com; " +

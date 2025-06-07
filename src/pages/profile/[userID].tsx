@@ -398,19 +398,33 @@ const OtherProfileView: React.FC = () => {
 
   // Show loading state only if we don't have any cached data at all
   if (isLoading && !user) {
-    return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
+    return (
+      <div className="text-white p-4 min-h-screen mt-20">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          Loading...
+        </div>
+      </div>
+    );
   }
 
   if (error && initialDataLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-white">
-        Error loading profile: {error.message}
+      <div className="text-white p-4 min-h-screen mt-20">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          Error loading profile: {error.message}
+        </div>
       </div>
     );
   }
 
   if (!user && initialDataLoaded) {
-    return <div className="flex items-center justify-center min-h-screen text-white">User not found.</div>;
+    return (
+      <div className="text-white p-4 min-h-screen mt-20">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          User not found.
+        </div>
+      </div>
+    );
   }
 
   // If we have user data (either from cache or API), show the profile
@@ -419,78 +433,80 @@ const OtherProfileView: React.FC = () => {
     const isFollowing = !!(currentUser && user.followers.includes(currentUser.id));
 
     return (
-      <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden mt-16">
-        <div className="absolute inset-0">
-          <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
-          <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
-        </div>
-
-        <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-          <div
-            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => setShowFollowersPopup(true)}
-          >
-            <FollowersIcon className="w-8 h-8 mb-1" />
-            <span>{user.followers.length}</span>
+      <div className="text-white p-4 min-h-screen mt-20">
+        <div className="flex flex-col items-center relative">
+          <div className="absolute inset-0">
+            <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
+            <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
           </div>
 
-          <ThematicImage className="relative z-10">
-            <Image
-              src={user.profilePicture || defaultProfilePic}
-              alt="Profile"
-              width={96}
-              height={96}
-              className="w-24 h-24 object-cover rounded-full"
+          <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
+            <div
+              className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowFollowersPopup(true)}
+            >
+              <FollowersIcon className="w-8 h-8 mb-1" />
+              <span>{user.followers.length}</span>
+            </div>
+
+            <ThematicImage className="relative z-10">
+              <Image
+                src={user.profilePicture || defaultProfilePic}
+                alt="Profile"
+                width={96}
+                height={96}
+                className="w-24 h-24 object-cover rounded-full"
+              />
+            </ThematicImage>
+
+            <div className="flex flex-col items-center">
+              <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
+              <span>{user.earnedTokens}</span>
+            </div>
+          </div>
+
+          {/* Followers Popup */}
+          <FollowersPopup
+            isOpen={showFollowersPopup}
+            onClose={() => setShowFollowersPopup(false)}
+            followers={user.followers}
+            isFollowers={true}
+          />
+
+          <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
+
+          <div className="relative z-10 mt-4">
+            <PrimaryButton
+              text={
+                isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
+              }
+              onClick={handleFollowToggle}
+              className="px-6 py-2 mb-2"
+              isActive={!!isFollowing}
+              disabled={isPendingFollow || !currentUser}
             />
-          </ThematicImage>
 
-          <div className="flex flex-col items-center">
-            <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
-            <span>{user.earnedTokens}</span>
+            <PrimaryButton
+              text="Challenge Me"
+              onClick={handleChallengeClick}
+              className="px-6 py-2"
+              disabled={!currentUser || currentUser.id === user.id}
+            />
           </div>
-        </div>
 
-        {/* Followers Popup */}
-        <FollowersPopup
-          isOpen={showFollowersPopup}
-          onClose={() => setShowFollowersPopup(false)}
-          followers={user.followers}
-          isFollowers={true}
-        />
+          <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
+            <p>{user.bio || 'This user has no bio.'}</p>
+          </div>
 
-        <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
-
-        <div className="relative z-10 mt-4">
-          <PrimaryButton
-            text={
-              isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
-            }
-            onClick={handleFollowToggle}
-            className="px-6 py-2 mb-2"
-            isActive={!!isFollowing}
-            disabled={isPendingFollow || !currentUser}
-          />
-
-          <PrimaryButton
-            text="Challenge Me"
-            onClick={handleChallengeClick}
-            className="px-6 py-2"
-            disabled={!currentUser || currentUser.id === user.id}
-          />
-        </div>
-
-        <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
-          <p>{user.bio || 'This user has no bio.'}</p>
-        </div>
-
-        <div className="relative z-20 mt-10 text-center w-full">
-          <h3 className="text-lg font-semibold">Timed challenge counter</h3>
-          <div
-            className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
-            ref={scrollContainerRef}
-            style={{ paddingBottom: '30px' }}
-          >
-            {challengeIndicators}
+          <div className="relative z-20 mt-10 text-center w-full">
+            <h3 className="text-lg font-semibold">Timed challenge counter</h3>
+            <div
+              className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
+              ref={scrollContainerRef}
+              style={{ paddingBottom: '30px' }}
+            >
+              {challengeIndicators}
+            </div>
           </div>
         </div>
       </div>
@@ -499,8 +515,10 @@ const OtherProfileView: React.FC = () => {
 
   // Default loading state (should only show briefly)
   return (
-    <div className="flex items-center justify-center min-h-screen text-white">
-      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className="text-white p-4 min-h-screen mt-20">
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
     </div>
   );
 };

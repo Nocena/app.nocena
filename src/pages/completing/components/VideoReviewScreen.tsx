@@ -56,7 +56,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
   return (
     <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
-      <div className="h-full flex flex-col p-6">
+      <div className="h-full flex flex-col px-6">
         <div className="text-center mb-6 mt-4">
           <h2 className="text-2xl font-light mb-2">Review Your Recording</h2>
           <div className="text-sm text-gray-400">
@@ -114,12 +114,12 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
         <div className="flex gap-3">
           <PrimaryButton
-              onClick={onApproveVideo}
-              text={'Retake video'}
-              className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!canProceed}
-              isActive={true}
-            />
+            onClick={onApproveVideo}
+            text={'Retake video'}
+            className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!canProceed}
+            isActive={true}
+          />
           <PrimaryButton
             onClick={onApproveVideo}
             text={canProceed ? 'Continue to Selfie' : 'Record Again (Too Short)'}
