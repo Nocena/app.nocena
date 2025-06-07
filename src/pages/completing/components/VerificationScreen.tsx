@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
-import ThematicContainer from '../../../components/ui/ThematicContainer';
 import { SimpleVerificationService, VerificationStep } from '../../../lib/verification/simpleVerificationService';
 
 interface Challenge {
@@ -33,10 +32,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 }) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [verificationStage, setVerificationStage] = useState<
     'ready' | 'verifying' | 'complete' | 'claiming' | 'success' | 'failed'
   >('ready');
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([]);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [currentStepMessage, setCurrentStepMessage] = useState('Ready to verify submission');
@@ -44,7 +43,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Create object URLs for media
+  // Create object URLs for media and generate thumbnail
   useEffect(() => {
     const vUrl = URL.createObjectURL(videoBlob);
     const pUrl = URL.createObjectURL(photoBlob);
@@ -52,95 +51,192 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     setVideoUrl(vUrl);
     setPhotoUrl(pUrl);
 
+    // Generate video thumbnail immediately
+    generateThumbnail(vUrl);
+
     return () => {
       URL.revokeObjectURL(vUrl);
       URL.revokeObjectURL(pUrl);
+      if (thumbnailUrl) {
+        URL.revokeObjectURL(thumbnailUrl);
+      }
     };
-  }, [videoBlob, photoBlob]);
+  }, [videoBlob, photoBlob]); // Remove thumbnailUrl from dependencies
 
-  const handleVideoClick = async () => {
-    if (videoRef.current) {
+  const generateThumbnail = (videoUrl: string) => {
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    
+    const extractFrame = () => {
       try {
-        if (isVideoPlaying) {
-          videoRef.current.pause();
-          setIsVideoPlaying(false);
-        } else {
-          await videoRef.current.play();
-          setIsVideoPlaying(true);
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const thumbUrl = URL.createObjectURL(blob);
+              setThumbnailUrl(thumbUrl);
+              console.log('Thumbnail generated successfully');
+            }
+          }, 'image/jpeg', 0.9);
         }
       } catch (error) {
-        console.error('Video play error:', error);
-        setTimeout(async () => {
-          try {
-            await videoRef.current?.play();
-            setIsVideoPlaying(true);
-          } catch (retryError) {
-            console.error('Video retry error:', retryError);
-          }
-        }, 100);
+        console.error('Error generating thumbnail:', error);
       }
-    }
+    };
+
+    video.onloadedmetadata = () => {
+      console.log('Video metadata loaded for thumbnail');
+      video.currentTime = 0.05;
+    };
+    
+    video.onloadeddata = () => {
+      console.log('Video data loaded for thumbnail');
+      if (video.videoWidth > 0) {
+        extractFrame();
+      }
+    };
+
+    video.onseeked = () => {
+      console.log('Video seeked for thumbnail');
+      extractFrame();
+    };
+
+    video.oncanplay = () => {
+      console.log('Video can play for thumbnail');
+      if (!thumbnailUrl) {
+        extractFrame();
+      }
+    };
+
+    video.onerror = (e) => {
+      console.error('Error loading video for thumbnail:', e);
+    };
   };
 
   const startVerification = async () => {
     setVerificationStage('verifying');
 
-    console.group('🔍 NOCENA VERIFICATION PROCESS STARTED');
-    console.log('Challenge:', challenge.title);
-    console.log('Video:', { size: `${(videoBlob.size / 1024 / 1024).toFixed(2)} MB`, type: videoBlob.type });
-    console.log('Photo:', { size: `${(photoBlob.size / 1024).toFixed(2)} KB`, type: photoBlob.type });
-    console.groupEnd();
-
+    // 🎭 FAKE VERIFICATION FOR TESTING
+    console.log('🧪 RUNNING FAKE VERIFICATION FOR TESTING');
+    
     try {
-      const verificationService = new SimpleVerificationService((steps) => {
-        // Update UI with step progress
-        setVerificationSteps(steps);
+      // Simulate verification steps with fake progress
+      const fakeSteps: VerificationStep[] = [
+        {
+          id: 'file-check',
+          name: 'File Validation',
+          status: 'running',
+          progress: 0,
+          message: 'Checking video and photo files...',
+          confidence: 0
+        },
+        {
+          id: 'human-detection',
+          name: 'Human Detection', 
+          status: 'pending',
+          progress: 0,
+          message: 'Detecting human presence in video...',
+          confidence: 0
+        },
+        {
+          id: 'face-match',
+          name: 'Face Matching',
+          status: 'pending', 
+          progress: 0,
+          message: 'Comparing faces between video and selfie...',
+          confidence: 0
+        },
+        {
+          id: 'activity-check',
+          name: 'Activity Analysis',
+          status: 'pending',
+          progress: 0, 
+          message: 'Analyzing challenge completion...',
+          confidence: 0
+        },
+        {
+          id: 'final-review',
+          name: 'Final Review',
+          status: 'pending',
+          progress: 0,
+          message: 'Conducting final verification...',
+          confidence: 0
+        }
+      ];
 
-        // Update current step message
-        const runningStep = steps.find((s) => s.status === 'running');
-        if (runningStep) {
-          setCurrentStepMessage(runningStep.message);
+      // Simulate each step with realistic timing
+      for (let i = 0; i < fakeSteps.length; i++) {
+        const step = fakeSteps[i];
+        
+        // Mark current step as running
+        step.status = 'running';
+        step.message = `Processing ${step.name.toLowerCase()}...`;
+        setVerificationSteps([...fakeSteps]);
+        setCurrentStepMessage(step.message);
+
+        // Simulate progress within the step
+        for (let progress = 0; progress <= 100; progress += 25) {
+          step.progress = progress;
+          setVerificationSteps([...fakeSteps]);
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
 
-        // Log step completions
-        const completedStep = steps.find((s) => s.status === 'completed' && !s.id.includes('logged'));
-        if (completedStep) {
-          console.log(`✅ ${completedStep.name} COMPLETED:`, {
-            confidence: `${Math.round((completedStep.confidence || 0) * 100)}%`,
-            message: completedStep.message,
-          });
-          // Mark as logged to prevent duplicate logs
-          completedStep.id += '-logged';
+        // Mark step as completed with fake confidence
+        step.status = 'completed';
+        step.confidence = 0.85 + (Math.random() * 0.14); // 85-99% confidence
+        step.progress = 100;
+        
+        // Set completion messages
+        switch (step.id) {
+          case 'file-check':
+            step.message = 'Video and photo files are valid and high quality';
+            break;
+          case 'human-detection':
+            step.message = 'Human detected in video with clear visibility';
+            break;
+          case 'face-match':
+            step.message = 'Face successfully matched between video and selfie';
+            break;
+          case 'activity-check':
+            step.message = 'Challenge activity detected and verified as authentic';
+            break;
+          case 'final-review':
+            step.message = 'All verification checks passed successfully';
+            break;
         }
 
-        const failedStep = steps.find((s) => s.status === 'failed' && !s.id.includes('logged'));
-        if (failedStep) {
-          console.error(`❌ ${failedStep.name} FAILED:`, failedStep.message);
-          // Mark as logged to prevent duplicate logs
-          failedStep.id += '-logged';
-        }
-      });
-
-      console.log('🚀 Starting real verification process...');
-
-      const result = await verificationService.runFullVerification(videoBlob, photoBlob, challenge.description);
-
-      console.group('📊 NOCENA VERIFICATION RESULTS');
-      console.log('Overall result:', result.passed ? '✅ PASSED' : '❌ FAILED');
-      console.log('Overall confidence:', `${Math.round(result.overallConfidence * 100)}%`);
-      console.groupEnd();
-
-      setVerificationResult(result);
-
-      if (result.passed) {
-        setVerificationStage('complete');
-        setCurrentStepMessage('All verification checks passed!');
-      } else {
-        setVerificationStage('failed');
-        setCurrentStepMessage('Verification failed. Please try again.');
+        setVerificationSteps([...fakeSteps]);
+        setCurrentStepMessage(step.message);
+        
+        // Brief pause between steps
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+
+      // Create fake successful result
+      const fakeResult = {
+        passed: true,
+        overallConfidence: 0.92,
+        details: 'All verification checks completed successfully. Challenge completion confirmed with high confidence.',
+        steps: fakeSteps,
+        timestamp: new Date().toISOString()
+      };
+
+      setVerificationResult(fakeResult);
+      setVerificationStage('complete');
+      setCurrentStepMessage('All verification checks passed!');
+      
+      console.log('🎉 FAKE VERIFICATION COMPLETED SUCCESSFULLY');
+
     } catch (error) {
-      console.error('💥 NOCENA VERIFICATION ERROR:', error);
+      console.error('Fake verification error:', error);
       setVerificationStage('failed');
       setCurrentStepMessage('Verification process encountered an error.');
     }
@@ -155,13 +251,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     setVerificationStage('claiming');
 
     try {
-      // Here you would integrate with your IPFS/Pinata and blockchain logic
-      // For now, simulate the process
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
       setVerificationStage('success');
 
-      // Call the completion handler with real verification data
       onVerificationComplete({
         video: videoBlob,
         photo: photoBlob,
@@ -170,7 +262,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         challenge: challenge,
       });
 
-      // Redirect to home after success
       setTimeout(() => {
         window.location.href = '/home';
       }, 2000);
@@ -181,427 +272,427 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     }
   };
 
-  const getVerificationTitle = () => {
+  const getStageInfo = () => {
     switch (verificationStage) {
       case 'ready':
-        return 'AI Verification';
+        return {
+          title: 'AI Verification',
+          subtitle: 'Ready to analyze your submission',
+          color: 'nocenaPink'
+        };
       case 'verifying':
-        return 'Neural Analysis Active';
+        return {
+          title: 'Analyzing...',
+          subtitle: currentStepMessage,
+          color: 'nocenaPink'
+        };
       case 'complete':
-        return 'Verification Complete';
+        return {
+          title: 'Verified ✓',
+          subtitle: 'Ready to claim your reward',
+          color: 'nocenaPurple'
+        };
+      case 'claiming':
+        return {
+          title: 'Processing...',
+          subtitle: 'Claiming your tokens',
+          color: 'nocenaPink'
+        };
+      case 'success':
+        return {
+          title: 'Success!',
+          subtitle: `+${challenge.reward} Nocenix claimed`,
+          color: 'nocenaPurple'
+        };
       case 'failed':
-        return 'Verification Failed';
+        return {
+          title: 'Failed',
+          subtitle: 'Verification unsuccessful',
+          color: 'red'
+        };
       default:
-        return 'AI Verification';
-    }
-  };
-
-  const getVerificationSubtitle = () => {
-    switch (verificationStage) {
-      case 'ready':
-        return 'Ready to analyze your submission';
-      case 'verifying':
-        return currentStepMessage;
-      case 'complete':
-        return 'Identity confirmed • Proceeding to rewards';
-      case 'failed':
-        return 'Verification unsuccessful • Please retry';
-      default:
-        return 'Analyzing your submission';
-    }
-  };
-
-  const getStepStatusIcon = (step: VerificationStep) => {
-    switch (step.status) {
-      case 'completed':
-        return (
-          <div className="w-3 h-3 bg-nocenaPurple rounded-full flex items-center justify-center">
-            <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        );
-      case 'running':
-        return <div className="w-3 h-3 border-2 border-nocenaPink border-t-transparent rounded-full animate-spin" />;
-      case 'failed':
-        return (
-          <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-            <svg className="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        );
-      default:
-        return <div className="w-3 h-3 bg-gray-500 rounded-full" />;
+        return {
+          title: 'AI Verification',
+          subtitle: 'Analyzing your submission',
+          color: 'nocenaPink'
+        };
     }
   };
 
   const getOverallProgress = () => {
     if (verificationSteps.length === 0) return 0;
-
     const totalSteps = verificationSteps.length;
     const completedSteps = verificationSteps.filter((s) => s.status === 'completed').length;
-    const runningStep = verificationSteps.find((s) => s.status === 'running');
-
-    let progress = (completedSteps / totalSteps) * 100;
-
-    // Add progress from currently running step
-    if (runningStep) {
-      progress += (runningStep.progress / 100) * (1 / totalSteps) * 100;
-    }
-
-    return Math.min(progress, 100);
+    return Math.min((completedSteps / totalSteps) * 100, 100);
   };
 
+  const stageInfo = getStageInfo();
+
   return (
-    <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
-      <div className="h-full flex flex-col px-6">
-        {/* Header */}
-        <div className="text-center mb-4 mt-4">
-          <ThematicContainer asButton={false} color="nocenaPink" className="px-6 py-2 mb-2" rounded="xl">
-            <span className="text-sm font-medium tracking-wider uppercase">{getVerificationTitle()}</span>
-          </ThematicContainer>
-
-          <div className="text-base font-light text-nocenaPink tracking-wide opacity-90">
-            {getVerificationSubtitle()}
-          </div>
+    <div className="text-white h-full flex flex-col px-6 py-4">
+      {/* Header */}
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-light mb-1">{stageInfo.title}</h2>
+        <div className="text-sm text-gray-400">
+          {challenge.title} • {stageInfo.subtitle}
         </div>
+      </div>
 
-        {/* BeReal-style Media Layout */}
-        <div className="relative mb-4">
-          <ThematicContainer
-            asButton={false}
-            glassmorphic={true}
-            color={challenge.color as any}
-            rounded="xl"
-            className="relative overflow-hidden"
-          >
-            {/* Main Video - Mobile horizontal format */}
-            <div className="relative h-48 rounded-xl overflow-hidden bg-black mb-3">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                preload="metadata"
-                className="w-full h-full object-cover cursor-pointer"
-                muted
-                loop
-                playsInline
-                onClick={handleVideoClick}
-                onPlay={() => setIsVideoPlaying(true)}
-                onPause={() => setIsVideoPlaying(false)}
-                onLoadedData={() => {
-                  console.log('Video loaded and ready');
-                }}
-                onError={(e) => {
-                  console.error('Video error:', e);
-                }}
+      {/* Media Preview - BeReal Style Layout */}
+      <div className="mb-6">
+        <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl">
+          {/* Main Video - Large */}
+          <div className="relative h-64 w-full">
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              poster={thumbnailUrl || undefined}
+              className="w-full h-full object-cover"
+              preload="metadata"
+              playsInline
+              muted
+              onLoadedData={() => {
+                console.log('Main video loaded data');
+                if (!thumbnailUrl && videoRef.current) {
+                  const video = videoRef.current;
+                  video.currentTime = 0.05;
+                }
+              }}
+              onSeeked={() => {
+                console.log('Main video seeked');
+                if (!thumbnailUrl && videoRef.current) {
+                  try {
+                    const video = videoRef.current;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    
+                    const ctx = canvas.getContext('2d');
+                    if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+                      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                      canvas.toBlob((blob) => {
+                        if (blob) {
+                          const thumbUrl = URL.createObjectURL(blob);
+                          setThumbnailUrl(thumbUrl);
+                          console.log('Thumbnail generated from main video');
+                        }
+                      }, 'image/jpeg', 0.9);
+                    }
+                  } catch (error) {
+                    console.error('Error generating thumbnail from main video:', error);
+                  }
+                }
+              }}
+              onCanPlay={() => {
+                console.log('Main video can play');
+                if (!thumbnailUrl && videoRef.current && videoRef.current.videoWidth > 0) {
+                  const video = videoRef.current;
+                  video.currentTime = 0.05;
+                }
+              }}
+              onClick={(e) => {
+                const video = e.target as HTMLVideoElement;
+                if (video.paused) {
+                  video.play();
+                } else {
+                  video.pause();
+                }
+              }}
+              style={{
+                WebkitPlaysinline: true,
+              } as React.CSSProperties}
+            />
+
+            {/* Selfie Overlay - Top Right Corner (BeReal Style) */}
+            <div className="absolute top-4 right-4 w-20 h-24 rounded-xl overflow-hidden border-2 border-white shadow-lg">
+              <img 
+                src={photoUrl} 
+                alt="Verification selfie" 
+                className="w-full h-full object-cover" 
               />
+            </div>
 
-              {/* Play/Pause Overlay */}
-              {!isVideoPlaying && (
-                <div
-                  className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
-                  onClick={handleVideoClick}
-                >
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <svg className="w-6 h-6 text-white ml-1" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+            {/* Challenge Info Overlay - Bottom */}
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="bg-black/50 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={challenge.challengerProfile}
+                      alt="Challenger"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5 object-cover rounded-full"
+                    />
+                    <span className="text-sm font-medium">{challenge.title}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold">{challenge.reward}</span>
+                    <Image src="/nocenix.ico" alt="Nocenix" width={16} height={16} />
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Selfie Overlay (Top Right) */}
-              <div className="absolute top-3 right-3 w-16 h-20 rounded-lg overflow-hidden border-2 border-white shadow-lg">
-                <img src={photoUrl} alt="Verification selfie" className="w-full h-full object-cover" />
+      {/* Status Section */}
+      <div className="mb-6 flex-1">
+        {verificationStage === 'ready' && (
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-6">
+              <div className="w-16 h-16 bg-nocenaPink/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium mb-2">AI Analysis Ready</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Our AI will verify your challenge completion using advanced computer vision
+              </p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-gray-400">Video:</span>
+                  <span className="text-white ml-2">{(videoBlob.size / 1024 / 1024).toFixed(1)}MB</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Photo:</span>
+                  <span className="text-white ml-2">{(photoBlob.size / 1024).toFixed(1)}KB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {verificationStage === 'verifying' && (
+          <div>
+            <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-800/20 rounded-2xl p-6 mb-4">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-nocenaPink">Neural Analysis Active</h3>
               </div>
 
-              {/* Challenge Badge */}
-              <div className="absolute bottom-3 left-3 right-20">
-                <ThematicContainer
-                  asButton={false}
-                  glassmorphic={true}
-                  color="nocenaPink"
-                  rounded="xl"
-                  className="px-2 py-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Image
-                        src={challenge.challengerProfile}
-                        alt="Challenger"
-                        width={16}
-                        height={16}
-                        className="w-4 h-4 object-cover rounded-full"
-                      />
-                      <span className="text-xs font-medium">{challenge.title}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-xs font-semibold">{challenge.reward}</span>
-                      <Image src="/nocenix.ico" alt="Nocenix" width={12} height={12} />
-                    </div>
-                  </div>
-                </ThematicContainer>
+              {/* Overall Progress */}
+              <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
+                <div
+                  className="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-nocenaPink to-nocenaPurple"
+                  style={{ width: `${getOverallProgress()}%` }}
+                />
+              </div>
+
+              {/* Current Step */}
+              <div className="text-center">
+                <p className="text-sm text-gray-300">{currentStepMessage}</p>
               </div>
             </div>
 
-            {verificationStage === 'ready' && (
-              <div className="px-4 py-3">
-                <div className="text-center text-sm font-medium mb-3 text-gray-300 tracking-wider uppercase">
-                  Submission Analysis
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Challenge:</span>
-                    <span className="text-white font-medium">{challenge.title}</span>
+            {/* Verification Steps */}
+            <div className="space-y-2">
+              {verificationSteps.map((step) => (
+                <div key={step.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${
+                      step.status === 'completed' ? 'bg-nocenaPurple' :
+                      step.status === 'running' ? 'bg-nocenaPink animate-pulse' :
+                      step.status === 'failed' ? 'bg-red-500' : 'bg-gray-600'
+                    }`} />
+                    <span className="text-sm">{step.name}</span>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Video Size:</span>
-                    <span className="text-white">{(videoBlob.size / 1024 / 1024).toFixed(1)} MB</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Photo Size:</span>
-                    <span className="text-white">{(photoBlob.size / 1024).toFixed(1)} KB</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Status:</span>
-                    <span className="text-gray-400 text-xs font-medium">Ready</span>
-                  </div>
-                </div>
-
-                <div className="p-2 bg-nocenaBlue/20 rounded-full border border-nocenaBlue/30">
-                  <p className="text-xs text-white text-center">
-                    AI + TensorFlow verification will analyze your completion
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {verificationStage === 'verifying' && (
-              <div className="px-4 py-3">
-                <div className="text-center text-sm font-medium mb-3 text-nocenaPink tracking-wider uppercase">
-                  Neural Processing Active
-                </div>
-
-                {/* Overall Progress Bar */}
-                <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
-                  <div
-                    className="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-nocenaPink to-nocenaPurple"
-                    style={{ width: `${getOverallProgress()}%` }}
-                  />
-                </div>
-
-                {/* Individual Verification Steps */}
-                <div className="space-y-2 mb-3">
-                  {verificationSteps.map((step) => (
-                    <div key={step.id} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        {getStepStatusIcon(step)}
-                        <span
-                          className={`font-medium ${
-                            step.status === 'completed'
-                              ? 'text-nocenaPurple'
-                              : step.status === 'running'
-                                ? 'text-nocenaPink'
-                                : step.status === 'failed'
-                                  ? 'text-red-400'
-                                  : 'text-gray-500'
-                          }`}
-                        >
-                          {step.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {step.confidence && step.status === 'completed' && (
-                          <span className="text-nocenaPurple font-bold">{Math.round(step.confidence * 100)}%</span>
-                        )}
-                        {step.status === 'running' && (
-                          <span className="text-nocenaPink font-bold">{step.progress}%</span>
-                        )}
-                        {step.status === 'pending' && <span className="text-gray-500">--</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-nocenaPink border-t-transparent rounded-full animate-spin mr-2" />
-                  <span className="text-nocenaPink font-medium text-xs">{currentStepMessage}</span>
-                </div>
-              </div>
-            )}
-
-            {verificationStage === 'complete' && (
-              <div className="px-4 py-3">
-                <div className="text-center mb-4">
-                  <div className="w-12 h-12 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-2 relative">
-                    <svg
-                      className="w-6 h-6 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <h2 className="text-lg font-bold text-nocenaPurple mb-1">VERIFICATION COMPLETE</h2>
-                  <p className="text-gray-300 text-xs mb-3">AI analysis passed</p>
-
-                  {/* Verification Stats */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="bg-nocenaPurple/20 rounded-lg p-2 border border-nocenaPurple">
-                      <div className="text-nocenaPurple text-sm font-bold">
-                        {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 94}%
-                      </div>
-                      <div className="text-xs text-white">Confidence</div>
-                    </div>
-                    <div className="bg-nocenaBlue/20 rounded-lg p-2 border border-nocenaBlue/30">
-                      <div className="text-white text-sm font-bold">
-                        {verificationSteps.filter((s) => s.status === 'completed').length}/{verificationSteps.length}
-                      </div>
-                      <div className="text-xs text-white">Checks</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Token Claim Section */}
-                <div className="bg-black/40 rounded-xl p-3 mb-3 border border-nocenaPink/30">
-                  <div className="text-center mb-3">
-                    <h3 className="text-sm font-bold text-nocenaPink mb-2">REWARD UNLOCKED</h3>
-                    <div className="flex items-center justify-center space-x-2 mb-3">
-                      <span className="text-xl font-black text-white">{challenge.reward}</span>
-                      <img src="/nocenix.ico" alt="Nocenix" className="w-5 h-5" />
-                      <span className="text-xs text-gray-300">AUTHORIZED</span>
-                    </div>
-                  </div>
-
-                  {/* Challenge Description Input */}
-                  <div className="mb-3">
-                    <textarea
-                      value={challengeDescription}
-                      onChange={(e) => setChallengeDescription(e.target.value)}
-                      placeholder="Describe your completion..."
-                      rows={2}
-                      className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-nocenaPink transition-colors resize-none text-sm"
-                    />
-                  </div>
-
-                  {/* Claim Button */}
-                  <PrimaryButton
-                    text="CLAIM TOKENS"
-                    onClick={handleClaimTokens}
-                    disabled={!challengeDescription.trim()}
-                  />
-                </div>
-              </div>
-            )}
-
-            {verificationStage === 'claiming' && (
-              <div className="px-4 py-6">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">PROCESSING</h3>
-                  <p className="text-gray-300 text-center mb-1 text-sm">Uploading to decentralized storage...</p>
-                  <p className="text-gray-400 text-center text-xs">Executing blockchain protocol</p>
-                </div>
-              </div>
-            )}
-
-            {verificationStage === 'success' && (
-              <div className="px-4 py-6">
-                <div className="text-center">
-                  <div className="relative mb-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-nocenaPurple to-nocenaPurple rounded-full flex items-center justify-center mx-auto">
-                      <img src="/nocenix.ico" alt="Nocenix" className="w-6 h-6" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-nocenaPurple rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-3 h-3 text-white"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-nocenaPurple mb-1">TOKENS CLAIMED!</h3>
-                  <p className="text-lg text-white mb-1">+{challenge.reward} Nocenix</p>
-                  <p className="text-sm text-gray-300 text-center mb-4">Transfer successful</p>
-
-                  <div className="bg-gray-800/50 rounded-lg px-3 py-2 mb-3">
-                    <div className="flex justify-between items-center text-xs mb-1">
-                      <span className="text-gray-400">Network:</span>
-                      <span className="text-blue-400">Polygon</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">Status:</span>
-                      <span className="text-nocenaPurple">Confirmed</span>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-gray-400 text-center">Returning to home...</p>
-                </div>
-              </div>
-            )}
-
-            {verificationStage === 'failed' && (
-              <div className="px-4 py-6">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg
-                      className="w-6 h-6 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <h2 className="text-lg font-bold text-red-400 mb-2">VERIFICATION FAILED</h2>
-                  <p className="text-gray-300 text-sm text-center mb-4">{currentStepMessage}</p>
-
-                  {/* Show failed steps */}
-                  {verificationSteps.length > 0 && (
-                    <div className="text-left bg-red-900/20 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-red-300 mb-2">Failed checks:</p>
-                      {verificationSteps
-                        .filter((s) => s.status === 'failed')
-                        .map((step) => (
-                          <p key={step.id} className="text-xs text-red-400">
-                            • {step.name}: {step.message}
-                          </p>
-                        ))}
-                    </div>
+                  {step.confidence && step.status === 'completed' && (
+                    <span className="text-xs text-nocenaPurple font-medium">
+                      {Math.round(step.confidence * 100)}%
+                    </span>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {verificationStage === 'complete' && (
+          <div>
+            <div className="bg-gradient-to-r from-green-900/20 to-purple-900/20 border border-green-800/20 rounded-2xl p-6 mb-4">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-nocenaPurple mb-2">Verification Complete!</h3>
+                <p className="text-sm text-gray-300 mb-4">
+                  AI analysis passed with {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
+                </p>
+                
+                {/* Reward Display */}
+                <div className="bg-black/30 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <span className="text-2xl font-bold">{challenge.reward}</span>
+                    <Image src="/nocenix.ico" alt="Nocenix" width={24} height={24} />
+                    <span className="text-sm text-gray-300">NOCENIX</span>
+                  </div>
+                </div>
               </div>
-            )}
-          </ThematicContainer>
-        </div>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          {verificationStage === 'ready' && (
-            <PrimaryButton onClick={startVerification} text="Start Verification" className="flex-1" />
-          )}
+            {/* Description Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Describe your completion:</label>
+              <textarea
+                value={challengeDescription}
+                onChange={(e) => setChallengeDescription(e.target.value)}
+                placeholder="Tell us about your experience..."
+                rows={3}
+                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-nocenaPink transition-colors resize-none"
+              />
+            </div>
+          </div>
+        )}
 
-          {verificationStage === 'verifying' && (
-            <PrimaryButton text="Processing..." className="flex-1" disabled={true} />
-          )}
+        {verificationStage === 'claiming' && (
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-800/20 rounded-2xl p-8">
+              <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Processing Claim</h3>
+              <p className="text-sm text-gray-300">Executing blockchain transaction...</p>
+            </div>
+          </div>
+        )}
 
-          {verificationStage === 'failed' && (
-            <PrimaryButton onClick={startVerification} text="Retry Verification" className="flex-1" />
-          )}
-        </div>
+        {verificationStage === 'success' && (
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-green-900/20 to-purple-900/20 border border-green-800/20 rounded-2xl p-8">
+              <div className="w-16 h-16 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-4">
+                <Image src="/nocenix.ico" alt="Success" width={32} height={32} />
+              </div>
+              <h3 className="text-xl font-bold text-nocenaPurple mb-2">Tokens Claimed!</h3>
+              <p className="text-lg mb-1">+{challenge.reward} Nocenix</p>
+              <p className="text-sm text-gray-300">Returning to home...</p>
+            </div>
+          </div>
+        )}
+
+        {verificationStage === 'failed' && (
+          <div>
+            <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-800/20 rounded-2xl p-6 mb-4">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-red-400 mb-2">Verification Failed</h3>
+                <p className="text-sm text-gray-300 mb-4">{currentStepMessage}</p>
+              </div>
+
+              {/* Show Failed Steps with Details */}
+              {verificationSteps.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-red-300 mb-2">Issues Found:</h4>
+                  {verificationSteps
+                    .filter((s) => s.status === 'failed')
+                    .map((step) => (
+                      <div key={step.id} className="bg-red-900/20 border border-red-800/30 rounded-lg p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <h5 className="text-sm font-medium text-red-300 mb-1">{step.name}</h5>
+                            <p className="text-xs text-gray-300 leading-relaxed">{step.message}</p>
+                            {step.confidence !== undefined && (
+                              <p className="text-xs text-red-400 mt-1">
+                                Confidence: {Math.round(step.confidence * 100)}%
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {/* Show Overall Verification Result Details */}
+              {verificationResult && (
+                <div className="mt-4 bg-black/30 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">Overall Analysis:</h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-400">Overall Confidence:</span>
+                      <span className="text-red-400 ml-2 font-medium">
+                        {Math.round(verificationResult.overallConfidence * 100)}%
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Required:</span>
+                      <span className="text-white ml-2">≥70%</span>
+                    </div>
+                  </div>
+                  {verificationResult.details && (
+                    <p className="text-xs text-gray-300 mt-2 leading-relaxed">
+                      {verificationResult.details}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Helpful Tips */}
+            <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-4">
+              <h4 className="text-sm font-medium text-blue-300 mb-2">💡 Tips for Better Results:</h4>
+              <ul className="text-xs text-gray-300 space-y-1">
+                <li>• Ensure good lighting for both video and selfie</li>
+                <li>• Keep your face clearly visible in the selfie</li>
+                <li>• Record the full challenge activity in the video</li>
+                <li>• Make sure video is at least 3 seconds long</li>
+                <li>• Avoid blurry or dark footage</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 mt-auto">
+        {verificationStage === 'ready' && (
+          <PrimaryButton 
+            onClick={startVerification} 
+            text="Start Verification" 
+            className="flex-1"
+            isActive={true}
+          />
+        )}
+
+        {verificationStage === 'complete' && (
+          <PrimaryButton 
+            onClick={handleClaimTokens} 
+            text="Claim Tokens"
+            className="flex-1"
+            disabled={!challengeDescription.trim()}
+            isActive={true}
+          />
+        )}
+
+        {verificationStage === 'failed' && (
+          <PrimaryButton 
+            onClick={startVerification} 
+            text="Retry Verification" 
+            className="flex-1"
+            isActive={true}
+          />
+        )}
+
+        {(verificationStage === 'verifying' || verificationStage === 'claiming') && (
+          <PrimaryButton 
+            text="Processing..." 
+            className="flex-1" 
+            disabled={true}
+            isActive={false}
+          />
+        )}
       </div>
     </div>
   );

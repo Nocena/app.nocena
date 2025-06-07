@@ -225,7 +225,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   if (isLoading || !challenge) {
     return (
-      <div className="flex flex-col items-center justify-center text-white h-screen pt-20">
+      <div className="flex flex-col items-center justify-center text-white h-full">
         <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mb-6" />
         <div className="text-3xl font-bold animate-pulse mb-2">LOADING CHALLENGE...</div>
         <div className="text-lg text-nocenaPink animate-bounce">Preparing your mission</div>
@@ -276,102 +276,101 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     );
   }
 
-  // Step 1: Challenge Intro
+  // Step 1: Challenge Intro - FIXED VERSION
   const typeInfo = getChallengeTypeInfo(challenge.type);
 
   return (
-    <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
-      {/* Content */}
-      <div className="h-full flex flex-col px-6">
-        {/* Challenge Type Badge */}
-        <div className="flex justify-center mb-6 mt-4">
-          <ThematicContainer asButton={false} color={challenge.color as any} className="px-6 py-2" rounded="xl">
-            <span className="text-sm font-medium tracking-wider uppercase">{typeInfo.badge}</span>
-          </ThematicContainer>
-        </div>
+    <div className="text-white min-h-full flex flex-col px-6">
+      {/* Challenge Type Badge */}
+      <div className="flex justify-center mb-6">
+        <ThematicContainer asButton={false} color={challenge.color as any} className="px-6 py-2" rounded="xl">
+          <span className="text-sm font-medium tracking-wider uppercase">{typeInfo.badge}</span>
+        </ThematicContainer>
+      </div>
 
-        {/* Subtitle - Clean and Mysterious */}
-        <div className="text-center mb-8">
-          <div className="text-xl font-light text-nocenaPink tracking-wide opacity-90">{typeInfo.subtitle}</div>
-        </div>
+      {/* Subtitle - Clean and Mysterious */}
+      <div className="text-center mb-8">
+        <div className="text-xl font-light text-nocenaPink tracking-wide opacity-90">{typeInfo.subtitle}</div>
+      </div>
 
-        {/* Main Challenge Card */}
-        <div className="flex-1 flex flex-col mb-6">
-          <ThematicContainer
-            asButton={false}
-            glassmorphic={true}
-            color={challenge.color as any}
-            rounded="xl"
-            className="flex-1 px-6 py-6 relative overflow-hidden"
-          >
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col">
-              {/* Challenge Title - Clean and Bold */}
-              <div className="text-2xl font-light mb-4 text-center leading-tight tracking-wide">{challenge.title}</div>
+      {/* Main Challenge Card - Flexible height */}
+      <div className="flex-1 flex flex-col mb-6">
+        <ThematicContainer
+          asButton={false}
+          glassmorphic={true}
+          color={challenge.color as any}
+          rounded="xl"
+          className="flex-1 px-6 py-6 relative overflow-hidden"
+        >
+          {/* Content */}
+          <div className="relative z-10 h-full flex flex-col">
+            {/* Challenge Title - Clean and Bold */}
+            <div className="text-2xl font-light mb-4 text-center leading-tight tracking-wide">{challenge.title}</div>
 
-              {/* Challenge Description */}
-              <div className="text-base text-gray-200 mb-6 text-center leading-relaxed font-light opacity-90">
-                {challenge.description}
+            {/* Challenge Description */}
+            <div className="text-base text-gray-200 mb-6 text-center leading-relaxed font-light opacity-90">
+              {challenge.description}
+            </div>
+
+            {/* User and Reward - Clean Layout */}
+            <div className="flex items-center justify-between mb-6 bg-black/20 rounded-xl p-4">
+              <div className="flex items-center space-x-3">
+                <ThematicImage className="rounded-full">
+                  <Image
+                    src={challenge.challengerProfile}
+                    alt="Challenger Profile"
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 object-cover"
+                  />
+                </ThematicImage>
+                <span className="text-base font-medium">{challenge.challengerName}</span>
               </div>
 
-              {/* User and Reward - Clean Layout */}
-              <div className="flex items-center justify-between mb-6 bg-black/20 rounded-xl p-4">
-                <div className="flex items-center space-x-3">
-                  <ThematicImage className="rounded-full">
-                    <Image
-                      src={challenge.challengerProfile}
-                      alt="Challenger Profile"
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 object-cover"
-                    />
-                  </ThematicImage>
-                  <span className="text-base font-medium">{challenge.challengerName}</span>
+              <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg font-semibold">{challenge.reward}</span>
+                  <Image src="/nocenix.ico" alt="Nocenix" width={20} height={20} />
                 </div>
+              </ThematicContainer>
+            </div>
 
-                <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-semibold">{challenge.reward}</span>
-                    <Image src="/nocenix.ico" alt="Nocenix" width={20} height={20} />
-                  </div>
-                </ThematicContainer>
+            {/* Verification Process - Futuristic */}
+            <div className="bg-black/30 rounded-xl p-5 mb-4 border border-gray-700/50">
+              <div className="text-center text-base font-medium mb-4 text-gray-300 tracking-wider uppercase">
+                Verification Protocol
               </div>
-
-              {/* Verification Process - Futuristic */}
-              <div className="bg-black/30 rounded-xl p-5 mb-4 border border-gray-700/50">
-                <div className="text-center text-base font-medium mb-4 text-gray-300 tracking-wider uppercase">
-                  Verification Protocol
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
+                  <span className="font-light">Record Challenge</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center space-x-2 text-gray-300">
-                    <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
-                    <span className="font-light">Record Challenge</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-300">
-                    <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
-                    <span className="font-light">Identity Scan</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-300">
-                    <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
-                    <span className="font-light">AI Analysis</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-300">
-                    <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
-                    <span className="font-light">Token Transfer</span>
-                  </div>
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
+                  <span className="font-light">Identity Scan</span>
                 </div>
-              </div>
-
-              {/* Requirements - Minimal */}
-              <div className="text-center text-xs text-gray-400 opacity-70">
-                Optimal lighting • 3+ second duration • Clear facial recognition
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
+                  <span className="font-light">AI Analysis</span>
+                </div>
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <div className="w-2 h-2 bg-nocenaPink rounded-full opacity-80"></div>
+                  <span className="font-light">Token Transfer</span>
+                </div>
               </div>
             </div>
-          </ThematicContainer>
-        </div>
 
-        {/* Action Button - Clean and Futuristic */}
-        <PrimaryButton className="w-full mb-4" onClick={handleStartChallenge} text={typeInfo.action} />
+            {/* Requirements - Minimal */}
+            <div className="text-center text-xs text-gray-400 opacity-70">
+              Optimal lighting • 3+ second duration • Clear facial recognition
+            </div>
+          </div>
+        </ThematicContainer>
+      </div>
+
+      {/* Action Button - Fixed positioning */}
+      <div className="mt-auto">
+        <PrimaryButton className="w-full" onClick={handleStartChallenge} text={typeInfo.action} />
       </div>
     </div>
   );

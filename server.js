@@ -42,27 +42,30 @@ try {
 
   console.log('Certificates loaded successfully');
 
-  app.prepare().then(() => {
-    console.log('Next.js app prepared, creating HTTPS server...');
-    
-    const localIP = getLocalIP();
+  app
+    .prepare()
+    .then(() => {
+      console.log('Next.js app prepared, creating HTTPS server...');
 
-    createServer(httpsOptions, (req, res) => {
-      const parsedUrl = parse(req.url, true);
-      handle(req, res, parsedUrl);
-    }).listen(3001, '0.0.0.0', (err) => {
-      if (err) {
-        console.error('Error starting server:', err);
-        throw err;
-      }
-      console.log('> Ready on https://localhost:3001');
-      console.log(`> Also available on your network at https://${localIP}:3001`);
-      console.log('> For mobile testing, use the network URL');
-      console.log('> PWA is disabled for testing - camera should work via HTTPS');
+      const localIP = getLocalIP();
+
+      createServer(httpsOptions, (req, res) => {
+        const parsedUrl = parse(req.url, true);
+        handle(req, res, parsedUrl);
+      }).listen(3001, '0.0.0.0', (err) => {
+        if (err) {
+          console.error('Error starting server:', err);
+          throw err;
+        }
+        console.log('> Ready on https://localhost:3001');
+        console.log(`> Also available on your network at https://${localIP}:3001`);
+        console.log('> For mobile testing, use the network URL');
+        console.log('> PWA is disabled for testing - camera should work via HTTPS');
+      });
+    })
+    .catch((err) => {
+      console.error('Error preparing Next.js app:', err);
     });
-  }).catch((err) => {
-    console.error('Error preparing Next.js app:', err);
-  });
 } catch (error) {
   console.error('Error setting up HTTPS server:', error);
   console.log('Make sure certificate files exist:');

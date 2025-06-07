@@ -29,6 +29,8 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   const [countdown, setCountdown] = useState(3);
   const [recordingTime, setRecordingTime] = useState(30);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraInitialized, setCameraInitialized] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -62,49 +64,91 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
   const initializeCamera = async () => {
     try {
+      setCameraError(null);
+      
       // Stop existing stream if any
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
 
+      // Request both video and audio together
       const constraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
         },
-        audio: true,
+        audio: true, // Request audio from the start
       };
 
+      console.log('Requesting camera with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        const videoElement = videoRef.current;
+        
+        // Clear any existing srcObject
+        videoElement.srcObject = null;
+        
+        // Set new stream
+        videoElement.srcObject = stream;
+        
+        // On iOS, we need to wait for user interaction
+        const startVideo = async () => {
+          try {
+            videoElement.muted = true;
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            
+            await videoElement.play();
+            setCameraInitialized(true);
+            
+            setTimeout(() => {
+              setupMediaRecorder(stream);
+            }, 500);
+            
+          } catch (error) {
+            console.error('Error starting video:', error);
+            setCameraError('Unable to start camera. Please ensure camera permissions are granted.');
+          }
+        };
+
+        // Wait for metadata and then start
+        videoElement.onloadedmetadata = () => {
+          console.log('Video metadata loaded, dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+          startVideo();
+        };
+        
+        // Fallback attempts
+        videoElement.oncanplay = () => {
+          console.log('Video can play');
+          if (videoElement.paused && !cameraInitialized) {
+            startVideo();
+          }
+        };
       }
 
-      // Setup media recorder - try MP4 first, fallback to WebM
-      let mediaRecorder: MediaRecorder;
-
-      if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) {
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/mp4;codecs=h264,aac',
-          videoBitsPerSecond: 2500000,
-          audioBitsPerSecond: 128000,
-        });
-      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp8,opus',
-          videoBitsPerSecond: 2500000,
-          audioBitsPerSecond: 128000,
-        });
-      } else {
-        // Fallback to default
-        mediaRecorder = new MediaRecorder(stream);
+    } catch (error: any) {
+      console.error('Error accessing camera:', error);
+      let errorMessage = 'Unable to access camera.';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access and refresh.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application.';
       }
+      
+      setCameraError(errorMessage);
+    }
+  };
 
-      mediaRecorderRef.current = mediaRecorder;
+  const setupMediaRecorder = (stream: MediaStream) => {
+    try {
       chunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -113,21 +157,28 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
       };
 
       mediaRecorder.onstop = () => {
-        // Calculate actual recording duration
         const actualDuration = actualDurationRef.current;
-        console.log('Recording stopped. Actual duration:', actualDuration);
+
+        if (chunksRef.current.length === 0) {
+          setCameraError('Recording failed. Please try again.');
+          return;
+        }
 
         const blob = new Blob(chunksRef.current, {
           type: mediaRecorder.mimeType || 'video/webm',
         });
 
-        // Pass both the blob and the actual duration
         onVideoRecorded(blob, actualDuration);
       };
+
+      mediaRecorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event.error);
+        setCameraError('Recording error occurred. Please try again.');
+      };
+
     } catch (error) {
-      console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please check permissions and try again.');
-      onBack();
+      console.error('Error setting up MediaRecorder:', error);
+      setCameraError('Failed to setup video recording.');
     }
   };
 
@@ -143,29 +194,37 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   };
 
   const startCountdown = () => {
+    if (!cameraInitialized || !mediaRecorderRef.current) {
+      setCameraError('Camera not ready. Please wait and try again.');
+      return;
+    }
     setStage('countdown');
     setCountdown(3);
   };
 
   const startRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-      setStage('recording');
-      setRecordingTime(30);
+      try {
+        setStage('recording');
+        setRecordingTime(30);
 
-      // Record the start time
-      recordingStartTimeRef.current = Date.now();
-      mediaRecorderRef.current.start(1000);
+        recordingStartTimeRef.current = Date.now();
+        mediaRecorderRef.current.start(1000); // Collect data every second
 
-      // Start countdown timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => {
-          if (prev <= 1) {
-            stopRecording();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        timerRef.current = setInterval(() => {
+          setRecordingTime((prev) => {
+            if (prev <= 1) {
+              stopRecording();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        setCameraError('Failed to start recording.');
+        setStage('ready');
+      }
     }
   };
 
@@ -173,7 +232,6 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       setStage('stopping');
 
-      // Calculate actual duration
       const endTime = Date.now();
       const actualDuration = (endTime - recordingStartTimeRef.current) / 1000;
       actualDurationRef.current = actualDuration;
@@ -182,19 +240,25 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      mediaRecorderRef.current.stop();
+      
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+      }
+      
       stopCamera();
     }
   };
 
   const flipCamera = async () => {
-    if (stage === 'recording') return; // Don't flip during recording
+    if (stage === 'recording' || stage === 'countdown') return;
 
     try {
+      setCameraInitialized(false);
       setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
     } catch (error) {
       console.error('Error flipping camera:', error);
-      // Silently fail on desktop or if flip not supported
     }
   };
 
@@ -202,12 +266,57 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
     return `00:${seconds.toString().padStart(2, '0')}`;
   };
 
+  if (cameraError) {
+    return (
+      <div className="fixed inset-0 bg-black text-white z-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="text-red-400 text-xl mb-4">⚠️</div>
+          <div className="text-lg mb-4">{cameraError}</div>
+          <button
+            onClick={() => {
+              setCameraError(null);
+              setCameraInitialized(false);
+              initializeCamera();
+            }}
+            className="bg-nocenaPink px-6 py-3 rounded-lg text-white font-medium"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={onBack}
+            className="ml-4 bg-gray-600 px-6 py-3 rounded-lg text-white font-medium"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black text-white z-50">
-      {/* Flip Camera Button - Only show when not recording or countdown */}
+      {/* Safe area top padding */}
+      <div 
+        className="absolute top-0 left-0 right-0 z-20"
+        style={{ 
+          height: 'env(safe-area-inset-top)',
+          background: 'rgba(0,0,0,0.3)' 
+        }}
+      />
+
+      {/* Flip Camera Button */}
       {stage !== 'recording' && stage !== 'countdown' && (
-        <div className="absolute top-6 right-4 z-20">
-          <button className="focus:outline-none pointer-events-auto" aria-label="Flip Camera" onClick={flipCamera}>
+        <div 
+          className="absolute right-4 z-20"
+          style={{ 
+            top: 'calc(env(safe-area-inset-top) + 16px)' 
+          }}
+        >
+          <button 
+            className="focus:outline-none" 
+            aria-label="Flip Camera" 
+            onClick={flipCamera}
+          >
             <ThematicContainer
               color="nocenaBlue"
               glassmorphic={true}
@@ -230,7 +339,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
       {/* Countdown Overlay */}
       {stage === 'countdown' && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
+        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/50">
           <div className="text-center">
             <div className="text-8xl font-bold text-white mb-4 animate-pulse drop-shadow-lg">{countdown}</div>
             <div className="text-xl text-white/90">Get ready...</div>
@@ -244,47 +353,91 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         autoPlay
         muted
         playsInline
+        controls={false}
+        preload="metadata"
         className={`absolute inset-0 w-full h-full object-cover ${
           facingMode === 'user' ? 'transform scale-x-[-1]' : ''
         }`}
+        style={{
+          objectFit: 'cover',
+          width: '100vw',
+          height: '100vh',
+          background: '#000',
+          zIndex: 1,
+          WebkitPlaysinline: true, // This is the correct way for React
+        } as React.CSSProperties}
+        onError={(e) => {
+          console.error('Video element error:', e);
+          setCameraError('Video display error. Please try again.');
+        }}
+        onLoadedData={() => {
+          if (videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(console.error);
+          }
+        }}
+        onCanPlay={() => {
+          if (videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(console.error);
+          }
+        }}
       />
 
       {/* Timer (only show during recording) */}
       {stage === 'recording' && (
-        <div className="absolute bottom-36 left-1/2 transform -translate-x-1/2 z-10">
-          <span className="text-white text-2xl font-black">{formatTime(recordingTime)}</span>
+        <div 
+          className="absolute left-1/2 transform -translate-x-1/2 z-10"
+          style={{ 
+            bottom: 'calc(env(safe-area-inset-bottom) + 140px)' 
+          }}
+        >
+          <div className="bg-black/50 px-4 py-2 rounded-full">
+            <span className="text-white text-2xl font-black">{formatTime(recordingTime)}</span>
+          </div>
         </div>
       )}
 
       {/* Recording Button */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+      <div 
+        className="absolute left-1/2 transform -translate-x-1/2 z-10"
+        style={{ 
+          bottom: 'calc(env(safe-area-inset-bottom) + 40px)' 
+        }}
+      >
         {stage === 'ready' && (
           <button
             onClick={startCountdown}
-            className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-300"
+            className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-300 bg-black/20 backdrop-blur-sm"
+            disabled={!cameraInitialized}
           >
             <div
-              className="absolute inset-1 rounded-full"
+              className={`absolute inset-2 rounded-full transition-opacity ${
+                cameraInitialized ? 'opacity-100' : 'opacity-50'
+              }`}
               style={{
-                background: '#FF15C9',
+                background: cameraInitialized ? '#FF15C9' : '#666',
               }}
             />
+            {!cameraInitialized && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </button>
         )}
 
         {stage === 'countdown' && (
-          <div className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-300">
-            <div className="absolute inset-1 bg-gray-600 rounded-full" />
+          <div className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-300 bg-black/20 backdrop-blur-sm">
+            <div className="absolute inset-2 bg-gray-600 rounded-full" />
           </div>
         )}
 
         {stage === 'recording' && (
           <button
             onClick={stopRecording}
-            className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-500 ease-in-out"
+            className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-500 ease-in-out bg-black/20 backdrop-blur-sm"
           >
             <div
-              className="absolute inset-4 transition-all duration-500 ease-in-out animate-circle-to-square"
+              className="absolute inset-6 transition-all duration-500 ease-in-out rounded-sm"
               style={{
                 background: '#FF15C9',
               }}
@@ -293,13 +446,22 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         )}
 
         {stage === 'stopping' && (
-          <div className="relative w-20 h-20 rounded-full border-2 border-white">
-            <div className="absolute inset-1 bg-gray-600 rounded-full flex items-center justify-center">
+          <div className="relative w-20 h-20 rounded-full border-4 border-white bg-black/20 backdrop-blur-sm">
+            <div className="absolute inset-2 bg-gray-600 rounded-full flex items-center justify-center">
               <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
             </div>
           </div>
         )}
       </div>
+
+      {/* Safe area bottom padding */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 z-20"
+        style={{ 
+          height: 'env(safe-area-inset-bottom)',
+          background: 'rgba(0,0,0,0.3)' 
+        }}
+      />
     </div>
   );
 };

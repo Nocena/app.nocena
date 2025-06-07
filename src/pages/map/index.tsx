@@ -29,7 +29,7 @@ const MapView = () => {
         // Force the map to take full viewport height
         mapContainerRef.current.style.height = '100vh';
         mapContainerRef.current.style.width = '100vw';
-        
+
         // Also set position to ensure it covers everything
         const parentContainer = mapContainerRef.current.parentElement;
         if (parentContainer) {
@@ -210,9 +210,9 @@ const MapView = () => {
   }, [selectedPin]);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-gray-900"
-      style={{ 
+      style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -220,16 +220,16 @@ const MapView = () => {
         bottom: 0,
         zIndex: 1,
         width: '100vw',
-        height: '100vh'
+        height: '100vh',
       }}
     >
       {/* Map container */}
-      <div 
-        ref={mapContainerRef} 
+      <div
+        ref={mapContainerRef}
         className="w-full h-full bg-gray-900"
         style={{
           width: '100vw',
-          height: '100vh'
+          height: '100vh',
         }}
       />
 

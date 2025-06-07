@@ -45,13 +45,14 @@ try {
     .prepare()
     .then(() => {
       console.log('Next.js app prepared, creating HTTPS server...');
-      
+
       const localIP = getLocalIP();
 
       createServer(httpsOptions, (req, res) => {
         const parsedUrl = parse(req.url, true);
         handle(req, res, parsedUrl);
-      }).listen(3001, '0.0.0.0', (err) => {  // Changed: bind to all interfaces with '0.0.0.0'
+      }).listen(3001, '0.0.0.0', (err) => {
+        // Changed: bind to all interfaces with '0.0.0.0'
         if (err) {
           console.error('Error starting server:', err);
           throw err;
