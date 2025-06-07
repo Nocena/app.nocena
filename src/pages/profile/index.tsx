@@ -384,98 +384,100 @@ const ProfileView: React.FC = () => {
   }, [dailyChallenges, weeklyChallenges, monthlyChallenges, monthNames]);
 
   return (
-    <div className="flex flex-col items-center text-white relative min-h-screen overflow-hidden mt-16">
-      <div className="absolute inset-0">
-        <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
-        <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
-      </div>
-
-      <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-        <div
-          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={handleFollowersClick}
-        >
-          <FollowersIcon className="w-8 h-8 mb-1" />
-          <span>{followersCount}</span>
+    <div className="text-white p-4 min-h-screen mt-20">
+      <div className="flex flex-col items-center relative">
+        <div className="absolute inset-0">
+          <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
+          <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
         </div>
 
-        <div onClick={handleProfilePicClick}>
-          <ThematicImage className="relative z-10">
-            <Image
-              src={profilePic}
-              alt="Profile"
-              width={96}
-              height={96}
-              className="w-24 h-24 object-cover rounded-full cursor-pointer"
-            />
-          </ThematicImage>
-        </div>
+        <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
+          <div
+            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleFollowersClick}
+          >
+            <FollowersIcon className="w-8 h-8 mb-1" />
+            <span>{followersCount}</span>
+          </div>
 
-        <input
-          type="file"
-          accept=".jpg,.jpeg,.png,.webp,.heif,.hevc"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleProfilePicUpload}
-        />
-
-        <div className="flex flex-col items-center">
-          <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
-          <span>{tokenBalance}</span>
-        </div>
-      </div>
-
-      <ThematicText text={username} isActive={true} className="capitalize relative z-10" />
-
-      <div
-        className={`relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-16 ${
-          isEditingBio ? 'border border-white' : ''
-        }`}
-      >
-        <div className="flex justify-between items-center">
-          {isEditingBio ? (
-            <>
-              <textarea
-                className="w-full p-2 bg-transparent text-white rounded"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
+          <div onClick={handleProfilePicClick}>
+            <ThematicImage className="relative z-10">
+              <Image
+                src={profilePic}
+                alt="Profile"
+                width={96}
+                height={96}
+                className="w-24 h-24 object-cover rounded-full cursor-pointer"
               />
-              <div onClick={handleSaveBioClick} className="ml-4 cursor-pointer">
-                <SaveIcon className="w-6 h-6" />
-              </div>
-              <div onClick={handleCancelEdit} className="ml-4 cursor-pointer">
-                <PenIcon className="w-6 h-6" />
-              </div>
-            </>
-          ) : (
-            <>
-              <p>{bio}</p>
-              <div onClick={handleEditBioClick} className="cursor-pointer">
-                <PenIcon className="w-6 h-6" />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+            </ThematicImage>
+          </div>
 
-      <div className="relative z-20 mt-10 text-center w-full">
-        <h3 className="text-lg font-semibold">Timed challenge counter</h3>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,.heif,.hevc"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleProfilePicUpload}
+          />
+
+          <div className="flex flex-col items-center">
+            <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
+            <span>{tokenBalance}</span>
+          </div>
+        </div>
+
+        <ThematicText text={username} isActive={true} className="capitalize relative z-10" />
+
         <div
-          className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
-          ref={scrollContainerRef}
-          style={{ paddingBottom: '30px' }}
+          className={`relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-16 ${
+            isEditingBio ? 'border border-white' : ''
+          }`}
         >
-          {challengeIndicators}
+          <div className="flex justify-between items-center">
+            {isEditingBio ? (
+              <>
+                <textarea
+                  className="w-full p-2 bg-transparent text-white rounded"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                />
+                <div onClick={handleSaveBioClick} className="ml-4 cursor-pointer">
+                  <SaveIcon className="w-6 h-6" />
+                </div>
+                <div onClick={handleCancelEdit} className="ml-4 cursor-pointer">
+                  <PenIcon className="w-6 h-6" />
+                </div>
+              </>
+            ) : (
+              <>
+                <p>{bio}</p>
+                <div onClick={handleEditBioClick} className="cursor-pointer">
+                  <PenIcon className="w-6 h-6" />
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Followers Popup */}
-      <FollowersPopup
-        isOpen={showFollowersPopup}
-        onClose={() => setShowFollowersPopup(false)}
-        followers={followers}
-        isFollowers={true}
-      />
+        <div className="relative z-20 mt-10 text-center w-full">
+          <h3 className="text-lg font-semibold">Timed challenge counter</h3>
+          <div
+            className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
+            ref={scrollContainerRef}
+            style={{ paddingBottom: '30px' }}
+          >
+            {challengeIndicators}
+          </div>
+        </div>
+
+        {/* Followers Popup */}
+        <FollowersPopup
+          isOpen={showFollowersPopup}
+          onClose={() => setShowFollowersPopup(false)}
+          followers={followers}
+          isFollowers={true}
+        />
+      </div>
     </div>
   );
 };

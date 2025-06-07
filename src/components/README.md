@@ -20,25 +20,25 @@ graph TB
     AC --> RT{"Is User\nAuthenticated?"}
     RT -->|No| LP["Login/Register Pages"]
     RT -->|Yes| SP{"Is Special\nPage?"}
-    
+
     SP -->|Yes| AL1["AppLayout"]
     SP -->|No| AL2["AppLayout (without children)"]
-    
+
     AL1 --> CP["Component\n(Special Page)"]
     AL2 --> PM["PageManager (in-memory pages)"]
-    
+
     PM --> HP["Home\n(lazy loaded)"]:::core
     PM --> MP["Map\n(lazy loaded)"]:::core
     PM --> IB["Inbox\n(lazy loaded)"]:::core
     PM --> SR["Search\n(lazy loaded)"]:::core
     PM --> PR["Profile\n(lazy loaded)"]:::core
-    
+
     CP --> CO["Completing\n(fresh mount)"]:::special
     CP --> CR["CreateChallenge\n(fresh mount)"]:::special
-    
+
     HP -->|Click Challenge| CO
     CO -->|Back to Home| HP
-    
+
     APP:::container
     AC:::container
     RT:::container
@@ -96,7 +96,8 @@ Pages like `/completing` and `/createchallenge` remain separate from the PageMan
 
 ## Navigation Flow
 
-1. **Core Navigation Pages (Blue)**: 
+1. **Core Navigation Pages (Blue)**:
+
    - Home, Map, Inbox, Search, Profile
    - Once loaded, they stay in memory
    - Switching between them is nearly instantaneous
@@ -134,9 +135,9 @@ When adding new pages to the app:
 ```tsx
 // In _app.tsx
 const isSpecialPage = [
-  '/login', 
-  '/register', 
-  '/completing', 
+  '/login',
+  '/register',
+  '/completing',
   '/createchallenge',
   // Add new special pages here
 ].includes(router.pathname);

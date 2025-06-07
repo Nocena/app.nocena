@@ -411,11 +411,13 @@ const SearchView = () => {
   // Immediately show cached results on first render
   if (!initialRenderComplete && users.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center p-4 text-white">
-        <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={[]} />
-        <div className="w-full max-w-md space-y-2 mt-6 px-1">
-          <div className="w-full flex justify-center items-center py-8">
-            <LoadingSpinner />
+      <div className="text-white p-4 min-h-screen mt-20">
+        <div className="flex flex-col items-center">
+          <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={[]} />
+          <div className="w-full max-w-md space-y-2 mt-6 px-1">
+            <div className="w-full flex justify-center items-center py-8">
+              <LoadingSpinner />
+            </div>
           </div>
         </div>
       </div>
@@ -423,12 +425,14 @@ const SearchView = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 text-white mt-20">
-      {/* SearchBox Component */}
-      <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={users} />
+    <div className="text-white p-4 min-h-screen mt-20">
+      <div className="flex flex-col items-center">
+        {/* SearchBox Component */}
+        <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={users} />
 
-      {/* User List */}
-      <div className="w-full max-w-md space-y-2 mt-6 px-1 mb-28">{userList}</div>
+        {/* User List */}
+        <div className="w-full max-w-md space-y-2 mt-6 px-1 mb-28">{userList}</div>
+      </div>
     </div>
   );
 };

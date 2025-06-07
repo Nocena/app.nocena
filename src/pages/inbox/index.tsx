@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchNotifications } from '../../lib/api/dgraph';
 import NotificationFollower from './notifications/NotificationFollower';
 import NotificationChallenge from './notifications/NotificationChallenge';
+import NotificationInviteReward from './notifications/NotificationInviteReward';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 // Performance debugging - global timer for overall page load
@@ -426,7 +427,6 @@ const InboxView = () => {
   }, [pullDistance, fetchUserNotifications]);
 
   // Helper function to determine reward amount based on notification type
-  // MOVED THIS FUNCTION BEFORE IT'S USED
   const getRewardForNotification = (notification: NotificationBase) => {
     // Default reward
     let reward = 10;
@@ -462,18 +462,32 @@ const InboxView = () => {
   const notificationList = useMemo(() => {
     console.time('render-notification-list');
     const result = notifications.map((notification) => {
-      if (notification.notificationType === 'follow') {
+      // Handle invite reward notifications
+      if (notification.notificationType === 'invite_used') {
+        return (
+          <NotificationInviteReward
+            key={notification.id}
+            friendUsername={notification.triggeredBy?.username ?? 'Unknown'}
+            friendProfilePicture={notification.triggeredBy?.profilePicture ?? '/images/profile.png'}
+            friendId={notification.triggeredBy?.id}
+            notification={notification}
+          />
+        );
+      }
+      // Handle follow notifications
+      else if (notification.notificationType === 'follow') {
         return (
           <NotificationFollower
             key={notification.id}
             username={notification.triggeredBy?.username ?? 'Unknown'}
             profilePicture={notification.triggeredBy?.profilePicture ?? '/images/profile.png'}
             id={notification.triggeredBy?.id}
-            notification={notification} // ADD this line!
+            notification={notification}
           />
         );
-      } else {
-        // For challenge and other notification types
+      }
+      // Handle challenge and other notification types
+      else {
         let challengeTitle = notification.content ?? '';
 
         // Use the title from the specific challenge if available
@@ -510,13 +524,15 @@ const InboxView = () => {
   if (isLoading) {
     console.log('[PERF] Rendering skeleton view');
     return (
-      <div className="flex flex-col items-center w-full h-full max-w-md mx-auto">
-        <div className="w-full space-y-4 p-6">
-          {Array(3)
-            .fill(0)
-            .map((_, index) => (
-              <NotificationSkeleton key={`skeleton-${index}`} />
-            ))}
+      <div className="text-white p-4 min-h-screen flex items-center justify-center mt-20">
+        <div className="flex flex-col items-center w-full h-full max-w-md mx-auto">
+          <div className="w-full space-y-4 p-6">
+            {Array(3)
+              .fill(0)
+              .map((_, index) => (
+                <NotificationSkeleton key={`skeleton-${index}`} />
+              ))}
+          </div>
         </div>
       </div>
     );
@@ -524,36 +540,35 @@ const InboxView = () => {
 
   console.log('[PERF] Rendering main inbox content');
   return (
-    <div
-      id="inbox-page"
-      ref={contentRef}
-      className="flex flex-col items-center w-full h-full max-w-md mx-auto overflow-y-auto mt-20"
-      style={{
-        minHeight: '100%',
-        paddingTop: `${pullDistance}px`, // Dynamic padding based on pull distance
-      }}
-    >
-      {/* Pull to refresh indicator */}
-      {isPulling && (
-        <div
-          className="absolute top-0 left-0 right-0 flex justify-center items-center"
-          style={{ height: `${pullDistance}px` }}
-        >
-          <PullToRefreshSpinner />
-        </div>
-      )}
-
-      {/* Notifications list */}
-      <div className="w-full space-y-4 p-6 pb-32">
-        {' '}
-        {/* Added bottom padding for scroll space */}
-        {notifications.length === 0 ? (
-          // Empty state when no notifications
-          <EmptyState />
-        ) : (
-          // Actual notifications
-          notificationList
+    <div className="text-white p-4 min-h-screen mt-20">
+      <div
+        id="inbox-page"
+        ref={contentRef}
+        className="max-w-md mx-auto"
+        style={{
+          paddingTop: `${pullDistance}px`, // Only pull distance for pull-to-refresh
+        }}
+      >
+        {/* Pull to refresh indicator */}
+        {isPulling && (
+          <div
+            className="absolute top-20 left-0 right-0 flex justify-center items-center z-10"
+            style={{ height: `${pullDistance}px` }}
+          >
+            <PullToRefreshSpinner />
+          </div>
         )}
+
+        {/* Notifications list */}
+        <div className="w-full space-y-4 pb-32">
+          {notifications.length === 0 ? (
+            // Empty state when no notifications
+            <EmptyState />
+          ) : (
+            // Actual notifications
+            notificationList
+          )}
+        </div>
       </div>
     </div>
   );

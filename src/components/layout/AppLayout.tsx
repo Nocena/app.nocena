@@ -414,9 +414,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       {/* Main Content - modified to adjust spacing based on page type */}
       <main
-        className={`flex-grow relative z-10 ${
-          router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : 'pt-3 pb-16'
-        }`}
+        className={`flex-grow relative z-10 ${router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : ''}`}
         style={{
           // Adjust margin-top for different page types
           marginTop:

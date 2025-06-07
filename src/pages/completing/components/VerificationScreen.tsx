@@ -255,7 +255,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   return (
     <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
-      <div className="h-full flex flex-col p-6">
+      <div className="h-full flex flex-col px-6">
         {/* Header */}
         <div className="text-center mb-4 mt-4">
           <ThematicContainer asButton={false} color="nocenaPink" className="px-6 py-2 mb-2" rounded="xl">

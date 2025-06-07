@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "pnpm run format:fix && pnpm run lint:fix && next build",
+    "build:fast": "next build",
     "setup-https": "node setup-https.js",
     "dev": "next dev",
     "dev:https": "node dev-https-server.js",
-    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
