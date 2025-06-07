@@ -103,11 +103,16 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
 
   return (
     <div className="fixed inset-0 bg-black text-white z-50">
-      {/* Header Info */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10 text-center">
+      {/* Header Info - Fixed for notch and centered text */}
+      <div 
+        className="absolute left-1/2 transform -translate-x-1/2 z-10 text-center"
+        style={{ 
+          top: 'calc(env(safe-area-inset-top) + 24px)' 
+        }}
+      >
         <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-          <div className="text-lg font-medium mb-1">Identity Verification</div>
-          <div className="text-sm text-gray-300">Verify it's really you completing this challenge</div>
+          <div className="text-lg font-medium mb-1 text-center">Identity Verification</div>
+          <div className="text-sm text-gray-300 text-center">Verify it's really you completing this challenge</div>
         </div>
       </div>
 
@@ -120,25 +125,35 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
         className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
       />
 
-      {/* Face Guide Overlay */}
+      {/* Face Guide Overlay - Centered text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className="w-64 h-80 border-2 border-white/50 rounded-full flex items-center justify-center">
           <div className="text-white/70 text-sm text-center">
-            <div>Center your face</div>
-            <div>in this area</div>
+            <div className="text-center">Center your face</div>
+            <div className="text-center">in this area</div>
           </div>
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10">
+      {/* Instructions - Centered text */}
+      <div 
+        className="absolute left-1/2 transform -translate-x-1/2 z-10"
+        style={{ 
+          bottom: 'calc(env(safe-area-inset-bottom) + 140px)' 
+        }}
+      >
         <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
-          <span className="text-white text-sm">Look directly at the camera</span>
+          <span className="text-white text-sm text-center">Look directly at the camera</span>
         </div>
       </div>
 
-      {/* Capture Button */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+      {/* Capture Button - Safe area aware */}
+      <div 
+        className="absolute left-1/2 transform -translate-x-1/2 z-10"
+        style={{ 
+          bottom: 'calc(env(safe-area-inset-bottom) + 32px)' 
+        }}
+      >
         <button
           onClick={capturePhoto}
           className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-300"

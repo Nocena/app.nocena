@@ -400,9 +400,7 @@ const OtherProfileView: React.FC = () => {
   if (isLoading && !user) {
     return (
       <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          Loading...
-        </div>
+        <div className="flex items-center justify-center min-h-[50vh]">Loading...</div>
       </div>
     );
   }
@@ -410,9 +408,7 @@ const OtherProfileView: React.FC = () => {
   if (error && initialDataLoaded) {
     return (
       <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          Error loading profile: {error.message}
-        </div>
+        <div className="flex items-center justify-center min-h-[50vh]">Error loading profile: {error.message}</div>
       </div>
     );
   }
@@ -420,9 +416,7 @@ const OtherProfileView: React.FC = () => {
   if (!user && initialDataLoaded) {
     return (
       <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          User not found.
-        </div>
+        <div className="flex items-center justify-center min-h-[50vh]">User not found.</div>
       </div>
     );
   }
@@ -478,7 +472,13 @@ const OtherProfileView: React.FC = () => {
           <div className="relative z-10 mt-4">
             <PrimaryButton
               text={
-                isPendingFollow ? (isFollowing ? 'Following...' : 'Unfollowing...') : isFollowing ? 'Following' : 'Follow'
+                isPendingFollow
+                  ? isFollowing
+                    ? 'Following...'
+                    : 'Unfollowing...'
+                  : isFollowing
+                    ? 'Following'
+                    : 'Follow'
               }
               onClick={handleFollowToggle}
               className="px-6 py-2 mb-2"

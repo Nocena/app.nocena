@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 
 interface Challenge {
@@ -16,7 +16,7 @@ interface Challenge {
 interface VideoReviewScreenProps {
   challenge: Challenge;
   videoBlob: Blob;
-  videoDuration: number; // Pass duration from recording screen
+  videoDuration: number;
   onApproveVideo: () => void;
   onRetakeVideo: () => void;
   onBack: () => void;
@@ -31,18 +31,85 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
   onBack,
 }) => {
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    console.log('Challenge object:', challenge);
-    console.log('Video blob size:', videoBlob.size);
-    console.log('Video blob type:', videoBlob.type);
-    console.log('Passed video duration:', videoDuration);
-
     const url = URL.createObjectURL(videoBlob);
     setVideoUrl(url);
 
-    return () => URL.revokeObjectURL(url);
-  }, [videoBlob, challenge, videoDuration]);
+    // Generate thumbnail immediately
+    console.log('Starting thumbnail generation');
+    generateThumbnail(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+      if (thumbnailUrl) {
+        URL.revokeObjectURL(thumbnailUrl);
+      }
+    };
+  }, [videoBlob]); // Remove thumbnailUrl from dependencies to avoid infinite loop
+
+  const generateThumbnail = (videoUrl: string) => {
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+    
+    const extractFrame = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const thumbUrl = URL.createObjectURL(blob);
+              setThumbnailUrl(thumbUrl);
+              console.log('Thumbnail generated successfully');
+            }
+          }, 'image/jpeg', 0.9);
+        }
+      } catch (error) {
+        console.error('Error generating thumbnail:', error);
+      }
+    };
+
+    video.onloadedmetadata = () => {
+      console.log('Video metadata loaded for thumbnail');
+      // Set to a very early frame but not exactly 0
+      video.currentTime = 0.05;
+    };
+    
+    video.onloadeddata = () => {
+      console.log('Video data loaded for thumbnail');
+      // Fallback: try to extract frame immediately if seeking doesn't work
+      if (video.videoWidth > 0) {
+        extractFrame();
+      }
+    };
+
+    video.onseeked = () => {
+      console.log('Video seeked for thumbnail');
+      extractFrame();
+    };
+
+    video.oncanplay = () => {
+      console.log('Video can play for thumbnail');
+      // Another fallback attempt
+      if (!thumbnailUrl) {
+        extractFrame();
+      }
+    };
+
+    video.onerror = (e) => {
+      console.error('Error loading video for thumbnail:', e);
+    };
+  };
 
   const canProceed = videoDuration >= 3;
 
@@ -55,37 +122,99 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
   };
 
   return (
-    <div className="text-white h-screen overflow-hidden pt-20 -mt-20">
-      <div className="h-full flex flex-col px-6">
-        <div className="text-center mb-6 mt-4">
-          <h2 className="text-2xl font-light mb-2">Review Your Recording</h2>
-          <div className="text-sm text-gray-400">
-            {challenge.title} • {formatDuration(videoDuration)}
-          </div>
+    <div className="text-white h-full flex flex-col px-6 py-4">
+      {/* Header - Compact */}
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-light mb-1">Review Your Recording</h2>
+        <div className="text-sm text-gray-400">
+          {challenge.title} • {formatDuration(videoDuration)}
         </div>
+      </div>
 
-        <div className="flex-1 mb-6">
-          <div className="relative rounded-xl overflow-hidden bg-black h-full">
-            <video
-              src={videoUrl}
-              controls
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                console.error('Video loading error:', e);
-              }}
-              preload="metadata"
-            />
-          </div>
+      {/* Video Player - Mobile-optimized vertical/square format with minimal controls */}
+      <div className="mb-6 flex justify-center">
+        <div className="relative rounded-2xl overflow-hidden bg-black w-64 h-80 shadow-2xl">
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            poster={thumbnailUrl || undefined}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Video loading error:', e);
+            }}
+            onLoadedData={() => {
+              console.log('Main video loaded data');
+              // Try to generate thumbnail from the main video element if we don't have one
+              if (!thumbnailUrl && videoRef.current) {
+                const video = videoRef.current;
+                video.currentTime = 0.05;
+              }
+            }}
+            onSeeked={() => {
+              console.log('Main video seeked');
+              // Generate thumbnail when seeking completes on main video
+              if (!thumbnailUrl && videoRef.current) {
+                try {
+                  const video = videoRef.current;
+                  const canvas = document.createElement('canvas');
+                  canvas.width = video.videoWidth || 640;
+                  canvas.height = video.videoHeight || 480;
+                  
+                  const ctx = canvas.getContext('2d');
+                  if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob((blob) => {
+                      if (blob) {
+                        const thumbUrl = URL.createObjectURL(blob);
+                        setThumbnailUrl(thumbUrl);
+                        console.log('Thumbnail generated from main video');
+                      }
+                    }, 'image/jpeg', 0.9);
+                  }
+                } catch (error) {
+                  console.error('Error generating thumbnail from main video:', error);
+                }
+              }
+            }}
+            onCanPlay={() => {
+              console.log('Main video can play');
+              // Final fallback: if no thumbnail and video is ready, extract frame
+              if (!thumbnailUrl && videoRef.current && videoRef.current.videoWidth > 0) {
+                const video = videoRef.current;
+                video.currentTime = 0.05;
+              }
+            }}
+            preload="metadata"
+            playsInline
+            webkit-playsinline="true"
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            onClick={(e) => {
+              const video = e.target as HTMLVideoElement;
+              if (video.paused) {
+                video.play();
+              } else {
+                video.pause();
+              }
+            }}
+          />
         </div>
+      </div>
 
-        <div
-          className={`rounded-lg p-4 mb-6 border ${
-            canProceed ? 'bg-green-900/20 border-green-800/30' : 'bg-red-900/20 border-red-800/30'
-          }`}
-        >
-          <div className="flex items-start gap-3">
+      {/* Status Message - Clean design */}
+      <div
+        className={`rounded-2xl p-5 mb-6 ${
+          canProceed 
+            ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-800/20' 
+            : 'bg-gradient-to-r from-red-900/30 to-orange-900/20 border border-red-800/20'
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+            canProceed ? 'bg-green-500/20' : 'bg-red-500/20'
+          }`}>
             <svg
-              className={`w-5 h-5 mt-0.5 flex-shrink-0 ${canProceed ? 'text-green-400' : 'text-red-400'}`}
+              className={`w-5 h-5 ${canProceed ? 'text-green-400' : 'text-red-400'}`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -97,36 +226,37 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                 <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
               )}
             </svg>
-            <div>
-              <p className={`text-sm mb-1 ${canProceed ? 'text-green-300' : 'text-red-300'}`}>
-                {canProceed
-                  ? `Perfect! Your ${formatDuration(videoDuration)} recording meets the requirements.`
-                  : `Recording too short: ${formatDuration(videoDuration)} (minimum 3s required).`}
-              </p>
-              <p className="text-xs text-gray-400">
-                {canProceed
-                  ? "Review your recording above. If you're happy with it, proceed to identity verification."
-                  : 'Please record again for at least 3 seconds to ensure proper verification.'}
-              </p>
-            </div>
+          </div>
+          <div className="flex-1">
+            <p className={`text-base font-medium mb-1 ${canProceed ? 'text-green-300' : 'text-red-300'}`}>
+              {canProceed
+                ? `Perfect! ${formatDuration(videoDuration)} recording`
+                : `Too short: ${formatDuration(videoDuration)}`}
+            </p>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              {canProceed
+                ? "Ready for identity verification"
+                : 'Minimum 3 seconds required for verification'}
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="flex gap-3">
-          <PrimaryButton
-            onClick={onApproveVideo}
-            text={'Retake video'}
-            className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={!canProceed}
-            isActive={true}
-          />
-          <PrimaryButton
-            onClick={onApproveVideo}
-            text={canProceed ? 'Continue to Selfie' : 'Record Again (Too Short)'}
-            className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={!canProceed}
-          />
-        </div>
+      {/* Action Buttons - Primary action first (Continue) */}
+      <div className="flex gap-4 mt-auto">
+        <PrimaryButton
+          onClick={onRetakeVideo}
+          text="Retake Video"
+          className="flex-1"
+          isActive={true}
+        />
+        <PrimaryButton
+          onClick={onApproveVideo}
+          text={canProceed ? 'Continue' : 'Too Short'}
+          className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!canProceed}
+          isActive={false}
+        />
       </div>
     </div>
   );
