@@ -99,13 +99,19 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
   const availableCodes = inviteStats?.inviteCodes?.filter((code) => !code.isUsed) || [];
   const primaryCode = availableCodes[0]?.code;
 
-  const createInviteMessage = (code: string) => `🎯 Join me on Nocena! Complete fun challenges and earn tokens together.
+  const createInviteMessage = (code: string) => `Hello Challenger!
 
-🔑 Your invite code: ${code}
-💰 We both get 50 Nocenix when you join!
-📱 Download: https://nocena.app/join/${code}
+  You’ve just been invited to Nocena — where fun meets rewards.
+  Complete challenges. Earn token. Connect with people.
 
-⚠️ IMPORTANT: If this opens in WhatsApp/Instagram/Messenger browser, tap the (...) menu and select "Open in Browser" to install the app properly!`;
+  Your invite code: ${code}
+  We both get 50 Nocenix when you join!
+  Download: https://app.nocena/${code}
+
+  ⚠️ *Pro tip:* If you're opening this in Meta, Telegram, or any in-app browser, tap the ... menu and choose “Open in browser” to install the app properly.
+
+  Need assistance? Tap [this link].
+  `;
 
   const handleShare = async (code: string) => {
     const message = createInviteMessage(code);

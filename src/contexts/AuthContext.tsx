@@ -10,6 +10,7 @@ export interface User {
   passwordHash: string;
   profilePicture: string;
   earnedTokens: number;
+  pushSubscription?: string | null; // Added this field
 
   // Relationships
   followers: string[]; // Array of user IDs

@@ -9,9 +9,7 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => (
   <div className="max-w-md text-center space-y-6">
     {/* Main welcome message */}
     <div>
-      <h1 className="text-3xl font-semibold mb-4">
-        <ThematicText text="Welcome" isActive /> to the <ThematicText text="challenge" isActive />
-      </h1>
+      <h1 className="text-3xl font-semibold mb-4">Welcome to the challenge</h1>
       <p className="text-lg text-gray-300">Get ready to earn while exploring...</p>
     </div>
 

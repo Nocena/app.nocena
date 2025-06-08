@@ -19,7 +19,10 @@
     "start:https": "node https-server.js",
     "format": "pnpm run format:check",
     "format:check": "prettier '**/*.{js,jsx,ts,tsx}' --config .prettierrc.json --check",
-    "format:fix": "prettier '**/*.{js,jsx,ts,tsx}' --config .prettierrc.json --write"
+    "format:fix": "prettier '**/*.{js,jsx,ts,tsx}' --config .prettierrc.json --write",
+    "challenge:daily": "tsx src/scripts/generateDailyChallenge.ts",
+    "challenge:weekly": "tsx src/scripts/generateWeeklyChallenge.ts",
+    "challenge:monthly": "tsx src/scripts/generateMonthlyChallenge.ts"
   },
   "keywords": [],
   "author": "",
@@ -39,6 +42,7 @@
     "cookie": "^1.0.2",
     "dgraph-js-http": "23.0.0-rc1",
     "dompurify": "^3.2.4",
+    "dotenv": "^16.5.0",
     "ethers": "^6.13.5",
     "form-data": "^4.0.1",
     "formidable": "^3.5.2",
@@ -57,8 +61,10 @@
     "react-hook-form": "^7.54.2",
     "react-hot-toast": "^2.5.2",
     "react-phone-input-2": "^2.15.1",
+    "tsx": "^4.0.0",
     "twilio": "^5.5.1",
     "uuid": "^11.0.5",
+    "web-push": "^3.6.7",
     "xss": "^1.0.15",
     "yup": "^1.6.1"
   },
@@ -68,6 +74,7 @@
     "@types/node": "^22.10.5",
     "@types/node-fetch": "^2.6.12",
     "@types/react": "^19.0.5",
+    "@types/web-push": "^3.6.4",
     "@types/webpack": "^5.28.5",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",

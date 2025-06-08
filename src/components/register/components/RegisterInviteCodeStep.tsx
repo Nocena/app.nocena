@@ -234,8 +234,6 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
             </div>
           )}
 
-          {displayError && <p className="text-red-500 text-sm mb-4 text-center">{displayError}</p>}
-
           <div className="mb-6">
             <PrimaryButton
               text={isCurrentlyLoading ? 'Verifying...' : 'Continue'}
