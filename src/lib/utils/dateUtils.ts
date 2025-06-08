@@ -1,40 +1,55 @@
+// lib/utils/dateUtils.ts
+
 /**
- * Get the day of the year (1-365/366)
- * @param date The date to get the day of the year for
- * @returns Day of year (1-365/366)
+ * Get the day of year (1-365/366)
  */
-export function getDayOfYear(date: Date): number {
+export const getDayOfYear = (date: Date): number => {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
   const oneDay = 1000 * 60 * 60 * 24;
-  return Math.floor(diff / oneDay);
-}
+  const dayOfYear = Math.floor(diff / oneDay);
+  return dayOfYear;
+};
 
 /**
- * Get the week of the year (1-53)
- * @param date The date to get the week of the year for
- * @returns Week of year (1-53)
+ * Get the week of year (1-52/53)
  */
-export function getWeekOfYear(date: Date): number {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-}
+export const getWeekOfYear = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+};
 
 /**
- * Get the month of the year (0-11)
- * @param date The date to get the month for
- * @returns Month (0-11)
+ * Get a formatted date string (YYYY-MM-DD)
  */
-export function getMonth(date: Date): number {
-  return date.getMonth();
-}
+export const getFormattedDate = (date: Date): string => {
+  return date.toISOString().split('T')[0];
+};
 
 /**
- * Get the year
- * @param date The date to get the year for
- * @returns Year (e.g., 2023)
+ * Check if two dates are the same day
  */
-export function getYear(date: Date): number {
-  return date.getFullYear();
-}
+export const isSameDay = (date1: Date, date2: Date): boolean => {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
+};
+
+/**
+ * Check if two dates are in the same week
+ */
+export const isSameWeek = (date1: Date, date2: Date): boolean => {
+  return date1.getFullYear() === date2.getFullYear() &&
+         getWeekOfYear(date1) === getWeekOfYear(date2);
+};
+
+/**
+ * Check if two dates are in the same month
+ */
+export const isSameMonth = (date1: Date, date2: Date): boolean => {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth();
+};

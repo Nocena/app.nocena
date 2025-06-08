@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchFollowerCompletions } from '../../lib/api/dgraph';
-import { getCurrentChallenge, getChallengeReward } from '../../lib/utils/challengeUtils';
+import { getCurrentChallenge, getChallengeReward, getFallbackChallenge, AIChallenge } from '../../lib/utils/challengeUtils';
 
 // Component imports
 import ChallengeHeader from './components/ChallengeHeader';
@@ -19,10 +19,44 @@ const HomeView = () => {
   const [selectedTab, setSelectedTab] = useState<ChallengeType>('daily');
   const [followerCompletions, setFollowerCompletions] = useState<any[]>([]);
   const [isFetchingCompletions, setIsFetchingCompletions] = useState(false);
+  
+  // New state for challenges from Dgraph
+  const [currentChallenge, setCurrentChallenge] = useState<AIChallenge | null>(null);
+  const [isLoadingChallenge, setIsLoadingChallenge] = useState(true);
 
-  // Pre-calculated values that don't depend on async data
-  const currentChallenge = useMemo(() => getCurrentChallenge(selectedTab), [selectedTab]);
-  const reward = useMemo(() => getChallengeReward(selectedTab), [selectedTab]);
+  // Fetch challenge from Dgraph when tab changes
+  useEffect(() => {
+    const loadChallenge = async () => {
+      setIsLoadingChallenge(true);
+      console.log(`🔄 Loading ${selectedTab} challenge from Dgraph...`);
+      
+      try {
+        const challenge = await getCurrentChallenge(selectedTab);
+        
+        if (challenge) {
+          console.log(`✅ Loaded ${selectedTab} challenge:`, challenge.title);
+          setCurrentChallenge(challenge);
+        } else {
+          console.warn(`⚠️ No ${selectedTab} challenge found, using fallback`);
+          // Use fallback challenge when none found
+          setCurrentChallenge(getFallbackChallenge(selectedTab));
+        }
+      } catch (error) {
+        console.error(`❌ Error loading ${selectedTab} challenge:`, error);
+        // Use fallback challenge on error
+        setCurrentChallenge(getFallbackChallenge(selectedTab));
+      } finally {
+        setIsLoadingChallenge(false);
+      }
+    };
+
+    loadChallenge();
+  }, [selectedTab]);
+
+  // Calculate reward based on challenge data or fallback
+  const reward = useMemo(() => {
+    return getChallengeReward(currentChallenge, selectedTab);
+  }, [currentChallenge, selectedTab]);
 
   // Directly check challenge completion status from AuthContext data
   const hasDailyCompleted = useMemo(() => {
@@ -109,15 +143,27 @@ const HomeView = () => {
       return;
     }
 
+    if (!currentChallenge) {
+      alert('No challenge available. Please try again later.');
+      return;
+    }
+
+    // Don't allow completing offline/fallback challenges
+    if (!currentChallenge.isActive) {
+      alert('Challenge is currently unavailable. Please check your connection and try again.');
+      return;
+    }
+
     try {
       router.push({
         pathname: '/completing',
         query: {
+          challengeId: currentChallenge.id, // Pass the actual challenge ID
           type, // 'AI'
           frequency, // 'daily', 'weekly', or 'monthly'
           title: currentChallenge.title,
           description: currentChallenge.description,
-          reward,
+          reward: currentChallenge.reward,
           visibility: 'public',
         },
       });
@@ -142,29 +188,37 @@ const HomeView = () => {
         {/* Challenge Type Tabs - always renders immediately */}
         <ChallengeHeader selectedTab={selectedTab} onTabChange={setSelectedTab} />
 
-        {/* Challenge container - structure always renders */}
-        {!hasCompleted ? (
-          <ChallengeForm
-            challenge={currentChallenge}
-            reward={reward}
-            selectedTab={selectedTab}
-            onCompleteChallenge={handleCompleteChallenge}
-          />
+        {/* Show loading state while fetching challenge */}
+        {isLoadingChallenge ? (
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner size="md" />
+            <span className="ml-3 text-gray-300">Loading {selectedTab} challenge...</span>
+          </div>
         ) : (
-          <>
-            <div className="flex items-center justify-center mb-6">
-              <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-medium">
-                Challenge Completed! 🎉
-              </div>
-            </div>
-
-            <CompletionFeed
-              user={user}
-              isLoading={isFetchingCompletions}
-              followerCompletions={followerCompletions}
+          /* Challenge container - structure always renders */
+          !hasCompleted ? (
+            <ChallengeForm
+              challenge={currentChallenge}
+              reward={reward}
               selectedTab={selectedTab}
+              onCompleteChallenge={handleCompleteChallenge}
             />
-          </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center mb-6">
+                <div className="bg-green-700 text-white px-4 py-2 rounded-full text-sm font-medium">
+                  Challenge Completed! 🎉
+                </div>
+              </div>
+
+              <CompletionFeed
+                user={user}
+                isLoading={isFetchingCompletions}
+                followerCompletions={followerCompletions}
+                selectedTab={selectedTab}
+              />
+            </>
+          )
         )}
       </div>
     </div>

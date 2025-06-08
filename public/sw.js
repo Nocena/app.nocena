@@ -65,32 +65,54 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
 
   // Handle action clicks
-  if (event.action === 'open' || !event.action) {
-    const urlToOpen = event.notification.data?.url || '/home';
-
-    event.waitUntil(
-      clients
-        .matchAll({
-          type: 'window',
-          includeUncontrolled: true,
-        })
-        .then(function (clientList) {
-          // Check if app is already open
-          for (let client of clientList) {
-            if (client.url.includes(self.location.origin) && 'focus' in client) {
-              // Focus existing window and navigate
-              client.focus();
-              return client.navigate(urlToOpen);
-            }
-          }
-
-          // Open new window if app not open
-          if (clients.openWindow) {
-            return clients.openWindow(urlToOpen);
-          }
-        }),
-    );
+  if (event.action === 'dismiss') {
+    return; // Do nothing for dismiss
   }
+
+  // Get the URL to navigate to
+  const urlToOpen = event.notification.data?.url || '/home';
+  console.log('Opening URL:', urlToOpen);
+
+  event.waitUntil(
+    clients
+      .matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      .then(function (clientList) {
+        console.log('Found clients:', clientList.length);
+        
+        // Check if app is already open
+        for (let client of clientList) {
+          console.log('Checking client URL:', client.url);
+          // Check if it's our app (more flexible matching)
+          if (client.url.includes('nocena') || client.url.includes('localhost') || client.url.includes('vercel.app')) {
+            console.log('Focusing existing client and navigating to:', urlToOpen);
+            return client.focus().then(() => {
+              // Use postMessage instead of navigate for better compatibility
+              return client.postMessage({
+                type: 'NAVIGATE_TO',
+                url: urlToOpen
+              });
+            });
+          }
+        }
+
+        // Open new window if app not open
+        console.log('Opening new window to:', urlToOpen);
+        if (clients.openWindow) {
+          // Use relative URL to ensure it opens in the same origin
+          return clients.openWindow(urlToOpen);
+        }
+      })
+      .catch(error => {
+        console.error('Error handling notification click:', error);
+        // Fallback: try to open the URL anyway
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
 });
 
 // Background sync for offline actions (optional)

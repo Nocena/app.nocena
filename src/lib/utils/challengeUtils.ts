@@ -1,122 +1,271 @@
-import {
-  Challenge,
-  dailyChallenges,
-  weeklyChallenges,
-  monthlyChallenges,
-  ChallengeFrequency,
-  ChallengeCategory,
-} from '../../data/challenges';
+// lib/utils/challengeUtils.ts
+import axios from 'axios';
+import { getDayOfYear, getWeekOfYear } from './dateUtils';
+
+const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
+
+export interface AIChallenge {
+  id: string;
+  title: string;
+  description: string;
+  reward: number;
+  frequency: string;
+  isActive: boolean;
+  createdAt?: string;
+  day?: number;
+  week?: number;
+  month?: number;
+  year?: number;
+}
 
 /**
- * Generates a deterministic but seemingly random ordering of daily challenges
- * that remains consistent for a given year but changes each year
+ * Fetches the current AI challenge based on frequency (daily, weekly, monthly)
  */
-export function getOrderedDailyChallenges(year: number): Challenge[] {
-  // Create a copy of the challenges to avoid modifying the original
-  const challenges = [...dailyChallenges];
+/**
+ * Debug function to check current date values
+ */
+export const debugCurrentDateValues = () => {
+  const now = new Date();
+  console.log('📅 Current date debug info:', {
+    fullDate: now.toISOString(),
+    year: now.getFullYear(),
+    month: now.getMonth() + 1, // 1-12
+    dayOfYear: getDayOfYear(now),
+    weekOfYear: getWeekOfYear(now),
+    localeDateString: now.toLocaleDateString()
+  });
+};
 
-  // Use a seeded random number generator based on the year
-  // This ensures the order is different each year but consistent within a year
-  const seededShuffle = (array: Challenge[]): Challenge[] => {
-    const shuffled = [...array];
+export const getCurrentChallenge = async (frequency: 'daily' | 'weekly' | 'monthly'): Promise<AIChallenge | null> => {
+  const now = new Date();
+  const year = now.getFullYear();
+  
+  // Debug current date values
+  debugCurrentDateValues();
+  
+  // Since we can't filter by year/month/day/week directly in the filter,
+  // we'll fetch all challenges of the given frequency and filter in JavaScript
+  const query = `
+    query GetAIChallenges {
+      queryAIChallenge(filter: { 
+        and: [
+          { frequency: { eq: "${frequency}" } },
+          { isActive: true }
+        ]
+      }) {
+        id
+        title
+        description
+        reward
+        frequency
+        isActive
+        createdAt
+        day
+        week
+        month
+        year
+      }
+    }
+  `;
 
-    // Simple seed based on year
-    let seed = year;
+  try {
+    console.log(`🔍 Fetching ${frequency} AI challenges...`);
+    
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      // Generate a seeded random number
-      seed = (seed * 9301 + 49297) % 233280;
-      const rnd = seed / 233280;
-
-      // Fisher-Yates shuffle
-      const j = Math.floor(rnd * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      return null;
     }
 
-    return shuffled;
+    const challenges = response.data.data?.queryAIChallenge || [];
+    console.log(`📊 Found ${challenges.length} ${frequency} challenges`, challenges);
+    
+    // Now filter based on the current date
+    let filteredChallenge = null;
+    
+    if (frequency === 'daily') {
+      const dayOfYear = getDayOfYear(now);
+      filteredChallenge = challenges.find((c: AIChallenge) => 
+        c.year === year && c.day === dayOfYear
+      );
+      
+      // If no exact match, get the newest daily challenge for today
+      if (!filteredChallenge && challenges.length > 0) {
+        console.log(`⚠️ No daily challenge for day ${dayOfYear}, using newest daily challenge`);
+        filteredChallenge = challenges
+          .filter((c: AIChallenge) => c.year === year)
+          .sort((a: AIChallenge, b: AIChallenge) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          )[0];
+      }
+    } else if (frequency === 'weekly') {
+      const weekOfYear = getWeekOfYear(now);
+      filteredChallenge = challenges.find((c: AIChallenge) => 
+        c.year === year && c.week === weekOfYear
+      );
+      
+      // If no exact match, check if there's a challenge for week 24 (one week ahead)
+      if (!filteredChallenge) {
+        console.log(`⚠️ No weekly challenge for week ${weekOfYear}, checking week ${weekOfYear + 1}`);
+        filteredChallenge = challenges.find((c: AIChallenge) => 
+          c.year === year && c.week === (weekOfYear + 1)
+        );
+      }
+      
+      // If still no match, get the newest weekly challenge
+      if (!filteredChallenge && challenges.length > 0) {
+        console.log(`⚠️ Using newest weekly challenge`);
+        filteredChallenge = challenges
+          .filter((c: AIChallenge) => c.year === year)
+          .sort((a: AIChallenge, b: AIChallenge) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          )[0];
+      }
+    } else if (frequency === 'monthly') {
+      const month = now.getMonth() + 1; // 1-12
+      filteredChallenge = challenges.find((c: AIChallenge) => 
+        c.year === year && c.month === month
+      );
+      
+      // If no exact match, get the newest monthly challenge for this month
+      if (!filteredChallenge && challenges.length > 0) {
+        console.log(`⚠️ No monthly challenge for month ${month}, using newest monthly challenge`);
+        filteredChallenge = challenges
+          .filter((c: AIChallenge) => c.year === year)
+          .sort((a: AIChallenge, b: AIChallenge) => 
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          )[0];
+      }
+    }
+    
+    if (filteredChallenge) {
+      console.log(`✅ Found ${frequency} challenge:`, filteredChallenge.title);
+      return filteredChallenge;
+    }
+
+    console.log(`⚠️ No ${frequency} challenge found for current period`);
+    console.log(`Searched for: year=${year}, ${
+      frequency === 'daily' ? `day=${getDayOfYear(now)}` :
+      frequency === 'weekly' ? `week=${getWeekOfYear(now)}` :
+      `month=${now.getMonth() + 1}`
+    }`);
+    
+    return null;
+  } catch (error) {
+    console.error(`Error fetching ${frequency} challenge:`, error);
+    if (axios.isAxiosError(error)) {
+      console.error('Response data:', error.response?.data);
+    }
+    return null;
+  }
+};
+
+/**
+ * Get challenge reward based on the challenge data or use default
+ */
+export const getChallengeReward = (challenge: AIChallenge | null, frequency: string): number => {
+  // If we have a challenge with a reward, use it
+  if (challenge?.reward) {
+    return challenge.reward;
+  }
+
+  // Otherwise use defaults based on frequency
+  switch (frequency) {
+    case 'daily':
+      return 25;
+    case 'weekly':
+      return 100;
+    case 'monthly':
+      return 500;
+    default:
+      return 25;
+  }
+};
+
+/**
+ * Get a fallback challenge when none is found in the database
+ */
+export const getFallbackChallenge = (frequency: 'daily' | 'weekly' | 'monthly'): AIChallenge => {
+  const fallbackChallenges = {
+    daily: {
+      id: 'fallback-daily',
+      title: 'Daily Challenge',
+      description: 'Complete today\'s challenge to earn rewards!',
+      reward: 25,
+      frequency: 'daily',
+      isActive: false // Mark as inactive to show offline state
+    },
+    weekly: {
+      id: 'fallback-weekly',
+      title: 'Weekly Challenge',
+      description: 'Complete this week\'s challenge for bonus rewards!',
+      reward: 100,
+      frequency: 'weekly',
+      isActive: false
+    },
+    monthly: {
+      id: 'fallback-monthly',
+      title: 'Monthly Challenge',
+      description: 'Complete this month\'s epic challenge!',
+      reward: 500,
+      frequency: 'monthly',
+      isActive: false
+    }
   };
 
-  return seededShuffle(challenges);
-}
+  return fallbackChallenges[frequency];
+};
 
 /**
- * Gets the current day, week, or month challenge
+ * Fetch all active AI challenges (for admin/debug purposes)
  */
-export function getCurrentChallenge(type: 'daily' | 'weekly' | 'monthly'): Challenge {
-  const now = new Date();
-  const currentYear = now.getFullYear();
+export const fetchAllAIChallenges = async (): Promise<AIChallenge[]> => {
+  const query = `
+    query GetAllAIChallenges {
+      queryAIChallenge(filter: { isActive: true }) {
+        id
+        title
+        description
+        reward
+        frequency
+        isActive
+        createdAt
+        day
+        week
+        month
+        year
+      }
+    }
+  `;
 
-  // Map the string type to the enum
-  const frequency =
-    type === 'daily'
-      ? ChallengeFrequency.DAILY
-      : type === 'weekly'
-        ? ChallengeFrequency.WEEKLY
-        : ChallengeFrequency.MONTHLY;
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-  switch (type) {
-    case 'daily': {
-      // Get the day of the year (0-364)
-      const start = new Date(currentYear, 0, 0);
-      const diff = now.getTime() - start.getTime();
-      const oneDay = 1000 * 60 * 60 * 24;
-      const dayOfYear = Math.floor(diff / oneDay) - 1;
-
-      // Get the ordered challenges for the current year
-      const orderedDailyChallenges = getOrderedDailyChallenges(currentYear);
-
-      // Get the challenge for today (use modulo to cycle through if we have fewer than 365)
-      return {
-        ...orderedDailyChallenges[dayOfYear % orderedDailyChallenges.length],
-        category: ChallengeCategory.AI,
-        frequency: frequency,
-      };
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      return [];
     }
 
-    case 'weekly': {
-      // Get the current week number (0-51)
-      const firstDayOfYear = new Date(currentYear, 0, 1);
-      const pastDaysOfYear = now.getTime() - firstDayOfYear.getTime();
-      const oneWeek = 1000 * 60 * 60 * 24 * 7;
-      const weekNumber = Math.floor(pastDaysOfYear / oneWeek);
+    const challenges = response.data.data?.queryAIChallenge || [];
+    
+    // Log detailed info about each challenge
+    console.log('📋 All AI Challenges with date info:');
+    challenges.forEach((c: AIChallenge) => {
+      console.log(`- ${c.title} (${c.frequency}): year=${c.year}, month=${c.month}, week=${c.week}, day=${c.day}`);
+    });
 
-      // Get the challenge for this week (use modulo to cycle through if we have fewer than 52)
-      return {
-        ...weeklyChallenges[weekNumber % weeklyChallenges.length],
-        category: ChallengeCategory.AI,
-        frequency: frequency,
-      };
-    }
-
-    case 'monthly': {
-      // Get the current month (0-11)
-      const monthIndex = now.getMonth();
-
-      // Make sure we have a challenge for each month, or cycle through available ones
-      return {
-        ...monthlyChallenges[monthIndex % monthlyChallenges.length],
-        category: ChallengeCategory.AI,
-        frequency: frequency,
-      };
-    }
-
-    default:
-      throw new Error(`Invalid challenge type: ${type}`);
+    return challenges;
+  } catch (error) {
+    console.error('Error fetching all AI challenges:', error);
+    return [];
   }
-}
-
-/**
- * Gets the token reward for completing a challenge
- */
-export function getChallengeReward(type: 'daily' | 'weekly' | 'monthly'): number {
-  switch (type) {
-    case 'daily':
-      return 1;
-    case 'weekly':
-      return 5;
-    case 'monthly':
-      return 25;
-    default:
-      return 0;
-  }
-}
+};
