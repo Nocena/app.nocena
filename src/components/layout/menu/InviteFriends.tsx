@@ -24,7 +24,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's invite statistics and ensure they have exactly 2 codes
+  // Fetch user's invite statistics and ensure they have exactly 2 codes (only if they don't exist)
   const fetchInviteStats = async () => {
     if (!user?.id) return;
 
@@ -33,10 +33,10 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
       const data = await response.json();
 
       if (response.ok) {
-        // Ensure user has exactly 2 invite codes
-        if (data.inviteCodes.length < 2) {
-          await generateMissingInviteCodes(2 - data.inviteCodes.length);
-          // Refetch after generating missing codes
+        // Only generate missing codes if user has NO codes at all (new user)
+        if (data.inviteCodes.length === 0) {
+          await generateMissingInviteCodes(2);
+          // Refetch after generating initial codes
           const updatedResponse = await fetch(`/api/invite/user-invites?userId=${user.id}`);
           const updatedData = await updatedResponse.json();
           setInviteStats(updatedData);
@@ -60,7 +60,7 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
     }
   };
 
-  // Generate missing invite codes to ensure user has exactly 2
+  // Generate missing invite codes (only for new users)
   const generateMissingInviteCodes = async (count: number) => {
     if (!user?.id) return;
 
@@ -101,14 +101,14 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
 
   const createInviteMessage = (code: string) => `Hello Challenger!
 
-  You’ve just been invited to Nocena — where fun meets rewards.
+  You've just been invited to Nocena — where fun meets rewards.
   Complete challenges. Earn token. Connect with people.
 
   Your invite code: ${code}
   We both get 50 Nocenix when you join!
   Download: https://app.nocena/${code}
 
-  ⚠️ *Pro tip:* If you're opening this in Meta, Telegram, or any in-app browser, tap the ... menu and choose “Open in browser” to install the app properly.
+  ⚠️ *Pro tip:* If you're opening this in Meta, Telegram, or any in-app browser, tap the ... menu and choose "Open in browser" to install the app properly.
 
   Need assistance? Tap [this link].
   `;
@@ -126,17 +126,17 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
         });
       } catch (error) {
         console.log('Error sharing:', error);
-        handleCopy(message);
+        handleCopy(message, 'Invite message copied!');
       }
     } else {
-      handleCopy(message);
+      handleCopy(message, 'Invite message copied!');
     }
   };
 
-  const handleCopy = async (text: string) => {
+  const handleCopy = async (text: string, successMessage: string = 'Copied to clipboard!') => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopySuccess('Copied to clipboard!');
+      setCopySuccess(successMessage);
       setTimeout(() => setCopySuccess(null), 2000);
     } catch (error) {
       // Fallback for older browsers
@@ -146,9 +146,13 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopySuccess('Copied to clipboard!');
+      setCopySuccess(successMessage);
       setTimeout(() => setCopySuccess(null), 2000);
     }
+  };
+
+  const handleCopyCode = (code: string) => {
+    handleCopy(code, 'Invite code copied!');
   };
 
   const handleSMS = (code: string) => {
@@ -230,8 +234,9 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
           <div>
             <h2 className="text-2xl font-bold mb-2">Share the Fun</h2>
             <p className="text-white/60 text-sm">
-              You have {availableCodes.length} invite code{availableCodes.length !== 1 ? 's' : ''} ready. Both earn 50
-              Nocenix tokens!
+              {availableCodes.length > 0
+                ? `You have ${availableCodes.length} invite code${availableCodes.length !== 1 ? 's' : ''} ready. Both earn 50 Nocenix tokens!`
+                : 'All invite codes have been used. Great job spreading the word!'}
             </p>
           </div>
         </div>
@@ -245,14 +250,27 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
               <div key={invite.code} className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="text-2xl font-mono font-bold text-white">{invite.code}</div>
-                    {invite.isUsed && (
-                      <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Used</span>
+                    <div className={`text-2xl font-mono font-bold ${invite.isUsed ? 'text-white/40' : 'text-white'}`}>
+                      {invite.code}
+                    </div>
+                    {invite.isUsed ? (
+                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                        ✓ Used
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-nocena-blue/20 text-nocena-blue text-xs rounded-full font-medium">
+                        Ready
+                      </span>
                     )}
                   </div>
                 </div>
 
-                {!invite.isUsed && (
+                {invite.isUsed ? (
+                  <div className="text-center py-4">
+                    <p className="text-white/50 text-sm">This code has been used successfully! 🎉</p>
+                    <p className="text-white/40 text-xs mt-1">You both earned 50 Nocenix tokens</p>
+                  </div>
+                ) : (
                   <div className="flex items-center justify-center space-x-4">
                     <button
                       onClick={() => handleShare(invite.code)}
@@ -273,9 +291,9 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
                     </button>
 
                     <button
-                      onClick={() => handleCopy(createInviteMessage(invite.code))}
+                      onClick={() => handleCopyCode(invite.code)}
                       className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                      title="Copy to clipboard"
+                      title="Copy invite code only"
                     >
                       <Copy className="w-5 h-5" />
                       <span className="text-xs">Copy</span>

@@ -6,7 +6,6 @@ import PrimaryButton from '../../../components/ui/PrimaryButton';
 import { completeChallengeWorkflow, CompletionData } from '../../../lib/completing/challengeCompletionService';
 import { useAuth } from '../../../contexts/AuthContext';
 
-// Define VerificationStep interface locally to avoid import issues
 interface VerificationStep {
   id: string;
   name: string;
@@ -44,7 +43,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   onVerificationComplete,
   onBack,
 }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
@@ -59,7 +58,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Create object URLs for media and generate thumbnail
   useEffect(() => {
     const vUrl = URL.createObjectURL(videoBlob);
     const pUrl = URL.createObjectURL(photoBlob);
@@ -67,7 +65,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     setVideoUrl(vUrl);
     setPhotoUrl(pUrl);
 
-    // Generate video thumbnail immediately
     generateThumbnail(vUrl);
 
     return () => {
@@ -100,7 +97,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               if (blob) {
                 const thumbUrl = URL.createObjectURL(blob);
                 setThumbnailUrl(thumbUrl);
-                console.log('Thumbnail generated successfully');
               }
             },
             'image/jpeg',
@@ -135,11 +131,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     setVerificationStage('verifying');
     setErrorMessage('');
 
-    // 🎭 FAKE VERIFICATION FOR TESTING
-    console.log('🧪 RUNNING FAKE VERIFICATION FOR TESTING');
-
     try {
-      // Simulate verification steps with fake progress
       const fakeSteps: VerificationStep[] = [
         {
           id: 'file-check',
@@ -183,29 +175,24 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         },
       ];
 
-      // Simulate each step with realistic timing
       for (let i = 0; i < fakeSteps.length; i++) {
         const step = fakeSteps[i];
 
-        // Mark current step as running
         step.status = 'running';
         step.message = `Processing ${step.name.toLowerCase()}...`;
         setVerificationSteps([...fakeSteps]);
         setCurrentStepMessage(step.message);
 
-        // Simulate progress within the step
         for (let progress = 0; progress <= 100; progress += 25) {
           step.progress = progress;
           setVerificationSteps([...fakeSteps]);
           await new Promise((resolve) => setTimeout(resolve, 200));
         }
 
-        // Mark step as completed with fake confidence
         step.status = 'completed';
-        step.confidence = 0.85 + Math.random() * 0.14; // 85-99% confidence
+        step.confidence = 0.85 + Math.random() * 0.14;
         step.progress = 100;
 
-        // Set completion messages
         switch (step.id) {
           case 'file-check':
             step.message = 'Video and photo files are valid and high quality';
@@ -227,11 +214,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         setVerificationSteps([...fakeSteps]);
         setCurrentStepMessage(step.message);
 
-        // Brief pause between steps
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      // Create fake successful result
       const fakeResult = {
         passed: true,
         overallConfidence: 0.92,
@@ -243,10 +228,8 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       setVerificationResult(fakeResult);
       setVerificationStage('complete');
       setCurrentStepMessage('All verification checks passed!');
-
-      console.log('🎉 FAKE VERIFICATION COMPLETED SUCCESSFULLY');
     } catch (error) {
-      console.error('Fake verification error:', error);
+      console.error('Verification error:', error);
       setVerificationStage('failed');
       setCurrentStepMessage('Verification process encountered an error.');
       setErrorMessage('Verification failed. Please try again.');
@@ -268,7 +251,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     setErrorMessage('');
 
     try {
-      // Prepare completion data
       const completionData: CompletionData = {
         video: videoBlob,
         photo: photoBlob,
@@ -285,20 +267,17 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         },
       };
 
-      // Complete the challenge using the service
-      const result = await completeChallengeWorkflow(user.id, completionData);
+      const result = await completeChallengeWorkflow(user.id, completionData, updateUser);
 
       if (result.success) {
         setVerificationStage('success');
 
-        // Call the completion handler with the result
         onVerificationComplete({
           ...completionData,
           completionId: result.completionId,
           tokensEarned: challenge.reward,
         });
 
-        // Auto-redirect after success message
         setTimeout(() => {
           window.location.href = '/home';
         }, 3000);
@@ -370,7 +349,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   return (
     <div className="text-white h-full flex flex-col px-6 py-4">
-      {/* Header */}
       <div className="text-center mb-6">
         <h2 className="text-xl font-light mb-1">{stageInfo.title}</h2>
         <div className="text-sm text-gray-400">
@@ -378,17 +356,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         </div>
       </div>
 
-      {/* Error Message */}
       {errorMessage && (
         <div className="mb-4 bg-red-900/20 border border-red-800/30 rounded-xl p-3">
           <p className="text-red-400 text-sm">{errorMessage}</p>
         </div>
       )}
 
-      {/* Media Preview - BeReal Style Layout */}
       <div className="mb-6">
         <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl">
-          {/* Main Video - Large */}
           <div className="relative h-64 w-full">
             <video
               ref={videoRef}
@@ -413,12 +388,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               }
             />
 
-            {/* Selfie Overlay - Top Right Corner (BeReal Style) */}
             <div className="absolute top-4 right-4 w-20 h-24 rounded-xl overflow-hidden border-2 border-white shadow-lg">
               <img src={photoUrl} alt="Verification selfie" className="w-full h-full object-cover" />
             </div>
 
-            {/* Challenge Info Overlay - Bottom */}
             <div className="absolute bottom-4 left-4 right-4">
               <div className="bg-black/50 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <div className="flex items-center justify-between">
@@ -443,7 +416,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         </div>
       </div>
 
-      {/* Status Section */}
       <div className="mb-6 flex-1">
         {verificationStage === 'ready' && (
           <div className="text-center">
@@ -484,7 +456,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 <h3 className="text-lg font-medium text-nocenaPink">Neural Analysis Active</h3>
               </div>
 
-              {/* Overall Progress */}
               <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
                 <div
                   className="h-2 rounded-full transition-all duration-500 bg-gradient-to-r from-nocenaPink to-nocenaPurple"
@@ -492,13 +463,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 />
               </div>
 
-              {/* Current Step */}
               <div className="text-center">
                 <p className="text-sm text-gray-300">{currentStepMessage}</p>
               </div>
             </div>
 
-            {/* Verification Steps */}
             <div className="space-y-2">
               {verificationSteps.map((step) => (
                 <div key={step.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
@@ -540,7 +509,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                   {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
                 </p>
 
-                {/* Reward Display */}
                 <div className="bg-black/30 rounded-xl p-4 mb-4">
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <span className="text-2xl font-bold">{challenge.reward}</span>
@@ -551,7 +519,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               </div>
             </div>
 
-            {/* Description Input */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Describe your completion:</label>
               <textarea
@@ -601,7 +568,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 <p className="text-sm text-gray-300 mb-4">{currentStepMessage}</p>
               </div>
 
-              {/* Show Failed Steps with Details */}
               {verificationSteps.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-red-300 mb-2">Issues Found:</h4>
@@ -635,7 +601,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
               )}
 
-              {/* Show Overall Verification Result Details */}
               {verificationResult && (
                 <div className="mt-4 bg-black/30 rounded-lg p-3">
                   <h4 className="text-sm font-medium text-gray-300 mb-2">Overall Analysis:</h4>
@@ -658,7 +623,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               )}
             </div>
 
-            {/* Helpful Tips */}
             <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-4">
               <h4 className="text-sm font-medium text-blue-300 mb-2">💡 Tips for Better Results:</h4>
               <ul className="text-xs text-gray-300 space-y-1">
@@ -673,7 +637,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="flex gap-4 mt-auto">
         {verificationStage === 'ready' && (
           <PrimaryButton onClick={startVerification} text="Start Verification" className="flex-1" isActive={true} />

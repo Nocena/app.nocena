@@ -57,6 +57,14 @@
       "url": "/map"
     }
   ],
+  "permissions": {
+    "camera": {
+      "description": "Required to capture video using getUserMedia()"
+    },
+    "microphone": {
+      "description": "Required to capture audio using getUserMedia()"
+    }
+  },
   "related_applications": [],
   "prefer_related_applications": false,
   "lang": "en-US",

@@ -53,11 +53,15 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
   }
 
   try {
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query,
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+      },
+      {
+        headers,
+      },
+    );
 
     console.log('🔔 BULK: Push subscriptions query response status:', response.status);
 
@@ -71,7 +75,9 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
       .map((user: any) => user.pushSubscription)
       .filter((sub: string) => sub && sub.length > 0 && sub !== 'null' && sub.trim() !== ''); // Filter out any null/empty subscriptions
 
-    console.log(`🔔 BULK: Found ${users.length} total users, ${pushSubscriptions.length} with valid push subscriptions`);
+    console.log(
+      `🔔 BULK: Found ${users.length} total users, ${pushSubscriptions.length} with valid push subscriptions`,
+    );
     return pushSubscriptions;
   } catch (error) {
     console.error('🔔 BULK: Error fetching push subscriptions:', error);
@@ -80,7 +86,9 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
 };
 
 // NEW: Function to get users with push subscriptions for cleanup tracking
-const getUsersWithPushSubscriptions = async (): Promise<{ id: string; username: string; pushSubscription: string }[]> => {
+const getUsersWithPushSubscriptions = async (): Promise<
+  { id: string; username: string; pushSubscription: string }[]
+> => {
   console.log('🔔 USERS: Fetching users with push subscriptions for detailed tracking');
 
   const query = `
@@ -102,11 +110,15 @@ const getUsersWithPushSubscriptions = async (): Promise<{ id: string; username: 
   }
 
   try {
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query,
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+      },
+      {
+        headers,
+      },
+    );
 
     if (response.data.errors) {
       console.error('🔔 USERS: GraphQL errors:', response.data.errors);
@@ -115,9 +127,7 @@ const getUsersWithPushSubscriptions = async (): Promise<{ id: string; username: 
 
     const users = response.data.data.queryUser || [];
     const validUsers = users.filter(
-      (user: any) => user.pushSubscription && 
-                     user.pushSubscription.trim() !== '' && 
-                     user.pushSubscription !== 'null'
+      (user: any) => user.pushSubscription && user.pushSubscription.trim() !== '' && user.pushSubscription !== 'null',
     );
 
     console.log(`🔔 USERS: Found ${users.length} total users, ${validUsers.length} with valid push subscriptions`);
@@ -158,11 +168,15 @@ class DailyChallengeGenerator {
     }
 
     try {
-      const response = await axios.post(DGRAPH_ENDPOINT, {
-        query,
-      }, {
-        headers,
-      });
+      const response = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query,
+        },
+        {
+          headers,
+        },
+      );
 
       if (response.data.errors) {
         console.log('⚠️ Error fetching recent challenges:', response.data.errors);
@@ -384,8 +398,10 @@ const sendPushNotifications = async (challenge: AIChallenge): Promise<void> => {
     const batchSize = 10;
     for (let i = 0; i < pushSubscriptions.length; i += batchSize) {
       const batch = pushSubscriptions.slice(i, i + batchSize);
-      
-      console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pushSubscriptions.length / batchSize)}`);
+
+      console.log(
+        `🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pushSubscriptions.length / batchSize)}`,
+      );
 
       const batchPromises = batch.map(async (pushSubscription, index) => {
         try {
@@ -408,7 +424,7 @@ const sendPushNotifications = async (challenge: AIChallenge): Promise<void> => {
 
       // Wait for batch to complete
       await Promise.allSettled(batchPromises);
-      
+
       // Small delay between batches
       if (i + batchSize < pushSubscriptions.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -428,7 +444,6 @@ const sendPushNotifications = async (challenge: AIChallenge): Promise<void> => {
     }
 
     console.log('\n🎯 Push notification broadcast completed!');
-
   } catch (error) {
     console.error('❌ Error in push notification process:', error);
   }
@@ -445,8 +460,8 @@ const cleanupInvalidSubscriptions = async (invalidSubscriptions: string[]): Prom
   // Get users with these invalid subscriptions so we can update them
   const users = await getUsersWithPushSubscriptions();
   const userIdsToCleanup = users
-    .filter(user => invalidSubscriptions.includes(user.pushSubscription))
-    .map(user => user.id);
+    .filter((user) => invalidSubscriptions.includes(user.pushSubscription))
+    .map((user) => user.id);
 
   if (userIdsToCleanup.length === 0) {
     console.log('🧹 No users found to cleanup');
@@ -475,12 +490,16 @@ const cleanupInvalidSubscriptions = async (invalidSubscriptions: string[]): Prom
   }
 
   try {
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query: mutation,
-      variables: { userIds: userIdsToCleanup },
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { userIds: userIdsToCleanup },
+      },
+      {
+        headers,
+      },
+    );
 
     if (response.data.errors) {
       console.error('❌ Error cleaning up invalid subscriptions:', response.data.errors);
@@ -528,12 +547,16 @@ export const saveDailyChallengeToDatabase = async (challenge: AIChallenge): Prom
   try {
     console.log('💾 Saving daily challenge to database...');
 
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query: mutation,
-      variables: { challenge },
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { challenge },
+      },
+      {
+        headers,
+      },
+    );
 
     if (response.data.errors) {
       console.error('❌ Dgraph mutation error:', response.data.errors);

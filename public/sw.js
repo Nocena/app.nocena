@@ -24,6 +24,29 @@ self.addEventListener('install', function (event) {
 
 // Fetch event - serve from cache when possible
 self.addEventListener('fetch', function (event) {
+  const url = new URL(event.request.url);
+
+  // CRITICAL: Don't cache or interfere with media-related requests
+  if (
+    event.request.url.includes('blob:') ||
+    event.request.url.includes('mediastream:') ||
+    event.request.url.includes('getUserMedia') ||
+    event.request.url.includes('webrtc') ||
+    url.protocol === 'blob:' ||
+    url.protocol === 'mediastream:' ||
+    // Don't cache API routes that might handle media
+    event.request.url.includes('/api/') ||
+    // Don't cache dynamic imports or chunks that might contain camera code
+    event.request.url.includes('chunk') ||
+    event.request.url.includes('_next/static/chunks/') ||
+    // Don't cache the completing page where camera is used
+    event.request.url.includes('/completing')
+  ) {
+    // Always fetch these from network, never cache
+    return event.respondWith(fetch(event.request));
+  }
+
+  // For other requests, use cache-first strategy
   event.respondWith(
     caches.match(event.request).then(function (response) {
       // Return cached version or fetch from network
@@ -81,7 +104,7 @@ self.addEventListener('notificationclick', function (event) {
       })
       .then(function (clientList) {
         console.log('Found clients:', clientList.length);
-        
+
         // Check if app is already open
         for (let client of clientList) {
           console.log('Checking client URL:', client.url);
@@ -92,7 +115,7 @@ self.addEventListener('notificationclick', function (event) {
               // Use postMessage instead of navigate for better compatibility
               return client.postMessage({
                 type: 'NAVIGATE_TO',
-                url: urlToOpen
+                url: urlToOpen,
               });
             });
           }
@@ -105,13 +128,13 @@ self.addEventListener('notificationclick', function (event) {
           return clients.openWindow(urlToOpen);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error handling notification click:', error);
         // Fallback: try to open the URL anyway
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
-      })
+      }),
   );
 });
 

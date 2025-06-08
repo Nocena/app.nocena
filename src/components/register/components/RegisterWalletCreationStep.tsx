@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import PrimaryButton from '../../ui/PrimaryButton';
 import ThematicContainer from '../../ui/ThematicContainer';
-import {
-  subscribeToPushNotifications,
-  requestNotificationPermission,
-} from '../../../lib/pushNotifications';
+import { subscribeToPushNotifications, requestNotificationPermission } from '../../../lib/pushNotifications';
 import { User, useAuth } from '../../../contexts/AuthContext';
 
 interface Props {
@@ -66,14 +63,14 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
 
     try {
       console.log('🔔 Requesting notification permission...');
-      
+
       const permission = await requestNotificationPermission();
       setNotificationPermission(permission);
 
       if (permission === 'granted') {
         console.log('🔔 Permission granted, subscribing to push notifications...');
         const subscription = await subscribeToPushNotifications();
-        
+
         if (subscription) {
           console.log('🔔 Got subscription:', subscription);
           setPushSubscription(subscription);
@@ -85,7 +82,9 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
         }
       } else {
         console.log('🔔 Permission denied:', permission);
-        setNotificationError('Notifications are required to complete registration. Please allow notifications and try again.');
+        setNotificationError(
+          'Notifications are required to complete registration. Please allow notifications and try again.',
+        );
         setCanProceed(false);
       }
     } catch (error) {
@@ -99,7 +98,9 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
 
   const handleSkipNotifications = () => {
     // This is no longer allowed - show explanation
-    setNotificationError('Notifications are required to use Nocena and receive daily challenges. Please enable them to continue.');
+    setNotificationError(
+      'Notifications are required to use Nocena and receive daily challenges. Please enable them to continue.',
+    );
   };
 
   if (step === 1) {
@@ -228,16 +229,18 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
       </ThematicContainer>
 
       {/* Push Notifications Section - Now Mandatory */}
-      <ThematicContainer 
-        color={pushSubscription ? "nocenaPink" : "nocenaBlue"} 
-        asButton={false} 
-        glassmorphic={true} 
-        rounded="xl" 
+      <ThematicContainer
+        color={pushSubscription ? 'nocenaPink' : 'nocenaBlue'}
+        asButton={false}
+        glassmorphic={true}
+        rounded="xl"
         className="p-4 mb-4"
       >
         <div className="text-center">
           <div className="flex items-center justify-center mb-3">
-            <div className={`w-8 h-8 bg-gradient-to-br ${pushSubscription ? 'from-green-500 to-green-600' : 'from-nocenaBlue to-nocenaPink'} rounded-full flex items-center justify-center mr-3`}>
+            <div
+              className={`w-8 h-8 bg-gradient-to-br ${pushSubscription ? 'from-green-500 to-green-600' : 'from-nocenaBlue to-nocenaPink'} rounded-full flex items-center justify-center mr-3`}
+            >
               {pushSubscription ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <polyline points="20,6 9,17 4,12" />
@@ -275,14 +278,25 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
 
               <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded-lg p-3 mb-3">
                 <div className="flex items-start space-x-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFC107" strokeWidth="2" className="mt-0.5">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FFC107"
+                    strokeWidth="2"
+                    className="mt-0.5"
+                  >
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                     <line x1="12" y1="9" x2="12" y2="13" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
                   <div className="text-xs text-yellow-200">
                     <p className="font-medium mb-1">Notifications are required</p>
-                    <p>Nocena needs notifications to send you daily challenges and updates. Without them, you won't be able to participate in the challenge system.</p>
+                    <p>
+                      Nocena needs notifications to send you daily challenges and updates. Without them, you won't be
+                      able to participate in the challenge system.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -308,19 +322,16 @@ const RegisterWalletCreationStep = ({ wallet, onPushSubscriptionReady, onComplet
 
       <div className="space-y-2">
         <PrimaryButton
-          text={pushSubscription ? "I've saved it safely!" : "Enable notifications to continue"}
+          text={pushSubscription ? "I've saved it safely!" : 'Enable notifications to continue'}
           onClick={pushSubscription ? handleNext : handleEnableNotifications}
           className={`w-full ${!pushSubscription ? 'opacity-50 cursor-not-allowed' : ''}`}
           disabled={!canProceed || isSettingUpNotifications}
         />
-        
+
         {!pushSubscription && (
           <div className="text-center">
             <p className="text-xs text-gray-500 mb-2">Notifications are required to create your account</p>
-            <button
-              onClick={handleSkipNotifications}
-              className="text-xs text-gray-400 underline hover:text-gray-300"
-            >
+            <button onClick={handleSkipNotifications} className="text-xs text-gray-400 underline hover:text-gray-300">
               Why are notifications required?
             </button>
           </div>

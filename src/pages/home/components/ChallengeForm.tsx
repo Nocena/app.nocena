@@ -1,4 +1,4 @@
-// components/home/ChallengeForm.tsx
+// components/home/ChallengeForm.tsx - FIXED WITH COMPLETION STATE
 import React from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
@@ -11,19 +11,53 @@ interface ChallengeFormProps {
   challenge: AIChallenge | null;
   reward: number;
   selectedTab: string;
+  hasCompleted: boolean; // Add this prop
   onCompleteChallenge: (type: string, frequency: string) => void;
 }
 
-const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, selectedTab, onCompleteChallenge }) => {
+const ChallengeForm: React.FC<ChallengeFormProps> = ({
+  challenge,
+  reward,
+  selectedTab,
+  hasCompleted,
+  onCompleteChallenge,
+}) => {
   // Handle case where challenge is null or loading
   if (!challenge) {
     return (
       <ThematicContainer asButton={false} glassmorphic={true} color="nocenaBlue" rounded="xl" className="px-12 py-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-4">No Challenge Available</h2>
-          <p className="text-lg text-gray-300 mb-8 font-light">
-            Please check back later for new challenges.
-          </p>
+          <p className="text-lg text-gray-300 mb-8 font-light">Please check back later for new challenges.</p>
+        </div>
+      </ThematicContainer>
+    );
+  }
+
+  // Show completion state
+  if (hasCompleted) {
+    return (
+      <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPink" rounded="xl" className="px-12 py-8">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-3xl font-bold mb-4 text-green-300">{challenge.title}</h2>
+          <p className="text-lg text-green-200 mb-8 font-light">Challenge Completed!</p>
+
+          <div className="flex flex-col items-center space-y-6">
+            <div className="bg-green-600 text-white px-6 py-3 rounded-full text-lg font-medium">
+              ✅ {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Challenge Complete
+            </div>
+
+            <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
+              <div className="flex items-center space-x-1">
+                <span className="text-xl font-semibold">+{reward}</span>
+                <Image src={nocenixIcon} alt="Nocenix" width={32} height={32} />
+                <span className="text-sm text-gray-300">earned</span>
+              </div>
+            </ThematicContainer>
+
+            <p className="text-sm text-gray-400 mt-4">Great job! Check out your friends' completions below.</p>
+          </div>
         </div>
       </ThematicContainer>
     );
@@ -36,12 +70,12 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-4 text-gray-400">{challenge.title}</h2>
           <p className="text-lg text-gray-400 mb-8 font-light">{challenge.description}</p>
-          
+
           <div className="flex flex-col items-center space-y-6">
             <div className="bg-yellow-600 text-white px-4 py-2 rounded-full text-sm font-medium">
               ⚠️ Challenge Offline - Check Connection
             </div>
-            
+
             <ThematicContainer asButton={false} color="nocenaPurple" className="px-4 py-1 opacity-50">
               <div className="flex items-center space-x-1">
                 <span className="text-xl font-semibold">{reward}</span>
@@ -54,6 +88,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
     );
   }
 
+  // Show active challenge (not completed)
   return (
     <ThematicContainer asButton={false} glassmorphic={true} color="nocenaBlue" rounded="xl" className="px-12 py-8">
       <div className="text-center">
@@ -61,10 +96,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, select
         <p className="text-lg text-gray-300 mb-8 font-light">{challenge.description}</p>
 
         <div className="flex flex-col items-center space-y-6">
-          <PrimaryButton
-            text="Complete Challenge"
-            onClick={() => onCompleteChallenge('AI', selectedTab)} // Pass 'AI' as type and the selectedTab as frequency
-          />
+          <PrimaryButton text="Complete Challenge" onClick={() => onCompleteChallenge('AI', selectedTab)} />
 
           <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
             <div className="flex items-center space-x-1">
