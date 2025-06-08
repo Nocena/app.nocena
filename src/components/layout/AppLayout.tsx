@@ -187,6 +187,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     };
   }, [user?.id]);
 
+  // NEW: Listen for navigation messages from service worker
+  useEffect(() => {
+    // Listen for navigation messages from service worker
+    if (isBrowser && 'serviceWorker' in navigator) {
+      const handleServiceWorkerMessage = (event: MessageEvent) => {
+        console.log('🔔 Received message from SW:', event.data);
+        
+        if (event.data && event.data.type === 'NAVIGATE_TO') {
+          console.log('🚀 Navigating to:', event.data.url);
+          router.push(event.data.url);
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      };
+    }
+  }, [router]);
+
   // Set the correct index based on the current path
   useEffect(() => {
     const pathToIndexMap: Record<string, number> = {

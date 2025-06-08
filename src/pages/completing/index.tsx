@@ -51,7 +51,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
           title: title as string,
           description: description as string,
           challengerName: 'Nocena GPT',
-          challengerProfile: '/images/ai.png',
+          challengerProfile: '/images/ai.jpg',
           reward: parseInt(reward as string),
           color: 'nocenaPink',
           type: 'AI',
@@ -85,7 +85,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
           title: title as string,
           description: description as string,
           challengerName: 'Nocena',
-          challengerProfile: '/images/ai.png',
+          challengerProfile: '/images/ai.jpg',
           reward: parseInt(reward as string),
           color: 'nocenaPink',
           type: 'AI',
@@ -321,7 +321,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
                     alt="Challenger Profile"
                     width={40}
                     height={40}
-                    className="w-10 h-10 object-cover"
+                    className="w-10 h-10 object-cover rounded-full"
                   />
                 </ThematicImage>
                 <span className="text-base font-medium">{challenge.challengerName}</span>

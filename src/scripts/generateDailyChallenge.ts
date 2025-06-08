@@ -345,8 +345,8 @@ const sendPushNotifications = async (challenge: AIChallenge): Promise<void> => {
 
     // Create an engaging notification payload
     const payload = JSON.stringify({
-      title: '🎯 New Daily Challenge!',
-      body: `${challenge.title} - Ready for your mission?`,
+      title: 'New daily challenge!',
+      body: `${challenge.title}`,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
       tag: 'daily-challenge',
@@ -363,7 +363,7 @@ const sendPushNotifications = async (challenge: AIChallenge): Promise<void> => {
       actions: [
         {
           action: 'open',
-          title: 'Take Challenge',
+          title: 'Challenge accepted',
           icon: '/icons/icon-192x192.png',
         },
         {

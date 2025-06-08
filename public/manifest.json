@@ -2,7 +2,7 @@
   "name": "Nocena - AI Challenge App",
   "short_name": "Nocena",
   "description": "Complete daily and weekly AI-generated challenges",
-  "start_url": "/",
+  "start_url": "/home",
   "id": "/",
   "display": "standalone",
   "background_color": "#000000",

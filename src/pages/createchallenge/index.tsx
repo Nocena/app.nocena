@@ -152,7 +152,7 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
       <div className="mt-6 mb-8">
         <ThematicImage>
           <Image
-            src={mode === 'private' && targetProfilePic ? targetProfilePic : '/images/public.png'}
+            src={mode === 'private' && targetProfilePic ? targetProfilePic : '/images/public.jpg'}
             alt={mode === 'private' && targetUsername ? targetUsername : 'Public Challenge'}
             width={160}
             height={160}
