@@ -104,10 +104,10 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
   return (
     <div className="fixed inset-0 bg-black text-white z-50">
       {/* Header Info - Fixed for notch and centered text */}
-      <div 
+      <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10 text-center"
-        style={{ 
-          top: 'calc(env(safe-area-inset-top) + 24px)' 
+        style={{
+          top: 'calc(env(safe-area-inset-top) + 24px)',
         }}
       >
         <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -136,10 +136,10 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
       </div>
 
       {/* Instructions - Centered text */}
-      <div 
+      <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10"
-        style={{ 
-          bottom: 'calc(env(safe-area-inset-bottom) + 140px)' 
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom) + 140px)',
         }}
       >
         <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
@@ -148,10 +148,10 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
       </div>
 
       {/* Capture Button - Safe area aware */}
-      <div 
+      <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10"
-        style={{ 
-          bottom: 'calc(env(safe-area-inset-bottom) + 32px)' 
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom) + 32px)',
         }}
       >
         <button

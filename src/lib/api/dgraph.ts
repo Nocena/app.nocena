@@ -23,6 +23,7 @@ export const registerUser = async (
   monthlyChallenge: string,
   inviteCode: string,
   invitedById?: string,
+  pushSubscription?: string | null, // This should now always be provided
 ) => {
   console.log('🔧 REGISTER: Starting user registration with:', {
     username,
@@ -30,7 +31,14 @@ export const registerUser = async (
     wallet,
     inviteCode,
     invitedById,
+    hasPushSubscription: !!pushSubscription,
+    pushSubscriptionLength: pushSubscription?.length,
   });
+
+  // Validate that pushSubscription is provided
+  if (!pushSubscription) {
+    throw new Error('Push subscription is required for user registration');
+  }
 
   const mutation = `
     mutation RegisterUser($input: AddUserInput!) {
@@ -46,6 +54,7 @@ export const registerUser = async (
           dailyChallenge
           weeklyChallenge
           monthlyChallenge
+          pushSubscription
           followers {
             id
           }
@@ -63,7 +72,7 @@ export const registerUser = async (
   const variables = {
     input: {
       id: userId,
-      username: username, // Make sure this is explicitly set
+      username: username,
       phoneNumber: phoneNumber,
       bio: '',
       wallet: wallet,
@@ -75,6 +84,7 @@ export const registerUser = async (
       monthlyChallenge: monthlyChallenge,
       inviteCode: inviteCode,
       invitedById: invitedById || null,
+      pushSubscription: pushSubscription, // This is now guaranteed to exist
       // Only add invitedBy reference if invitedById exists and is not 'system'
       ...(invitedById &&
         invitedById !== 'system' && {
@@ -110,6 +120,13 @@ export const registerUser = async (
 
       // Initialize empty completedChallenges array since new users won't have any
       userData.completedChallenges = [];
+
+      // Verify pushSubscription was saved
+      if (!userData.pushSubscription) {
+        console.warn('🔧 REGISTER: Warning - pushSubscription was not saved to database');
+      } else {
+        console.log('🔧 REGISTER: Successfully saved pushSubscription:', userData.pushSubscription.substring(0, 50) + '...');
+      }
     }
 
     console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username);
@@ -2754,4 +2771,42 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 
 const deg2rad = (deg: number): number => {
   return deg * (Math.PI / 180);
+};
+
+export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
+  console.log('🔔 BULK: Fetching all user push subscriptions for bulk notification');
+
+  const query = `
+    query GetAllPushSubscriptions {
+      queryUser(filter: { 
+        pushSubscription: { regexp: "/.*/" }  # Get users with any push subscription
+      }) {
+        pushSubscription
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+    });
+
+    console.log('🔔 BULK: Push subscriptions query response:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.errors) {
+      console.error('🔔 BULK: GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch push subscriptions');
+    }
+
+    const users = response.data.data.queryUser || [];
+    const pushSubscriptions = users
+      .map((user: any) => user.pushSubscription)
+      .filter((sub: string) => sub && sub.length > 0); // Filter out any null/empty subscriptions
+
+    console.log(`🔔 BULK: Found ${pushSubscriptions.length} push subscriptions`);
+    return pushSubscriptions;
+  } catch (error) {
+    console.error('🔔 BULK: Error fetching push subscriptions:', error);
+    throw new Error('Failed to fetch user push subscriptions for bulk notification');
+  }
 };

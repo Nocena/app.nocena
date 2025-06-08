@@ -71,7 +71,7 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({ currentIndex, handleNavClic
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9990]">
-      <div className="flex justify-center items-center p-1 pb-4">
+      <div className="flex justify-center items-center p-1 pb-6">
         {/* Using ThematicContainer as a wrapper with dynamic color */}
         <ThematicContainer
           color={getThematicColor()}

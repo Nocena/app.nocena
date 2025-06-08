@@ -56,23 +56,27 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
-    
+
     const extractFrame = () => {
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
-        
+
         const ctx = canvas.getContext('2d');
         if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const thumbUrl = URL.createObjectURL(blob);
-              setThumbnailUrl(thumbUrl);
-              console.log('Thumbnail generated successfully');
-            }
-          }, 'image/jpeg', 0.9);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const thumbUrl = URL.createObjectURL(blob);
+                setThumbnailUrl(thumbUrl);
+                console.log('Thumbnail generated successfully');
+              }
+            },
+            'image/jpeg',
+            0.9,
+          );
         }
       } catch (error) {
         console.error('Error generating thumbnail:', error);
@@ -84,7 +88,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
       // Set to a very early frame but not exactly 0
       video.currentTime = 0.05;
     };
-    
+
     video.onloadeddata = () => {
       console.log('Video data loaded for thumbnail');
       // Fallback: try to extract frame immediately if seeking doesn't work
@@ -159,17 +163,21 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                   const canvas = document.createElement('canvas');
                   canvas.width = video.videoWidth || 640;
                   canvas.height = video.videoHeight || 480;
-                  
+
                   const ctx = canvas.getContext('2d');
                   if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob((blob) => {
-                      if (blob) {
-                        const thumbUrl = URL.createObjectURL(blob);
-                        setThumbnailUrl(thumbUrl);
-                        console.log('Thumbnail generated from main video');
-                      }
-                    }, 'image/jpeg', 0.9);
+                    canvas.toBlob(
+                      (blob) => {
+                        if (blob) {
+                          const thumbUrl = URL.createObjectURL(blob);
+                          setThumbnailUrl(thumbUrl);
+                          console.log('Thumbnail generated from main video');
+                        }
+                      },
+                      'image/jpeg',
+                      0.9,
+                    );
                   }
                 } catch (error) {
                   console.error('Error generating thumbnail from main video:', error);
@@ -186,7 +194,6 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
             }}
             preload="metadata"
             playsInline
-            webkit-playsinline="true"
             controlsList="nodownload nofullscreen noremoteplayback"
             disablePictureInPicture
             onClick={(e) => {
@@ -197,6 +204,11 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                 video.pause();
               }
             }}
+            style={
+              {
+                WebkitPlaysinline: true,
+              } as React.CSSProperties
+            }
           />
         </div>
       </div>
@@ -204,15 +216,17 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
       {/* Status Message - Clean design */}
       <div
         className={`rounded-2xl p-5 mb-6 ${
-          canProceed 
-            ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-800/20' 
+          canProceed
+            ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-800/20'
             : 'bg-gradient-to-r from-red-900/30 to-orange-900/20 border border-red-800/20'
         }`}
       >
         <div className="flex items-center gap-4">
-          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-            canProceed ? 'bg-green-500/20' : 'bg-red-500/20'
-          }`}>
+          <div
+            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+              canProceed ? 'bg-green-500/20' : 'bg-red-500/20'
+            }`}
+          >
             <svg
               className={`w-5 h-5 ${canProceed ? 'text-green-400' : 'text-red-400'}`}
               viewBox="0 0 24 24"
@@ -234,9 +248,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                 : `Too short: ${formatDuration(videoDuration)}`}
             </p>
             <p className="text-sm text-gray-400 leading-relaxed">
-              {canProceed
-                ? "Ready for identity verification"
-                : 'Minimum 3 seconds required for verification'}
+              {canProceed ? 'Ready for identity verification' : 'Minimum 3 seconds required for verification'}
             </p>
           </div>
         </div>
@@ -244,12 +256,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
       {/* Action Buttons - Primary action first (Continue) */}
       <div className="flex gap-4 mt-auto">
-        <PrimaryButton
-          onClick={onRetakeVideo}
-          text="Retake Video"
-          className="flex-1"
-          isActive={true}
-        />
+        <PrimaryButton onClick={onRetakeVideo} text="Retake Video" className="flex-1" isActive={true} />
         <PrimaryButton
           onClick={onApproveVideo}
           text={canProceed ? 'Continue' : 'Too Short'}

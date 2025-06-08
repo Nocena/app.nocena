@@ -3,7 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
-import { SimpleVerificationService, VerificationStep } from '../../../lib/verification/simpleVerificationService';
+import { completeChallengeWorkflow, CompletionData } from '../../../lib/completing/challengeCompletionService';
+import { useAuth } from '../../../contexts/AuthContext';
+
+// Define VerificationStep interface locally to avoid import issues
+interface VerificationStep {
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  message: string;
+  confidence: number;
+}
 
 interface Challenge {
   title: string;
@@ -13,6 +24,9 @@ interface Challenge {
   reward: number;
   color: string;
   type: 'AI' | 'PRIVATE' | 'PUBLIC';
+  frequency?: 'daily' | 'weekly' | 'monthly';
+  challengeId?: string;
+  creatorId?: string;
 }
 
 interface VerificationScreenProps {
@@ -30,6 +44,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   onVerificationComplete,
   onBack,
 }) => {
+  const { user } = useAuth();
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
@@ -40,6 +55,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [currentStepMessage, setCurrentStepMessage] = useState('Ready to verify submission');
   const [challengeDescription, setChallengeDescription] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -61,7 +77,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         URL.revokeObjectURL(thumbnailUrl);
       }
     };
-  }, [videoBlob, photoBlob]); // Remove thumbnailUrl from dependencies
+  }, [videoBlob, photoBlob]);
 
   const generateThumbnail = (videoUrl: string) => {
     const video = document.createElement('video');
@@ -69,23 +85,27 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     video.muted = true;
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
-    
+
     const extractFrame = () => {
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
-        
+
         const ctx = canvas.getContext('2d');
         if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const thumbUrl = URL.createObjectURL(blob);
-              setThumbnailUrl(thumbUrl);
-              console.log('Thumbnail generated successfully');
-            }
-          }, 'image/jpeg', 0.9);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const thumbUrl = URL.createObjectURL(blob);
+                setThumbnailUrl(thumbUrl);
+                console.log('Thumbnail generated successfully');
+              }
+            },
+            'image/jpeg',
+            0.9,
+          );
         }
       } catch (error) {
         console.error('Error generating thumbnail:', error);
@@ -93,24 +113,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     };
 
     video.onloadedmetadata = () => {
-      console.log('Video metadata loaded for thumbnail');
       video.currentTime = 0.05;
-    };
-    
-    video.onloadeddata = () => {
-      console.log('Video data loaded for thumbnail');
-      if (video.videoWidth > 0) {
-        extractFrame();
-      }
     };
 
     video.onseeked = () => {
-      console.log('Video seeked for thumbnail');
       extractFrame();
     };
 
     video.oncanplay = () => {
-      console.log('Video can play for thumbnail');
       if (!thumbnailUrl) {
         extractFrame();
       }
@@ -123,10 +133,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   const startVerification = async () => {
     setVerificationStage('verifying');
+    setErrorMessage('');
 
     // 🎭 FAKE VERIFICATION FOR TESTING
     console.log('🧪 RUNNING FAKE VERIFICATION FOR TESTING');
-    
+
     try {
       // Simulate verification steps with fake progress
       const fakeSteps: VerificationStep[] = [
@@ -136,31 +147,31 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           status: 'running',
           progress: 0,
           message: 'Checking video and photo files...',
-          confidence: 0
+          confidence: 0,
         },
         {
           id: 'human-detection',
-          name: 'Human Detection', 
+          name: 'Human Detection',
           status: 'pending',
           progress: 0,
           message: 'Detecting human presence in video...',
-          confidence: 0
+          confidence: 0,
         },
         {
           id: 'face-match',
           name: 'Face Matching',
-          status: 'pending', 
+          status: 'pending',
           progress: 0,
           message: 'Comparing faces between video and selfie...',
-          confidence: 0
+          confidence: 0,
         },
         {
           id: 'activity-check',
           name: 'Activity Analysis',
           status: 'pending',
-          progress: 0, 
+          progress: 0,
           message: 'Analyzing challenge completion...',
-          confidence: 0
+          confidence: 0,
         },
         {
           id: 'final-review',
@@ -168,14 +179,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           status: 'pending',
           progress: 0,
           message: 'Conducting final verification...',
-          confidence: 0
-        }
+          confidence: 0,
+        },
       ];
 
       // Simulate each step with realistic timing
       for (let i = 0; i < fakeSteps.length; i++) {
         const step = fakeSteps[i];
-        
+
         // Mark current step as running
         step.status = 'running';
         step.message = `Processing ${step.name.toLowerCase()}...`;
@@ -186,14 +197,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         for (let progress = 0; progress <= 100; progress += 25) {
           step.progress = progress;
           setVerificationSteps([...fakeSteps]);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
 
         // Mark step as completed with fake confidence
         step.status = 'completed';
-        step.confidence = 0.85 + (Math.random() * 0.14); // 85-99% confidence
+        step.confidence = 0.85 + Math.random() * 0.14; // 85-99% confidence
         step.progress = 100;
-        
+
         // Set completion messages
         switch (step.id) {
           case 'file-check':
@@ -215,9 +226,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
         setVerificationSteps([...fakeSteps]);
         setCurrentStepMessage(step.message);
-        
+
         // Brief pause between steps
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       // Create fake successful result
@@ -226,48 +237,77 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         overallConfidence: 0.92,
         details: 'All verification checks completed successfully. Challenge completion confirmed with high confidence.',
         steps: fakeSteps,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       setVerificationResult(fakeResult);
       setVerificationStage('complete');
       setCurrentStepMessage('All verification checks passed!');
-      
-      console.log('🎉 FAKE VERIFICATION COMPLETED SUCCESSFULLY');
 
+      console.log('🎉 FAKE VERIFICATION COMPLETED SUCCESSFULLY');
     } catch (error) {
       console.error('Fake verification error:', error);
       setVerificationStage('failed');
       setCurrentStepMessage('Verification process encountered an error.');
+      setErrorMessage('Verification failed. Please try again.');
     }
   };
 
   const handleClaimTokens = async () => {
     if (!challengeDescription.trim()) {
-      alert('Please add a description of your challenge completion.');
+      setErrorMessage('Please add a description of your challenge completion.');
+      return;
+    }
+
+    if (!user?.id) {
+      setErrorMessage('User not authenticated. Please log in and try again.');
       return;
     }
 
     setVerificationStage('claiming');
+    setErrorMessage('');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setVerificationStage('success');
-
-      onVerificationComplete({
+      // Prepare completion data
+      const completionData: CompletionData = {
         video: videoBlob,
         photo: photoBlob,
         verificationResult,
         description: challengeDescription,
-        challenge: challenge,
-      });
+        challenge: {
+          title: challenge.title,
+          description: challenge.description,
+          reward: challenge.reward,
+          type: challenge.type,
+          frequency: challenge.frequency,
+          challengeId: challenge.challengeId,
+          creatorId: challenge.creatorId,
+        },
+      };
 
-      setTimeout(() => {
-        window.location.href = '/home';
-      }, 2000);
+      // Complete the challenge using the service
+      const result = await completeChallengeWorkflow(user.id, completionData);
+
+      if (result.success) {
+        setVerificationStage('success');
+
+        // Call the completion handler with the result
+        onVerificationComplete({
+          ...completionData,
+          completionId: result.completionId,
+          tokensEarned: challenge.reward,
+        });
+
+        // Auto-redirect after success message
+        setTimeout(() => {
+          window.location.href = '/home';
+        }, 3000);
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
       console.error('Error claiming tokens:', error);
-      alert('Failed to claim tokens. Please try again.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to claim tokens. Please try again.');
       setVerificationStage('complete');
     }
   };
@@ -278,43 +318,43 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         return {
           title: 'AI Verification',
           subtitle: 'Ready to analyze your submission',
-          color: 'nocenaPink'
+          color: 'nocenaPink',
         };
       case 'verifying':
         return {
           title: 'Analyzing...',
           subtitle: currentStepMessage,
-          color: 'nocenaPink'
+          color: 'nocenaPink',
         };
       case 'complete':
         return {
           title: 'Verified ✓',
           subtitle: 'Ready to claim your reward',
-          color: 'nocenaPurple'
+          color: 'nocenaPurple',
         };
       case 'claiming':
         return {
           title: 'Processing...',
-          subtitle: 'Claiming your tokens',
-          color: 'nocenaPink'
+          subtitle: 'Uploading to IPFS and claiming tokens',
+          color: 'nocenaPink',
         };
       case 'success':
         return {
           title: 'Success!',
           subtitle: `+${challenge.reward} Nocenix claimed`,
-          color: 'nocenaPurple'
+          color: 'nocenaPurple',
         };
       case 'failed':
         return {
           title: 'Failed',
           subtitle: 'Verification unsuccessful',
-          color: 'red'
+          color: 'red',
         };
       default:
         return {
           title: 'AI Verification',
           subtitle: 'Analyzing your submission',
-          color: 'nocenaPink'
+          color: 'nocenaPink',
         };
     }
   };
@@ -338,6 +378,13 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         </div>
       </div>
 
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="mb-4 bg-red-900/20 border border-red-800/30 rounded-xl p-3">
+          <p className="text-red-400 text-sm">{errorMessage}</p>
+        </div>
+      )}
+
       {/* Media Preview - BeReal Style Layout */}
       <div className="mb-6">
         <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl">
@@ -351,45 +398,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               preload="metadata"
               playsInline
               muted
-              onLoadedData={() => {
-                console.log('Main video loaded data');
-                if (!thumbnailUrl && videoRef.current) {
-                  const video = videoRef.current;
-                  video.currentTime = 0.05;
-                }
-              }}
-              onSeeked={() => {
-                console.log('Main video seeked');
-                if (!thumbnailUrl && videoRef.current) {
-                  try {
-                    const video = videoRef.current;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-                    
-                    const ctx = canvas.getContext('2d');
-                    if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-                      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                      canvas.toBlob((blob) => {
-                        if (blob) {
-                          const thumbUrl = URL.createObjectURL(blob);
-                          setThumbnailUrl(thumbUrl);
-                          console.log('Thumbnail generated from main video');
-                        }
-                      }, 'image/jpeg', 0.9);
-                    }
-                  } catch (error) {
-                    console.error('Error generating thumbnail from main video:', error);
-                  }
-                }
-              }}
-              onCanPlay={() => {
-                console.log('Main video can play');
-                if (!thumbnailUrl && videoRef.current && videoRef.current.videoWidth > 0) {
-                  const video = videoRef.current;
-                  video.currentTime = 0.05;
-                }
-              }}
               onClick={(e) => {
                 const video = e.target as HTMLVideoElement;
                 if (video.paused) {
@@ -398,18 +406,16 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                   video.pause();
                 }
               }}
-              style={{
-                WebkitPlaysinline: true,
-              } as React.CSSProperties}
+              style={
+                {
+                  WebkitPlaysinline: true,
+                } as React.CSSProperties
+              }
             />
 
             {/* Selfie Overlay - Top Right Corner (BeReal Style) */}
             <div className="absolute top-4 right-4 w-20 h-24 rounded-xl overflow-hidden border-2 border-white shadow-lg">
-              <img 
-                src={photoUrl} 
-                alt="Verification selfie" 
-                className="w-full h-full object-cover" 
-              />
+              <img src={photoUrl} alt="Verification selfie" className="w-full h-full object-cover" />
             </div>
 
             {/* Challenge Info Overlay - Bottom */}
@@ -444,8 +450,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
             <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-6">
               <div className="w-16 h-16 bg-nocenaPink/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <h3 className="text-lg font-medium mb-2">AI Analysis Ready</h3>
@@ -493,17 +503,21 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               {verificationSteps.map((step) => (
                 <div key={step.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      step.status === 'completed' ? 'bg-nocenaPurple' :
-                      step.status === 'running' ? 'bg-nocenaPink animate-pulse' :
-                      step.status === 'failed' ? 'bg-red-500' : 'bg-gray-600'
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        step.status === 'completed'
+                          ? 'bg-nocenaPurple'
+                          : step.status === 'running'
+                            ? 'bg-nocenaPink animate-pulse'
+                            : step.status === 'failed'
+                              ? 'bg-red-500'
+                              : 'bg-gray-600'
+                      }`}
+                    />
                     <span className="text-sm">{step.name}</span>
                   </div>
                   {step.confidence && step.status === 'completed' && (
-                    <span className="text-xs text-nocenaPurple font-medium">
-                      {Math.round(step.confidence * 100)}%
-                    </span>
+                    <span className="text-xs text-nocenaPurple font-medium">{Math.round(step.confidence * 100)}%</span>
                   )}
                 </div>
               ))}
@@ -522,9 +536,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
                 <h3 className="text-lg font-medium text-nocenaPurple mb-2">Verification Complete!</h3>
                 <p className="text-sm text-gray-300 mb-4">
-                  AI analysis passed with {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
+                  AI analysis passed with{' '}
+                  {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
                 </p>
-                
+
                 {/* Reward Display */}
                 <div className="bg-black/30 rounded-xl p-4 mb-4">
                   <div className="flex items-center justify-center gap-2 mb-3">
@@ -555,7 +570,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
             <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-800/20 rounded-2xl p-8">
               <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">Processing Claim</h3>
-              <p className="text-sm text-gray-300">Executing blockchain transaction...</p>
+              <p className="text-sm text-gray-300">Uploading to IPFS and executing blockchain transaction...</p>
             </div>
           </div>
         )}
@@ -597,7 +612,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                         <div className="flex items-start gap-3">
                           <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             </svg>
                           </div>
                           <div className="flex-1">
@@ -632,9 +652,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     </div>
                   </div>
                   {verificationResult.details && (
-                    <p className="text-xs text-gray-300 mt-2 leading-relaxed">
-                      {verificationResult.details}
-                    </p>
+                    <p className="text-xs text-gray-300 mt-2 leading-relaxed">{verificationResult.details}</p>
                   )}
                 </div>
               )}
@@ -658,17 +676,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       {/* Action Buttons */}
       <div className="flex gap-4 mt-auto">
         {verificationStage === 'ready' && (
-          <PrimaryButton 
-            onClick={startVerification} 
-            text="Start Verification" 
-            className="flex-1"
-            isActive={true}
-          />
+          <PrimaryButton onClick={startVerification} text="Start Verification" className="flex-1" isActive={true} />
         )}
 
         {verificationStage === 'complete' && (
-          <PrimaryButton 
-            onClick={handleClaimTokens} 
+          <PrimaryButton
+            onClick={handleClaimTokens}
             text="Claim Tokens"
             className="flex-1"
             disabled={!challengeDescription.trim()}
@@ -677,21 +690,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         )}
 
         {verificationStage === 'failed' && (
-          <PrimaryButton 
-            onClick={startVerification} 
-            text="Retry Verification" 
-            className="flex-1"
-            isActive={true}
-          />
+          <PrimaryButton onClick={startVerification} text="Retry Verification" className="flex-1" isActive={true} />
         )}
 
         {(verificationStage === 'verifying' || verificationStage === 'claiming') && (
-          <PrimaryButton 
-            text="Processing..." 
-            className="flex-1" 
-            disabled={true}
-            isActive={false}
-          />
+          <PrimaryButton text="Processing..." className="flex-1" disabled={true} isActive={false} />
         )}
       </div>
     </div>

@@ -38,6 +38,7 @@ const RegisterPage = () => {
   const [validatedInviteCode, setValidatedInviteCode] = useState('');
   const [inviteOwner, setInviteOwner] = useState('');
   const [invitedById, setInvitedById] = useState('');
+  const [formData, setFormData] = useState<FormValues | null>(null);
   const { login } = useAuth();
 
   const registerSteps: { step: RegisterStep; title?: string; subtitle?: string; fields?: (keyof FormValues)[] }[] = [
@@ -61,8 +62,8 @@ const RegisterPage = () => {
     },
     {
       step: RegisterStep.WALLET_CREATION,
-      title: 'Your Wallet Is Ready',
-      subtitle: 'Save these details in a secure place',
+      title: 'Complete Your Setup',
+      subtitle: 'Save your wallet and enable notifications',
     },
   ];
 
@@ -153,50 +154,50 @@ const RegisterPage = () => {
     }
   };
 
-  const handleCompleteRegistration = async (
-    data: FormValues,
-    walletData?: {
-      address: string;
-      privateKey: string;
-    },
-  ) => {
-    if (!walletData) {
-      setError('Wallet creation failed. Please try again.');
-      setLoading(false);
+  // NEW: Handle push subscription ready - this creates the user with push subscription
+  const handlePushSubscriptionReady = async (pushSubscription: string) => {
+    if (!formData || !wallet) {
+      setError('Missing form data or wallet. Please try again.');
       return;
     }
 
+    setLoading(true);
+    setError('');
+
     try {
+      console.log('🔧 Creating user with push subscription:', pushSubscription);
+
       // Securely hash the password
-      const securePasswordHash = await hashPassword(data.password);
+      const securePasswordHash = await hashPassword(formData.password);
 
       // Format phone number to E.164 format before storing
-      const formattedPhone = formatPhoneToE164(data.phoneNumber);
+      const formattedPhone = formatPhoneToE164(formData.phoneNumber);
 
-      // Register user with invite information
+      // Register user with push subscription from the start
       const addedUser = await registerUser(
-        data.username,
+        formData.username,
         formattedPhone,
         securePasswordHash,
         '/images/profile.png',
-        walletData.address,
+        wallet.address,
         '0'.repeat(365),
         '0'.repeat(52),
         '0'.repeat(12),
-        validatedInviteCode, // Pass the validated invite code
-        invitedById, // Pass the inviter's ID
+        validatedInviteCode,
+        invitedById,
+        pushSubscription, // NOW we have the push subscription
       );
 
       if (addedUser) {
         // Create user data object
         const userData: User = {
           id: addedUser.id,
-          username: data.username,
+          username: formData.username,
           phoneNumber: formattedPhone,
-          wallet: walletData.address,
+          wallet: wallet.address,
           bio: '',
           profilePicture: '/images/profile.png',
-          earnedTokens: 50, // New users get 50 tokens
+          earnedTokens: 50,
           dailyChallenge: '0'.repeat(365),
           weeklyChallenge: '0'.repeat(52),
           monthlyChallenge: '0'.repeat(12),
@@ -209,6 +210,7 @@ const RegisterPage = () => {
           createdPrivateChallenges: [],
           createdPublicChallenges: [],
           participatingPublicChallenges: [],
+          pushSubscription: pushSubscription,
         };
 
         // Mark the invite code as used and award tokens
@@ -230,13 +232,19 @@ const RegisterPage = () => {
           // Don't fail registration if invite generation fails
         }
 
+        // Log the user in immediately
         await login(userData);
+
+        // Navigate to home
+        window.location.href = '/home';
       } else {
         setError('Failed to register. Please try again.');
       }
     } catch (err) {
       console.error('Registration error:', err);
       setError('Failed to register. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -252,10 +260,12 @@ const RegisterPage = () => {
       const isValid = await verifyPhoneNumber(formattedPhone, 'VERIFY', code);
 
       if (isValid) {
-        // Create wallet
+        // Create wallet and store form data
         const newWallet = createPolygonWallet();
         setWallet(newWallet);
-        await handleCompleteRegistration(data, newWallet);
+        setFormData(data); // Store form data for later use
+        
+        // Move to wallet creation step where push notifications will be handled
         setCurrentStep(STEP_WALLET_CREATION);
       } else {
         setError('Invalid verification code. Please try again.');
@@ -330,7 +340,23 @@ const RegisterPage = () => {
           />
         ) : null}
 
-        {currentStep === STEP_WALLET_CREATION && wallet ? <RegisterWalletCreationStep wallet={wallet} /> : null}
+        {currentStep === STEP_WALLET_CREATION && wallet ? (
+          <RegisterWalletCreationStep 
+            wallet={wallet} 
+            onPushSubscriptionReady={handlePushSubscriptionReady}
+          />
+        ) : null}
+
+        {/* Show loading overlay during final registration */}
+        {loading && currentStep === STEP_WALLET_CREATION && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gradient-to-br from-nocenaBlue to-nocenaPink p-6 rounded-2xl text-center">
+              <div className="w-16 h-16 mx-auto mb-4 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <h3 className="text-white font-bold text-lg mb-2">Creating Your Account</h3>
+              <p className="text-white text-sm opacity-80">Setting up your profile...</p>
+            </div>
+          </div>
+        )}
       </form>
     </AuthenticationLayout>
   );

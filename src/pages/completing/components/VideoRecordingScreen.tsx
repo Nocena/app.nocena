@@ -65,7 +65,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   const initializeCamera = async () => {
     try {
       setCameraError(null);
-      
+
       // Stop existing stream if any
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -85,27 +85,26 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
       if (videoRef.current) {
         const videoElement = videoRef.current;
-        
+
         // Clear any existing srcObject
         videoElement.srcObject = null;
-        
+
         // Set new stream
         videoElement.srcObject = stream;
-        
+
         // On iOS, we need to wait for user interaction
         const startVideo = async () => {
           try {
             videoElement.muted = true;
             videoElement.autoplay = true;
             videoElement.playsInline = true;
-            
+
             await videoElement.play();
             setCameraInitialized(true);
-            
+
             setTimeout(() => {
               setupMediaRecorder(stream);
             }, 500);
-            
           } catch (error) {
             console.error('Error starting video:', error);
             setCameraError('Unable to start camera. Please ensure camera permissions are granted.');
@@ -117,7 +116,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           console.log('Video metadata loaded, dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
           startVideo();
         };
-        
+
         // Fallback attempts
         videoElement.oncanplay = () => {
           console.log('Video can play');
@@ -126,11 +125,10 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           }
         };
       }
-
     } catch (error: any) {
       console.error('Error accessing camera:', error);
       let errorMessage = 'Unable to access camera.';
-      
+
       if (error.name === 'NotAllowedError') {
         errorMessage = 'Camera permission denied. Please allow camera access and refresh.';
       } else if (error.name === 'NotFoundError') {
@@ -138,7 +136,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
       } else if (error.name === 'NotReadableError') {
         errorMessage = 'Camera is already in use by another application.';
       }
-      
+
       setCameraError(errorMessage);
     }
   };
@@ -175,7 +173,6 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         console.error('MediaRecorder error:', event.error);
         setCameraError('Recording error occurred. Please try again.');
       };
-
     } catch (error) {
       console.error('Error setting up MediaRecorder:', error);
       setCameraError('Failed to setup video recording.');
@@ -240,13 +237,13 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      
+
       try {
         mediaRecorderRef.current.stop();
       } catch (error) {
         console.error('Error stopping recording:', error);
       }
-      
+
       stopCamera();
     }
   };
@@ -282,10 +279,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           >
             Try Again
           </button>
-          <button
-            onClick={onBack}
-            className="ml-4 bg-gray-600 px-6 py-3 rounded-lg text-white font-medium"
-          >
+          <button onClick={onBack} className="ml-4 bg-gray-600 px-6 py-3 rounded-lg text-white font-medium">
             Go Back
           </button>
         </div>
@@ -296,27 +290,23 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   return (
     <div className="fixed inset-0 bg-black text-white z-50">
       {/* Safe area top padding */}
-      <div 
+      <div
         className="absolute top-0 left-0 right-0 z-20"
-        style={{ 
+        style={{
           height: 'env(safe-area-inset-top)',
-          background: 'rgba(0,0,0,0.3)' 
+          background: 'rgba(0,0,0,0.3)',
         }}
       />
 
       {/* Flip Camera Button */}
       {stage !== 'recording' && stage !== 'countdown' && (
-        <div 
+        <div
           className="absolute right-4 z-20"
-          style={{ 
-            top: 'calc(env(safe-area-inset-top) + 16px)' 
+          style={{
+            top: 'calc(env(safe-area-inset-top) + 16px)',
           }}
         >
-          <button 
-            className="focus:outline-none" 
-            aria-label="Flip Camera" 
-            onClick={flipCamera}
-          >
+          <button className="focus:outline-none" aria-label="Flip Camera" onClick={flipCamera}>
             <ThematicContainer
               color="nocenaBlue"
               glassmorphic={true}
@@ -358,14 +348,16 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         className={`absolute inset-0 w-full h-full object-cover ${
           facingMode === 'user' ? 'transform scale-x-[-1]' : ''
         }`}
-        style={{
-          objectFit: 'cover',
-          width: '100vw',
-          height: '100vh',
-          background: '#000',
-          zIndex: 1,
-          WebkitPlaysinline: true, // This is the correct way for React
-        } as React.CSSProperties}
+        style={
+          {
+            objectFit: 'cover',
+            width: '100vw',
+            height: '100vh',
+            background: '#000',
+            zIndex: 1,
+            WebkitPlaysinline: true, // This is the correct way for React
+          } as React.CSSProperties
+        }
         onError={(e) => {
           console.error('Video element error:', e);
           setCameraError('Video display error. Please try again.');
@@ -384,10 +376,10 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
       {/* Timer (only show during recording) */}
       {stage === 'recording' && (
-        <div 
+        <div
           className="absolute left-1/2 transform -translate-x-1/2 z-10"
-          style={{ 
-            bottom: 'calc(env(safe-area-inset-bottom) + 140px)' 
+          style={{
+            bottom: 'calc(env(safe-area-inset-bottom) + 140px)',
           }}
         >
           <div className="bg-black/50 px-4 py-2 rounded-full">
@@ -397,10 +389,10 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
       )}
 
       {/* Recording Button */}
-      <div 
+      <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10"
-        style={{ 
-          bottom: 'calc(env(safe-area-inset-bottom) + 40px)' 
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom) + 40px)',
         }}
       >
         {stage === 'ready' && (
@@ -455,11 +447,11 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
       </div>
 
       {/* Safe area bottom padding */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 right-0 z-20"
-        style={{ 
+        style={{
           height: 'env(safe-area-inset-bottom)',
-          background: 'rgba(0,0,0,0.3)' 
+          background: 'rgba(0,0,0,0.3)',
         }}
       />
     </div>
