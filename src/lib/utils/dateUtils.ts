@@ -19,7 +19,7 @@ export const getWeekOfYear = (date: Date): number => {
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 };
 
 /**
@@ -33,23 +33,23 @@ export const getFormattedDate = (date: Date): string => {
  * Check if two dates are the same day
  */
 export const isSameDay = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
 };
 
 /**
  * Check if two dates are in the same week
  */
 export const isSameWeek = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         getWeekOfYear(date1) === getWeekOfYear(date2);
+  return date1.getFullYear() === date2.getFullYear() && getWeekOfYear(date1) === getWeekOfYear(date2);
 };
 
 /**
  * Check if two dates are in the same month
  */
 export const isSameMonth = (date1: Date, date2: Date): boolean => {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth();
+  return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth();
 };

@@ -193,7 +193,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     if (isBrowser && 'serviceWorker' in navigator) {
       const handleServiceWorkerMessage = (event: MessageEvent) => {
         console.log('🔔 Received message from SW:', event.data);
-        
+
         if (event.data && event.data.type === 'NAVIGATE_TO') {
           console.log('🚀 Navigating to:', event.data.url);
           router.push(event.data.url);

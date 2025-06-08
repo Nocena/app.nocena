@@ -108,52 +108,6 @@ export function getProfilePictureUrl(profilePicture: string | null): string {
 }
 
 /**
- * Get a video URL from media metadata
- * Updated to work with both individual file CIDs and directory structure
- */
-export function getVideoUrl(media: any): string | null {
-  if (!media) return null;
-
-  // Check for new format first (individual CIDs)
-  if (media.videoCID) {
-    return `${IPFS_GATEWAYS[0]}/${media.videoCID}`;
-  }
-
-  // Fall back to old format for backwards compatibility
-  const { directoryCID, videoFileName } = media;
-
-  if (!directoryCID || !videoFileName) {
-    console.error('Invalid media metadata for video', media);
-    return null;
-  }
-
-  return `${IPFS_GATEWAYS[0]}/${directoryCID}/${videoFileName}`;
-}
-
-/**
- * Get a selfie URL from media metadata
- * Updated to work with both individual file CIDs and directory structure
- */
-export function getSelfieUrl(media: any): string | null {
-  if (!media) return null;
-
-  // Check for new format first (individual CIDs)
-  if (media.selfieCID) {
-    return `${IPFS_GATEWAYS[0]}/${media.selfieCID}`;
-  }
-
-  // Fall back to old format for backwards compatibility
-  const { directoryCID, selfieFileName } = media;
-
-  if (!directoryCID || !selfieFileName) {
-    console.error('Invalid media metadata for selfie', media);
-    return null;
-  }
-
-  return `${IPFS_GATEWAYS[0]}/${directoryCID}/${selfieFileName}`;
-}
-
-/**
  * Get a backup gateway URL if the primary one fails
  * @param url Original URL
  * @param gatewayIndex Index of the gateway to try
@@ -225,4 +179,160 @@ export async function checkUrlAccessibility(url: string): Promise<boolean> {
   } catch (error) {
     return false;
   }
+}
+
+/**
+ * Get a video URL from media metadata
+ * Updated to handle your nested structure where directoryCID contains JSON with actual CIDs
+ */
+export function getVideoUrl(media: any): string | null {
+  if (!media) return null;
+
+  // Check for direct videoCID first (new format)
+  if (media.videoCID) {
+    return `${IPFS_GATEWAYS[0]}/${media.videoCID}`;
+  }
+
+  // Handle your specific nested structure where directoryCID contains JSON
+  if (media.directoryCID && typeof media.directoryCID === 'string') {
+    try {
+      const nestedData = JSON.parse(media.directoryCID);
+      if (nestedData.videoCID) {
+        return `${IPFS_GATEWAYS[0]}/${nestedData.videoCID}`;
+      }
+    } catch (error) {
+      console.error('Error parsing directoryCID for video:', error);
+      // If parsing fails, treat directoryCID as a regular CID and try old format
+    }
+  }
+
+  // Fall back to old format for backwards compatibility
+  const { directoryCID, videoFileName } = media;
+
+  if (!directoryCID || !videoFileName) {
+    console.error('Invalid media metadata for video', media);
+    return null;
+  }
+
+  // Only use this if directoryCID is not a JSON string
+  if (typeof directoryCID === 'string' && !directoryCID.startsWith('{')) {
+    return `${IPFS_GATEWAYS[0]}/${directoryCID}/${videoFileName}`;
+  }
+
+  return null;
+}
+
+/**
+ * Get a selfie URL from media metadata
+ * Updated to handle your nested structure where directoryCID contains JSON with actual CIDs
+ */
+export function getSelfieUrl(media: any): string | null {
+  if (!media) return null;
+
+  // Check for direct selfieCID first (new format)
+  if (media.selfieCID) {
+    return `${IPFS_GATEWAYS[0]}/${media.selfieCID}`;
+  }
+
+  // Handle your specific nested structure where directoryCID contains JSON
+  if (media.directoryCID && typeof media.directoryCID === 'string') {
+    try {
+      const nestedData = JSON.parse(media.directoryCID);
+      if (nestedData.selfieCID) {
+        return `${IPFS_GATEWAYS[0]}/${nestedData.selfieCID}`;
+      }
+    } catch (error) {
+      console.error('Error parsing directoryCID for selfie:', error);
+      // If parsing fails, treat directoryCID as a regular CID and try old format
+    }
+  }
+
+  // Fall back to old format for backwards compatibility
+  const { directoryCID, selfieFileName } = media;
+
+  if (!directoryCID || !selfieFileName) {
+    console.error('Invalid media metadata for selfie', media);
+    return null;
+  }
+
+  // Only use this if directoryCID is not a JSON string
+  if (typeof directoryCID === 'string' && !directoryCID.startsWith('{')) {
+    return `${IPFS_GATEWAYS[0]}/${directoryCID}/${selfieFileName}`;
+  }
+
+  return null;
+}
+
+/**
+ * Helper function to parse and normalize media metadata
+ * Fixed TypeScript version with proper type handling
+ */
+export function parseMediaMetadata(media: string | object | any): any {
+  if (!media) return null;
+
+  try {
+    let parsedMedia: any = media;
+
+    // Parse string if needed
+    if (typeof media === 'string') {
+      parsedMedia = JSON.parse(media);
+    }
+
+    // Handle your nested structure where directoryCID contains JSON with actual CIDs
+    if (parsedMedia && typeof parsedMedia === 'object' && 'directoryCID' in parsedMedia) {
+      const directoryCID = parsedMedia.directoryCID;
+      if (typeof directoryCID === 'string' && directoryCID.startsWith('{')) {
+        try {
+          const nestedData = JSON.parse(directoryCID);
+          // Merge the nested data with the outer structure, giving priority to nested data
+          parsedMedia = { ...parsedMedia, ...nestedData };
+        } catch (error) {
+          console.error('Error parsing nested directoryCID:', error);
+        }
+      }
+    }
+
+    return parsedMedia;
+  } catch (error) {
+    console.error('Error parsing media metadata:', error);
+    return null;
+  }
+}
+
+/**
+ * Debug helper to understand your data structure (remove in production)
+ */
+export function debugMediaStructure(media: any): void {
+  console.group('🔍 Media Structure Debug');
+  console.log('Original media:', media);
+
+  if (typeof media === 'string') {
+    try {
+      const parsed = JSON.parse(media);
+      console.log('Parsed media:', parsed);
+
+      if (parsed.directoryCID && typeof parsed.directoryCID === 'string') {
+        if (parsed.directoryCID.startsWith('{')) {
+          try {
+            const nested = JSON.parse(parsed.directoryCID);
+            console.log('Nested CIDs found:', nested);
+            console.log('Video CID:', nested.videoCID);
+            console.log('Selfie CID:', nested.selfieCID);
+          } catch (e) {
+            console.log('directoryCID is not nested JSON:', parsed.directoryCID);
+          }
+        } else {
+          console.log('directoryCID appears to be a regular CID:', parsed.directoryCID);
+        }
+      }
+    } catch (e) {
+      console.log('Failed to parse media as JSON');
+    }
+  }
+
+  const normalized = parseMediaMetadata(media);
+  console.log('Normalized media:', normalized);
+  console.log('Generated video URL:', getVideoUrl(normalized));
+  console.log('Generated selfie URL:', getSelfieUrl(normalized));
+  console.groupEnd();
 }

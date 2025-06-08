@@ -264,7 +264,7 @@ const RegisterPage = () => {
         const newWallet = createPolygonWallet();
         setWallet(newWallet);
         setFormData(data); // Store form data for later use
-        
+
         // Move to wallet creation step where push notifications will be handled
         setCurrentStep(STEP_WALLET_CREATION);
       } else {
@@ -341,10 +341,7 @@ const RegisterPage = () => {
         ) : null}
 
         {currentStep === STEP_WALLET_CREATION && wallet ? (
-          <RegisterWalletCreationStep 
-            wallet={wallet} 
-            onPushSubscriptionReady={handlePushSubscriptionReady}
-          />
+          <RegisterWalletCreationStep wallet={wallet} onPushSubscriptionReady={handlePushSubscriptionReady} />
         ) : null}
 
         {/* Show loading overlay during final registration */}

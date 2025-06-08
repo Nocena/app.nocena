@@ -52,11 +52,15 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
   }
 
   try {
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query,
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+      },
+      {
+        headers,
+      },
+    );
 
     if (response.data.errors) {
       console.error('🔔 BULK: GraphQL errors:', response.data.errors);
@@ -68,7 +72,9 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
       .map((user: any) => user.pushSubscription)
       .filter((sub: string) => sub && sub.length > 0 && sub !== 'null' && sub.trim() !== '');
 
-    console.log(`🔔 BULK: Found ${users.length} total users, ${pushSubscriptions.length} with valid push subscriptions`);
+    console.log(
+      `🔔 BULK: Found ${users.length} total users, ${pushSubscriptions.length} with valid push subscriptions`,
+    );
     return pushSubscriptions;
   } catch (error) {
     console.error('🔔 BULK: Error fetching push subscriptions:', error);
@@ -106,11 +112,15 @@ class MonthlyChallengeGenerator {
     }
 
     try {
-      const response = await axios.post(DGRAPH_ENDPOINT, {
-        query,
-      }, {
-        headers,
-      });
+      const response = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query,
+        },
+        {
+          headers,
+        },
+      );
 
       if (response.data.errors) {
         console.log('⚠️ Error fetching recent monthly challenges:', response.data.errors);
@@ -202,7 +212,8 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
           },
           {
             role: 'user',
-            content: 'Generate one monthly reality show challenge. Format: Title: [episode title]\nDescription: [challenge description]',
+            content:
+              'Generate one monthly reality show challenge. Format: Title: [episode title]\nDescription: [challenge description]',
           },
         ],
         max_tokens: 400,
@@ -333,8 +344,10 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
     const batchSize = 10;
     for (let i = 0; i < pushSubscriptions.length; i += batchSize) {
       const batch = pushSubscriptions.slice(i, i + batchSize);
-      
-      console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pushSubscriptions.length / batchSize)}`);
+
+      console.log(
+        `🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pushSubscriptions.length / batchSize)}`,
+      );
 
       const batchPromises = batch.map(async (pushSubscription, index) => {
         try {
@@ -349,7 +362,7 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
       });
 
       await Promise.allSettled(batchPromises);
-      
+
       if (i + batchSize < pushSubscriptions.length) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -359,7 +372,6 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
     console.log(`✅ Successful: ${successCount}`);
     console.log(`❌ Failed: ${failureCount}`);
     console.log(`📱 Total attempted: ${pushSubscriptions.length}`);
-
   } catch (error) {
     console.error('❌ Error in monthly challenge push notification process:', error);
   }
@@ -401,12 +413,16 @@ export const saveMonthlyChallengeToDatabase = async (challenge: MonthlyAIChallen
   try {
     console.log('💾 Saving monthly challenge to database...');
 
-    const response = await axios.post(DGRAPH_ENDPOINT, {
-      query: mutation,
-      variables: { challenge },
-    }, {
-      headers,
-    });
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { challenge },
+      },
+      {
+        headers,
+      },
+    );
 
     if (response.data.errors) {
       console.error('❌ Dgraph mutation error:', response.data.errors);

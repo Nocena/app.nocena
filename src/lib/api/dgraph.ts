@@ -125,7 +125,10 @@ export const registerUser = async (
       if (!userData.pushSubscription) {
         console.warn('🔧 REGISTER: Warning - pushSubscription was not saved to database');
       } else {
-        console.log('🔧 REGISTER: Successfully saved pushSubscription:', userData.pushSubscription.substring(0, 50) + '...');
+        console.log(
+          '🔧 REGISTER: Successfully saved pushSubscription:',
+          userData.pushSubscription.substring(0, 50) + '...',
+        );
       }
     }
 
@@ -1956,115 +1959,70 @@ export const getOrCreateAIChallenge = async (
 };
 
 /**
- * Get today's completion for a user
- * Updated for the new schema with separate challenge types
- * @param user The user object
- * @param type The challenge type (daily, weekly, monthly)
- * @returns The completion object or null
+ * Fetch user's completions within a date range
  */
-export const getTodaysCompletion = (user: any, type: string): any | null => {
-  if (!user?.completedChallenges || user.completedChallenges.length === 0) {
-    return null;
-  }
+export async function fetchUserCompletions(
+  userId: string,
+  startDate: string,
+  endDate: string,
+  challengeType?: 'ai' | 'private' | 'public',
+): Promise<any[]> {
+  const axios = (await import('axios')).default;
+  const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  try {
+    let challengeFilter = '';
+    if (challengeType === 'ai') {
+      challengeFilter = ', has: aiChallenge';
+    } else if (challengeType === 'private') {
+      challengeFilter = ', has: privateChallenge';
+    } else if (challengeType === 'public') {
+      challengeFilter = ', has: publicChallenge';
+    }
 
-  // Match completion type based on challenge type
-  const completionType = `AI-${type}`;
-
-  return (
-    user.completedChallenges.find((completion: any) => {
-      const completionDate = new Date(completion.date).toISOString().split('T')[0];
-      return completionDate === today && completion.type === completionType;
-    }) || null
-  );
-};
-
-/**
- * Check if the user has completed a challenge today/this week/this month
- * @param user The user object
- * @param type The challenge type (daily, weekly, monthly)
- * @returns Boolean indicating if the challenge has been completed
- */
-export const hasCompletedChallenge = (user: any, type: string): boolean => {
-  if (!user) return false;
-
-  const now = new Date();
-
-  // Get the relevant tracking string based on challenge type
-  let challengeString: string | undefined;
-  let position: number;
-
-  switch (type) {
-    case 'daily':
-      challengeString = user.dailyChallenge;
-      position = getDayOfYear(now) - 1; // 0-based index
-      break;
-    case 'weekly':
-      challengeString = user.weeklyChallenge;
-      position = getWeekOfYear(now) - 1; // 0-based index
-      break;
-    case 'monthly':
-      challengeString = user.monthlyChallenge;
-      position = now.getMonth(); // 0-based index
-      break;
-    default:
-      return false;
-  }
-
-  // Check if the challenge string exists and the position is marked as completed
-  if (!challengeString || position < 0 || position >= challengeString.length) {
-    return false;
-  }
-
-  return challengeString[position] === '1';
-};
-
-/**
- * Fetch completions from user's followers for a specific date
- * Updated for the new schema with separate challenge types
- * @param userId The user's ID
- * @param date The date to fetch completions for (YYYY-MM-DD format)
- * @returns Array of follower completions
- */
-export const fetchFollowerCompletions = async (userId: string, date: string): Promise<any[]> => {
-  if (!userId || !date) return [];
-
-  // Convert date string to DateTime format for GraphQL
-  const startDate = `${date}T00:00:00Z`;
-  const endDate = `${date}T23:59:59Z`;
-
-  const query = `
-    query GetFollowerCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
-      getUser(id: $userId) {
-        following {
-          id
-          username
-          profilePicture
-          completedChallenges(
+    const query = `
+      query FetchUserCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
+        getUser(id: $userId) {
+          completions(
             filter: { 
-              and: [
-                { completionDate: { ge: $startDate } },
-                { completionDate: { le: $endDate } },
-                { challengeType: { eq: "ai" } }
-              ]
+              completionDate: { between: { min: $startDate, max: $endDate } }${challengeFilter}
             }
+            order: { desc: completionDate }
           ) {
             id
             media
             completionDate
+            completionDay
+            completionWeek
+            completionMonth
+            completionYear
+            status
+            challengeType
+            likesCount
             aiChallenge {
               id
               title
+              description
               frequency
+              reward
+            }
+            privateChallenge {
+              id
+              title
+              description
+              reward
+            }
+            publicChallenge {
+              id
+              title
+              description
+              reward
             }
           }
         }
       }
-    }
-  `;
+    `;
 
-  try {
     const response = await axios.post(
       DGRAPH_ENDPOINT,
       {
@@ -2075,60 +2033,201 @@ export const fetchFollowerCompletions = async (userId: string, date: string): Pr
           endDate,
         },
       },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      },
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (response.data.errors) {
-      console.error('Dgraph query error:', response.data.errors);
-      return [];
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch user completions');
     }
 
-    const followings = response.data.data.getUser?.following || [];
+    return response.data.data?.getUser?.completions || [];
+  } catch (error) {
+    console.error('Error fetching user completions:', error);
+    throw error;
+  }
+}
 
-    // Process and format the data
-    const completions = followings
-      .filter((following: any) => following.completedChallenges?.length > 0)
-      .map((following: any) => {
-        // Get the first completion for today (normally there should only be one)
-        const completion = following.completedChallenges[0];
+/**
+ * Fetch follower completions for a specific date and challenge type
+ */
+export async function fetchFollowerCompletions(
+  userId: string,
+  dateString: string, // YYYY-MM-DD format
+  challengeType: 'daily' | 'weekly' | 'monthly' = 'daily',
+): Promise<any[]> {
+  const axios = (await import('axios')).default;
+  const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
-        return {
-          userId: following.id,
-          username: following.username,
-          profilePicture: following.profilePicture,
-          completion: {
-            ...completion,
-            date: completion.completionDate, // Normalize property name
-            type: completion.aiChallenge ? `AI-${completion.aiChallenge.frequency}` : 'ai',
-            title: completion.aiChallenge?.title || 'Unknown Challenge',
-          },
-        };
+  try {
+    // Calculate date range based on challenge type
+    const targetDate = new Date(dateString);
+    let startDate: Date;
+    let endDate: Date;
+
+    if (challengeType === 'daily') {
+      startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      endDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
+    } else if (challengeType === 'weekly') {
+      const dayOfWeek = targetDate.getDay();
+      const monday = new Date(targetDate);
+      monday.setDate(targetDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      monday.setHours(0, 0, 0, 0);
+
+      startDate = monday;
+      endDate = new Date(monday);
+      endDate.setDate(monday.getDate() + 6);
+      endDate.setHours(23, 59, 59);
+    } else {
+      startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+      endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
+    }
+
+    const query = `
+      query FetchFollowerCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!, $frequency: String!) {
+        getUser(id: $userId) {
+          following {
+            id
+            username
+            profilePicture
+            completions(
+              filter: { 
+                completionDate: { between: { min: $startDate, max: $endDate } },
+                has: aiChallenge
+              }
+              order: { desc: completionDate }
+              first: 1
+            ) {
+              id
+              media
+              completionDate
+              status
+              challengeType
+              likesCount
+              aiChallenge {
+                id
+                title
+                description
+                frequency
+                reward
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: {
+          userId,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          frequency: challengeType,
+        },
+      },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch follower completions');
+    }
+
+    const followers = response.data.data?.getUser?.following || [];
+
+    // Format the response to match the expected structure
+    const completions = followers
+      .filter((follower: any) => follower.completions && follower.completions.length > 0)
+      .map((follower: any) => ({
+        userId: follower.id,
+        username: follower.username,
+        profilePicture: follower.profilePicture,
+        completion: follower.completions[0], // Most recent completion
+      }))
+      .filter((item: any) => {
+        // Additional filtering for challenge frequency if available
+        const completion = item.completion;
+        if (completion.aiChallenge?.frequency) {
+          return completion.aiChallenge.frequency === challengeType;
+        }
+        return true;
       });
 
     return completions;
   } catch (error) {
     console.error('Error fetching follower completions:', error);
-    return [];
+    throw error;
   }
-};
+}
 
 /**
- * Parse a media metadata JSON string into an object
- * @param mediaJson The JSON string from the database
- * @returns Parsed media metadata or null if invalid
+ * Check if user has completed a specific challenge type for current period
  */
-export const parseMediaMetadata = (mediaJson: string | null | undefined): any => {
-  if (!mediaJson) return null;
+export function hasCompletedChallenge(user: any, challengeType: 'daily' | 'weekly' | 'monthly'): boolean {
+  if (!user) return false;
+
+  const now = new Date();
+
+  if (challengeType === 'daily') {
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    return user.dailyChallenge?.charAt(dayOfYear - 1) === '1';
+  } else if (challengeType === 'weekly') {
+    const weekOfYear = Math.ceil(
+      ((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400000 +
+        new Date(now.getFullYear(), 0, 1).getDay() +
+        1) /
+        7,
+    );
+    return user.weeklyChallenge?.charAt(weekOfYear - 1) === '1';
+  } else {
+    const month = now.getMonth();
+    return user.monthlyChallenge?.charAt(month) === '1';
+  }
+}
+
+/**
+ * Parse media metadata from string or object
+ */
+export function parseMediaMetadata(media: string | object): any {
+  if (!media) return null;
 
   try {
-    return JSON.parse(mediaJson);
-  } catch (e) {
-    console.error('Error parsing media JSON:', e);
+    if (typeof media === 'string') {
+      const parsed = JSON.parse(media);
+
+      // Handle nested structure where directoryCID contains the actual CIDs
+      if (parsed.directoryCID && typeof parsed.directoryCID === 'string') {
+        try {
+          const nestedData = JSON.parse(parsed.directoryCID);
+          return { ...parsed, ...nestedData };
+        } catch {
+          return parsed;
+        }
+      }
+
+      return parsed;
+    }
+
+    return media;
+  } catch (error) {
+    console.error('Error parsing media metadata:', error);
     return null;
   }
-};
+}
+
+/**
+ * Get today's completion for a specific challenge type
+ * This is a helper function for backwards compatibility
+ */
+export function getTodaysCompletion(user: any, challengeType: 'daily' | 'weekly' | 'monthly'): any {
+  // This function would need to be updated to actually fetch from the database
+  // For now, it returns null since we're using the new fetchUserCompletions function
+  // You can remove this function and update any references to use fetchUserCompletions instead
+  return null;
+}
 
 /**
  * Update the notification type to work with the new schema
