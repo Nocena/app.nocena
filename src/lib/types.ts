@@ -1,3 +1,4 @@
+import {AuthenticatedSession, SessionClient} from "@lens-protocol/client";
 // src/lib/types.ts
 
 export interface ChallengeData {
@@ -102,3 +103,84 @@ export interface CreateChallengeResponse {
   uids?: Record<string, string>;
   error?: string;
 }
+
+
+
+// ---- created by matija --------
+export interface Comment {
+  id: string;
+  userId: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  timestamp: string;
+  read: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  participants: string[];
+  lastMessage: Message;
+  unreadCount: number;
+}
+export type LensAuthContextType = {
+  activeSession: AuthenticatedSession | null;
+  client: SessionClient | null;
+  isAuthenticating: boolean;
+  isAuthenticated: boolean;
+  authenticate: (lensAccountAddress: string, walletAddr: string) => Promise<void>;
+  disconnect: () => Promise<void>;
+  restore: () => Promise<void>;
+  refreshCurrentAccount: () => Promise<void>;
+  onboard: (walletAddr: string) => Promise<SessionClient | null>;
+  currentAccount: AccountType | null
+};
+
+export interface AccountType {
+  accountAddress: string
+  createdAt: string
+  avatar: string
+  displayName: string
+  localName: string
+  bio: string
+  isFollowedByMe?: boolean
+}
+
+export interface CommentType {
+  id: string
+  timestamp: string
+  content: string
+  author: AccountType
+}
+
+export interface AccountStatusType {
+  followers: number
+  following: number
+  posts: number
+  comments: number
+  reposts: number
+  quotes: number
+  reacted: number
+  reactions: number
+  collects: number
+}
+
+export interface ProfileDataType {
+  followers: number
+  following: number
+  accountAddress: string
+  createdAt: string
+  avatar: string
+  displayName: string
+  localName: string
+  bio: string
+  isMe: boolean
+  isFollowedByMe: boolean
+}
+// ---- end by matija --------
