@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { useLensAuth } from './LensAuthProvider';
 
 // Updated types to match your new Dgraph schema
 export interface User {
@@ -163,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const { disconnect } = useLensAuth()
 
   // Check for existing session on mount
   useEffect(() => {
@@ -187,6 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async (): Promise<void> => {
+    await disconnect()
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('nocenaUser');
