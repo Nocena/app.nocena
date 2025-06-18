@@ -3,13 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
-import { useAuth, AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
 import LoginPage from './login';
 import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
+import { WalletProvider } from '../contexts/WalletProvider';
+import { LensAuthProvider } from '../contexts/LensAuthProvider';
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -221,9 +223,13 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
 function MyApp(props: AppProps) {
   return (
-    <AuthProvider>
-      <MyAppContent {...props} />
-    </AuthProvider>
+    <WalletProvider>
+      <LensAuthProvider>
+        <AuthProvider>
+          <MyAppContent {...props} />
+        </AuthProvider>
+      </LensAuthProvider>
+    </WalletProvider>
   );
 }
 
