@@ -9,6 +9,8 @@ export interface User {
   wallet: string;
   passwordHash: string;
   profilePicture: string;
+  coverPhoto?: string; // Added cover photo field
+  trailerVideo?: string; // Added trailer video field
   earnedTokens: number;
   pushSubscription?: string | null; // Added this field
 

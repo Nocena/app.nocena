@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { updateBio, updateProfilePicture, fetchUserFollowers } from '../../lib/api/dgraph';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { updateBio, updateProfilePicture, updateCoverPhoto } from '../../lib/api/dgraph';
 import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -7,34 +7,39 @@ import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
-import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
-import ChallengeIndicator from './components/ChallengeIndicator';
-import ThematicText from '../../components/ui/ThematicText';
+import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
+import TrailerSection from './components/TrailerSection';
+import StatsSection from './components/StatsSection';
+import CalendarSection from './components/CalendarSection';
 
-import FollowersIcon from '../../components/icons/followers';
-import SaveIcon from '../../components/icons/save';
 import PenIcon from '../../components/icons/pen';
+
+// Custom hooks
+import useFollowersData from '../../hooks/useFollowersData';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
 
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
-
   const { user, login } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // Basic profile state
   const [profilePic, setProfilePic] = useState<string | StaticImageData>(user?.profilePicture || defaultProfilePic);
+  const [coverPhoto, setCoverPhoto] = useState<string>(user?.coverPhoto || '/images/cover.jpg');
   const [username, setUsername] = useState<string>(user?.username || 'Guest');
-  const [bio, setBio] = useState<string>(user?.bio || 'This is your bio. Click to edit it.');
+  const [bio, setBio] = useState<string>(
+    user?.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!',
+  );
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
-  const [followersCount, setFollowersCount] = useState<number>(0);
-  const [followers, setFollowers] = useState<string[]>([]);
-  const [showFollowersPopup, setShowFollowersPopup] = useState<boolean>(false);
+  const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
+
+  // Challenge data
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
     user?.dailyChallenge.split('').map((char) => char === '1') || [],
   );
@@ -44,178 +49,56 @@ const ProfileView: React.FC = () => {
   const [monthlyChallenges, setMonthlyChallenges] = useState<boolean[]>(
     user?.monthlyChallenge.split('').map((char) => char === '1') || [],
   );
-  const [isPageVisible, setIsPageVisible] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
+  // Use custom hook for followers data
+  const { followersCount, followers, showFollowersPopup, setShowFollowersPopup, handleFollowersClick } =
+    useFollowersData(user?.id);
 
-  // Check if this page is visible in the PageManager
+  // Sync user data when user changes
   useEffect(() => {
-    const handleVisibilityChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail && customEvent.detail.pageName === 'profile') {
-        setIsPageVisible(customEvent.detail.isVisible);
-      }
-    };
-
-    const handleRouteChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail) {
-        if (customEvent.detail.to === '/profile') {
-          setIsPageVisible(true);
-        } else if (customEvent.detail.from === '/profile') {
-          setIsPageVisible(false);
-        }
-      }
-    };
-
-    window.addEventListener('pageVisibilityChange', handleVisibilityChange);
-    window.addEventListener('routeChange', handleRouteChange);
-
-    // Initialize visibility based on current route
-    setIsPageVisible(window.location.pathname === '/profile');
-
-    return () => {
-      window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
-      window.removeEventListener('routeChange', handleRouteChange);
-    };
-  }, []);
-
-  // Function to fetch followers with caching
-  const fetchFollowersData = useCallback(
-    async (showLoading = true) => {
-      if (!user?.id) return;
-
-      if (showLoading) setIsLoading(true);
-
-      try {
-        // Try to get from page state first
-        const pageState = getPageState();
-        const profileCacheKey = `profile_${user.id}`;
-
-        // Check if we have fresh data in PageManager
-        if (pageState && pageState[profileCacheKey] && Date.now() - pageState[profileCacheKey].lastFetched < 300000) {
-          const { followers } = pageState[profileCacheKey].data;
-          if (Array.isArray(followers)) {
-            setFollowers(followers);
-            setFollowersCount(followers.length);
-            if (!showLoading) return; // Skip API call if silent refresh
-          }
-        }
-
-        // If no fresh data or forced refresh, get from API
-        const fetchedFollowers = await fetchUserFollowers(user.id);
-        if (Array.isArray(fetchedFollowers)) {
-          setFollowers(fetchedFollowers);
-          setFollowersCount(fetchedFollowers.length);
-
-          // Update PageManager state
-          updatePageState(profileCacheKey, {
-            followers: fetchedFollowers,
-            bio: user.bio,
-            profilePicture: user.profilePicture,
-          });
-
-          // Also update localStorage for faster loads
-          localStorage.setItem(
-            `nocena_${profileCacheKey}`,
-            JSON.stringify({
-              data: { followers: fetchedFollowers },
-              timestamp: Date.now(),
-            }),
-          );
-        } else if (typeof fetchedFollowers === 'number') {
-          setFollowersCount(fetchedFollowers);
-        }
-      } catch (error) {
-        console.error('Error fetching followers:', error);
-      } finally {
-        if (showLoading) setIsLoading(false);
-      }
-    },
-    [user?.id],
-  );
-
-  // Fetch followers when component mounts or becomes visible
-  useEffect(() => {
-    if (!user?.id || !isPageVisible) return;
-
-    // Check if we have cached data
-    try {
-      const profileCacheKey = `profile_${user.id}`;
-      const cachedData = localStorage.getItem(`nocena_${profileCacheKey}`);
-
-      if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData);
-        // Use cache if less than 5 minutes old
-        if (data && data.followers && Date.now() - timestamp < 300000) {
-          setFollowers(data.followers);
-          setFollowersCount(data.followers.length);
-        }
-      }
-    } catch (error) {
-      console.error('Error reading cached followers', error);
+    if (user) {
+      setDailyChallenges(user.dailyChallenge.split('').map((char) => char === '1'));
+      setWeeklyChallenges(user.weeklyChallenge.split('').map((char) => char === '1'));
+      setMonthlyChallenges(user.monthlyChallenge.split('').map((char) => char === '1'));
+      setTokenBalance(user.earnedTokens || 0);
+      setProfilePic(user.profilePicture || defaultProfilePic);
+      setCoverPhoto(user.coverPhoto || '/images/cover.jpg');
+      setUsername(user.username);
+      setBio(user.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!');
     }
+  }, [user]);
 
-    // Always fetch fresh data if page is visible
-    fetchFollowersData(followers.length === 0);
-
-    // Set up background refresh every 5 minutes when page is visible
-    const intervalId = setInterval(() => {
-      if (isPageVisible) {
-        fetchFollowersData(false); // Silent refresh
+  // Calculate stats for components
+  const currentStreak = useMemo(() => {
+    let streak = 0;
+    for (let i = dailyChallenges.length - 1; i >= 0; i--) {
+      if (dailyChallenges[i]) {
+        streak++;
+      } else {
+        break;
       }
-    }, 300000); // Every 5 minutes
-
-    // Add to tracking for memory optimization
-    if (typeof window !== 'undefined' && window.nocena_app_timers) {
-      window.nocena_app_timers.push(intervalId as unknown as number);
     }
+    return streak;
+  }, [dailyChallenges]);
 
-    return () => clearInterval(intervalId);
-  }, [user?.id, isPageVisible, fetchFollowersData, followers.length]);
+  const totalChallenges = useMemo(() => {
+    return (
+      dailyChallenges.filter(Boolean).length +
+      weeklyChallenges.filter(Boolean).length +
+      monthlyChallenges.filter(Boolean).length
+    );
+  }, [dailyChallenges, weeklyChallenges, monthlyChallenges]);
 
-  // Set up scroll position for months
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      const currentMonthIndex = new Date().getMonth();
-      const elementWidth = scrollContainerRef.current.scrollWidth / 12;
-      scrollContainerRef.current.scrollLeft =
-        elementWidth * currentMonthIndex - scrollContainerRef.current.clientWidth / 2 + elementWidth / 2;
-    }
-  }, []);
-
-  // Handler when app comes back to foreground
-  useEffect(() => {
-    const handleAppForeground = () => {
-      if (isPageVisible && user?.id) {
-        fetchFollowersData(false);
-      }
-    };
-
-    window.addEventListener('nocena_app_foreground', handleAppForeground);
-
-    return () => {
-      window.removeEventListener('nocena_app_foreground', handleAppForeground);
-    };
-  }, [isPageVisible, user?.id, fetchFollowersData]);
-
+  // Image upload handlers
   const handleProfilePicClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  const handleCoverPhotoClick = () => {
+    if (coverInputRef.current) {
+      coverInputRef.current.click();
     }
   };
 
@@ -223,36 +106,29 @@ const ProfileView: React.FC = () => {
     const file = event.target.files?.[0];
     if (file && user) {
       try {
-        // **Compression settings**
         const options = {
-          maxSizeMB: 0.5, // Target max file size: 500KB
-          maxWidthOrHeight: 512, // Resize to max 512px
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 512,
           useWebWorker: true,
-          fileType: 'image/webp', // Convert to WebP for better compression
+          fileType: 'image/webp',
         };
 
-        // **Compress image before uploading**
         const compressedFile = await imageCompression(file, options);
-        console.log(`Original size: ${file.size / 1024} KB`);
-        console.log(`Compressed size: ${compressedFile.size / 1024} KB`);
-
-        // Convert compressed file to Base64
         const reader = new FileReader();
+
         reader.onloadend = async () => {
           try {
             const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
 
-            // Check if user has an existing profile picture that's not the default
+            // Clean up old profile picture
             if (
               user.profilePicture &&
               user.profilePicture !== DEFAULT_PROFILE_PIC &&
               !user.profilePicture.includes('/images/profile.png')
             ) {
-              // Extract CID from the URL - handle both full URLs and CIDs
               const oldCid = user.profilePicture.includes('/')
                 ? user.profilePicture.split('/').pop()
                 : user.profilePicture;
-
               if (oldCid) {
                 await unpinFromPinata(oldCid).catch((error) => {
                   console.warn('Failed to unpin old profile picture:', error);
@@ -260,13 +136,13 @@ const ProfileView: React.FC = () => {
               }
             }
 
-            // Upload the compressed image
+            // Upload new image
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 file: base64String,
-                fileName: `profile-${user.id}-${Date.now()}.webp`, // Add user ID and timestamp for uniqueness
+                fileName: `profile-${user.id}-${Date.now()}.webp`,
               }),
             });
 
@@ -275,22 +151,14 @@ const ProfileView: React.FC = () => {
             }
 
             const { url } = await response.json();
-
-            // Log the URL to see what's being returned
-            console.log('Received URL from upload:', url);
-
-            // Update state with the new URL
             setProfilePic(url);
-
-            // Update user in database
             await updateProfilePicture(user.id, url);
 
-            // Update local user state
+            // Update user state
             const updatedUser = { ...user, profilePicture: url };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
-            // Update PageManager state
             const profileCacheKey = `profile_${user.id}`;
             updatePageState(profileCacheKey, {
               ...(getPageState()[profileCacheKey]?.data || {}),
@@ -312,6 +180,98 @@ const ProfileView: React.FC = () => {
     }
   };
 
+  const handleCoverPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && user) {
+      try {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file.');
+          return;
+        }
+
+        // Check file size (max 10MB for cover photo)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('Image file must be smaller than 10MB.');
+          return;
+        }
+
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: 'image/webp',
+        };
+
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+
+        reader.onloadend = async () => {
+          try {
+            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+
+            // Clean up old cover photo if it's not the default
+            if (
+              user.coverPhoto &&
+              user.coverPhoto !== '/images/cover.jpg' &&
+              !user.coverPhoto.includes('/images/cover.jpg')
+            ) {
+              const oldCid = user.coverPhoto.includes('/') ? user.coverPhoto.split('/').pop() : user.coverPhoto;
+              if (oldCid) {
+                await unpinFromPinata(oldCid).catch((error) => {
+                  console.warn('Failed to unpin old cover photo:', error);
+                });
+              }
+            }
+
+            // Upload new cover photo to IPFS
+            const response = await fetch('/api/pinFileToIPFS', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                file: base64String,
+                fileName: `cover-${user.id}-${Date.now()}.webp`,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
+            }
+
+            const { url } = await response.json();
+            setCoverPhoto(url);
+
+            // Update in database (need to add this function to dgraph.ts)
+            await updateCoverPhoto(user.id, url);
+
+            // Update user state (same pattern as profile picture)
+            const updatedUser = { ...user, coverPhoto: url };
+            login(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+
+            // Update page cache
+            const profileCacheKey = `profile_${user.id}`;
+            updatePageState(profileCacheKey, {
+              ...(getPageState()[profileCacheKey]?.data || {}),
+              coverPhoto: url,
+            });
+
+            console.log('Cover photo successfully updated.');
+          } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to update cover photo. Please try again.');
+          }
+        };
+
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        alert('Image compression failed. Please try with a different image.');
+      }
+    }
+  };
+
+  // Bio editing handlers
   const handleEditBioClick = () => setIsEditingBio(true);
 
   const handleSaveBioClick = async () => {
@@ -327,7 +287,6 @@ const ProfileView: React.FC = () => {
       login(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      // Update PageManager state
       const profileCacheKey = `profile_${user.id}`;
       updatePageState(profileCacheKey, {
         ...(getPageState()[profileCacheKey]?.data || {}),
@@ -343,141 +302,225 @@ const ProfileView: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-    setBio(user?.bio || 'This is your bio. Click to edit it.');
+    setBio(user?.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!');
     setIsEditingBio(false);
   };
 
-  const handleFollowersClick = () => {
-    setShowFollowersPopup(true);
+  const getButtonColor = (section: string) => {
+    switch (section) {
+      case 'trailer':
+        return 'nocenaPink';
+      case 'calendar':
+        return 'nocenaPurple';
+      case 'achievements':
+        return 'nocenaBlue';
+      default:
+        return 'nocenaBlue';
+    }
   };
 
-  // Ensure challenge indicators are always in sync with user data
-  useEffect(() => {
-    if (user) {
-      setDailyChallenges(user.dailyChallenge.split('').map((char) => char === '1'));
-      setWeeklyChallenges(user.weeklyChallenge.split('').map((char) => char === '1'));
-      setMonthlyChallenges(user.monthlyChallenge.split('').map((char) => char === '1'));
-      setTokenBalance(user.earnedTokens || 0);
-      setProfilePic(user.profilePicture || defaultProfilePic);
-      setUsername(user.username);
-      setBio(user.bio || 'This is your bio. Click to edit it.');
-    }
-  }, [user]);
-
-  // Memoize challenge indicator to prevent unnecessary re-renders
-  const challengeIndicators = useMemo(() => {
-    return monthNames.map((month, index) => (
-      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
-        <div
-          className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
-        >
-          <ChallengeIndicator
-            dailyChallenges={dailyChallenges}
-            weeklyChallenges={weeklyChallenges}
-            monthlyChallenge={monthlyChallenges}
-            month={index}
-          />
-        </div>
-        <span className="text-sm mt-4">{month}</span>
-      </div>
-    ));
-  }, [dailyChallenges, weeklyChallenges, monthlyChallenges, monthNames]);
-
   return (
-    <div className="text-white p-4 min-h-screen mt-20">
-      <div className="flex flex-col items-center relative">
-        <div className="absolute inset-0">
-          <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
-          <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
-        </div>
+    <div
+      className="fixed inset-0 text-white overflow-y-auto"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+        width: '100vw',
+        height: '100vh',
+      }}
+    >
+      <div className="min-h-screen">
+        {/* Cover Photo Section */}
+        <div className="relative h-80 overflow-hidden">
+          {coverPhoto !== '/images/cover.jpg' ? (
+            <Image src={coverPhoto} alt="Cover" fill className="object-cover" />
+          ) : (
+            <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
+          )}
 
-        <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
+          {/* Gradient overlay for smooth blending effect */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-transparent via-70% to-black/80" />
+
           <div
-            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={handleFollowersClick}
+            className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+            onClick={handleCoverPhotoClick}
           >
-            <FollowersIcon className="w-8 h-8 mb-1" />
-            <span>{followersCount}</span>
-          </div>
-
-          <div onClick={handleProfilePicClick}>
-            <ThematicImage className="relative z-10">
-              <Image
-                src={profilePic}
-                alt="Profile"
-                width={96}
-                height={96}
-                className="w-24 h-24 object-cover rounded-full cursor-pointer"
-              />
-            </ThematicImage>
+            <div className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
+              Change Cover Photo
+            </div>
           </div>
 
           <input
             type="file"
-            accept=".jpg,.jpeg,.png,.webp,.heif,.hevc"
-            ref={fileInputRef}
+            accept=".jpg,.jpeg,.png,.webp"
+            ref={coverInputRef}
             style={{ display: 'none' }}
-            onChange={handleProfilePicUpload}
+            onChange={handleCoverPhotoUpload}
           />
-
-          <div className="flex flex-col items-center">
-            <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
-            <span>{tokenBalance}</span>
-          </div>
         </div>
 
-        <ThematicText text={username} isActive={true} className="capitalize relative z-10" />
+        {/* Profile Section */}
+        <div className="px-4 pb-8">
+          {/* Profile Picture & Stats */}
+          <div className="relative -mt-24 mb-4">
+            <div className="flex items-end justify-between">
+              {/* Profile Picture */}
+              <div onClick={handleProfilePicClick} className="relative cursor-pointer group">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 p-1">
+                  <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1">
+                    <Image
+                      src={profilePic}
+                      alt="Profile"
+                      width={120}
+                      height={120}
+                      className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                </div>
+              </div>
 
-        <div
-          className={`relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-16 ${
-            isEditingBio ? 'border border-white' : ''
-          }`}
-        >
-          <div className="flex justify-between items-center">
+              {/* Combined Stats Card */}
+              <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                <div className="flex items-center space-x-6">
+                  <div
+                    className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={handleFollowersClick}
+                  >
+                    <div className="text-2xl font-bold">{followersCount}</div>
+                    <div className="text-sm text-white/60">Followers</div>
+                  </div>
+                  <div className="w-px h-8 bg-white/20"></div>
+                  <div className="text-center">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-2xl font-bold">{tokenBalance}</span>
+                      <Image src={nocenix} alt="Nocenix" width={20} height={20} />
+                    </div>
+                    <div className="text-sm text-white/60">Nocenix</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.heif,.hevc"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleProfilePicUpload}
+            />
+          </div>
+
+          {/* Username */}
+          <h1 className="text-2xl font-bold mb-4">{username}</h1>
+
+          {/* Bio */}
+          <div className="mb-6">
             {isEditingBio ? (
-              <>
+              <div className="space-y-3">
                 <textarea
-                  className="w-full p-2 bg-transparent text-white rounded"
+                  className="w-full p-4 bg-slate-800/40 backdrop-blur-md text-white rounded-xl border border-white/20 resize-none focus:outline-none focus:border-purple-400 transition-colors"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
+                  rows={4}
+                  placeholder="Tell others about yourself..."
                 />
-                <div onClick={handleSaveBioClick} className="ml-4 cursor-pointer">
-                  <SaveIcon className="w-6 h-6" />
+                <div className="flex space-x-3 justify-end">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 bg-slate-700/60 backdrop-blur-sm hover:bg-slate-600/60 rounded-lg transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveBioClick}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-80 rounded-lg transition-all text-sm font-medium"
+                  >
+                    Save
+                  </button>
                 </div>
-                <div onClick={handleCancelEdit} className="ml-4 cursor-pointer">
-                  <PenIcon className="w-6 h-6" />
-                </div>
-              </>
+              </div>
             ) : (
-              <>
-                <p>{bio}</p>
-                <div onClick={handleEditBioClick} className="cursor-pointer">
-                  <PenIcon className="w-6 h-6" />
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  {bio.split('\n').map((line, index) => (
+                    <p key={index} className="text-white/80 leading-relaxed">
+                      {line}
+                    </p>
+                  ))}
                 </div>
-              </>
+                <button
+                  onClick={handleEditBioClick}
+                  className="ml-4 p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <PenIcon className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+            {/* Three Section Menu using ThematicContainer */}
+            <div className="flex justify-center mb-6 space-x-4">
+              {[
+                { key: 'trailer', label: 'Trailer' },
+                { key: 'calendar', label: 'Calendar' },
+                { key: 'achievements', label: 'Stats' },
+              ].map(({ key, label }) => (
+                <ThematicContainer
+                  key={key}
+                  asButton={true}
+                  glassmorphic={false}
+                  color={getButtonColor(key)}
+                  isActive={activeSection === key}
+                  onClick={() => setActiveSection(key as any)}
+                  className="px-8 py-2"
+                >
+                  {label}
+                </ThematicContainer>
+              ))}
+            </div>
+
+          {/* Content Based on Active Section */}
+          <div className="space-y-4">
+            {activeSection === 'trailer' && (
+              <TrailerSection
+                currentStreak={currentStreak}
+                totalChallenges={totalChallenges}
+                tokenBalance={tokenBalance}
+              />
+            )}
+
+            {activeSection === 'calendar' && (
+              <CalendarSection
+                dailyChallenges={dailyChallenges}
+                weeklyChallenges={weeklyChallenges}
+                monthlyChallenges={monthlyChallenges}
+              />
+            )}
+
+            {activeSection === 'achievements' && (
+              <StatsSection
+                currentStreak={currentStreak}
+                tokenBalance={tokenBalance}
+                dailyChallenges={dailyChallenges}
+                weeklyChallenges={weeklyChallenges}
+                monthlyChallenges={monthlyChallenges}
+              />
             )}
           </div>
         </div>
-
-        <div className="relative z-20 mt-10 text-center w-full">
-          <h3 className="text-lg font-semibold">Timed challenge counter</h3>
-          <div
-            className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
-            ref={scrollContainerRef}
-            style={{ paddingBottom: '30px' }}
-          >
-            {challengeIndicators}
-          </div>
-        </div>
-
-        {/* Followers Popup */}
-        <FollowersPopup
-          isOpen={showFollowersPopup}
-          onClose={() => setShowFollowersPopup(false)}
-          followers={followers}
-          isFollowers={true}
-        />
       </div>
+
+      {/* Followers Popup */}
+      <FollowersPopup
+        isOpen={showFollowersPopup}
+        onClose={() => setShowFollowersPopup(false)}
+        followers={followers}
+        isFollowers={true}
+      />
     </div>
   );
 };

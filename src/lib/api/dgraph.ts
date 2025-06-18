@@ -50,6 +50,7 @@ export const registerUser = async (
           wallet
           bio
           profilePicture
+          trailerVideo
           earnedTokens
           dailyChallenge
           weeklyChallenge
@@ -78,6 +79,7 @@ export const registerUser = async (
       wallet: wallet,
       passwordHash: passwordHash,
       profilePicture: profilePicture,
+      trailerVideo: '/trailer.mp4', // Set default trailer video like profile picture
       earnedTokens: 50,
       dailyChallenge: dailyChallenge,
       weeklyChallenge: weeklyChallenge,
@@ -129,6 +131,14 @@ export const registerUser = async (
           '🔧 REGISTER: Successfully saved pushSubscription:',
           userData.pushSubscription.substring(0, 50) + '...',
         );
+      }
+
+      // Verify trailerVideo was saved
+      if (!userData.trailerVideo) {
+        console.warn('🔧 REGISTER: Warning - trailerVideo was not saved to database');
+        userData.trailerVideo = '/trailer.mp4'; // Fallback to default
+      } else {
+        console.log('🔧 REGISTER: Successfully saved trailerVideo:', userData.trailerVideo);
       }
     }
 
@@ -2907,5 +2917,87 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
   } catch (error) {
     console.error('🔔 BULK: Error fetching push subscriptions:', error);
     throw new Error('Failed to fetch user push subscriptions for bulk notification');
+  }
+};
+
+export const updateTrailerVideo = async (userId: string, trailerVideo: string): Promise<void> => {
+  const mutation = `
+    mutation UpdateUserTrailerVideo($id: String!, $trailerVideo: String!) {
+      updateUser(input: { filter: { id: { eq: $id } }, set: { trailerVideo: $trailerVideo } }) {
+        user {
+          id
+          trailerVideo
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    trailerVideo: trailerVideo,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(`Dgraph Error: ${errorMessages}`);
+    }
+
+    console.log('Trailer video successfully updated in Dgraph:', response.data);
+  } catch (error) {
+    console.error('Error updating trailer video in Dgraph:', error);
+    throw new Error('Failed to update trailer video in the database.');
+  }
+};
+
+export const updateCoverPhoto = async (userId: string, coverPhoto: string): Promise<void> => {
+  const mutation = `
+    mutation UpdateUserCoverPhoto($id: String!, $coverPhoto: String!) {
+      updateUser(input: { filter: { id: { eq: $id } }, set: { coverPhoto: $coverPhoto } }) {
+        user {
+          id
+          coverPhoto
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    coverPhoto: coverPhoto,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(`Dgraph Error: ${errorMessages}`);
+    }
+
+    console.log('Cover photo successfully updated in Dgraph:', response.data);
+  } catch (error) {
+    console.error('Error updating cover photo in Dgraph:', error);
+    throw new Error('Failed to update cover photo in the database.');
   }
 };

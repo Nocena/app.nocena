@@ -7,11 +7,11 @@ import { useAuth, User as AuthUser } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicImage from '../../components/ui/ThematicImage';
-import ChallengeIndicator from './components/ChallengeIndicator';
-import ThematicText from '../../components/ui/ThematicText';
+import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
-
-import FollowersIcon from '../../components/icons/followers';
+import TrailerSection from './components/TrailerSection';
+import StatsSection from './components/StatsSection';
+import CalendarSection from './components/CalendarSection';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -21,6 +21,8 @@ interface ProfileUser {
   id: string;
   username: string;
   profilePicture: string;
+  coverPhoto?: string;
+  trailerVideo?: string;
   bio: string;
   earnedTokens: number;
   dailyChallenge: string;
@@ -44,6 +46,7 @@ const OtherProfileView: React.FC = () => {
   const [showFollowersPopup, setShowFollowersPopup] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -137,6 +140,8 @@ const OtherProfileView: React.FC = () => {
           id: fullUser.id,
           username: fullUser.username,
           profilePicture: fullUser.profilePicture,
+          coverPhoto: fullUser.coverPhoto,
+          trailerVideo: fullUser.trailerVideo,
           bio: fullUser.bio,
           earnedTokens: fullUser.earnedTokens,
           dailyChallenge: fullUser.dailyChallenge,
@@ -375,48 +380,111 @@ const OtherProfileView: React.FC = () => {
     });
   };
 
-  // Memoize challenge indicators to prevent unnecessary re-renders
-  const challengeIndicators = useMemo(() => {
-    if (!user) return null;
+  // Handle followers click
+  const handleFollowersClick = () => {
+    setShowFollowersPopup(true);
+  };
 
-    return monthNames.map((month, index) => (
-      <div key={index} className={`w-[200px] flex-shrink-0 flex flex-col items-center justify-center`}>
-        <div
-          className={`w-24 h-24 rounded-full flex items-center justify-center mt-8 ${index === new Date().getMonth() ? 'bg-primary' : ''}`}
-        >
-          <ChallengeIndicator
-            dailyChallenges={user.dailyChallenge.split('').map((char) => char === '1')}
-            weeklyChallenges={user.weeklyChallenge.split('').map((char) => char === '1')}
-            monthlyChallenge={user.monthlyChallenge.split('').map((char) => char === '1')}
-            month={index}
-          />
-        </div>
-        <span className="text-sm mt-4">{month}</span>
-      </div>
-    ));
-  }, [user, monthNames]);
+  // Calculate stats for components
+  const currentStreak = useMemo(() => {
+    if (!user) return 0;
+    const dailyChallenges = user.dailyChallenge.split('').map((char) => char === '1');
+    let streak = 0;
+    for (let i = dailyChallenges.length - 1; i >= 0; i--) {
+      if (dailyChallenges[i]) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, [user]);
+
+  const totalChallenges = useMemo(() => {
+    if (!user) return 0;
+    const dailyChallenges = user.dailyChallenge.split('').map((char) => char === '1');
+    const weeklyChallenges = user.weeklyChallenge.split('').map((char) => char === '1');
+    const monthlyChallenges = user.monthlyChallenge.split('').map((char) => char === '1');
+
+    return (
+      dailyChallenges.filter(Boolean).length +
+      weeklyChallenges.filter(Boolean).length +
+      monthlyChallenges.filter(Boolean).length
+    );
+  }, [user]);
+
+  const getButtonColor = (section: string) => {
+    switch (section) {
+      case 'trailer':
+        return 'nocenaPink';
+      case 'calendar':
+        return 'nocenaPurple';
+      case 'achievements':
+        return 'nocenaBlue';
+      default:
+        return 'nocenaBlue';
+    }
+  };
 
   // Show loading state only if we don't have any cached data at all
   if (isLoading && !user) {
     return (
-      <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">Loading...</div>
+      <div
+        className="fixed inset-0 text-white overflow-y-auto"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1,
+          width: '100vw',
+          height: '100vh',
+        }}
+      >
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </div>
     );
   }
 
   if (error && initialDataLoaded) {
     return (
-      <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">Error loading profile: {error.message}</div>
+      <div
+        className="fixed inset-0 text-white overflow-y-auto"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1,
+          width: '100vw',
+          height: '100vh',
+        }}
+      >
+        <div className="flex items-center justify-center min-h-screen">Error loading profile: {error.message}</div>
       </div>
     );
   }
 
   if (!user && initialDataLoaded) {
     return (
-      <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex items-center justify-center min-h-[50vh]">User not found.</div>
+      <div
+        className="fixed inset-0 text-white overflow-y-auto"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1,
+          width: '100vw',
+          height: '100vh',
+        }}
+      >
+        <div className="flex items-center justify-center min-h-screen">User not found.</div>
       </div>
     );
   }
@@ -427,97 +495,198 @@ const OtherProfileView: React.FC = () => {
     const isFollowing = !!(currentUser && user.followers.includes(currentUser.id));
 
     return (
-      <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex flex-col items-center relative">
-          <div className="absolute inset-0">
-            <div className="absolute -top-50 right-0 transform translate-x-1/4 w-[400px] h-[400px] bg-primary-blue rounded-full opacity-10 blur-lg"></div>
-            <div className="absolute -bottom-40 left-0 transform -translate-x-1/3 w-[500px] h-[500px] bg-primary-pink rounded-full opacity-10 blur-lg"></div>
+      <div
+        className="fixed inset-0 text-white overflow-y-auto"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1,
+          width: '100vw',
+          height: '100vh',
+        }}
+      >
+        <div className="min-h-screen">
+          {/* Cover Photo Section */}
+          <div className="relative h-80 overflow-hidden">
+            {user.coverPhoto && user.coverPhoto !== '/images/cover.jpg' ? (
+              <Image src={user.coverPhoto} alt="Cover" fill className="object-cover" />
+            ) : (
+              <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
+            )}
+
+            {/* Gradient overlay for smooth blending effect */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-transparent via-70% to-black/80" />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between w-full max-w-xs my-8">
-            <div
-              className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => setShowFollowersPopup(true)}
-            >
-              <FollowersIcon className="w-8 h-8 mb-1" />
-              <span>{user.followers.length}</span>
+          {/* Profile Section - with improved bottom padding */}
+          <div className="px-4 pb-20">
+            {/* Profile Picture & Stats */}
+            <div className="relative -mt-24 mb-4">
+              <div className="flex items-end justify-between">
+                {/* Profile Picture */}
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 p-1">
+                    <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1">
+                      <Image
+                        src={user.profilePicture || defaultProfilePic}
+                        alt="Profile"
+                        width={120}
+                        height={120}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Combined Stats Card */}
+                <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                  <div className="flex items-center space-x-6">
+                    <div
+                      className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={handleFollowersClick}
+                    >
+                      <div className="text-2xl font-bold">{user.followers.length}</div>
+                      <div className="text-sm text-white/60">Followers</div>
+                    </div>
+                    <div className="w-px h-8 bg-white/20"></div>
+                    <div className="text-center">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-2xl font-bold">{user.earnedTokens}</span>
+                        <Image src={nocenix} alt="Nocenix" width={20} height={20} />
+                      </div>
+                      <div className="text-sm text-white/60">Nocenix</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <ThematicImage className="relative z-10">
-              <Image
-                src={user.profilePicture || defaultProfilePic}
-                alt="Profile"
-                width={96}
-                height={96}
-                className="w-24 h-24 object-cover rounded-full"
+            {/* Username */}
+            <h1 className="text-2xl font-bold mb-4">{user.username}</h1>
+
+            {/* Bio - Read-only */}
+            <div className="mb-6">
+              <div className="flex-1">
+                {(user.bio || 'This user has no bio.').split('\n').map((line, index) => (
+                  <p key={index} className="text-white/80 leading-relaxed">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mb-6 flex space-x-3">
+              <PrimaryButton
+                text={
+                  isPendingFollow
+                    ? isFollowing
+                      ? 'Unfollowing...'
+                      : 'Following...'
+                    : isFollowing
+                      ? 'Following'
+                      : 'Follow'
+                }
+                onClick={handleFollowToggle}
+                className="flex-1"
+                isActive={!isFollowing}
+                disabled={isPendingFollow || !currentUser}
               />
-            </ThematicImage>
 
-            <div className="flex flex-col items-center">
-              <Image src={nocenix} alt="Nocenix Token" width={40} height={40} className="w-10 h-10 mb-1" />
-              <span>{user.earnedTokens}</span>
+              <PrimaryButton
+                text="Challenge Me"
+                onClick={handleChallengeClick}
+                className="flex-1"
+                isActive={false}
+                disabled={!currentUser || currentUser.id === user.id}
+              />
             </div>
-          </div>
 
-          {/* Followers Popup */}
-          <FollowersPopup
-            isOpen={showFollowersPopup}
-            onClose={() => setShowFollowersPopup(false)}
-            followers={user.followers}
-            isFollowers={true}
-          />
+            {/* Three Section Menu using ThematicContainer */}
+            <div className="flex justify-center mb-6 space-x-4">
+              {[
+                { key: 'trailer', label: 'Trailer' },
+                { key: 'calendar', label: 'Calendar' },
+                { key: 'achievements', label: 'Stats' },
+              ].map(({ key, label }) => (
+                <ThematicContainer
+                  key={key}
+                  asButton={true}
+                  glassmorphic={false}
+                  color={getButtonColor(key)}
+                  isActive={activeSection === key}
+                  onClick={() => setActiveSection(key as any)}
+                  className="px-8 py-2"
+                >
+                  {label}
+                </ThematicContainer>
+              ))}
+            </div>
 
-          <ThematicText text={user.username} isActive={true} className="capitalize relative z-10" />
+            {/* Content Based on Active Section - with bottom margin */}
+            <div className="space-y-4 mb-8">
+              {activeSection === 'trailer' && (
+                <TrailerSection
+                  currentStreak={currentStreak}
+                  totalChallenges={totalChallenges}
+                  tokenBalance={user.earnedTokens}
+                  user={user}
+                  isOtherProfile={true}
+                />
+              )}
 
-          <div className="relative z-10 mt-4">
-            <PrimaryButton
-              text={
-                isPendingFollow
-                  ? isFollowing
-                    ? 'Following...'
-                    : 'Unfollowing...'
-                  : isFollowing
-                    ? 'Following'
-                    : 'Follow'
-              }
-              onClick={handleFollowToggle}
-              className="px-6 py-2 mb-2"
-              isActive={!!isFollowing}
-              disabled={isPendingFollow || !currentUser}
-            />
+              {activeSection === 'calendar' && (
+                <CalendarSection
+                  dailyChallenges={user.dailyChallenge.split('').map((char) => char === '1')}
+                  weeklyChallenges={user.weeklyChallenge.split('').map((char) => char === '1')}
+                  monthlyChallenges={user.monthlyChallenge.split('').map((char) => char === '1')}
+                />
+              )}
 
-            <PrimaryButton
-              text="Challenge Me"
-              onClick={handleChallengeClick}
-              className="px-6 py-2"
-              disabled={!currentUser || currentUser.id === user.id}
-            />
-          </div>
-
-          <div className="relative z-10 px-4 text-center text-sm bg-black/40 rounded-md py-2 w-full max-w-xs mt-4">
-            <p>{user.bio || 'This user has no bio.'}</p>
-          </div>
-
-          <div className="relative z-20 mt-10 text-center w-full">
-            <h3 className="text-lg font-semibold">Timed challenge counter</h3>
-            <div
-              className="relative z-20 flex overflow-x-auto no-scrollbar w-full px-4"
-              ref={scrollContainerRef}
-              style={{ paddingBottom: '30px' }}
-            >
-              {challengeIndicators}
+              {activeSection === 'achievements' && (
+                <StatsSection
+                  currentStreak={currentStreak}
+                  tokenBalance={user.earnedTokens}
+                  dailyChallenges={user.dailyChallenge.split('').map((char) => char === '1')}
+                  weeklyChallenges={user.weeklyChallenge.split('').map((char) => char === '1')}
+                  monthlyChallenges={user.monthlyChallenge.split('').map((char) => char === '1')}
+                />
+              )}
             </div>
           </div>
         </div>
+
+        {/* Followers Popup */}
+        <FollowersPopup
+          isOpen={showFollowersPopup}
+          onClose={() => setShowFollowersPopup(false)}
+          followers={user.followers}
+          isFollowers={true}
+        />
       </div>
     );
   }
 
   // Default loading state (should only show briefly)
   return (
-    <div className="text-white p-4 min-h-screen mt-20">
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div
+      className="fixed inset-0 text-white overflow-y-auto"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+        width: '100vw',
+        height: '100vh',
+      }}
+    >
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     </div>
   );
