@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 
 import ThematicContainer from '../../../components/ui/ThematicContainer';
 import ThematicImage from '../../../components/ui/ThematicImage';
-import ThematicText from '../../../components/ui/ThematicText';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 import { useAuth, User as AuthUser } from '../../../contexts/AuthContext';

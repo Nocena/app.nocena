@@ -16,6 +16,8 @@ import ChallengeForm from './components/ChallengeForm';
 import CompletionFeed from './components/CompletionFeed';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
+import LiquidGlass from 'liquid-glass-react';
+
 type ChallengeType = 'daily' | 'weekly' | 'monthly';
 
 // FIXED completion check functions

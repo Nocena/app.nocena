@@ -1,4 +1,5 @@
 import React from 'react';
+import LiquidGlass from 'liquid-glass-react';
 
 type ThematicColor = 'nocenaPink' | 'nocenaPurple' | 'nocenaBlue';
 
@@ -11,7 +12,7 @@ interface Props {
   type?: HTMLButtonElement['type'];
   onClick?: (e: React.FormEvent<HTMLElement>) => void;
   asButton?: boolean; // Whether to render as a button or div
-  rounded?: 'full' | 'xl'; // Specify border radius
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full'; // Extended rounded options
   glassmorphic?: boolean; // New prop to toggle glassmorphic effect
 }
 
@@ -40,11 +41,57 @@ const ThematicContainer: React.FC<Props> = ({
     }
   };
 
+  const getRoundedClasses = () => {
+    switch (rounded) {
+      case 'none':
+        return '';
+      case 'sm':
+        return ' rounded-sm';
+      case 'md':
+        return ' rounded-md';
+      case 'lg':
+        return ' rounded-lg';
+      case 'xl':
+        return ' rounded-xl';
+      case '2xl':
+        return ' rounded-2xl';
+      case '3xl':
+        return ' rounded-3xl';
+      case 'full':
+        return ' rounded-full';
+      default:
+        return ' rounded-full';
+    }
+  };
+
+  const getBorderRadius = () => {
+    switch (rounded) {
+      case 'none':
+        return '0px';
+      case 'sm':
+        return '2px';
+      case 'md':
+        return '6px';
+      case 'lg':
+        return '8px';
+      case 'xl':
+        return '12px';
+      case '2xl':
+        return '16px';
+      case '3xl':
+        return '24px';
+      case 'full':
+        return '9999px';
+      default:
+        return '9999px';
+    }
+  };
+
   const getContainerClasses = () => {
     let classes = 'relative text-lg font-medium font-sans transition-all duration-300';
 
     // Add rounded classes based on prop
-    classes += rounded === 'full' ? ' rounded-full' : ' rounded-3xl';
+    classes += getRoundedClasses();
 
     // Add border classes - thinner for glassmorphic
     if (glassmorphic) {
@@ -119,7 +166,7 @@ const ThematicContainer: React.FC<Props> = ({
         className="absolute inset-x-0 top-0 h-[3px] overflow-hidden pointer-events-none"
         style={{
           top: glassmorphic ? '-1px' : '-1.5px',
-          borderRadius: rounded === 'full' ? '9999px' : '16px',
+          borderRadius: getBorderRadius(),
         }}
       >
         <div
@@ -142,7 +189,7 @@ const ThematicContainer: React.FC<Props> = ({
         className="absolute inset-0 pointer-events-none"
         style={{
           background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(143, 164, 252, 0.05))',
-          borderRadius: rounded === 'full' ? '9999px' : '16px',
+          borderRadius: getBorderRadius(),
           zIndex: -1,
         }}
       />

@@ -78,56 +78,58 @@ const BottomNavbar: React.FC<BottomNavbarProps> = ({ currentIndex, handleNavClic
           glassmorphic={true}
           asButton={false}
           rounded="full"
-          className="p-1 flex items-center justify-center"
+          className="p-1"
         >
-          {NAV_ITEMS.map((item, index, array) => {
-            const isActive = currentIndex === index;
-            const isFirst = index === 0;
-            const isLast = index === array.length - 1;
+          {/* FIXED: Force inline flex layout that never wraps */}
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+            {NAV_ITEMS.map((item, index) => {
+              const isActive = currentIndex === index;
 
-            return (
-              <div
-                key={item.name}
-                onClick={() => handleNavClick(index)}
-                className={`
-                  relative flex items-center justify-center cursor-pointer overflow-hidden
-                  transition-all duration-300 ease-in-out rounded-full
-                  ${isFirst ? 'ml-0' : 'ml-1'} ${isLast ? 'mr-0' : 'mr-1'}
-                  ${isActive ? 'shadow-lg z-10' : `z-${5 - index}`}
-                `}
-                style={{
-                  width: isActive ? (isMobile ? 120 : 150) : 48,
-                  height: 48,
-                }}
-              >
-                {/* Active state with label - now using Tailwind gradient classes */}
-                {isActive && (
-                  <div
-                    className={`
-                    absolute inset-0 rounded-full flex items-center
-                    ${item.gradientClass}
-                  `}
-                  >
-                    <div className="font-medium text-lg text-white absolute left-14">{item.label}</div>
-                  </div>
-                )}
-
-                {/* Icon circle - always visible */}
+              return (
                 <div
+                  key={item.name}
+                  onClick={() => handleNavClick(index)}
                   className={`
-                    absolute left-0 top-0 flex items-center justify-center rounded-full
-                    w-12 h-12
-                    ${isActive ? 'z-20 shadow-md' : 'z-10'}
+                    relative flex items-center justify-center cursor-pointer
+                    transition-all duration-300 ease-in-out rounded-full flex-shrink-0
+                    ${isActive ? 'shadow-lg z-10' : 'z-5'}
                   `}
                   style={{
-                    backgroundColor: item.color,
+                    // FIXED: Use min-width to ensure consistent sizing
+                    minWidth: isActive ? (isMobile ? 120 : 150) : 48,
+                    width: isActive ? (isMobile ? 120 : 150) : 48,
+                    height: 48,
                   }}
                 >
-                  {renderIcon(item, unreadCount)}
+                  {/* Active state with label - now using Tailwind gradient classes */}
+                  {isActive && (
+                    <div
+                      className={`
+                        absolute inset-0 rounded-full flex items-center
+                        ${item.gradientClass}
+                      `}
+                    >
+                      <div className="font-medium text-lg text-white absolute left-14 truncate">{item.label}</div>
+                    </div>
+                  )}
+
+                  {/* Icon circle - always visible */}
+                  <div
+                    className={`
+                      absolute left-0 top-0 flex items-center justify-center rounded-full
+                      w-12 h-12 flex-shrink-0
+                      ${isActive ? 'z-20 shadow-md' : 'z-10'}
+                    `}
+                    style={{
+                      backgroundColor: item.color,
+                    }}
+                  >
+                    {renderIcon(item, unreadCount)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </ThematicContainer>
       </div>
     </div>

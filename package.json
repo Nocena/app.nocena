@@ -49,6 +49,7 @@
     "framer-motion": "^10.18.0",
     "graphql": "^16.10.0",
     "jose": "^6.0.7",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.479.0",
     "maplibre-gl": "^5.3.0",
     "next": "^15.1.4",

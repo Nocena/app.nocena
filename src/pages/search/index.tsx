@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicImage from '../../components/ui/ThematicImage';
-import ThematicText from '../../components/ui/ThematicText';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { fetchAllUsers, toggleFollowUser } from '../../lib/api/dgraph';
@@ -367,11 +366,7 @@ const SearchView = () => {
               </ThematicImage>
 
               <div className="flex-1 min-w-0 mr-2">
-                <ThematicText
-                  text={userData.username}
-                  isActive={true}
-                  className="truncate text-left max-w-full text-sm font-medium"
-                />
+                <h1 className="truncate text-left max-w-full text-sm font-medium">{userData.username}</h1>
                 <div className="flex items-center mt-0.5">
                   <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
                   <span className="text-xs ml-1 text-gray-400">{userData.earnedTokens}</span>

@@ -1,5 +1,4 @@
 import React from 'react';
-import ThematicText from '../../ui/ThematicText';
 
 interface Props {
   inviteOwner?: string;

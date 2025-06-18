@@ -4,6 +4,12 @@ import PrimaryButton from '../ui/PrimaryButton';
 import ThematicImage from '../ui/ThematicImage';
 import ThematicContainer from '../ui/ThematicContainer';
 import InviteFriends from './menu/InviteFriends';
+import WalletMenu from './menu/Wallet';
+import NocenixMenu from './menu/Nocenix';
+import VerificationMenu from './menu/Verification';
+import SettingsMenu from './menu/Settings';
+import FAQMenu from './menu/FAQ';
+import ContactMenu from './menu/Contact';
 import Image from 'next/image';
 
 interface MenuProps {
@@ -67,7 +73,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     setTouchStart(null);
   };
 
-  // Improved MenuItem with proper touch handling
+  // Improved MenuItem with proper touch handling that distinguishes taps from scrolls
   const MenuItem = ({
     icon,
     title,
@@ -79,10 +85,46 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     onClick: () => void;
     description?: string;
   }) => {
-    const handleTouch = (e: React.TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick();
+    const [touchStartY, setTouchStartY] = useState<number | null>(null);
+    const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
+    const [hasMoved, setHasMoved] = useState(false);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      setTouchStartY(e.touches[0].clientY);
+      setTouchStartTime(Date.now());
+      setHasMoved(false);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!touchStartY) return;
+
+      const currentY = e.touches[0].clientY;
+      const diff = Math.abs(currentY - touchStartY);
+
+      // If movement is more than 10px, consider it a scroll
+      if (diff > 10) {
+        setHasMoved(true);
+      }
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStartTime || !touchStartY) return;
+
+      const touchDuration = Date.now() - touchStartTime;
+
+      // Only trigger click if:
+      // 1. Touch was brief (less than 300ms)
+      // 2. There was minimal movement (not a scroll)
+      if (touchDuration < 300 && !hasMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }
+
+      // Reset state
+      setTouchStartY(null);
+      setTouchStartTime(null);
+      setHasMoved(false);
     };
 
     const handleClick = (e: React.MouseEvent) => {
@@ -93,7 +135,9 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
 
     return (
       <div
-        onTouchStart={handleTouch}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onClick={handleClick}
         className="w-full flex items-center py-4 px-6 hover:bg-white/10 active:bg-white/20 transition-all duration-200 cursor-pointer group text-left rounded-lg select-none touch-manipulation"
         role="button"
@@ -182,9 +226,31 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
 
           <div
             onTouchStart={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setActiveSection('invite');
+              // Store initial touch position and time for gesture detection
+              const touch = e.touches[0];
+              e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
+              e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
+              e.currentTarget.setAttribute('data-has-moved', 'false');
+            }}
+            onTouchMove={(e) => {
+              const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
+              const currentY = e.touches[0].clientY;
+              const diff = Math.abs(currentY - touchStartY);
+
+              if (diff > 10) {
+                e.currentTarget.setAttribute('data-has-moved', 'true');
+              }
+            }}
+            onTouchEnd={(e) => {
+              const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
+              const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
+              const touchDuration = Date.now() - touchStartTime;
+
+              if (touchDuration < 300 && !hasMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveSection('invite');
+              }
             }}
             onClick={(e) => {
               e.preventDefault();
@@ -278,12 +344,33 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           <p className="text-white/70 text-sm mb-4 text-center">Connect with us</p>
           <div className="flex justify-center space-x-4">
             <div
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://x.com/nocena', '_blank');
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
+                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
+                e.currentTarget.setAttribute('data-has-moved', 'false');
+              }}
+              onTouchMove={(e) => {
+                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
+                const currentY = e.touches[0].clientY;
+                const diff = Math.abs(currentY - touchStartY);
+
+                if (diff > 10) {
+                  e.currentTarget.setAttribute('data-has-moved', 'true');
+                }
               }}
               onTouchEnd={(e) => {
+                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
+                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
+                const touchDuration = Date.now() - touchStartTime;
+
+                if (touchDuration < 300 && !hasMoved) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open('https://x.com/nocena', '_blank');
+                }
+              }}
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.open('https://x.com/nocena', '_blank');
@@ -297,12 +384,33 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
               </svg>
             </div>
             <div
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://discord.gg/nocena', '_blank');
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
+                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
+                e.currentTarget.setAttribute('data-has-moved', 'false');
+              }}
+              onTouchMove={(e) => {
+                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
+                const currentY = e.touches[0].clientY;
+                const diff = Math.abs(currentY - touchStartY);
+
+                if (diff > 10) {
+                  e.currentTarget.setAttribute('data-has-moved', 'true');
+                }
               }}
               onTouchEnd={(e) => {
+                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
+                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
+                const touchDuration = Date.now() - touchStartTime;
+
+                if (touchDuration < 300 && !hasMoved) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open('https://discord.gg/nocena', '_blank');
+                }
+              }}
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.open('https://discord.gg/nocena', '_blank');
@@ -316,12 +424,33 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
               </svg>
             </div>
             <div
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://t.me/nocena', '_blank');
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
+                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
+                e.currentTarget.setAttribute('data-has-moved', 'false');
+              }}
+              onTouchMove={(e) => {
+                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
+                const currentY = e.touches[0].clientY;
+                const diff = Math.abs(currentY - touchStartY);
+
+                if (diff > 10) {
+                  e.currentTarget.setAttribute('data-has-moved', 'true');
+                }
               }}
               onTouchEnd={(e) => {
+                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
+                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
+                const touchDuration = Date.now() - touchStartTime;
+
+                if (touchDuration < 300 && !hasMoved) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.open('https://t.me/nocena', '_blank');
+                }
+              }}
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.open('https://t.me/nocena', '_blank');
@@ -343,221 +472,19 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
   const renderSectionContent = () => {
     switch (activeSection) {
       case 'wallet':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">Wallet</h2>
-            <p className="text-white/70 text-base leading-relaxed">Wallet details page will be implemented here...</p>
-          </div>
-        );
+        return <WalletMenu onBack={() => setActiveSection(null)} />;
       case 'nocenix':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">Nocenix</h2>
-            <p className="text-white/70 text-base leading-relaxed">
-              Token balance and history page will be implemented here...
-            </p>
-          </div>
-        );
+        return <NocenixMenu onBack={() => setActiveSection(null)} />;
       case 'invite':
         return <InviteFriends onBack={() => setActiveSection(null)} />;
       case 'verification':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">Verification</h2>
-            <p className="text-white/70 text-base leading-relaxed">
-              Account verification page will be implemented here...
-            </p>
-          </div>
-        );
+        return <VerificationMenu onBack={() => setActiveSection(null)} />;
       case 'settings':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">Settings</h2>
-            <p className="text-white/70 text-base leading-relaxed">Settings page will be implemented here...</p>
-          </div>
-        );
+        return <SettingsMenu onBack={() => setActiveSection(null)} />;
       case 'faq':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">FAQ</h2>
-            <p className="text-white/70 text-base leading-relaxed">FAQ page will be implemented here...</p>
-          </div>
-        );
+        return <FAQMenu onBack={() => setActiveSection(null)} />;
       case 'contact':
-        return (
-          <div className="p-6">
-            <div
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection(null);
-              }}
-              className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="mr-2"
-              >
-                <polyline points="15,18 9,12 15,6" />
-              </svg>
-              Back to Menu
-            </div>
-            <h2 className="text-white text-2xl font-bold mb-4">Contact Us</h2>
-            <p className="text-white/70 text-base leading-relaxed">Contact page will be implemented here...</p>
-          </div>
-        );
+        return <ContactMenu onBack={() => setActiveSection(null)} />;
       default:
         return renderMainMenu();
     }
