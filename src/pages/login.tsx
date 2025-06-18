@@ -1,17 +1,16 @@
 // pages/login.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { NocenaInput, PasswordInput } from '@components/form';
 import { getUserFromDgraph } from '../lib/api/dgraph';
-import PrimaryButton from '../components/ui/PrimaryButton';
-import { User, useAuth } from '../contexts/AuthContext';
-import { sanitizeInput } from '../lib/utils/security';
-import { verifyPassword } from '../lib/utils/passwordUtils';
+import { useAuth, User } from '../contexts/AuthContext';
 import AuthenticationLayout from '../components/layout/AuthenticationLayout';
+import { ConnectKitButton } from 'connectkit';
+import { AccountType } from '../lib/types';
+import { useAccount } from 'wagmi';
+import { fetchAvailableLensAccounts } from '@utils/lensUtils';
+import { useLensAuth } from '../contexts/LensAuthProvider';
+import LoadingSpinner from '@components/ui/LoadingSpinner';
 
 type FormValues = {
   username: string;
@@ -20,10 +19,58 @@ type FormValues = {
 
 const LoginPage = () => {
   const [error, setError] = useState('');
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<AccountType | null>(null);
+  const [availableAccounts, setAvailableAccounts] = useState<{
+    account: AccountType,
+    userData: any,
+  } []>([]);
+  const {
+    address: walletAddress,
+  } = useAccount()
+  const {authenticate, isAuthenticating, client} = useLensAuth()
 
   const router = useRouter();
   const { login } = useAuth();
+
+  useEffect(() => {
+    if (walletAddress) {
+      setIsLoadingAccounts(true)
+      fetchAvailableLensAccounts(client, walletAddress).then(async (accounts) => {
+        const accountsWithUserData = await Promise.all(
+          accounts.map(async (account) => {
+            const userData = await getUserFromDgraph(account.localName);
+            return userData ? { account, userData } : null;
+          })
+        );
+
+        const validAccounts = accountsWithUserData.filter(item => !!item);
+        setAvailableAccounts(validAccounts);
+        setIsLoadingAccounts(false);
+      }).catch(err => {
+        console.log('error fetching accounts', err)
+        setIsLoadingAccounts(false)
+      })
+    }
+  }, [walletAddress])
+
+  const handleSelectAccount = async (account: AccountType, userData: any) => {
+    setSelectedAccount(account)
+    await authenticate(account.accountAddress, walletAddress!)
+
+    // Format followers and following to ensure they're arrays
+    // This helps with the types in the AuthContext
+    const formattedUser: User = {
+      ...userData,
+      followers: Array.isArray(userData.followers) ? userData.followers : [],
+      following: Array.isArray(userData.following) ? userData.following : [],
+    };
+
+    // Login successful
+    await login(formattedUser);
+    router.push('/home');
+  };
 
   const onSubmitSignIn = async (values: FormValues) => {
     setError('');
@@ -38,20 +85,6 @@ const LoginPage = () => {
         setLoading(false);
         return;
       }
-
-      console.log('Found user:', userData); // Debug log
-
-      // Securely verify password
-      const isPasswordValid = await verifyPassword(values.password, userData.passwordHash);
-
-      if (!isPasswordValid) {
-        setError('Invalid password. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Password verified successfully'); // Debug log
-
       // Format followers and following to ensure they're arrays
       // This helps with the types in the AuthContext
       const formattedUser: User = {
@@ -70,40 +103,68 @@ const LoginPage = () => {
     }
   };
 
-  const schema = yup.object().shape({
-    username: yup
-      .string()
-      .transform((value) => sanitizeInput(value))
-      .required('Username is required'),
-    password: yup
-      .string()
-      .transform((value) => sanitizeInput(value))
-      .min(6, 'Password must be at least 6 characters')
-      .required('Password is required'),
-  });
-
-  const { control, handleSubmit } = useForm<FormValues>({
-    resolver: yupResolver(schema),
-  });
-
   return (
     <AuthenticationLayout title="Welcome player" subtitle="Login with your account to start the game">
-      <form onSubmit={handleSubmit(onSubmitSignIn)} className="w-full space-y-4 mb-6">
-        <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600 divide-y divide-gray-600">
-          <NocenaInput control={control} name="username" placeholder="Enter your username" />
-          <PasswordInput control={control} name="password" placeholder="Enter your password" />
-        </div>
+      <div className="w-full space-y-4 mb-6">
+        {
+          isLoadingAccounts ? (
+            <div className="text-center py-10">
+              <LoadingSpinner size="md" />
+              <p className="mt-2 text-gray-300">Loading Accounts...</p>
+            </div>
+          ) : (
+            !!walletAddress && availableAccounts.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3">
+                {availableAccounts.map(({account, userData}) => (
+                  <div
+                    key={account.accountAddress}
+                    className="p-4 border rounded-xl cursor-pointer hover:bg-pink-900 hover:-translate-y-0.5 transition-all"
+                    onClick={() => handleSelectAccount(account, userData)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center w-full">
+                        <img
+                          className="w-10 h-10 rounded-full mr-4"
+                          src={account.avatar}
+                          alt={account.localName}
+                        />
+                        <div>
+                          <p className="font-bold">{account.displayName}</p>
+                          <p className="text-sm text-gray-500">@{account.localName}</p>
+                        </div>
+                      </div>
+                      <button
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectAccount(account, userData);
+                        }}
+                        disabled={selectedAccount === account && isAuthenticating}
+                      >
+                        {selectedAccount === account && isAuthenticating ? 'Loading...' : 'Use'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center">
+                <p>
+                  No Accounts Available
+                </p>
+              </div>
+            )
+          )
+        }
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        <div className="mb-3">
-          <PrimaryButton text="Login" type="submit" disabled={loading} className="w-full" />
+        <div className="flex justify-center mb-3 w-full">
+          <ConnectKitButton label="login" mode="dark" />
         </div>
-      </form>
+      </div>
 
       <div className="text-center">
         <p>
-          If you are new here{' '}
+        If you are new here{' '}
           <Link href="/register" className="text-nocenaPink cursor-pointer">
             enter invite code
           </Link>
