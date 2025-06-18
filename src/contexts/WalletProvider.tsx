@@ -31,9 +31,9 @@ export const WalletProvider = ({children}: { children: React.ReactNode }) => {
                 <ConnectKitProvider
                     customTheme={{
                         "--ck-connectbutton-color": "white",
-                        "--ck-connectbutton-background": "#3182ce",
-                        "--ck-connectbutton-hover-background": "#4399ed",
-                        "--ck-connectbutton-active-background": "#4399ed",
+                        "--ck-connectbutton-background": "#ca1cf1",
+                        "--ck-connectbutton-hover-background": "#dd5bff",
+                        "--ck-connectbutton-active-background": "#e607d1",
                     }}
                 >{children}</ConnectKitProvider>
             </QueryClientProvider>
