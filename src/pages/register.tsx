@@ -1,12 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { registerUser, generateInviteCode } from '../lib/api/dgraph';
-import { createPolygonWallet } from '../lib/api/polygon';
-import { verifyPhoneNumber } from '../lib/utils/verification';
-import { formatPhoneToE164 } from '../lib/utils/phoneUtils';
-import { hashPassword } from '../lib/utils/passwordUtils';
-import { User, useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { generateInviteCode, registerUser } from '../lib/api/dgraph';
+import { useAuth, User } from '../contexts/AuthContext';
 import AuthenticationLayout from '../components/layout/AuthenticationLayout';
-import RegisterPhoneVerificationStep from '@components/register/components/RegisterPhoneVerificationStep';
 import RegisterFormStep from '@components/register/components/RegisterFormStep';
 import RegisterInviteCodeStep from '@components/register/components/RegisterInviteCodeStep';
 import RegisterWelcomeStep from '@components/register/components/RegisterWelcomeStep';
@@ -15,18 +10,26 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { schema } from '@components/register/schema';
 import { FormValues } from '@components/register/types';
+import { useAccount } from 'wagmi';
+import { fetchAccountByUserName } from '@utils/lensUtils';
+import { useLensAuth } from '../contexts/LensAuthProvider';
+import { account as accountMetadata } from '@lens-protocol/metadata';
+import { uploadMetadataToGrove } from '@utils/groveUtils';
+import { createAccountWithUsername } from '@lens-protocol/client/actions';
+import { uri } from '@lens-protocol/types';
 
 const STEP_INVITE_CODE = 0;
 const STEP_WELCOME = 1;
 const STEP_REGISTER_FORM = 2;
-const STEP_PHONE_VERIFICATION = 3;
-const STEP_WALLET_CREATION = 4;
+const STEP_WALLET_CREATION = 3;
+// const STEP_PHONE_VERIFICATION = 3;
+// const STEP_WALLET_CREATION = 4;
 
 enum RegisterStep {
   INVITE_CODE,
   WELCOME,
   REGISTER_FORM,
-  PHONE_VERIFICATION,
+  // PHONE_VERIFICATION,
   WALLET_CREATION,
 }
 
@@ -34,12 +37,16 @@ const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(STEP_INVITE_CODE);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
+  // const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
   const [validatedInviteCode, setValidatedInviteCode] = useState('');
   const [inviteOwner, setInviteOwner] = useState('');
   const [invitedById, setInvitedById] = useState('');
   const [formData, setFormData] = useState<FormValues | null>(null);
   const { login } = useAuth();
+  const {
+    address: walletAddress,
+  } = useAccount()
+  const { onboard, refreshCurrentAccount } = useLensAuth();
 
   const registerSteps: { step: RegisterStep; title?: string; subtitle?: string; fields?: (keyof FormValues)[] }[] = [
     {
@@ -53,20 +60,23 @@ const RegisterPage = () => {
     },
     {
       step: RegisterStep.REGISTER_FORM,
-      fields: ['username', 'phoneNumber', 'password'],
+      fields: ['username'/*, 'phoneNumber', 'password'*/],
     },
+/*
     {
       step: RegisterStep.PHONE_VERIFICATION,
       title: 'Verify Your Phone',
       subtitle: 'We sent a verification code to {phoneNumber}',
     },
+*/
     {
       step: RegisterStep.WALLET_CREATION,
       title: 'Complete Your Setup',
-      subtitle: 'Save your wallet and enable notifications',
+      subtitle: 'Almost there',
     },
   ];
 
+/*
   // Handle welcome animation
   useEffect(() => {
     if (currentStep === STEP_WELCOME) {
@@ -77,6 +87,7 @@ const RegisterPage = () => {
       return () => clearTimeout(timer);
     }
   }, [currentStep]);
+*/
 
   const {
     control,
@@ -89,7 +100,7 @@ const RegisterPage = () => {
     resolver: yupResolver(schema),
     defaultValues: {
       inviteCode: [],
-      verificationCode: [],
+      // verificationCode: [],
     },
   });
 
@@ -99,7 +110,7 @@ const RegisterPage = () => {
       reset((prev) => ({
         ...prev,
         inviteCode: Array(6).fill(''),
-        verificationCode: Array(6).fill(''),
+        // verificationCode: Array(6).fill(''),
       }));
     }
   }, [reset, watch]);
@@ -145,9 +156,11 @@ const RegisterPage = () => {
       if (!output) return;
     }
 
+/*
     if (currentStep === STEP_REGISTER_FORM) {
       handleResendCode();
     }
+*/
 
     if (currentStep < registerSteps.length - 1) {
       setCurrentStep((step) => step + 1);
@@ -156,7 +169,7 @@ const RegisterPage = () => {
 
   // NEW: Handle push subscription ready - this creates the user with push subscription
   const handlePushSubscriptionReady = async (pushSubscription: string) => {
-    if (!formData || !wallet) {
+    if (!formData) {
       setError('Missing form data or wallet. Please try again.');
       return;
     }
@@ -166,20 +179,41 @@ const RegisterPage = () => {
 
     try {
       console.log('🔧 Creating user with push subscription:', pushSubscription);
-
+/*
       // Securely hash the password
       const securePasswordHash = await hashPassword(formData.password);
 
       // Format phone number to E.164 format before storing
       const formattedPhone = formatPhoneToE164(formData.phoneNumber);
+*/
 
+      const existingAccount = await fetchAccountByUserName(null, formData.username)
+      if (existingAccount) {
+        throw new Error('duplicated username')
+      }
+
+      const newClient = await onboard(walletAddress!)
+      if (!newClient)
+        throw new Error(`Can't onboard user`)
+
+      const metadata = accountMetadata({
+        name: formData.username,
+        bio: '',
+      });
+      const metadataURI = await uploadMetadataToGrove(metadata);
+      const result = await createAccountWithUsername(newClient, {
+        username: { localName: formData.username },
+        metadataUri: uri(metadataURI.uri),
+      });
+      console.log("Account created successfully", result);
+      await refreshCurrentAccount()
       // Register user with push subscription from the start
       const addedUser = await registerUser(
         formData.username,
-        formattedPhone,
-        securePasswordHash,
+        '', // formattedPhone,
+        '', // securePasswordHash,
         '/images/profile.png',
-        wallet.address,
+        walletAddress!,
         '0'.repeat(365),
         '0'.repeat(52),
         '0'.repeat(12),
@@ -193,8 +227,8 @@ const RegisterPage = () => {
         const userData: User = {
           id: addedUser.id,
           username: formData.username,
-          phoneNumber: formattedPhone,
-          wallet: wallet.address,
+          phoneNumber: '',
+          wallet: walletAddress!,
           bio: '',
           profilePicture: '/images/profile.png',
           earnedTokens: 50,
@@ -203,7 +237,7 @@ const RegisterPage = () => {
           monthlyChallenge: '0'.repeat(12),
           followers: [],
           following: [],
-          passwordHash: securePasswordHash,
+          passwordHash: '',
           notifications: [],
           completedChallenges: [],
           receivedPrivateChallenges: [],
@@ -214,6 +248,7 @@ const RegisterPage = () => {
         };
 
         // Mark the invite code as used and award tokens
+/*
         await fetch('/api/registration/use-invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -222,6 +257,7 @@ const RegisterPage = () => {
             newUserId: addedUser.id,
           }),
         });
+*/
 
         // Generate initial invite codes for the new user
         try {
@@ -248,6 +284,7 @@ const RegisterPage = () => {
     }
   };
 
+/*
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
     setError('');
@@ -277,8 +314,10 @@ const RegisterPage = () => {
       setLoading(false);
     }
   };
+*/
 
   const formValues = watch();
+/*
   const handleResendCode = useCallback(async () => {
     setError('');
     setLoading(true);
@@ -299,15 +338,18 @@ const RegisterPage = () => {
       setLoading(false);
     }
   }, [formValues.phoneNumber]);
+*/
 
   // Update subtitle for welcome step to show invite owner
   const getStepSubtitle = (step: RegisterStep) => {
     if (step === RegisterStep.WELCOME && inviteOwner) {
       return `Welcome! You were invited by ${inviteOwner}`;
     }
+/*
     if (step === RegisterStep.PHONE_VERIFICATION) {
       return registerSteps[currentStep].subtitle?.replace('{phoneNumber}', formValues.phoneNumber);
     }
+*/
     return registerSteps[currentStep]?.subtitle;
   };
 
@@ -316,7 +358,7 @@ const RegisterPage = () => {
       title={registerSteps[currentStep]?.title}
       subtitle={getStepSubtitle(registerSteps[currentStep].step)}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
+      <form className="w-full space-y-4">
         {currentStep === STEP_INVITE_CODE ? (
           <RegisterInviteCodeStep
             control={control}
@@ -327,10 +369,11 @@ const RegisterPage = () => {
           />
         ) : null}
 
-        {currentStep === STEP_WELCOME ? <RegisterWelcomeStep inviteOwner={inviteOwner} /> : null}
+        {currentStep === STEP_WELCOME ? <RegisterWelcomeStep setStep={() => setCurrentStep(STEP_REGISTER_FORM)} inviteOwner={inviteOwner} /> : null}
 
         {currentStep === STEP_REGISTER_FORM ? <RegisterFormStep setStep={setNextStep} control={control} /> : null}
 
+{/*
         {currentStep === STEP_PHONE_VERIFICATION ? (
           <RegisterPhoneVerificationStep
             control={control}
@@ -339,9 +382,10 @@ const RegisterPage = () => {
             customError={error}
           />
         ) : null}
+*/}
 
-        {currentStep === STEP_WALLET_CREATION && wallet ? (
-          <RegisterWalletCreationStep wallet={wallet} onPushSubscriptionReady={handlePushSubscriptionReady} />
+        {currentStep === STEP_WALLET_CREATION ? (
+          <RegisterWalletCreationStep onPushSubscriptionReady={handlePushSubscriptionReady} />
         ) : null}
 
         {/* Show loading overlay during final registration */}
