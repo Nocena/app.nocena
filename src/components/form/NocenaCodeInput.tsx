@@ -126,23 +126,6 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber, onValidateInvite, valida
           </ThematicContainer>
         ))}
       </div>
-
-      {/* Loading Indicator for Validation */}
-      {isValidating && !onlyNumber && (
-        <div className="flex justify-center mt-3">
-          <div className="flex items-center space-x-2 text-nocenaBlue text-sm">
-            <div className="w-4 h-4 border-2 border-nocenaBlue border-t-transparent rounded-full animate-spin"></div>
-            <span>Validating invite code...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Validation Error */}
-      {validationError && !onlyNumber && (
-        <div className="text-center mt-3">
-          <p className="text-red-400 text-sm">{validationError}</p>
-        </div>
-      )}
     </div>
   );
 };
