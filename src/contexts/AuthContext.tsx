@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const { disconnect } = useLensAuth()
+  const { disconnect } = useLensAuth();
 
   // Check for existing session on mount
   useEffect(() => {
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async (): Promise<void> => {
-    await disconnect()
+    await disconnect();
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('nocenaUser');

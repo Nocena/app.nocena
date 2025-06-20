@@ -43,9 +43,7 @@ const RegisterPage = () => {
   const [invitedById, setInvitedById] = useState('');
   const [formData, setFormData] = useState<FormValues | null>(null);
   const { login } = useAuth();
-  const {
-    address: walletAddress,
-  } = useAccount()
+  const { address: walletAddress } = useAccount();
   const { onboard, refreshCurrentAccount } = useLensAuth();
 
   const registerSteps: { step: RegisterStep; title?: string; subtitle?: string; fields?: (keyof FormValues)[] }[] = [
@@ -60,9 +58,9 @@ const RegisterPage = () => {
     },
     {
       step: RegisterStep.REGISTER_FORM,
-      fields: ['username'/*, 'phoneNumber', 'password'*/],
+      fields: ['username' /*, 'phoneNumber', 'password'*/],
     },
-/*
+    /*
     {
       step: RegisterStep.PHONE_VERIFICATION,
       title: 'Verify Your Phone',
@@ -76,7 +74,7 @@ const RegisterPage = () => {
     },
   ];
 
-/*
+  /*
   // Handle welcome animation
   useEffect(() => {
     if (currentStep === STEP_WELCOME) {
@@ -156,7 +154,7 @@ const RegisterPage = () => {
       if (!output) return;
     }
 
-/*
+    /*
     if (currentStep === STEP_REGISTER_FORM) {
       handleResendCode();
     }
@@ -179,7 +177,7 @@ const RegisterPage = () => {
 
     try {
       console.log('🔧 Creating user with push subscription:', pushSubscription);
-/*
+      /*
       // Securely hash the password
       const securePasswordHash = await hashPassword(formData.password);
 
@@ -187,14 +185,13 @@ const RegisterPage = () => {
       const formattedPhone = formatPhoneToE164(formData.phoneNumber);
 */
 
-      const existingAccount = await fetchAccountByUserName(null, formData.username)
+      const existingAccount = await fetchAccountByUserName(null, formData.username);
       if (existingAccount) {
-        throw new Error('duplicated username')
+        throw new Error('duplicated username');
       }
 
-      const newClient = await onboard(walletAddress!)
-      if (!newClient)
-        throw new Error(`Can't onboard user`)
+      const newClient = await onboard(walletAddress!);
+      if (!newClient) throw new Error(`Can't onboard user`);
 
       const metadata = accountMetadata({
         name: formData.username,
@@ -205,8 +202,8 @@ const RegisterPage = () => {
         username: { localName: formData.username },
         metadataUri: uri(metadataURI.uri),
       });
-      console.log("Account created successfully", result);
-      await refreshCurrentAccount()
+      console.log('Account created successfully', result);
+      await refreshCurrentAccount();
       // Register user with push subscription from the start
       const addedUser = await registerUser(
         formData.username,
@@ -248,7 +245,7 @@ const RegisterPage = () => {
         };
 
         // Mark the invite code as used and award tokens
-/*
+        /*
         await fetch('/api/registration/use-invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -284,7 +281,7 @@ const RegisterPage = () => {
     }
   };
 
-/*
+  /*
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
     setError('');
@@ -317,7 +314,7 @@ const RegisterPage = () => {
 */
 
   const formValues = watch();
-/*
+  /*
   const handleResendCode = useCallback(async () => {
     setError('');
     setLoading(true);
@@ -345,7 +342,7 @@ const RegisterPage = () => {
     if (step === RegisterStep.WELCOME && inviteOwner) {
       return `Welcome! You were invited by ${inviteOwner}`;
     }
-/*
+    /*
     if (step === RegisterStep.PHONE_VERIFICATION) {
       return registerSteps[currentStep].subtitle?.replace('{phoneNumber}', formValues.phoneNumber);
     }
@@ -369,11 +366,13 @@ const RegisterPage = () => {
           />
         ) : null}
 
-        {currentStep === STEP_WELCOME ? <RegisterWelcomeStep setStep={() => setCurrentStep(STEP_REGISTER_FORM)} inviteOwner={inviteOwner} /> : null}
+        {currentStep === STEP_WELCOME ? (
+          <RegisterWelcomeStep setStep={() => setCurrentStep(STEP_REGISTER_FORM)} inviteOwner={inviteOwner} />
+        ) : null}
 
         {currentStep === STEP_REGISTER_FORM ? <RegisterFormStep setStep={setNextStep} control={control} /> : null}
 
-{/*
+        {/*
         {currentStep === STEP_PHONE_VERIFICATION ? (
           <RegisterPhoneVerificationStep
             control={control}

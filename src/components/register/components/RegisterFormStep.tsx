@@ -36,30 +36,32 @@ const RegisterFormStep = ({ control, setStep }: Props) => {
     if (debouncedUsername) {
       (async () => {
         try {
-          setIsLoading(true)
-          const existingAccount = await fetchAccountByUserName(null, debouncedUsername)
+          setIsLoading(true);
+          const existingAccount = await fetchAccountByUserName(null, debouncedUsername);
           if (existingAccount) {
-            setIsExistingUsername(true)
+            setIsExistingUsername(true);
           } else {
-            setIsExistingUsername(false)
+            setIsExistingUsername(false);
           }
-        } catch(e) {
+        } catch (e) {
+          console.log('just LINT error');
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
-      })()
+      })();
     }
   }, [debouncedUsername]);
-
 
   return (
     <>
       <div className="bg-white bg-opacity-10 rounded-2xl overflow-hidden mb-6 backdrop-blur-sm">
         <div className="border-b border-white border-opacity-20">
           <NocenaInput control={control} name="username" placeholder="Enter username" required />
-          {isExistingUsername ? <p className="text-sm text-red-600 mt-2 ms-4">Sorry, that username is not available.</p> : null}
+          {isExistingUsername ? (
+            <p className="text-sm text-red-600 mt-2 ms-4">Sorry, that username is not available.</p>
+          ) : null}
         </div>
-{/*
+        {/*
         <div className="border-b border-white border-opacity-20">
           <PhoneInput control={control} name="phoneNumber" placeholder="722 183 412" required />
         </div>

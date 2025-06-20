@@ -462,26 +462,26 @@ const ProfileView: React.FC = () => {
             )}
           </div>
 
-            {/* Three Section Menu using ThematicContainer */}
-            <div className="flex justify-center mb-6 space-x-4">
-              {[
-                { key: 'trailer', label: 'Trailer' },
-                { key: 'calendar', label: 'Calendar' },
-                { key: 'achievements', label: 'Stats' },
-              ].map(({ key, label }) => (
-                <ThematicContainer
-                  key={key}
-                  asButton={true}
-                  glassmorphic={false}
-                  color={getButtonColor(key)}
-                  isActive={activeSection === key}
-                  onClick={() => setActiveSection(key as any)}
-                  className="px-8 py-2"
-                >
-                  {label}
-                </ThematicContainer>
-              ))}
-            </div>
+          {/* Three Section Menu using ThematicContainer */}
+          <div className="flex justify-center mb-6 space-x-4">
+            {[
+              { key: 'trailer', label: 'Trailer' },
+              { key: 'calendar', label: 'Calendar' },
+              { key: 'achievements', label: 'Stats' },
+            ].map(({ key, label }) => (
+              <ThematicContainer
+                key={key}
+                asButton={true}
+                glassmorphic={false}
+                color={getButtonColor(key)}
+                isActive={activeSection === key}
+                onClick={() => setActiveSection(key as any)}
+                className="px-8 py-2"
+              >
+                {label}
+              </ThematicContainer>
+            ))}
+          </div>
 
           {/* Content Based on Active Section */}
           <div className="space-y-4">
