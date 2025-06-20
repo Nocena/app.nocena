@@ -147,7 +147,7 @@ const RegisterPage = () => {
   const handleWalletConnected = (walletAddress: string, profiles: LensProfile[] = []) => {
     setWallet({ address: walletAddress, privateKey: '' }); // No private key for existing wallets
     setLensProfiles(profiles);
-    
+
     if (profiles.length > 0) {
       setCurrentStep(RegisterStep.LENS_PROFILE);
     } else {
@@ -264,7 +264,8 @@ const RegisterPage = () => {
       case RegisterStep.REWARDS_EXPLANATION:
         return {
           title: 'Challenge2Earn',
-          subtitle: 'You will get a challenge each day to share with your friends. If you succesfully complete it you will earn a reward that will be securely stored in your wallet that we create for you. You can later withdraw any of the rewards into a curency of your choice - just make sure to remember the password for the wallet.',
+          subtitle:
+            'You will get a challenge each day to share with your friends. If you succesfully complete it you will earn a reward that will be securely stored in your wallet that we create for you. You can later withdraw any of the rewards into a curency of your choice - just make sure to remember the password for the wallet.',
         };
       case RegisterStep.WALLET_CHOICE:
         return {
@@ -307,10 +308,7 @@ const RegisterPage = () => {
   const stepInfo = getStepInfo();
 
   return (
-    <AuthenticationLayout
-      title={stepInfo.title}
-      subtitle={stepInfo.subtitle}
-    >
+    <AuthenticationLayout title={stepInfo.title} subtitle={stepInfo.subtitle}>
       <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
         {currentStep === RegisterStep.INVITE_CODE && (
           <RegisterInviteCodeStep
@@ -323,49 +321,29 @@ const RegisterPage = () => {
         )}
 
         {currentStep === RegisterStep.REGISTER_FORM && (
-          <RegisterFormStep 
-            setStep={handleFormComplete} 
-            control={control} 
-          />
+          <RegisterFormStep setStep={handleFormComplete} control={control} />
         )}
 
         {currentStep === RegisterStep.REWARDS_EXPLANATION && (
-          <RegisterRewardsExplanationStep 
-            onNext={handleAutomaticSetup}
-            onAdvancedSetup={handleAdvancedSetup}
-          />
+          <RegisterRewardsExplanationStep onNext={handleAutomaticSetup} onAdvancedSetup={handleAdvancedSetup} />
         )}
 
-        {currentStep === RegisterStep.WALLET_CHOICE && (
-          <RegisterWalletSetupChoiceStep 
-            onChoice={handleWalletChoice} 
-          />
-        )}
+        {currentStep === RegisterStep.WALLET_CHOICE && <RegisterWalletSetupChoiceStep onChoice={handleWalletChoice} />}
 
         {currentStep === RegisterStep.WALLET_CREATION && wallet && (
-          <RegisterWalletCreationStep 
-            wallet={wallet} 
-            onNext={handleWalletCreationComplete} 
-          />
+          <RegisterWalletCreationStep wallet={wallet} onNext={handleWalletCreationComplete} />
         )}
 
         {currentStep === RegisterStep.EXISTING_WALLET && (
-          <RegisterExistingWalletStep 
-            onWalletConnected={handleWalletConnected} 
-          />
+          <RegisterExistingWalletStep onWalletConnected={handleWalletConnected} />
         )}
 
         {currentStep === RegisterStep.LENS_PROFILE && (
-          <RegisterLensProfileStep 
-            lensProfiles={lensProfiles} 
-            onProfileSelected={handleLensProfileSelected} 
-          />
+          <RegisterLensProfileStep lensProfiles={lensProfiles} onProfileSelected={handleLensProfileSelected} />
         )}
 
         {currentStep === RegisterStep.NOTIFICATIONS && (
-          <RegisterNotificationsStep 
-            onNotificationsReady={handleNotificationsReady} 
-          />
+          <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />
         )}
 
         {/* Show loading overlay during final registration */}

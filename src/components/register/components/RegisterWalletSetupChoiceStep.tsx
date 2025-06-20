@@ -36,14 +36,14 @@ const RegisterWalletSetupChoiceStep = ({ onChoice }: Props) => {
       </div>
 
       <div className="space-y-4 mb-8">
-        <ThematicContainer 
-          color={selectedChoice === 'new' ? "nocenaPink" : "nocenaBlue"}
-          asButton={true} 
-          glassmorphic={true} 
-          rounded="xl" 
+        <ThematicContainer
+          color={selectedChoice === 'new' ? 'nocenaPink' : 'nocenaBlue'}
+          asButton={true}
+          glassmorphic={true}
+          rounded="xl"
           className={`p-6 transition-all duration-300 border ${
-            selectedChoice === 'new' 
-              ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl' 
+            selectedChoice === 'new'
+              ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl'
               : 'border-white border-opacity-5 hover:scale-[1.02]'
           }`}
           onClick={() => setSelectedChoice('new')}
@@ -75,14 +75,14 @@ const RegisterWalletSetupChoiceStep = ({ onChoice }: Props) => {
           </div>
         </ThematicContainer>
 
-        <ThematicContainer 
-          color={selectedChoice === 'existing' ? "nocenaPink" : "nocenaPurple"}
-          asButton={true} 
-          glassmorphic={true} 
-          rounded="xl" 
+        <ThematicContainer
+          color={selectedChoice === 'existing' ? 'nocenaPink' : 'nocenaPurple'}
+          asButton={true}
+          glassmorphic={true}
+          rounded="xl"
           className={`p-6 transition-all duration-300 border ${
-            selectedChoice === 'existing' 
-              ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl' 
+            selectedChoice === 'existing'
+              ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl'
               : 'border-white border-opacity-5 hover:scale-[1.02]'
           }`}
           onClick={() => setSelectedChoice('existing')}
@@ -114,7 +114,13 @@ const RegisterWalletSetupChoiceStep = ({ onChoice }: Props) => {
         </ThematicContainer>
       </div>
 
-      <ThematicContainer color="nocenaBlue" asButton={false} glassmorphic={true} rounded="xl" className="p-4 mb-8 border border-blue-500 border-opacity-20">
+      <ThematicContainer
+        color="nocenaBlue"
+        asButton={false}
+        glassmorphic={true}
+        rounded="xl"
+        className="p-4 mb-8 border border-blue-500 border-opacity-20"
+      >
         <div className="flex items-start space-x-3">
           <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -129,8 +135,8 @@ const RegisterWalletSetupChoiceStep = ({ onChoice }: Props) => {
         </div>
       </ThematicContainer>
 
-      <PrimaryButton 
-        text={selectedChoice ? "CONTINUE SETUP" : "CHOOSE AN OPTION"} 
+      <PrimaryButton
+        text={selectedChoice ? 'CONTINUE SETUP' : 'CHOOSE AN OPTION'}
         onClick={handleContinue}
         className="w-full"
         disabled={!selectedChoice}

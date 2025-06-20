@@ -160,7 +160,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady }: Props) => {
       </ThematicContainer>
 
       <PrimaryButton
-        text={pushSubscription ? "COMPLETE SETUP" : 'ENABLE NOTIFICATIONS TO CONTINUE'}
+        text={pushSubscription ? 'COMPLETE SETUP' : 'ENABLE NOTIFICATIONS TO CONTINUE'}
         onClick={pushSubscription ? handleComplete : handleEnableNotifications}
         className={`w-full ${!pushSubscription ? 'opacity-50' : ''}`}
         disabled={!pushSubscription || isSettingUp}

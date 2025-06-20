@@ -14,18 +14,17 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
   const username = useWatch({
     control,
     name: 'username',
-    defaultValue: ''
+    defaultValue: '',
   });
 
   const password = useWatch({
     control,
     name: 'password',
-    defaultValue: ''
+    defaultValue: '',
   });
 
   // Check if all required fields are valid (removed phoneNumber validation)
-  const isFormValid = username && username.trim().length >= 3 && 
-                     password && password.length >= 6; // Assuming minimum password length
+  const isFormValid = username && username.trim().length >= 3 && password && password.length >= 6; // Assuming minimum password length
 
   return (
     <>
@@ -39,9 +38,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
       </div>
 
       <div className="text-center font-light text-xs">
-        <p>
-          Firstly choose the name by which you want to be known
-        </p>
+        <p>Firstly choose the name by which you want to be known</p>
       </div>
 
       <div className="mb-3">

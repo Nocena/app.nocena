@@ -26,12 +26,12 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
       setShowPrivateKey(true);
       return;
     }
-    
+
     if (showPrivateKey && !keySaved) {
       alert('Please copy and save your recovery key before continuing');
       return;
     }
-    
+
     onNext();
   };
 
@@ -54,7 +54,13 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
       </div>
 
       <div className="space-y-4 mb-8">
-        <ThematicContainer color="nocenaBlue" asButton={false} glassmorphic={true} rounded="xl" className="p-5 border border-white border-opacity-5">
+        <ThematicContainer
+          color="nocenaBlue"
+          asButton={false}
+          glassmorphic={true}
+          rounded="xl"
+          className="p-5 border border-white border-opacity-5"
+        >
           <div className="flex items-start space-x-4">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -73,7 +79,13 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
         </ThematicContainer>
 
         {showPrivateKey && (
-          <ThematicContainer color="nocenaPink" asButton={false} glassmorphic={true} rounded="xl" className="p-5 border border-red-500 border-opacity-20">
+          <ThematicContainer
+            color="nocenaPink"
+            asButton={false}
+            glassmorphic={true}
+            rounded="xl"
+            className="p-5 border border-red-500 border-opacity-20"
+          >
             <div className="flex items-start space-x-4">
               <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -84,15 +96,17 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
               </div>
               <div className="flex-1">
                 <h3 className="text-white font-semibold mb-2 text-sm tracking-wide">RECOVERY KEY</h3>
-                <p className="text-gray-300 text-xs mb-3 font-light">Important: Save this to recover your wallet if needed</p>
+                <p className="text-gray-300 text-xs mb-3 font-light">
+                  Important: Save this to recover your wallet if needed
+                </p>
                 <div className="bg-black bg-opacity-60 p-3 rounded-lg border border-gray-700 border-opacity-50 mb-4">
                   <p className="text-xs font-mono text-white break-all leading-relaxed">{wallet?.privateKey}</p>
                 </div>
                 <button
                   onClick={() => copyToClipboard(wallet?.privateKey || '')}
                   className={`w-full py-3 px-4 rounded-lg text-xs font-medium transition-all duration-300 ${
-                    keySaved 
-                      ? 'bg-emerald-500 text-white shadow-lg' 
+                    keySaved
+                      ? 'bg-emerald-500 text-white shadow-lg'
                       : 'bg-white bg-opacity-10 text-white hover:bg-opacity-20 border border-white border-opacity-20'
                   }`}
                 >
@@ -105,7 +119,13 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
       </div>
 
       {!showPrivateKey && (
-        <ThematicContainer color="nocenaPink" asButton={false} glassmorphic={true} rounded="xl" className="p-4 mb-6 border border-amber-500 border-opacity-20">
+        <ThematicContainer
+          color="nocenaPink"
+          asButton={false}
+          glassmorphic={true}
+          rounded="xl"
+          className="p-4 mb-6 border border-amber-500 border-opacity-20"
+        >
           <div className="flex items-start space-x-3">
             <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -116,14 +136,17 @@ const RegisterWalletCreationStep = ({ wallet, onNext }: Props) => {
             </div>
             <div className="text-xs text-amber-200 font-light leading-relaxed">
               <p className="font-medium mb-1 text-amber-100 tracking-wide">IMPORTANT SECURITY STEP</p>
-              <p>Next, we'll show you a recovery key. Please save it somewhere safe - it's the only way to recover your wallet if you lose access to your account.</p>
+              <p>
+                Next, we'll show you a recovery key. Please save it somewhere safe - it's the only way to recover your
+                wallet if you lose access to your account.
+              </p>
             </div>
           </div>
         </ThematicContainer>
       )}
 
-      <PrimaryButton 
-        text={showPrivateKey ? (keySaved ? "CONTINUE SETUP" : "SAVE RECOVERY KEY FIRST") : "SHOW RECOVERY KEY"} 
+      <PrimaryButton
+        text={showPrivateKey ? (keySaved ? 'CONTINUE SETUP' : 'SAVE RECOVERY KEY FIRST') : 'SHOW RECOVERY KEY'}
         onClick={handleNext}
         className="w-full"
         disabled={showPrivateKey && !keySaved}
