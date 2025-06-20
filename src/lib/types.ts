@@ -1,4 +1,4 @@
-import {AuthenticatedSession, SessionClient} from "@lens-protocol/client";
+import { AuthenticatedSession, SessionClient } from '@lens-protocol/client';
 // src/lib/types.ts
 
 export interface ChallengeData {
@@ -104,8 +104,6 @@ export interface CreateChallengeResponse {
   error?: string;
 }
 
-
-
 // ---- created by matija --------
 export interface Comment {
   id: string;
@@ -139,48 +137,48 @@ export type LensAuthContextType = {
   restore: () => Promise<void>;
   refreshCurrentAccount: () => Promise<void>;
   onboard: (walletAddr: string) => Promise<SessionClient | null>;
-  currentAccount: AccountType | null
+  currentAccount: AccountType | null;
 };
 
 export interface AccountType {
-  accountAddress: string
-  createdAt: string
-  avatar: string
-  displayName: string
-  localName: string
-  bio: string
-  isFollowedByMe?: boolean
+  accountAddress: string;
+  createdAt: string;
+  avatar: string;
+  displayName: string;
+  localName: string;
+  bio: string;
+  isFollowedByMe?: boolean;
 }
 
 export interface CommentType {
-  id: string
-  timestamp: string
-  content: string
-  author: AccountType
+  id: string;
+  timestamp: string;
+  content: string;
+  author: AccountType;
 }
 
 export interface AccountStatusType {
-  followers: number
-  following: number
-  posts: number
-  comments: number
-  reposts: number
-  quotes: number
-  reacted: number
-  reactions: number
-  collects: number
+  followers: number;
+  following: number;
+  posts: number;
+  comments: number;
+  reposts: number;
+  quotes: number;
+  reacted: number;
+  reactions: number;
+  collects: number;
 }
 
 export interface ProfileDataType {
-  followers: number
-  following: number
-  accountAddress: string
-  createdAt: string
-  avatar: string
-  displayName: string
-  localName: string
-  bio: string
-  isMe: boolean
-  isFollowedByMe: boolean
+  followers: number;
+  following: number;
+  accountAddress: string;
+  createdAt: string;
+  avatar: string;
+  displayName: string;
+  localName: string;
+  bio: string;
+  isMe: boolean;
+  isFollowedByMe: boolean;
 }
 // ---- end by matija --------

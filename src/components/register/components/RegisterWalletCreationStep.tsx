@@ -4,7 +4,7 @@ import ThematicContainer from '../../ui/ThematicContainer';
 import { requestNotificationPermission, subscribeToPushNotifications } from '../../../lib/pushNotifications';
 
 interface Props {
-/*
+  /*
   wallet: {
     address: string;
     privateKey: string;
@@ -103,7 +103,7 @@ const RegisterWalletCreationStep = ({ /*wallet,*/ onPushSubscriptionReady, onCom
 
   return (
     <div className="flex flex-col px-6 py-8">
-{/*
+      {/*
       <div className="text-center mb-4">
         <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-br from-nocenaPink to-nocenaPurple rounded-2xl flex items-center justify-center">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
