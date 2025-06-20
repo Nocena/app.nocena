@@ -23,12 +23,22 @@ const RegisterRewardsExplanationStep = ({ onNext, onAdvancedSetup }: Props) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col justify-center items-center text-center space-y-8">
         {/* Hero Section */}
-        <div className={`transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <div
+          className={`transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+        >
           {/* Animated Logo */}
           <div className="relative w-24 h-24 mx-auto mb-6">
             <div className="absolute inset-0 bg-gradient-to-r from-nocenaBlue via-nocenaPurple to-nocenaPink rounded-full animate-spin-slow opacity-30"></div>
             <div className="relative w-full h-full bg-gradient-to-br from-nocenaBlue to-nocenaPink rounded-full flex items-center justify-center shadow-2xl border border-white border-opacity-20">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="drop-shadow-lg">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                className="drop-shadow-lg"
+              >
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
             </div>
@@ -36,7 +46,9 @@ const RegisterRewardsExplanationStep = ({ onNext, onAdvancedSetup }: Props) => {
         </div>
 
         {/* Simple Explanation */}
-        <div className={`w-full max-w-sm transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <div
+          className={`w-full max-w-sm transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+        >
           <div className="bg-white bg-opacity-5 backdrop-blur-sm border border-white border-opacity-10 rounded-2xl p-6">
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-nocenaBlue to-nocenaPink rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
@@ -57,10 +69,12 @@ const RegisterRewardsExplanationStep = ({ onNext, onAdvancedSetup }: Props) => {
       </div>
 
       {/* Bottom Section */}
-      <div className={`space-y-4 transition-all duration-1000 delay-600 mt-6 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+      <div
+        className={`space-y-4 transition-all duration-1000 delay-600 mt-6 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+      >
         {/* Main CTA Button */}
-        <PrimaryButton 
-          text="CREATE MY ACCOUNT" 
+        <PrimaryButton
+          text="CREATE MY ACCOUNT"
           onClick={onNext}
           className="w-full py-4 text-base font-semibold bg-gradient-to-r from-nocenaBlue via-nocenaPurple to-nocenaPink hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
         />
@@ -84,22 +98,10 @@ const RegisterRewardsExplanationStep = ({ onNext, onAdvancedSetup }: Props) => {
             >
               Connect existing wallet
             </button>
-            <p className="text-gray-500 text-xs text-center font-light">
-              For crypto-experienced users only
-            </p>
+            <p className="text-gray-500 text-xs text-center font-light">For crypto-experienced users only</p>
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 };

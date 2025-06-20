@@ -86,18 +86,30 @@ const RegisterExistingWalletStep = ({ onWalletConnected }: Props) => {
               className="w-full p-4 bg-black bg-opacity-40 border border-gray-600 border-opacity-50 rounded-xl text-white placeholder-gray-500 focus:border-nocenaPink focus:outline-none focus:ring-1 focus:ring-nocenaPink transition-all font-mono text-sm backdrop-blur-sm"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-gray-500"
+              >
                 <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
                 <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
               </svg>
             </div>
           </div>
-          {error && (
-            <p className="text-red-400 text-xs font-light">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-xs font-light">{error}</p>}
         </div>
 
-        <ThematicContainer color="nocenaBlue" asButton={false} glassmorphic={true} rounded="xl" className="p-4 border border-blue-500 border-opacity-20">
+        <ThematicContainer
+          color="nocenaBlue"
+          asButton={false}
+          glassmorphic={true}
+          rounded="xl"
+          className="p-4 border border-blue-500 border-opacity-20"
+        >
           <div className="flex items-start space-x-3">
             <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -107,13 +119,16 @@ const RegisterExistingWalletStep = ({ onWalletConnected }: Props) => {
             </div>
             <div className="text-xs text-blue-200 font-light leading-relaxed">
               <p className="font-medium mb-1 text-blue-100">Identity Sync</p>
-              <p>We'll automatically detect any Lens Protocol profiles and social connections associated with your wallet address.</p>
+              <p>
+                We'll automatically detect any Lens Protocol profiles and social connections associated with your wallet
+                address.
+              </p>
             </div>
           </div>
         </ThematicContainer>
 
-        <PrimaryButton 
-          text={loading ? "CONNECTING..." : "CONNECT WALLET"} 
+        <PrimaryButton
+          text={loading ? 'CONNECTING...' : 'CONNECT WALLET'}
           onClick={handleConnect}
           className="w-full"
           disabled={!walletAddress || walletAddress.length < 40 || loading}

@@ -37,10 +37,9 @@ const RegisterLensProfileStep = ({ lensProfiles, onProfileSelected }: Props) => 
         </div>
         <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">Import Profile</h2>
         <p className="text-gray-400 text-sm font-light">
-          {lensProfiles.length > 0 
+          {lensProfiles.length > 0
             ? `${lensProfiles.length} Lens Protocol profile${lensProfiles.length > 1 ? 's' : ''} found`
-            : 'No existing profiles detected'
-          }
+            : 'No existing profiles detected'}
         </p>
       </div>
 
@@ -48,23 +47,23 @@ const RegisterLensProfileStep = ({ lensProfiles, onProfileSelected }: Props) => 
         {lensProfiles.length > 0 ? (
           <>
             {lensProfiles.map((profile) => (
-              <ThematicContainer 
+              <ThematicContainer
                 key={profile.id}
-                color={selectedProfile?.id === profile.id ? "nocenaPink" : "nocenaBlue"}
+                color={selectedProfile?.id === profile.id ? 'nocenaPink' : 'nocenaBlue'}
                 asButton={true}
                 glassmorphic={true}
                 rounded="xl"
                 className={`p-4 border transition-all duration-300 ${
-                  selectedProfile?.id === profile.id 
-                    ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl' 
+                  selectedProfile?.id === profile.id
+                    ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl'
                     : 'border-white border-opacity-5 hover:scale-[1.02]'
                 }`}
                 onClick={() => setSelectedProfile(profile)}
               >
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <img 
-                      src={profile.picture || '/images/profile.png'} 
+                    <img
+                      src={profile.picture || '/images/profile.png'}
                       alt={profile.handle}
                       className="w-12 h-12 rounded-xl border border-white border-opacity-20"
                     />
@@ -87,15 +86,15 @@ const RegisterLensProfileStep = ({ lensProfiles, onProfileSelected }: Props) => 
                 </div>
               </ThematicContainer>
             ))}
-            
-            <ThematicContainer 
-              color={selectedProfile === null ? "nocenaPink" : "nocenaPurple"}
+
+            <ThematicContainer
+              color={selectedProfile === null ? 'nocenaPink' : 'nocenaPurple'}
               asButton={true}
               glassmorphic={true}
               rounded="xl"
               className={`p-4 border transition-all duration-300 ${
-                selectedProfile === null 
-                  ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl' 
+                selectedProfile === null
+                  ? 'border-pink-400 border-opacity-50 scale-105 shadow-xl'
                   : 'border-white border-opacity-5 hover:scale-[1.02]'
               }`}
               onClick={() => setSelectedProfile(null)}
@@ -115,14 +114,22 @@ const RegisterLensProfileStep = ({ lensProfiles, onProfileSelected }: Props) => 
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="text-white font-semibold text-sm tracking-wide">Start Fresh</h3>
-                  <p className="text-gray-300 text-xs font-light">Create a new identity without importing existing profiles</p>
+                  <p className="text-gray-300 text-xs font-light">
+                    Create a new identity without importing existing profiles
+                  </p>
                 </div>
                 <div className="w-2 h-2 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full opacity-60"></div>
               </div>
             </ThematicContainer>
           </>
         ) : (
-          <ThematicContainer color="nocenaBlue" asButton={false} glassmorphic={true} rounded="xl" className="p-6 border border-blue-500 border-opacity-20">
+          <ThematicContainer
+            color="nocenaBlue"
+            asButton={false}
+            glassmorphic={true}
+            rounded="xl"
+            className="p-6 border border-blue-500 border-opacity-20"
+          >
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-600 to-gray-700 rounded-2xl flex items-center justify-center opacity-60">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
@@ -132,17 +139,15 @@ const RegisterLensProfileStep = ({ lensProfiles, onProfileSelected }: Props) => 
                 </svg>
               </div>
               <p className="text-white font-medium mb-2 tracking-wide">No Profiles Found</p>
-              <p className="text-gray-400 text-sm font-light">This wallet has no associated Lens Protocol profiles. You'll start with a fresh identity.</p>
+              <p className="text-gray-400 text-sm font-light">
+                This wallet has no associated Lens Protocol profiles. You'll start with a fresh identity.
+              </p>
             </div>
           </ThematicContainer>
         )}
       </div>
 
-      <PrimaryButton 
-        text="CONTINUE" 
-        onClick={handleContinue}
-        className="w-full"
-      />
+      <PrimaryButton text="CONTINUE" onClick={handleContinue} className="w-full" />
     </div>
   );
 };
