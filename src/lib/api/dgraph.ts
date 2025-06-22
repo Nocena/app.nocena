@@ -36,6 +36,10 @@ export const registerUser = async (
   weeklyChallenge: string,
   monthlyChallenge: string,
   inviteCode: string,
+  lensHandle: string,
+  lensAccountId: string,
+  lensTransactionHash: string,
+  lensMetadataUri: string,
   invitedById?: string,
   pushSubscription?: string | null,
 ) => {
@@ -50,11 +54,21 @@ export const registerUser = async (
     earnedTokensToday,
     earnedTokensThisWeek,
     earnedTokensThisMonth,
+    // Log Lens data
+    lensHandle,
+    lensAccountId,
+    lensTransactionHash: `${lensTransactionHash.substring(0, 10)}...`,
+    lensMetadataUri,
   });
 
   // Validate that pushSubscription is provided
   if (!pushSubscription) {
     throw new Error('Push subscription is required for user registration');
+  }
+
+  // Validate that all Lens data is provided
+  if (!lensHandle || !lensAccountId || !lensTransactionHash || !lensMetadataUri) {
+    throw new Error('All Lens Protocol data is required for user registration');
   }
 
   const mutation = `
@@ -85,6 +99,10 @@ export const registerUser = async (
           weeklyChallenge
           monthlyChallenge
           pushSubscription
+          lensHandle
+          lensAccountId
+          lensTransactionHash
+          lensMetadataUri
           followers {
             id
           }
@@ -127,6 +145,11 @@ export const registerUser = async (
       inviteCode: inviteCode,
       invitedById: invitedById || null,
       pushSubscription: pushSubscription,
+      // Lens fields are guaranteed to be valid strings
+      lensHandle: lensHandle,
+      lensAccountId: lensAccountId,
+      lensTransactionHash: lensTransactionHash,
+      lensMetadataUri: lensMetadataUri,
       // Only add invitedBy reference if invitedById exists and is not 'system'
       ...(invitedById &&
         invitedById !== 'system' && {
@@ -178,6 +201,19 @@ export const registerUser = async (
         );
       }
 
+      // Verify Lens data was saved (should always be present now)
+      console.log('🌿 REGISTER: Successfully saved Lens data:', {
+        handle: userData.lensHandle,
+        accountId: userData.lensAccountId,
+        txHash: userData.lensTransactionHash ? `${userData.lensTransactionHash.substring(0, 10)}...` : 'missing',
+        metadataUri: userData.lensMetadataUri,
+      });
+
+      // Validate that Lens data was actually saved
+      if (!userData.lensHandle || !userData.lensTransactionHash) {
+        throw new Error('Failed to save Lens data to database');
+      }
+
       // Verify new media fields were saved
       if (!userData.coverPhoto) {
         console.warn('🔧 REGISTER: Warning - coverPhoto was not saved to database');
@@ -226,12 +262,64 @@ export const registerUser = async (
   } catch (error) {
     console.error('🔧 REGISTER: Error during user registration:', error);
 
-    // Narrowing the type of error
     if (error instanceof Error) {
       throw new Error(error.message || 'User registration failed. Please try again.');
     } else {
       throw new Error('An unknown error occurred during user registration.');
     }
+  }
+};
+
+// New function to update user with Lens data after Lens account creation
+export const updateUserLensData = async (
+  userId: string,
+  lensHandle: string,
+  lensAccountId?: string,
+  lensTransactionHash?: string,
+  lensMetadataUri?: string,
+) => {
+  console.log('🌿 Updating user with Lens data:', { userId, lensHandle, lensAccountId });
+
+  const mutation = `
+    mutation UpdateUserLens($id: ID!, $patch: UserPatch!) {
+      updateUser(input: { filter: { id: [$id] }, set: $patch }) {
+        user {
+          id
+          username
+          lensHandle
+          lensAccountId
+          lensTransactionHash
+          lensMetadataUri
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    patch: {
+      lensHandle: lensHandle,
+      lensAccountId: lensAccountId || null,
+      lensTransactionHash: lensTransactionHash || null,
+      lensMetadataUri: lensMetadataUri || null,
+    },
+  };
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query: mutation,
+      variables,
+    });
+
+    if (response.data.errors) {
+      throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
+    }
+
+    console.log('🌿 Successfully updated user with Lens data');
+    return response.data.data.updateUser.user[0];
+  } catch (error) {
+    console.error('🌿 Error updating user with Lens data:', error);
+    throw error;
   }
 };
 

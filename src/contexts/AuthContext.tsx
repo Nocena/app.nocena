@@ -28,6 +28,12 @@ export interface User {
 
   pushSubscription?: string | null;
 
+  // Lens Protocol Fields
+  lensHandle?: string | null;
+  lensAccountId?: string | null;
+  lensTransactionHash?: string | null;
+  lensMetadataUri?: string | null;
+
   // Relationships
   followers: string[]; // Array of user IDs
   following: string[]; // Array of user IDs
@@ -210,14 +216,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         delete userData.passwordHash;
       }
 
-      // Migration: Remove old phoneNumber and passwordHash fields if they exist
-      if ('phoneNumber' in userData) {
-        delete userData.phoneNumber;
-      }
-      if ('passwordHash' in userData) {
-        delete userData.passwordHash;
-      }
-
       // Migration: Add default media fields if they don't exist
       if (!userData.coverPhoto) {
         userData.coverPhoto = '/images/cover.jpg';
@@ -264,6 +262,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       if (!userData.personalField3Metadata) {
         userData.personalField3Metadata = '';
+      }
+
+      // Migration: Add Lens Protocol fields if they don't exist
+      if (userData.lensHandle === undefined) {
+        userData.lensHandle = null;
+      }
+      if (userData.lensAccountId === undefined) {
+        userData.lensAccountId = null;
+      }
+      if (userData.lensTransactionHash === undefined) {
+        userData.lensTransactionHash = null;
+      }
+      if (userData.lensMetadataUri === undefined) {
+        userData.lensMetadataUri = null;
       }
 
       return userData;
@@ -322,6 +334,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             hasStoredUser: !!userData,
             currentAddress,
             userWallet: userData?.wallet,
+            userLensHandle: userData?.lensHandle,
           });
 
           if (userData) {
@@ -331,7 +344,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(userData);
                 setIsAuthenticated(true);
                 lastWalletAddress.current = currentAddress;
-                console.log('[AuthContext] User restored with matching wallet');
+                console.log('[AuthContext] User restored with matching wallet', {
+                  lensHandle: userData.lensHandle,
+                });
               } else {
                 // Wallet mismatch, clear stored user
                 console.log('[AuthContext] Wallet address mismatch, clearing stored user');
@@ -395,6 +410,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       to: currentAddress,
       hasUser: !!user,
       userWallet: user?.wallet,
+      userLensHandle: user?.lensHandle,
     });
 
     // Debounce wallet changes to avoid rapid state updates
@@ -446,6 +462,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('[AuthContext] Login attempt:', {
           userWallet: userData.wallet,
           connectedWallet: account?.address,
+          lensHandle: userData.lensHandle,
+          lensAccountId: userData.lensAccountId,
         });
 
         // For wallet-authenticated users, validate wallet address matches
@@ -458,7 +476,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setStoredUser(userData);
         lastWalletAddress.current = account?.address || null;
 
-        console.log('[AuthContext] Login successful');
+        console.log('[AuthContext] Login successful', {
+          userId: userData.id,
+          username: userData.username,
+          lensHandle: userData.lensHandle,
+        });
       } catch (error) {
         console.error('[AuthContext] Error during login:', error);
         throw error;
@@ -518,7 +540,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(true);
         setStoredUser(updatedUser);
 
-        console.log('[AuthContext] User updated');
+        console.log('[AuthContext] User updated', {
+          updatedFields: Object.keys(userData),
+          lensHandle: updatedUser.lensHandle,
+        });
       }
     },
     [user, setStoredUser],
