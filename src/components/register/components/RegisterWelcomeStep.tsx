@@ -6,11 +6,7 @@ interface Props {
   preloadedVideo?: HTMLVideoElement | null;
 }
 
-const RegisterWelcomeStep: React.FC<Props> = ({ 
-  inviteOwner, 
-  videoPreloaded = false, 
-  preloadedVideo = null 
-}) => {
+const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner, videoPreloaded = false, preloadedVideo = null }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
@@ -19,37 +15,55 @@ const RegisterWelcomeStep: React.FC<Props> = ({
 
   useEffect(() => {
     const video = videoRef.current;
-    
+
     if (video) {
-      // If we have a preloaded video, try to use it
       if (videoPreloaded && preloadedVideo) {
-        console.log('🎬 Using preloaded video for welcome screen');
+        console.log('🎬 Using preloaded video for instant playback');
         
-        // Copy the preloaded video source to our video element
-        video.src = preloadedVideo.src;
-        video.currentTime = 0; // Ensure we start from beginning
-        
-        // Mark as ready immediately since it's preloaded
-        setVideoLoaded(true);
-        setVideoReady(true);
-        
-        // Start playing immediately
-        video.play().catch(error => {
-          console.warn('Video autoplay failed:', error);
-          // Still show the welcome screen even if autoplay fails
-        });
+        // Method 1: Clone the preloaded video's state
+        try {
+          // Copy all the important properties from preloaded video
+          video.src = preloadedVideo.src;
+          video.preload = 'auto';
+          video.muted = true;
+          video.playsInline = true;
+          
+          // If the preloaded video has buffered data, this should be instant
+          if (preloadedVideo.readyState >= 3) { // HAVE_FUTURE_DATA or better
+            console.log('✅ Preloaded video has sufficient data, should play instantly');
+            setVideoLoaded(true);
+            setVideoReady(true);
+            
+            // Try to play immediately since data is ready
+            video.play().then(() => {
+              console.log('🎬 Preloaded video started playing successfully');
+            }).catch((error) => {
+              console.warn('⚠️ Autoplay failed but video is ready:', error);
+            });
+          } else {
+            console.log('📼 Preloaded video needs more buffering');
+            video.load(); // Trigger loading with the benefit of browser cache
+          }
+        } catch (error) {
+          console.error('❌ Error using preloaded video:', error);
+          // Fallback to normal loading
+          video.src = '/intro.MP4';
+          video.load();
+        }
       } else {
-        console.log('🎬 Loading video normally (not preloaded)');
-        // Fallback to normal loading
+        console.log('🎬 No preloaded video, loading normally (this may take time for large files)');
+        video.src = '/intro.MP4';
         video.load();
-        video.play().catch(error => {
-          console.warn('Video autoplay failed:', error);
-        });
+        
+        // Show ready state immediately since we don't want to wait
+        setTimeout(() => {
+          setVideoReady(true);
+        }, 1000);
       }
     }
 
     // Show elements with animation delay
-    const timer = setTimeout(() => setShowElements(true), videoPreloaded ? 500 : 800);
+    const timer = setTimeout(() => setShowElements(true), 500);
     return () => clearTimeout(timer);
   }, [videoPreloaded, preloadedVideo]);
 
@@ -66,8 +80,15 @@ const RegisterWelcomeStep: React.FC<Props> = ({
 
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     console.error('❌ Video failed to load:', e);
+    console.log('🔄 Continuing with text-only welcome screen');
+    // Don't block the welcome screen if video fails
     setVideoLoaded(false);
-    setVideoReady(false);
+    setVideoReady(true); // Allow UI to show anyway
+  };
+
+  const handleVideoCanPlay = () => {
+    console.log('✅ Video can start playing');
+    setVideoReady(true);
   };
 
   return (
@@ -77,11 +98,12 @@ const RegisterWelcomeStep: React.FC<Props> = ({
         <video
           ref={videoRef}
           className={`min-w-full min-h-full object-cover transition-opacity duration-1000 ${
-            videoReady ? 'opacity-90' : 'opacity-0'
+            videoLoaded && videoReady ? 'opacity-90' : 'opacity-0'
           }`}
           muted
           playsInline
           onLoadedData={handleVideoLoad}
+          onCanPlay={handleVideoCanPlay}
           onEnded={handleVideoEnd}
           onError={handleVideoError}
           preload="auto"
@@ -91,16 +113,23 @@ const RegisterWelcomeStep: React.FC<Props> = ({
           }}
         >
           <source src="/intro.MP4" type="video/mp4" />
+          {/* Fallback source with lowercase */}
+          <source src="/intro.mp4" type="video/mp4" />
         </video>
       </div>
+
+      {/* Background Gradient for when video is not visible */}
+      <div className={`absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900 transition-opacity duration-1000 ${
+        videoLoaded && videoReady ? 'opacity-0' : 'opacity-100'
+      }`}></div>
 
       {/* Gradient Overlays for Readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent via-transparent to-black/70"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-nocenaBlue/10 via-transparent to-nocenaPurple/10"></div>
 
-      {/* Loading State - Only show if video is not preloaded or failed to load */}
-      {!videoReady && (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900 flex items-center justify-center">
+      {/* Loading State - Only show for the first few moments */}
+      {!showElements && (
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="flex justify-center space-x-3 mb-4">
               <div className="w-4 h-4 bg-gradient-to-r from-nocenaBlue to-nocenaPurple rounded-full animate-bounce"></div>
@@ -116,9 +145,7 @@ const RegisterWelcomeStep: React.FC<Props> = ({
             <p className="text-white/80 text-lg">
               {videoPreloaded ? 'Initializing experience...' : 'Loading experience...'}
             </p>
-            {videoPreloaded && (
-              <p className="text-white/60 text-sm mt-2">Video ready, starting now!</p>
-            )}
+            {videoPreloaded && <p className="text-white/60 text-sm mt-2">Video ready, starting now!</p>}
           </div>
         </div>
       )}
@@ -259,10 +286,15 @@ const RegisterWelcomeStep: React.FC<Props> = ({
                       <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                       <span className="text-green-300">Video preloaded ✓</span>
                     </>
+                  ) : videoLoaded ? (
+                    <>
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                      <span className="text-blue-300">Video loaded ✓</span>
+                    </>
                   ) : (
                     <>
                       <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                      <span className="text-yellow-300">Loading on demand</span>
+                      <span className="text-yellow-300">Loading video...</span>
                     </>
                   )}
                 </div>

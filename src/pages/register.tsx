@@ -1,4 +1,4 @@
-// pages/register.tsx (Enhanced with video preloading)
+// pages/register.tsx (Enhanced with mock Lens integration)
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -40,6 +40,26 @@ enum RegisterStep {
   NOTIFICATIONS = 3,
   WELCOME = 4,
 }
+
+// Mock Lens integration functions (NOT USED - kept for reference)
+// const mockLensIntegration = {
+//   checkUsername: async (username: string) => {
+//     await new Promise(resolve => setTimeout(resolve, 500));
+//     return { available: true, suggestedAlternatives: [] };
+//   },
+//   createAccount: async (username: string, walletAddress: string, bio: string) => {
+//     await new Promise(resolve => setTimeout(resolve, 1000));
+//     const mockAccountId = `lens-${username}-${Date.now().toString(36)}`;
+//     const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+//     return {
+//       success: true,
+//       accountId: mockAccountId,
+//       txHash: mockTxHash,
+//       handle: `${username}.lens`,
+//       metadataUri: `https://lens.api/metadata/${mockAccountId}`
+//     };
+//   }
+// };
 
 const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(RegisterStep.INVITE_CODE);
@@ -93,67 +113,111 @@ const RegisterPage = () => {
   // Video preloading effect - starts as soon as component mounts
   useEffect(() => {
     console.log('🎬 Starting welcome video preload...');
-    
+
     const video = document.createElement('video');
     video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
     video.loop = false;
-    
-    // Add multiple formats for better compatibility
-    const formats = [
-      { src: '/intro.MP4', type: 'video/mp4' },
-    ];
-    
-    formats.forEach(format => {
-      const source = document.createElement('source');
-      source.src = format.src;
-      source.type = format.type;
-      video.appendChild(source);
-    });
-    
+    video.crossOrigin = 'anonymous'; // Help with CORS if needed
+
+    // Use the exact filename we can see in your public folder
+    video.src = '/intro.MP4';
+
     // Event listeners for preload status
     const handleCanPlayThrough = () => {
-      console.log('✅ Welcome video fully preloaded and ready');
+      console.log('✅ Welcome video fully preloaded and ready for instant playback');
       setVideoPreloaded(true);
       setVideoPreloadError(false);
     };
-    
+
     const handleLoadedData = () => {
       console.log('📼 Welcome video metadata loaded');
     };
-    
-    const handleError = (e: Event) => {
-      console.warn('⚠️ Welcome video preload failed:', e);
-      setVideoPreloadError(true);
-      setVideoPreloaded(false); // Still allow progression
+
+    const handleLoadStart = () => {
+      console.log('🎬 Video preload started...');
     };
-    
+
     const handleProgress = () => {
       if (video.buffered.length > 0) {
         const buffered = video.buffered.end(0);
         const duration = video.duration;
         if (duration > 0) {
           const percentLoaded = (buffered / duration) * 100;
-          console.log(`📊 Video preload progress: ${percentLoaded.toFixed(1)}%`);
+          console.log(`📊 Video preload progress: ${percentLoaded.toFixed(1)}% (${buffered.toFixed(1)}s of ${duration.toFixed(1)}s)`);
+          
+          // Consider it "ready enough" if we have at least 50% buffered
+          if (percentLoaded >= 50 && !videoPreloaded) {
+            console.log('🎯 Video 50% preloaded - should be ready for smooth playback');
+            setVideoPreloaded(true);
+            setVideoPreloadError(false);
+          }
         }
       }
     };
-    
+
+    const handleLoadedMetadata = () => {
+      console.log('📋 Video metadata loaded:', {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState
+      });
+    };
+
+    const handleError = (e: Event) => {
+      console.error('⚠️ Welcome video preload failed:', e);
+      console.log('🔍 Checking if video file exists by trying direct fetch...');
+      
+      // Try to fetch the video file directly to debug
+      fetch('/intro.MP4')
+        .then(response => {
+          if (response.ok) {
+            console.log('✅ Video file exists and is accessible via fetch');
+            console.log('📁 Video details:', {
+              size: response.headers.get('content-length'),
+              type: response.headers.get('content-type')
+            });
+          } else {
+            console.error(`❌ Video file returned status: ${response.status}`);
+          }
+        })
+        .catch(fetchError => {
+          console.error('❌ Video file not accessible:', fetchError);
+        });
+      
+      setVideoPreloadError(true);
+      setVideoPreloaded(false); // Will use fallback experience
+    };
+
     video.addEventListener('canplaythrough', handleCanPlayThrough);
     video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('error', handleError);
     video.addEventListener('progress', handleProgress);
-    
-    // Start loading
+
+    // Start loading immediately
     video.load();
     preloadedVideoRef.current = video;
-    
+
+    // Fallback timeout - don't wait forever for preload
+    const fallbackTimeout = setTimeout(() => {
+      if (!videoPreloaded && !videoPreloadError) {
+        console.log('⏰ Video preload taking too long, will continue without it');
+        setVideoPreloadError(true);
+      }
+    }, 15000); // 15 second timeout
+
     // Cleanup
     return () => {
+      clearTimeout(fallbackTimeout);
       if (preloadedVideoRef.current) {
         preloadedVideoRef.current.removeEventListener('canplaythrough', handleCanPlayThrough);
         preloadedVideoRef.current.removeEventListener('loadeddata', handleLoadedData);
+        preloadedVideoRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        preloadedVideoRef.current.removeEventListener('loadstart', handleLoadStart);
         preloadedVideoRef.current.removeEventListener('error', handleError);
         preloadedVideoRef.current.removeEventListener('progress', handleProgress);
         preloadedVideoRef.current.remove();
@@ -249,77 +313,34 @@ const RegisterPage = () => {
       setError('Missing registration data. Please try again.');
       return;
     }
-  
+
     setLoading(true);
     setError('');
-  
+
     try {
-      // STEP 1: Check Lens username availability and create Lens account
-      console.log('🌿 Checking Lens username availability...');
-      let lensData: {
-        handle: string;
-        accountId: string;
-        txHash: string;
-        metadataUri: string;
-      } | null = null;
-  
-      try {
-        const lensCheckResponse = await fetch('/api/lens/checkUsername', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: registrationData.username }),
-        });
-  
-        const lensCheck = await lensCheckResponse.json();
-  
-        if (!lensCheck.available) {
-          throw new Error(`Username "${registrationData.username}" is not available on Lens Protocol`);
-        }
-  
-        console.log('🌿 Username available on Lens, creating account...');
-        
-        // Try to create Lens account
-        const createResponse = await fetch('/api/lens/createAccount', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: registrationData.username,
-            walletAddress: registrationData.walletAddress,
-            bio: `Nocena challenge enthusiast: ${registrationData.username}`,
-          }),
-        });
-  
-        const createResult = await createResponse.json();
-  
-        if (!createResult.success) {
-          throw new Error(`Failed to create Lens account: ${createResult.error}`);
-        }
-  
-        // Validate that we have all required Lens data
-        if (!createResult.txHash) {
-          throw new Error('Lens account creation did not return a transaction hash');
-        }
-  
-        lensData = {
-          handle: `${registrationData.username}.lens`,
-          accountId: createResult.accountId || `lens-account-${Date.now()}`, // Fallback if not provided
-          txHash: createResult.txHash,
-          metadataUri: `lens://nocena.app/metadata/lens-${registrationData.username}-${Date.now()}`,
-        };
-  
-        console.log('✅ Lens account created successfully:', {
-          handle: lensData.handle,
-          txHash: lensData.txHash,
-          accountId: lensData.accountId,
-        });
-  
-      } catch (lensError) {
-        console.error('💥 Error with Lens integration:', lensError);
-        throw new Error(`Lens Protocol integration failed: ${lensError instanceof Error ? lensError.message : 'Unknown error'}. Registration cannot continue.`);
-      }
-  
-      // STEP 2: Register the user in Dgraph with Lens data (only if Lens was successful)
-      console.log('🗄️ Creating user in Dgraph with Lens data...');
+      // STEP 1: Generate mock Lens data (no API calls, just local generation)
+      console.log('🌿 [NO-LENS] Generating mock Lens data locally...');
+      
+      // Generate completely local mock data - no API calls at all
+      const mockTimestamp = Date.now().toString(36);
+      const mockRandomSuffix = Math.random().toString(36).substr(2, 8);
+      
+      const lensData = {
+        handle: `${registrationData.username}.lens`,
+        accountId: `mock-lens-${registrationData.username}-${mockTimestamp}`,
+        txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+        metadataUri: `https://mock-lens.nocena.app/metadata/${registrationData.username}-${mockRandomSuffix}`
+      };
+
+      console.log('✅ [NO-LENS] Mock Lens data generated locally:', {
+        handle: lensData.handle,
+        txHash: lensData.txHash,
+        accountId: lensData.accountId,
+        metadataUri: lensData.metadataUri
+      });
+
+      // STEP 2: Register the user in Dgraph with mock Lens data
+      console.log('🗄️ Creating user in Dgraph with mock Lens data...');
       const addedUser = await registerUser(
         registrationData.username,
         '', // bio (empty for new users)
@@ -344,26 +365,27 @@ const RegisterPage = () => {
         '0'.repeat(52), // weeklyChallenge
         '0'.repeat(12), // monthlyChallenge
         registrationData.inviteCode,
-        registrationData.invitedById || '',
-        pushSubscription,
-        // Lens data (guaranteed to be valid strings at this point)
+        // Mock Lens data (these come BEFORE invitedById and pushSubscription according to function signature)
         lensData.handle,
         lensData.accountId,
         lensData.txHash,
         lensData.metadataUri,
+        // These are the optional parameters at the end
+        registrationData.invitedById || '',
+        pushSubscription,
       );
-  
+
       if (!addedUser) {
         throw new Error('Failed to create user in database');
       }
-  
-      console.log('✅ User created in Dgraph with Lens data:', {
+
+      console.log('✅ User created in Dgraph with mock Lens data:', {
         userId: addedUser.id,
         username: addedUser.username,
         lensHandle: addedUser.lensHandle,
         lensAccountId: addedUser.lensAccountId,
       });
-  
+
       // STEP 3: Mark invite code as used
       if (registrationData.inviteCode !== 'RECOVERY') {
         await fetch('/api/registration/use-invite', {
@@ -375,7 +397,7 @@ const RegisterPage = () => {
           }),
         });
       }
-  
+
       // STEP 4: Generate initial invite codes
       try {
         await generateInviteCode(addedUser.id, 'initial');
@@ -385,7 +407,7 @@ const RegisterPage = () => {
         console.error('Error generating initial invite codes:', inviteError);
         // Don't fail registration for this
       }
-  
+
       // STEP 5: Create user data and commit to AuthContext
       console.log('👤 Creating user data for AuthContext...');
       const userData: User = {
@@ -400,7 +422,7 @@ const RegisterPage = () => {
         earnedTokensDay: 0,
         earnedTokensWeek: 0,
         earnedTokensMonth: 0,
-  
+
         // Personal Expression Fields
         personalField1Type: '',
         personalField1Value: '',
@@ -411,18 +433,18 @@ const RegisterPage = () => {
         personalField3Type: '',
         personalField3Value: '',
         personalField3Metadata: '',
-  
+
         pushSubscription: pushSubscription,
         dailyChallenge: '0'.repeat(365),
         weeklyChallenge: '0'.repeat(52),
         monthlyChallenge: '0'.repeat(12),
-        
-        // Include Lens data in user context (guaranteed to exist)
+
+        // Include mock Lens data in user context
         lensHandle: addedUser.lensHandle!,
         lensAccountId: addedUser.lensAccountId!,
         lensTransactionHash: addedUser.lensTransactionHash!,
         lensMetadataUri: addedUser.lensMetadataUri!,
-        
+
         followers: [],
         following: [],
         notifications: [],
@@ -432,12 +454,12 @@ const RegisterPage = () => {
         createdPublicChallenges: [],
         participatingPublicChallenges: [],
       };
-  
+
       // STEP 6: Commit to AuthContext only after everything is successful
       console.log('🔐 Logging in user...');
       await login(userData);
-  
-      console.log('🎉 Registration complete!', {
+
+      console.log('🎉 Registration complete with NO Lens integration!', {
         userId: addedUser.id,
         username: registrationData.username,
         lensHandle: lensData.handle,
@@ -445,7 +467,7 @@ const RegisterPage = () => {
         lensTransactionHash: lensData.txHash,
         videoPreloaded: videoPreloaded,
       });
-  
+
       setCurrentStep(RegisterStep.WELCOME);
     } catch (err) {
       console.error('💥 Registration error:', err);
@@ -456,14 +478,14 @@ const RegisterPage = () => {
     }
   };
 
-  // Handle welcome screen completion - longer duration if video is ready
+  // Handle welcome screen completion - adjust timing based on video availability
   useEffect(() => {
     if (currentStep === RegisterStep.WELCOME) {
-      // Determine timing based on video readiness
-      const welcomeDuration = videoPreloaded ? 7000 : 5000; // 7s if video ready, 5s fallback
-      
-      console.log(`⏱️ Welcome screen will show for ${welcomeDuration}ms (video preloaded: ${videoPreloaded})`);
-      
+      // Determine timing: longer if video loads, shorter if no video (fallback experience)
+      const welcomeDuration = videoPreloaded ? 7000 : 3000; // 7s with video, 3s without
+
+      console.log(`⏱️ Welcome screen will show for ${welcomeDuration}ms (video preloaded: ${videoPreloaded}, error: ${videoPreloadError})`);
+
       const timer = setTimeout(() => {
         console.log('🏠 Navigating to home...');
         router.push('/home');
@@ -471,7 +493,7 @@ const RegisterPage = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, router, videoPreloaded]);
+  }, [currentStep, router, videoPreloaded, videoPreloadError]);
 
   const onSubmit = async (values: FormValues) => {
     console.log('Form submitted:', values);
@@ -509,7 +531,7 @@ const RegisterPage = () => {
         return (
           <div className="space-y-4">
             <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />
-            
+
             {/* Optional: Show video preload status */}
             {!videoPreloaded && !videoPreloadError && (
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
@@ -519,7 +541,7 @@ const RegisterPage = () => {
                 </div>
               </div>
             )}
-            
+
             {videoPreloaded && (
               <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
                 <div className="flex items-center space-x-3">
@@ -574,8 +596,8 @@ const RegisterPage = () => {
 
   if (currentStep === RegisterStep.WELCOME) {
     return (
-      <RegisterWelcomeStep 
-        inviteOwner={registrationData.inviteOwner || 'Someone'} 
+      <RegisterWelcomeStep
+        inviteOwner={registrationData.inviteOwner || 'Someone'}
         videoPreloaded={videoPreloaded}
         preloadedVideo={preloadedVideoRef.current}
       />
@@ -594,7 +616,7 @@ const RegisterPage = () => {
             <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
               <p className="text-red-400 text-sm text-center">{error}</p>
             </div>
-          )}
+            )}
         </form>
       </FormProvider>
     </AuthenticationLayout>

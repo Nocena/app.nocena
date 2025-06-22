@@ -1,4 +1,4 @@
-// pages/login.tsx
+// pages/login.tsx - Updated to match enhanced registration
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -122,6 +122,8 @@ const LoginPage = () => {
           userExists: !!userData,
           username: userData?.username,
           wallet: userData?.wallet,
+          hasLensData: !!(userData?.lensHandle || userData?.lensAccountId),
+          hasPersonalFields: !!(userData?.personalField1Type || userData?.personalField2Type || userData?.personalField3Type),
         });
 
         // Mark this address as checked to prevent future API calls
@@ -136,19 +138,79 @@ const LoginPage = () => {
           return;
         }
 
-        // Format user data for our context
+        // Format user data for our context - enhanced to match registration
         const formattedUser: User = {
-          ...userData,
+          // Core user fields
+          id: userData.id,
+          username: userData.username,
+          bio: userData.bio || '',
+          wallet: userData.wallet,
+          profilePicture: userData.profilePicture || '/images/profile.png',
+          coverPhoto: userData.coverPhoto || '/images/cover.jpg',
+          trailerVideo: userData.trailerVideo || '/trailer.mp4',
+          
+          // Token fields - ensure consistent naming with registration
+          earnedTokens: userData.earnedTokens || 0,
+          earnedTokensDay: userData.earnedTokensDay || userData.earnedTokensToday || 0,
+          earnedTokensWeek: userData.earnedTokensWeek || userData.earnedTokensThisWeek || 0,
+          earnedTokensMonth: userData.earnedTokensMonth || userData.earnedTokensThisMonth || 0,
+
+          // Personal Expression Fields - new in enhanced registration
+          personalField1Type: userData.personalField1Type || '',
+          personalField1Value: userData.personalField1Value || '',
+          personalField1Metadata: userData.personalField1Metadata || '',
+          personalField2Type: userData.personalField2Type || '',
+          personalField2Value: userData.personalField2Value || '',
+          personalField2Metadata: userData.personalField2Metadata || '',
+          personalField3Type: userData.personalField3Type || '',
+          personalField3Value: userData.personalField3Value || '',
+          personalField3Metadata: userData.personalField3Metadata || '',
+
+          // Lens Protocol Fields - new in enhanced registration
+          lensHandle: userData.lensHandle || '',
+          lensAccountId: userData.lensAccountId || '',
+          lensTransactionHash: userData.lensTransactionHash || '',
+          lensMetadataUri: userData.lensMetadataUri || '',
+
+          // Notification and challenge tracking
+          pushSubscription: userData.pushSubscription || '',
+          dailyChallenge: userData.dailyChallenge || '0'.repeat(365),
+          weeklyChallenge: userData.weeklyChallenge || '0'.repeat(52),
+          monthlyChallenge: userData.monthlyChallenge || '0'.repeat(12),
+
+          // Social connections - ensure arrays
           followers: Array.isArray(userData.followers) ? userData.followers : [],
           following: Array.isArray(userData.following) ? userData.following : [],
+          
+          // Activity arrays - ensure they exist
+          notifications: Array.isArray(userData.notifications) ? userData.notifications : [],
+          completedChallenges: Array.isArray(userData.completedChallenges) ? userData.completedChallenges : [],
+          receivedPrivateChallenges: Array.isArray(userData.receivedPrivateChallenges) ? userData.receivedPrivateChallenges : [],
+          createdPrivateChallenges: Array.isArray(userData.createdPrivateChallenges) ? userData.createdPrivateChallenges : [],
+          createdPublicChallenges: Array.isArray(userData.createdPublicChallenges) ? userData.createdPublicChallenges : [],
+          participatingPublicChallenges: Array.isArray(userData.participatingPublicChallenges) ? userData.participatingPublicChallenges : [],
         };
 
-        console.log('👤 Formatted user data:', {
+        console.log('👤 Enhanced formatted user data:', {
           id: formattedUser.id,
           username: formattedUser.username,
           wallet: formattedUser.wallet,
+          lensHandle: formattedUser.lensHandle,
+          lensAccountId: formattedUser.lensAccountId,
+          hasPersonalFields: !!(formattedUser.personalField1Type || formattedUser.personalField2Type || formattedUser.personalField3Type),
           followersCount: formattedUser.followers.length,
           followingCount: formattedUser.following.length,
+          tokenFields: {
+            total: formattedUser.earnedTokens,
+            day: formattedUser.earnedTokensDay,
+            week: formattedUser.earnedTokensWeek,
+            month: formattedUser.earnedTokensMonth,
+          },
+          challengeProgress: {
+            daily: formattedUser.dailyChallenge.length,
+            weekly: formattedUser.weeklyChallenge.length,
+            monthly: formattedUser.monthlyChallenge.length,
+          }
         });
 
         // Login successful

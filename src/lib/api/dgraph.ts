@@ -861,6 +861,194 @@ export const getAdminInviteStats = async () => {
   }
 };
 
+export const getUserFromDgraph = async (walletAddress: string) => {
+  const query = `
+    query GetUserByWallet($walletAddress: String!) {
+      queryUser(filter: { wallet: { eq: $walletAddress } }) {
+        id
+        username
+        wallet
+        bio
+        profilePicture
+        coverPhoto
+        trailerVideo
+        earnedTokens
+        earnedTokensToday
+        earnedTokensThisWeek
+        earnedTokensThisMonth
+        personalField1Type
+        personalField1Value
+        personalField1Metadata
+        personalField2Type
+        personalField2Value
+        personalField2Metadata
+        personalField3Type
+        personalField3Value
+        personalField3Metadata
+        lensHandle
+        lensAccountId
+        lensTransactionHash
+        lensMetadataUri
+        pushSubscription
+        dailyChallenge
+        weeklyChallenge
+        monthlyChallenge
+        followers {
+          id
+        }
+        following {
+          id
+        }
+        completedChallenges {
+          id
+          challengeType
+          completionDate
+          media
+          
+          # References to the different challenge types
+          privateChallenge {
+            id
+            title
+          }
+          publicChallenge {
+            id
+            title
+          }
+          aiChallenge {
+            id
+            title
+            frequency
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    console.log('🔍 WALLET LOOKUP: Searching for wallet address:', walletAddress);
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { walletAddress },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    console.log('🔍 WALLET LOOKUP: Query response:', {
+      errors: response.data?.errors,
+      userFound: !!response.data?.data?.queryUser?.[0],
+      userCount: response.data?.data?.queryUser?.length || 0,
+      rawResponse: response.data?.data?.queryUser?.[0] ? 'User data received' : 'No user data'
+    });
+
+    if (response.data.errors) {
+      console.error('🔍 WALLET LOOKUP: GraphQL errors:', response.data.errors);
+      throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
+    }
+
+    const userData = response.data?.data?.queryUser[0] || null;
+
+    // Format the data to match your User interface
+    if (userData) {
+      console.log('🔍 WALLET LOOKUP: Raw user data fields:', Object.keys(userData));
+
+      // Convert followers from objects to string array of ids
+      userData.followers = userData.followers?.map((f: any) => f.id) || [];
+      userData.following = userData.following?.map((f: any) => f.id) || [];
+
+      // Initialize missing arrays for existing users who might not have them
+      userData.notifications = userData.notifications || [];
+      userData.receivedPrivateChallenges = userData.receivedPrivateChallenges || [];
+      userData.createdPrivateChallenges = userData.createdPrivateChallenges || [];
+      userData.createdPublicChallenges = userData.createdPublicChallenges || [];
+      userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
+
+      // Ensure token fields have defaults for existing users
+      userData.earnedTokensToday = userData.earnedTokensToday || 0;
+      userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
+      userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
+
+      // Ensure personal expression fields have defaults
+      userData.personalField1Type = userData.personalField1Type || '';
+      userData.personalField1Value = userData.personalField1Value || '';
+      userData.personalField1Metadata = userData.personalField1Metadata || '';
+      userData.personalField2Type = userData.personalField2Type || '';
+      userData.personalField2Value = userData.personalField2Value || '';
+      userData.personalField2Metadata = userData.personalField2Metadata || '';
+      userData.personalField3Type = userData.personalField3Type || '';
+      userData.personalField3Value = userData.personalField3Value || '';
+      userData.personalField3Metadata = userData.personalField3Metadata || '';
+
+      // Ensure Lens fields have defaults for existing users
+      userData.lensHandle = userData.lensHandle || '';
+      userData.lensAccountId = userData.lensAccountId || '';
+      userData.lensTransactionHash = userData.lensTransactionHash || '';
+      userData.lensMetadataUri = userData.lensMetadataUri || '';
+
+      // Ensure media fields have defaults
+      userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
+      userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
+
+      // Ensure push subscription has default
+      userData.pushSubscription = userData.pushSubscription || '';
+
+      // Format completed challenges to match your interface
+      userData.completedChallenges =
+        userData.completedChallenges?.map((c: any) => {
+          // Determine which challenge type this completion refers to
+          let challengeTitle = '';
+          let challengeType = '';
+
+          if (c.aiChallenge) {
+            challengeTitle = c.aiChallenge.title;
+            challengeType = `AI-${c.aiChallenge.frequency}`;
+          } else if (c.privateChallenge) {
+            challengeTitle = c.privateChallenge.title;
+            challengeType = 'private';
+          } else if (c.publicChallenge) {
+            challengeTitle = c.publicChallenge.title;
+            challengeType = 'public';
+          }
+
+          return {
+            type: challengeType,
+            title: challengeTitle,
+            date: c.completionDate,
+            proofCID: c.media,
+          };
+        }) || [];
+
+      console.log('🔍 WALLET LOOKUP: Successfully found and formatted user:', {
+        id: userData.id,
+        username: userData.username,
+        wallet: userData.wallet,
+        hasLensData: !!(userData.lensHandle || userData.lensAccountId),
+        hasPersonalFields: !!(userData.personalField1Type || userData.personalField2Type || userData.personalField3Type),
+        tokenData: {
+          total: userData.earnedTokens,
+          today: userData.earnedTokensToday,
+          week: userData.earnedTokensThisWeek,
+          month: userData.earnedTokensThisMonth,
+        }
+      });
+    } else {
+      console.log('🔍 WALLET LOOKUP: No user found for wallet address:', walletAddress);
+    }
+
+    return userData;
+  } catch (error) {
+    console.error('🔍 WALLET LOOKUP: Error fetching user by wallet:', error);
+    throw new Error('Failed to fetch user by wallet address.');
+  }
+};
+
+// Updated getUserByIdFromDgraph function - ADD ALL MISSING FIELDS
 export const getUserByIdFromDgraph = async (userId: string) => {
   const query = `
     query GetUserById($userId: String!) {
@@ -871,7 +1059,26 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         wallet
         bio
         profilePicture
+        coverPhoto
+        trailerVideo
         earnedTokens
+        earnedTokensToday
+        earnedTokensThisWeek
+        earnedTokensThisMonth
+        personalField1Type
+        personalField1Value
+        personalField1Metadata
+        personalField2Type
+        personalField2Value
+        personalField2Metadata
+        personalField3Type
+        personalField3Value
+        personalField3Metadata
+        lensHandle
+        lensAccountId
+        lensTransactionHash
+        lensMetadataUri
+        pushSubscription
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
@@ -926,7 +1133,43 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
 
-      // Format completed challenges to match your interface - updated for new schema
+      // Initialize missing arrays for existing users who might not have them
+      userData.notifications = userData.notifications || [];
+      userData.receivedPrivateChallenges = userData.receivedPrivateChallenges || [];
+      userData.createdPrivateChallenges = userData.createdPrivateChallenges || [];
+      userData.createdPublicChallenges = userData.createdPublicChallenges || [];
+      userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
+
+      // Ensure token fields have defaults for existing users
+      userData.earnedTokensToday = userData.earnedTokensToday || 0;
+      userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
+      userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
+
+      // Ensure personal expression fields have defaults
+      userData.personalField1Type = userData.personalField1Type || '';
+      userData.personalField1Value = userData.personalField1Value || '';
+      userData.personalField1Metadata = userData.personalField1Metadata || '';
+      userData.personalField2Type = userData.personalField2Type || '';
+      userData.personalField2Value = userData.personalField2Value || '';
+      userData.personalField2Metadata = userData.personalField2Metadata || '';
+      userData.personalField3Type = userData.personalField3Type || '';
+      userData.personalField3Value = userData.personalField3Value || '';
+      userData.personalField3Metadata = userData.personalField3Metadata || '';
+
+      // Ensure Lens fields have defaults for existing users
+      userData.lensHandle = userData.lensHandle || '';
+      userData.lensAccountId = userData.lensAccountId || '';
+      userData.lensTransactionHash = userData.lensTransactionHash || '';
+      userData.lensMetadataUri = userData.lensMetadataUri || '';
+
+      // Ensure media fields have defaults
+      userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
+      userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
+
+      // Ensure push subscription has default
+      userData.pushSubscription = userData.pushSubscription || '';
+
+      // Format completed challenges to match your interface
       userData.completedChallenges =
         userData.completedChallenges?.map((c: any) => {
           // Determine which challenge type this completion refers to
@@ -957,149 +1200,6 @@ export const getUserByIdFromDgraph = async (userId: string) => {
   } catch (error) {
     console.error('Error fetching user by ID from Dgraph:', error);
     throw new Error('Failed to fetch user by ID.');
-  }
-};
-
-export const getUserFromDgraph = async (identifier: string) => {
-  const query = `
-    query GetUser($identifier: String!) {
-      queryUser(filter: { username: { eq: $identifier } }) {
-        id
-        username
-        phoneNumber
-        wallet
-        bio
-        passwordHash
-        profilePicture
-        earnedTokens
-        dailyChallenge
-        weeklyChallenge
-        monthlyChallenge
-        followers {
-          id
-        }
-        following {
-          id
-        }
-        completedChallenges {
-          id
-          challengeType
-          completionDate
-          media
-          
-          # References to the different challenge types
-          privateChallenge {
-            id
-            title
-          }
-          publicChallenge {
-            id
-            title
-          }
-          aiChallenge {
-            id
-            title
-            frequency
-          }
-        }
-      }
-    }
-  `;
-
-  try {
-    const response = await axios.post(
-      DGRAPH_ENDPOINT,
-      {
-        query,
-        variables: { identifier },
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
-
-    const userData = response.data?.data?.queryUser[0] || null;
-
-    // Format the data to match your User interface
-    if (userData) {
-      // Convert followers from objects to string array of ids
-      userData.followers = userData.followers?.map((f: any) => f.id) || [];
-      userData.following = userData.following?.map((f: any) => f.id) || [];
-
-      // Format completed challenges to match your interface - updated for new schema
-      userData.completedChallenges =
-        userData.completedChallenges?.map((c: any) => {
-          // Determine which challenge type this completion refers to
-          let challengeTitle = '';
-          let challengeType = '';
-
-          if (c.aiChallenge) {
-            challengeTitle = c.aiChallenge.title;
-            challengeType = `AI-${c.aiChallenge.frequency}`;
-          } else if (c.privateChallenge) {
-            challengeTitle = c.privateChallenge.title;
-            challengeType = 'private';
-          } else if (c.publicChallenge) {
-            challengeTitle = c.publicChallenge.title;
-            challengeType = 'public';
-          }
-
-          return {
-            type: challengeType,
-            title: challengeTitle,
-            date: c.completionDate,
-            proofCID: c.media,
-          };
-        }) || [];
-    }
-
-    return userData;
-  } catch (error) {
-    console.error('Error fetching user from Dgraph:', error);
-    throw new Error('Failed to fetch user.');
-  }
-};
-
-export const updateBio = async (userId: string, newBio: string): Promise<void> => {
-  const mutation = `
-    mutation UpdateUserBio($id: String!, $bio: String!) {
-      updateUser(input: { filter: { id: { eq: $id } }, set: { bio: $bio } }) {
-        user {
-          id
-          bio
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    id: userId,
-    bio: newBio,
-  };
-
-  try {
-    const response = await axios.post(
-      DGRAPH_ENDPOINT,
-      {
-        query: mutation,
-        variables,
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
-
-    if (response.data.errors) {
-      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
-      throw new Error(`Dgraph Error: ${errorMessages}`);
-    }
-
-    console.log('Bio successfully updated in Dgraph:', response.data);
-  } catch (error) {
-    console.error('Error updating bio in Dgraph:', error);
-    throw new Error('Failed to update bio in the database.');
   }
 };
 
