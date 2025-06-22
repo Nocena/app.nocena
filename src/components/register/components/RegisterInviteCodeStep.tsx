@@ -1,14 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Control, Controller, ControllerRenderProps, useWatch } from 'react-hook-form';
+import { Control, Controller, ControllerRenderProps, useWatch, UseFormReset } from 'react-hook-form';
 import PrimaryButton from '../../ui/PrimaryButton';
 import NocenaCodeInputs from '../../form/NocenaCodeInput';
 import XButton from '../../ui/XButton';
-import { FormValues } from '../types';
+
+// Define FormValues interface here or import it
+interface FormValues {
+  username: string;
+  inviteCode: string[];
+  phoneNumber?: string;
+  password?: string;
+  verificationCode?: string[];
+}
 
 interface Props {
-  control: Control<FormValues, any>;
-  reset: () => void;
+  control: Control<FormValues>;
+  reset: UseFormReset<FormValues>;
   onValidCode: (code: string, ownerUsername?: string, ownerId?: string) => void;
   loading: boolean;
   error: string;
@@ -28,7 +36,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
   const SHORT_BLOCK_MINUTES = 30;
   const LONG_BLOCK_HOURS = 24;
 
-  const invitationCode = useWatch({ name: `inviteCode`, control });
+  const invitationCode = useWatch({ name: 'inviteCode', control });
 
   // Load previous rate limit data from localStorage
   useEffect(() => {
@@ -90,7 +98,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
 
   // Auto-validate when all 6 characters are entered
   useEffect(() => {
-    if (invitationCode.every((c) => c) && invitationCode.length === 6) {
+    if (invitationCode && invitationCode.every((c) => c) && invitationCode.length === 6) {
       validateCode(invitationCode);
     }
   }, [invitationCode]);
@@ -170,7 +178,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
       } else {
         setShake(true);
         setTimeout(() => setShake(false), 500);
-        reset();
+        reset({ inviteCode: Array(6).fill('') });
 
         applyRateLimit();
 
@@ -181,7 +189,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
     } catch (err) {
       console.error('Error validating invite code:', err);
       setLocalError('Failed to validate code. Please try again.');
-      reset();
+      reset({ inviteCode: Array(6).fill('') });
 
       if (inputRefs.current[0]) inputRefs.current[0].focus();
     } finally {
@@ -191,7 +199,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (invitationCode.every((c) => c) && invitationCode.length === 6) {
+    if (invitationCode && invitationCode.every((c) => c) && invitationCode.length === 6) {
       validateCode(invitationCode);
     }
   };
@@ -238,7 +246,7 @@ const RegisterInviteCodeStep = ({ control, reset, onValidCode, loading, error }:
             <PrimaryButton
               text={isCurrentlyLoading ? 'Verifying...' : 'Continue'}
               onClick={handleSubmit}
-              disabled={invitationCode.some((c) => !c) || isCurrentlyLoading}
+              disabled={!invitationCode || invitationCode.some((c) => !c) || isCurrentlyLoading}
               className="w-full"
             />
           </div>

@@ -14,30 +14,61 @@ const generateId = (): string => {
 
 export const registerUser = async (
   username: string,
-  phoneNumber: string,
-  passwordHash: string,
+  bio: string,
   profilePicture: string,
+  coverPhoto: string,
+  trailerVideo: string,
   wallet: string,
+  earnedTokens: number,
+  earnedTokensToday: number,
+  earnedTokensThisWeek: number,
+  earnedTokensThisMonth: number,
+  personalField1Type: string,
+  personalField1Value: string,
+  personalField1Metadata: string,
+  personalField2Type: string,
+  personalField2Value: string,
+  personalField2Metadata: string,
+  personalField3Type: string,
+  personalField3Value: string,
+  personalField3Metadata: string,
   dailyChallenge: string,
   weeklyChallenge: string,
   monthlyChallenge: string,
   inviteCode: string,
+  lensHandle: string,
+  lensAccountId: string,
+  lensTransactionHash: string,
+  lensMetadataUri: string,
   invitedById?: string,
-  pushSubscription?: string | null, // This should now always be provided
+  pushSubscription?: string | null,
 ) => {
   console.log('🔧 REGISTER: Starting user registration with:', {
     username,
-    phoneNumber,
     wallet,
     inviteCode,
     invitedById,
     hasPushSubscription: !!pushSubscription,
     pushSubscriptionLength: pushSubscription?.length,
+    earnedTokens,
+    earnedTokensToday,
+    earnedTokensThisWeek,
+    earnedTokensThisMonth,
+    // Log Lens data
+    lensHandle,
+    lensAccountId,
+    lensTransactionHash: `${lensTransactionHash.substring(0, 10)}...`,
+    lensMetadataUri,
   });
 
   // Validate that pushSubscription is provided
   if (!pushSubscription) {
     throw new Error('Push subscription is required for user registration');
+  }
+
+  // Validate that all Lens data is provided
+  if (!lensHandle || !lensAccountId || !lensTransactionHash || !lensMetadataUri) {
+    throw new Error('All Lens Protocol data is required for user registration');
   }
 
   const mutation = `
@@ -46,16 +77,32 @@ export const registerUser = async (
         user {
           id
           username
-          phoneNumber
           wallet
           bio
           profilePicture
+          coverPhoto
           trailerVideo
           earnedTokens
+          earnedTokensToday
+          earnedTokensThisWeek
+          earnedTokensThisMonth
+          personalField1Type
+          personalField1Value
+          personalField1Metadata
+          personalField2Type
+          personalField2Value
+          personalField2Metadata
+          personalField3Type
+          personalField3Value
+          personalField3Metadata
           dailyChallenge
           weeklyChallenge
           monthlyChallenge
           pushSubscription
+          lensHandle
+          lensAccountId
+          lensTransactionHash
+          lensMetadataUri
           followers {
             id
           }
@@ -74,19 +121,35 @@ export const registerUser = async (
     input: {
       id: userId,
       username: username,
-      phoneNumber: phoneNumber,
-      bio: '',
+      bio: bio,
       wallet: wallet,
-      passwordHash: passwordHash,
       profilePicture: profilePicture,
-      trailerVideo: '/trailer.mp4', // Set default trailer video like profile picture
-      earnedTokens: 50,
+      coverPhoto: coverPhoto,
+      trailerVideo: trailerVideo,
+      earnedTokens: earnedTokens,
+      earnedTokensToday: earnedTokensToday,
+      earnedTokensThisWeek: earnedTokensThisWeek,
+      earnedTokensThisMonth: earnedTokensThisMonth,
+      personalField1Type: personalField1Type,
+      personalField1Value: personalField1Value,
+      personalField1Metadata: personalField1Metadata,
+      personalField2Type: personalField2Type,
+      personalField2Value: personalField2Value,
+      personalField2Metadata: personalField2Metadata,
+      personalField3Type: personalField3Type,
+      personalField3Value: personalField3Value,
+      personalField3Metadata: personalField3Metadata,
       dailyChallenge: dailyChallenge,
       weeklyChallenge: weeklyChallenge,
       monthlyChallenge: monthlyChallenge,
       inviteCode: inviteCode,
       invitedById: invitedById || null,
-      pushSubscription: pushSubscription, // This is now guaranteed to exist
+      pushSubscription: pushSubscription,
+      // Lens fields are guaranteed to be valid strings
+      lensHandle: lensHandle,
+      lensAccountId: lensAccountId,
+      lensTransactionHash: lensTransactionHash,
+      lensMetadataUri: lensMetadataUri,
       // Only add invitedBy reference if invitedById exists and is not 'system'
       ...(invitedById &&
         invitedById !== 'system' && {
@@ -120,8 +183,13 @@ export const registerUser = async (
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
 
-      // Initialize empty completedChallenges array since new users won't have any
+      // Initialize empty arrays for new users
+      userData.notifications = [];
       userData.completedChallenges = [];
+      userData.receivedPrivateChallenges = [];
+      userData.createdPrivateChallenges = [];
+      userData.createdPublicChallenges = [];
+      userData.participatingPublicChallenges = [];
 
       // Verify pushSubscription was saved
       if (!userData.pushSubscription) {
@@ -133,13 +201,60 @@ export const registerUser = async (
         );
       }
 
-      // Verify trailerVideo was saved
+      // Verify Lens data was saved (should always be present now)
+      console.log('🌿 REGISTER: Successfully saved Lens data:', {
+        handle: userData.lensHandle,
+        accountId: userData.lensAccountId,
+        txHash: userData.lensTransactionHash ? `${userData.lensTransactionHash.substring(0, 10)}...` : 'missing',
+        metadataUri: userData.lensMetadataUri,
+      });
+
+      // Validate that Lens data was actually saved
+      if (!userData.lensHandle || !userData.lensTransactionHash) {
+        throw new Error('Failed to save Lens data to database');
+      }
+
+      // Verify new media fields were saved
+      if (!userData.coverPhoto) {
+        console.warn('🔧 REGISTER: Warning - coverPhoto was not saved to database');
+        userData.coverPhoto = coverPhoto; // Fallback to provided default
+      } else {
+        console.log('🔧 REGISTER: Successfully saved coverPhoto:', userData.coverPhoto);
+      }
+
       if (!userData.trailerVideo) {
         console.warn('🔧 REGISTER: Warning - trailerVideo was not saved to database');
-        userData.trailerVideo = '/trailer.mp4'; // Fallback to default
+        userData.trailerVideo = trailerVideo; // Fallback to provided default
       } else {
         console.log('🔧 REGISTER: Successfully saved trailerVideo:', userData.trailerVideo);
       }
+
+      // Verify token tracking fields were saved
+      console.log('🔧 REGISTER: Token tracking fields:', {
+        earnedTokens: userData.earnedTokens,
+        earnedTokensToday: userData.earnedTokensToday,
+        earnedTokensThisWeek: userData.earnedTokensThisWeek,
+        earnedTokensThisMonth: userData.earnedTokensThisMonth,
+      });
+
+      // Verify personal expression fields were saved
+      console.log('🔧 REGISTER: Personal expression fields:', {
+        field1: {
+          type: userData.personalField1Type,
+          value: userData.personalField1Value,
+          metadata: userData.personalField1Metadata,
+        },
+        field2: {
+          type: userData.personalField2Type,
+          value: userData.personalField2Value,
+          metadata: userData.personalField2Metadata,
+        },
+        field3: {
+          type: userData.personalField3Type,
+          value: userData.personalField3Value,
+          metadata: userData.personalField3Metadata,
+        },
+      });
     }
 
     console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username);
@@ -147,12 +262,64 @@ export const registerUser = async (
   } catch (error) {
     console.error('🔧 REGISTER: Error during user registration:', error);
 
-    // Narrowing the type of error
     if (error instanceof Error) {
       throw new Error(error.message || 'User registration failed. Please try again.');
     } else {
       throw new Error('An unknown error occurred during user registration.');
     }
+  }
+};
+
+// New function to update user with Lens data after Lens account creation
+export const updateUserLensData = async (
+  userId: string,
+  lensHandle: string,
+  lensAccountId?: string,
+  lensTransactionHash?: string,
+  lensMetadataUri?: string,
+) => {
+  console.log('🌿 Updating user with Lens data:', { userId, lensHandle, lensAccountId });
+
+  const mutation = `
+    mutation UpdateUserLens($id: ID!, $patch: UserPatch!) {
+      updateUser(input: { filter: { id: [$id] }, set: $patch }) {
+        user {
+          id
+          username
+          lensHandle
+          lensAccountId
+          lensTransactionHash
+          lensMetadataUri
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    patch: {
+      lensHandle: lensHandle,
+      lensAccountId: lensAccountId || null,
+      lensTransactionHash: lensTransactionHash || null,
+      lensMetadataUri: lensMetadataUri || null,
+    },
+  };
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query: mutation,
+      variables,
+    });
+
+    if (response.data.errors) {
+      throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
+    }
+
+    console.log('🌿 Successfully updated user with Lens data');
+    return response.data.data.updateUser.user[0];
+  } catch (error) {
+    console.error('🌿 Error updating user with Lens data:', error);
+    throw error;
   }
 };
 
@@ -694,6 +861,198 @@ export const getAdminInviteStats = async () => {
   }
 };
 
+export const getUserFromDgraph = async (walletAddress: string) => {
+  const query = `
+    query GetUserByWallet($walletAddress: String!) {
+      queryUser(filter: { wallet: { eq: $walletAddress } }) {
+        id
+        username
+        wallet
+        bio
+        profilePicture
+        coverPhoto
+        trailerVideo
+        earnedTokens
+        earnedTokensToday
+        earnedTokensThisWeek
+        earnedTokensThisMonth
+        personalField1Type
+        personalField1Value
+        personalField1Metadata
+        personalField2Type
+        personalField2Value
+        personalField2Metadata
+        personalField3Type
+        personalField3Value
+        personalField3Metadata
+        lensHandle
+        lensAccountId
+        lensTransactionHash
+        lensMetadataUri
+        pushSubscription
+        dailyChallenge
+        weeklyChallenge
+        monthlyChallenge
+        followers {
+          id
+        }
+        following {
+          id
+        }
+        completedChallenges {
+          id
+          challengeType
+          completionDate
+          media
+          
+          # References to the different challenge types
+          privateChallenge {
+            id
+            title
+          }
+          publicChallenge {
+            id
+            title
+          }
+          aiChallenge {
+            id
+            title
+            frequency
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    console.log('🔍 WALLET LOOKUP: Searching for wallet address:', walletAddress);
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { walletAddress },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    console.log('🔍 WALLET LOOKUP: Query response:', {
+      errors: response.data?.errors,
+      userFound: !!response.data?.data?.queryUser?.[0],
+      userCount: response.data?.data?.queryUser?.length || 0,
+      rawResponse: response.data?.data?.queryUser?.[0] ? 'User data received' : 'No user data',
+    });
+
+    if (response.data.errors) {
+      console.error('🔍 WALLET LOOKUP: GraphQL errors:', response.data.errors);
+      throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
+    }
+
+    const userData = response.data?.data?.queryUser[0] || null;
+
+    // Format the data to match your User interface
+    if (userData) {
+      console.log('🔍 WALLET LOOKUP: Raw user data fields:', Object.keys(userData));
+
+      // Convert followers from objects to string array of ids
+      userData.followers = userData.followers?.map((f: any) => f.id) || [];
+      userData.following = userData.following?.map((f: any) => f.id) || [];
+
+      // Initialize missing arrays for existing users who might not have them
+      userData.notifications = userData.notifications || [];
+      userData.receivedPrivateChallenges = userData.receivedPrivateChallenges || [];
+      userData.createdPrivateChallenges = userData.createdPrivateChallenges || [];
+      userData.createdPublicChallenges = userData.createdPublicChallenges || [];
+      userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
+
+      // Ensure token fields have defaults for existing users
+      userData.earnedTokensToday = userData.earnedTokensToday || 0;
+      userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
+      userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
+
+      // Ensure personal expression fields have defaults
+      userData.personalField1Type = userData.personalField1Type || '';
+      userData.personalField1Value = userData.personalField1Value || '';
+      userData.personalField1Metadata = userData.personalField1Metadata || '';
+      userData.personalField2Type = userData.personalField2Type || '';
+      userData.personalField2Value = userData.personalField2Value || '';
+      userData.personalField2Metadata = userData.personalField2Metadata || '';
+      userData.personalField3Type = userData.personalField3Type || '';
+      userData.personalField3Value = userData.personalField3Value || '';
+      userData.personalField3Metadata = userData.personalField3Metadata || '';
+
+      // Ensure Lens fields have defaults for existing users
+      userData.lensHandle = userData.lensHandle || '';
+      userData.lensAccountId = userData.lensAccountId || '';
+      userData.lensTransactionHash = userData.lensTransactionHash || '';
+      userData.lensMetadataUri = userData.lensMetadataUri || '';
+
+      // Ensure media fields have defaults
+      userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
+      userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
+
+      // Ensure push subscription has default
+      userData.pushSubscription = userData.pushSubscription || '';
+
+      // Format completed challenges to match your interface
+      userData.completedChallenges =
+        userData.completedChallenges?.map((c: any) => {
+          // Determine which challenge type this completion refers to
+          let challengeTitle = '';
+          let challengeType = '';
+
+          if (c.aiChallenge) {
+            challengeTitle = c.aiChallenge.title;
+            challengeType = `AI-${c.aiChallenge.frequency}`;
+          } else if (c.privateChallenge) {
+            challengeTitle = c.privateChallenge.title;
+            challengeType = 'private';
+          } else if (c.publicChallenge) {
+            challengeTitle = c.publicChallenge.title;
+            challengeType = 'public';
+          }
+
+          return {
+            type: challengeType,
+            title: challengeTitle,
+            date: c.completionDate,
+            proofCID: c.media,
+          };
+        }) || [];
+
+      console.log('🔍 WALLET LOOKUP: Successfully found and formatted user:', {
+        id: userData.id,
+        username: userData.username,
+        wallet: userData.wallet,
+        hasLensData: !!(userData.lensHandle || userData.lensAccountId),
+        hasPersonalFields: !!(
+          userData.personalField1Type ||
+          userData.personalField2Type ||
+          userData.personalField3Type
+        ),
+        tokenData: {
+          total: userData.earnedTokens,
+          today: userData.earnedTokensToday,
+          week: userData.earnedTokensThisWeek,
+          month: userData.earnedTokensThisMonth,
+        },
+      });
+    } else {
+      console.log('🔍 WALLET LOOKUP: No user found for wallet address:', walletAddress);
+    }
+
+    return userData;
+  } catch (error) {
+    console.error('🔍 WALLET LOOKUP: Error fetching user by wallet:', error);
+    throw new Error('Failed to fetch user by wallet address.');
+  }
+};
+
+// Updated getUserByIdFromDgraph function - ADD ALL MISSING FIELDS
 export const getUserByIdFromDgraph = async (userId: string) => {
   const query = `
     query GetUserById($userId: String!) {
@@ -704,7 +1063,26 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         wallet
         bio
         profilePicture
+        coverPhoto
+        trailerVideo
         earnedTokens
+        earnedTokensToday
+        earnedTokensThisWeek
+        earnedTokensThisMonth
+        personalField1Type
+        personalField1Value
+        personalField1Metadata
+        personalField2Type
+        personalField2Value
+        personalField2Metadata
+        personalField3Type
+        personalField3Value
+        personalField3Metadata
+        lensHandle
+        lensAccountId
+        lensTransactionHash
+        lensMetadataUri
+        pushSubscription
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
@@ -759,7 +1137,43 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
 
-      // Format completed challenges to match your interface - updated for new schema
+      // Initialize missing arrays for existing users who might not have them
+      userData.notifications = userData.notifications || [];
+      userData.receivedPrivateChallenges = userData.receivedPrivateChallenges || [];
+      userData.createdPrivateChallenges = userData.createdPrivateChallenges || [];
+      userData.createdPublicChallenges = userData.createdPublicChallenges || [];
+      userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
+
+      // Ensure token fields have defaults for existing users
+      userData.earnedTokensToday = userData.earnedTokensToday || 0;
+      userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
+      userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
+
+      // Ensure personal expression fields have defaults
+      userData.personalField1Type = userData.personalField1Type || '';
+      userData.personalField1Value = userData.personalField1Value || '';
+      userData.personalField1Metadata = userData.personalField1Metadata || '';
+      userData.personalField2Type = userData.personalField2Type || '';
+      userData.personalField2Value = userData.personalField2Value || '';
+      userData.personalField2Metadata = userData.personalField2Metadata || '';
+      userData.personalField3Type = userData.personalField3Type || '';
+      userData.personalField3Value = userData.personalField3Value || '';
+      userData.personalField3Metadata = userData.personalField3Metadata || '';
+
+      // Ensure Lens fields have defaults for existing users
+      userData.lensHandle = userData.lensHandle || '';
+      userData.lensAccountId = userData.lensAccountId || '';
+      userData.lensTransactionHash = userData.lensTransactionHash || '';
+      userData.lensMetadataUri = userData.lensMetadataUri || '';
+
+      // Ensure media fields have defaults
+      userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
+      userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
+
+      // Ensure push subscription has default
+      userData.pushSubscription = userData.pushSubscription || '';
+
+      // Format completed challenges to match your interface
       userData.completedChallenges =
         userData.completedChallenges?.map((c: any) => {
           // Determine which challenge type this completion refers to
@@ -790,108 +1204,6 @@ export const getUserByIdFromDgraph = async (userId: string) => {
   } catch (error) {
     console.error('Error fetching user by ID from Dgraph:', error);
     throw new Error('Failed to fetch user by ID.');
-  }
-};
-
-export const getUserFromDgraph = async (identifier: string) => {
-  const query = `
-    query GetUser($identifier: String!) {
-      queryUser(filter: { username: { eq: $identifier } }) {
-        id
-        username
-        phoneNumber
-        wallet
-        bio
-        passwordHash
-        profilePicture
-        earnedTokens
-        dailyChallenge
-        weeklyChallenge
-        monthlyChallenge
-        followers {
-          id
-        }
-        following {
-          id
-        }
-        completedChallenges {
-          id
-          challengeType
-          completionDate
-          media
-          
-          # References to the different challenge types
-          privateChallenge {
-            id
-            title
-          }
-          publicChallenge {
-            id
-            title
-          }
-          aiChallenge {
-            id
-            title
-            frequency
-          }
-        }
-      }
-    }
-  `;
-
-  try {
-    const response = await axios.post(
-      DGRAPH_ENDPOINT,
-      {
-        query,
-        variables: { identifier },
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
-
-    const userData = response.data?.data?.queryUser[0] || null;
-
-    // Format the data to match your User interface
-    if (userData) {
-      // Convert followers from objects to string array of ids
-      userData.followers = userData.followers?.map((f: any) => f.id) || [];
-      userData.following = userData.following?.map((f: any) => f.id) || [];
-
-      // Format completed challenges to match your interface - updated for new schema
-      userData.completedChallenges =
-        userData.completedChallenges?.map((c: any) => {
-          // Determine which challenge type this completion refers to
-          let challengeTitle = '';
-          let challengeType = '';
-
-          if (c.aiChallenge) {
-            challengeTitle = c.aiChallenge.title;
-            challengeType = `AI-${c.aiChallenge.frequency}`;
-          } else if (c.privateChallenge) {
-            challengeTitle = c.privateChallenge.title;
-            challengeType = 'private';
-          } else if (c.publicChallenge) {
-            challengeTitle = c.publicChallenge.title;
-            challengeType = 'public';
-          }
-
-          return {
-            type: challengeType,
-            title: challengeTitle,
-            date: c.completionDate,
-            proofCID: c.media,
-          };
-        }) || [];
-    }
-
-    return userData;
-  } catch (error) {
-    console.error('Error fetching user from Dgraph:', error);
-    throw new Error('Failed to fetch user.');
   }
 };
 
