@@ -14,25 +14,42 @@ const generateId = (): string => {
 
 export const registerUser = async (
   username: string,
-  phoneNumber: string,
-  passwordHash: string,
+  bio: string,
   profilePicture: string,
+  coverPhoto: string,
+  trailerVideo: string,
   wallet: string,
+  earnedTokens: number,
+  earnedTokensToday: number,
+  earnedTokensThisWeek: number,
+  earnedTokensThisMonth: number,
+  personalField1Type: string,
+  personalField1Value: string,
+  personalField1Metadata: string,
+  personalField2Type: string,
+  personalField2Value: string,
+  personalField2Metadata: string,
+  personalField3Type: string,
+  personalField3Value: string,
+  personalField3Metadata: string,
   dailyChallenge: string,
   weeklyChallenge: string,
   monthlyChallenge: string,
   inviteCode: string,
   invitedById?: string,
-  pushSubscription?: string | null, // This should now always be provided
+  pushSubscription?: string | null,
 ) => {
   console.log('🔧 REGISTER: Starting user registration with:', {
     username,
-    phoneNumber,
     wallet,
     inviteCode,
     invitedById,
     hasPushSubscription: !!pushSubscription,
     pushSubscriptionLength: pushSubscription?.length,
+    earnedTokens,
+    earnedTokensToday,
+    earnedTokensThisWeek,
+    earnedTokensThisMonth,
   });
 
   // Validate that pushSubscription is provided
@@ -46,12 +63,24 @@ export const registerUser = async (
         user {
           id
           username
-          phoneNumber
           wallet
           bio
           profilePicture
+          coverPhoto
           trailerVideo
           earnedTokens
+          earnedTokensToday
+          earnedTokensThisWeek
+          earnedTokensThisMonth
+          personalField1Type
+          personalField1Value
+          personalField1Metadata
+          personalField2Type
+          personalField2Value
+          personalField2Metadata
+          personalField3Type
+          personalField3Value
+          personalField3Metadata
           dailyChallenge
           weeklyChallenge
           monthlyChallenge
@@ -74,19 +103,30 @@ export const registerUser = async (
     input: {
       id: userId,
       username: username,
-      phoneNumber: phoneNumber,
-      bio: '',
+      bio: bio,
       wallet: wallet,
-      passwordHash: passwordHash,
       profilePicture: profilePicture,
-      trailerVideo: '/trailer.mp4', // Set default trailer video like profile picture
-      earnedTokens: 50,
+      coverPhoto: coverPhoto,
+      trailerVideo: trailerVideo,
+      earnedTokens: earnedTokens,
+      earnedTokensToday: earnedTokensToday,
+      earnedTokensThisWeek: earnedTokensThisWeek,
+      earnedTokensThisMonth: earnedTokensThisMonth,
+      personalField1Type: personalField1Type,
+      personalField1Value: personalField1Value,
+      personalField1Metadata: personalField1Metadata,
+      personalField2Type: personalField2Type,
+      personalField2Value: personalField2Value,
+      personalField2Metadata: personalField2Metadata,
+      personalField3Type: personalField3Type,
+      personalField3Value: personalField3Value,
+      personalField3Metadata: personalField3Metadata,
       dailyChallenge: dailyChallenge,
       weeklyChallenge: weeklyChallenge,
       monthlyChallenge: monthlyChallenge,
       inviteCode: inviteCode,
       invitedById: invitedById || null,
-      pushSubscription: pushSubscription, // This is now guaranteed to exist
+      pushSubscription: pushSubscription,
       // Only add invitedBy reference if invitedById exists and is not 'system'
       ...(invitedById &&
         invitedById !== 'system' && {
@@ -120,8 +160,13 @@ export const registerUser = async (
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
 
-      // Initialize empty completedChallenges array since new users won't have any
+      // Initialize empty arrays for new users
+      userData.notifications = [];
       userData.completedChallenges = [];
+      userData.receivedPrivateChallenges = [];
+      userData.createdPrivateChallenges = [];
+      userData.createdPublicChallenges = [];
+      userData.participatingPublicChallenges = [];
 
       // Verify pushSubscription was saved
       if (!userData.pushSubscription) {
@@ -133,13 +178,47 @@ export const registerUser = async (
         );
       }
 
-      // Verify trailerVideo was saved
+      // Verify new media fields were saved
+      if (!userData.coverPhoto) {
+        console.warn('🔧 REGISTER: Warning - coverPhoto was not saved to database');
+        userData.coverPhoto = coverPhoto; // Fallback to provided default
+      } else {
+        console.log('🔧 REGISTER: Successfully saved coverPhoto:', userData.coverPhoto);
+      }
+
       if (!userData.trailerVideo) {
         console.warn('🔧 REGISTER: Warning - trailerVideo was not saved to database');
-        userData.trailerVideo = '/trailer.mp4'; // Fallback to default
+        userData.trailerVideo = trailerVideo; // Fallback to provided default
       } else {
         console.log('🔧 REGISTER: Successfully saved trailerVideo:', userData.trailerVideo);
       }
+
+      // Verify token tracking fields were saved
+      console.log('🔧 REGISTER: Token tracking fields:', {
+        earnedTokens: userData.earnedTokens,
+        earnedTokensToday: userData.earnedTokensToday,
+        earnedTokensThisWeek: userData.earnedTokensThisWeek,
+        earnedTokensThisMonth: userData.earnedTokensThisMonth,
+      });
+
+      // Verify personal expression fields were saved
+      console.log('🔧 REGISTER: Personal expression fields:', {
+        field1: {
+          type: userData.personalField1Type,
+          value: userData.personalField1Value,
+          metadata: userData.personalField1Metadata,
+        },
+        field2: {
+          type: userData.personalField2Type,
+          value: userData.personalField2Value,
+          metadata: userData.personalField2Metadata,
+        },
+        field3: {
+          type: userData.personalField3Type,
+          value: userData.personalField3Value,
+          metadata: userData.personalField3Metadata,
+        },
+      });
     }
 
     console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username);

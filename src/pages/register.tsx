@@ -1,66 +1,81 @@
-import { useState, useEffect } from 'react';
-import { registerUser, generateInviteCode } from '../lib/api/dgraph';
-import { createPolygonWallet } from '../lib/api/polygon';
-import { hashPassword } from '../lib/utils/passwordUtils';
-import { User, useAuth } from '../contexts/AuthContext';
-import AuthenticationLayout from '../components/layout/AuthenticationLayout';
-import RegisterFormStep from '@components/register/components/RegisterFormStep';
-import RegisterInviteCodeStep from '@components/register/components/RegisterInviteCodeStep';
-import RegisterWelcomeStep from '@components/register/components/RegisterWelcomeStep';
-import RegisterRewardsExplanationStep from '@components/register/components/RegisterRewardsExplanationStep';
-import RegisterWalletSetupChoiceStep from '@components/register/components/RegisterWalletSetupChoiceStep';
-import RegisterWalletCreationStep from '@components/register/components/RegisterWalletCreationStep';
-import RegisterExistingWalletStep from '@components/register/components/RegisterExistingWalletStep';
-import RegisterLensProfileStep from '@components/register/components/RegisterLensProfileStep';
-import RegisterNotificationsStep from '@components/register/components/RegisterNotificationsStep';
-import { useForm } from 'react-hook-form';
+// pages/register.tsx (Fixed with proper data flow)
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useForm, FormProvider } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { schema } from '@components/register/schema';
-import { FormValues } from '@components/register/types';
+import * as yup from 'yup';
+import { useActiveAccount } from 'thirdweb/react';
+import { registerUser, generateInviteCode } from '../lib/api/dgraph';
+import PrimaryButton from '../components/ui/PrimaryButton';
+import { User, useAuth } from '../contexts/AuthContext';
+import { sanitizeInput } from '../lib/utils/security';
+import AuthenticationLayout from '../components/layout/AuthenticationLayout';
+import RegisterWelcomeStep from '../components/register/components/RegisterWelcomeStep';
+import RegisterInviteCodeStep from '../components/register/components/RegisterInviteCodeStep';
+import RegisterWalletConnectStep from '../components/register/components/RegisterWalletConnectStep';
+import RegisterFormStep from '../components/register/components/RegisterFormStep';
+import RegisterNotificationsStep from '../components/register/components/RegisterNotificationsStep';
 
-enum RegisterStep {
-  INVITE_CODE,
-  WELCOME,
-  REGISTER_FORM,
-  REWARDS_EXPLANATION,
-  WALLET_CHOICE,
-  WALLET_CREATION,
-  EXISTING_WALLET,
-  LENS_PROFILE,
-  NOTIFICATIONS,
+type FormValues = {
+  username: string;
+  inviteCode: string[];
+};
+
+// Temporary registration data that doesn't get committed until success
+interface RegistrationData {
+  username: string;
+  inviteCode: string;
+  inviteOwner: string;
+  invitedById: string;
+  walletAddress: string;
+  pushSubscription?: string;
+  isRecoveryMode: boolean;
 }
 
-interface LensProfile {
-  id: string;
-  handle: string;
-  displayName: string;
-  bio: string;
-  picture: string;
+enum RegisterStep {
+  INVITE_CODE = 0,
+  WALLET_CONNECT = 1,
+  USER_INFO = 2,
+  NOTIFICATIONS = 3,
+  WELCOME = 4,
 }
 
 const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(RegisterStep.INVITE_CODE);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [wallet, setWallet] = useState<{ address: string; privateKey: string } | null>(null);
-  const [validatedInviteCode, setValidatedInviteCode] = useState('');
-  const [inviteOwner, setInviteOwner] = useState('');
-  const [invitedById, setInvitedById] = useState('');
-  const [formData, setFormData] = useState<FormValues | null>(null);
-  const [lensProfiles, setLensProfiles] = useState<LensProfile[]>([]);
-  const [selectedLensProfile, setSelectedLensProfile] = useState<LensProfile | null>(null);
+
+  // Temporary registration data - not committed to context until success
+  const [registrationData, setRegistrationData] = useState<Partial<RegistrationData>>({});
+
+  const router = useRouter();
   const { login } = useAuth();
+  const account = useActiveAccount();
 
-  // Handle welcome animation
-  useEffect(() => {
-    if (currentStep === RegisterStep.WELCOME) {
-      const timer = setTimeout(() => {
-        setCurrentStep(RegisterStep.REGISTER_FORM);
-      }, 4000); // 4 seconds for welcome animation
+  const schema = yup.object().shape({
+    username: yup
+      .string()
+      .transform((value) => sanitizeInput(value))
+      .min(3, 'Username must be at least 3 characters')
+      .max(20, 'Username must be less than 20 characters')
+      .matches(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+      .required('Username is required'),
+    inviteCode: yup
+      .array()
+      .of(yup.string().required())
+      .min(6, 'Invite code must be 6 characters')
+      .max(6, 'Invite code must be 6 characters')
+      .required('Invite code is required'),
+  });
 
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep]);
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      username: '',
+      inviteCode: Array(6).fill(''),
+    },
+  });
 
   const {
     control,
@@ -68,25 +83,24 @@ const RegisterPage = () => {
     formState: { errors },
     watch,
     reset,
-    trigger,
-  } = useForm<FormValues>({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      inviteCode: [],
-    },
-  });
+  } = methods;
 
+  // Skip invite code step if coming from login (wallet already connected)
   useEffect(() => {
-    const currentValues = watch('inviteCode');
-    if (!currentValues || currentValues.length !== 6) {
-      reset((prev) => ({
+    if (router.query.skip_wallet === 'true' && account?.address) {
+      // Set up recovery mode data temporarily
+      setRegistrationData((prev) => ({
         ...prev,
-        inviteCode: Array(6).fill(''),
+        inviteCode: 'RECOVERY',
+        inviteOwner: 'System',
+        invitedById: 'system',
+        walletAddress: account.address,
+        isRecoveryMode: true,
       }));
+      setCurrentStep(RegisterStep.USER_INFO);
     }
-  }, [reset, watch]);
+  }, [router.query.skip_wallet, account?.address]);
 
-  // Updated invite validation handler
   const handleValidInviteCode = async (code: string) => {
     try {
       setLoading(true);
@@ -101,10 +115,23 @@ const RegisterPage = () => {
       const data = await response.json();
 
       if (data.valid) {
-        setValidatedInviteCode(code);
-        setInviteOwner(data.invite.ownerUsername || 'Someone');
-        setInvitedById(data.invite.ownerId || '');
-        setCurrentStep(RegisterStep.WELCOME);
+        // Store invite data temporarily
+        setRegistrationData((prev) => ({
+          ...prev,
+          inviteCode: code,
+          inviteOwner: data.invite.ownerUsername || 'Someone',
+          invitedById: data.invite.ownerId || '',
+        }));
+
+        if (router.query.skip_wallet === 'true' && account?.address) {
+          setRegistrationData((prev) => ({
+            ...prev,
+            walletAddress: account.address,
+          }));
+          setCurrentStep(RegisterStep.USER_INFO);
+        } else {
+          setCurrentStep(RegisterStep.WALLET_CONNECT);
+        }
       } else {
         setError(data.error || 'Invalid invite code');
       }
@@ -116,57 +143,33 @@ const RegisterPage = () => {
     }
   };
 
+  const handleWalletConnected = () => {
+    if (account?.address) {
+      // Store wallet address temporarily
+      setRegistrationData((prev) => ({
+        ...prev,
+        walletAddress: account.address,
+      }));
+      setCurrentStep(RegisterStep.USER_INFO);
+    }
+  };
+
   const handleFormComplete = async () => {
     const currentFormData = watch();
-    setFormData(currentFormData);
-    setCurrentStep(RegisterStep.REWARDS_EXPLANATION);
-  };
 
-  // Simplified: automatically create wallet and go to notifications
-  const handleAutomaticSetup = () => {
-    const newWallet = createPolygonWallet();
-    setWallet(newWallet);
-    setCurrentStep(RegisterStep.NOTIFICATIONS);
-  };
+    // Store username temporarily
+    setRegistrationData((prev) => ({
+      ...prev,
+      username: currentFormData.username,
+    }));
 
-  // Advanced: show wallet choice for crypto users
-  const handleAdvancedSetup = () => {
-    setCurrentStep(RegisterStep.WALLET_CHOICE);
-  };
-
-  const handleWalletChoice = (choice: 'new' | 'existing') => {
-    if (choice === 'new') {
-      const newWallet = createPolygonWallet();
-      setWallet(newWallet);
-      setCurrentStep(RegisterStep.WALLET_CREATION);
-    } else {
-      setCurrentStep(RegisterStep.EXISTING_WALLET);
-    }
-  };
-
-  const handleWalletConnected = (walletAddress: string, profiles: LensProfile[] = []) => {
-    setWallet({ address: walletAddress, privateKey: '' }); // No private key for existing wallets
-    setLensProfiles(profiles);
-
-    if (profiles.length > 0) {
-      setCurrentStep(RegisterStep.LENS_PROFILE);
-    } else {
-      setCurrentStep(RegisterStep.NOTIFICATIONS);
-    }
-  };
-
-  const handleWalletCreationComplete = () => {
-    setCurrentStep(RegisterStep.NOTIFICATIONS);
-  };
-
-  const handleLensProfileSelected = (profile: LensProfile | null) => {
-    setSelectedLensProfile(profile);
     setCurrentStep(RegisterStep.NOTIFICATIONS);
   };
 
   const handleNotificationsReady = async (pushSubscription: string) => {
-    if (!formData || !wallet) {
-      setError('Missing form data or wallet. Please try again.');
+    // Validate we have all required data
+    if (!registrationData.username || !registrationData.walletAddress || !registrationData.inviteCode) {
+      setError('Missing registration data. Please try again.');
       return;
     }
 
@@ -174,118 +177,240 @@ const RegisterPage = () => {
     setError('');
 
     try {
-      console.log('🔧 Creating user with push subscription:', pushSubscription);
-
-      const securePasswordHash = await hashPassword(formData.password);
-
+      // STEP 1: Register the user in Dgraph first
+      console.log('🗄️ Creating user in Dgraph...');
       const addedUser = await registerUser(
-        formData.username,
-        '',
-        securePasswordHash,
-        '/images/profile.png',
-        wallet.address,
-        '0'.repeat(365),
-        '0'.repeat(52),
-        '0'.repeat(12),
-        validatedInviteCode,
-        invitedById,
+        registrationData.username,
+        '', // bio (empty for new users)
+        '/images/profile.png', // profilePicture
+        '/images/cover.jpg', // coverPhoto
+        '/trailer.mp4', // trailerVideo
+        registrationData.walletAddress,
+        50, // earnedTokens
+        0, // earnedTokensToday
+        0, // earnedTokensThisWeek
+        0, // earnedTokensThisMonth
+        '', // personalField1Type
+        '', // personalField1Value
+        '', // personalField1Metadata
+        '', // personalField2Type
+        '', // personalField2Value
+        '', // personalField2Metadata
+        '', // personalField3Type
+        '', // personalField3Value
+        '', // personalField3Metadata
+        '0'.repeat(365), // dailyChallenge
+        '0'.repeat(52), // weeklyChallenge
+        '0'.repeat(12), // monthlyChallenge
+        registrationData.inviteCode,
+        registrationData.invitedById || '',
         pushSubscription,
       );
 
-      if (addedUser) {
-        const userData: User = {
-          id: addedUser.id,
-          username: formData.username,
-          phoneNumber: '',
-          wallet: wallet.address,
-          bio: '',
-          profilePicture: '/images/profile.png',
-          earnedTokens: 50,
-          dailyChallenge: '0'.repeat(365),
-          weeklyChallenge: '0'.repeat(52),
-          monthlyChallenge: '0'.repeat(12),
-          followers: [],
-          following: [],
-          passwordHash: securePasswordHash,
-          notifications: [],
-          completedChallenges: [],
-          receivedPrivateChallenges: [],
-          createdPrivateChallenges: [],
-          createdPublicChallenges: [],
-          participatingPublicChallenges: [],
-          pushSubscription: pushSubscription,
-        };
+      if (!addedUser) {
+        throw new Error('Failed to create user in database');
+      }
 
+      console.log('✅ User created in Dgraph:', addedUser.id);
+
+      // STEP 2: Mark invite code as used
+      if (registrationData.inviteCode !== 'RECOVERY') {
         await fetch('/api/registration/use-invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            inviteCode: validatedInviteCode,
+            inviteCode: registrationData.inviteCode,
             newUserId: addedUser.id,
           }),
         });
-
-        try {
-          await generateInviteCode(addedUser.id, 'initial');
-          await generateInviteCode(addedUser.id, 'initial');
-        } catch (inviteError) {
-          console.error('Error generating initial invite codes:', inviteError);
-        }
-
-        await login(userData);
-        window.location.href = '/home';
-      } else {
-        setError('Failed to register. Please try again.');
       }
+
+      // STEP 3: Generate initial invite codes
+      try {
+        await generateInviteCode(addedUser.id, 'initial');
+        await generateInviteCode(addedUser.id, 'initial');
+        console.log('✅ Initial invite codes generated');
+      } catch (inviteError) {
+        console.error('Error generating initial invite codes:', inviteError);
+        // Don't fail registration for this
+      }
+
+      // STEP 4: Create Lens username if it was available during registration
+      console.log('🌿 Attempting to create Lens username...');
+      let lensCreated = false;
+
+      try {
+        // Check if username is still available on Lens
+        const response = await fetch('/api/lens/checkUsername', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: registrationData.username }),
+        });
+
+        const lensCheck = await response.json();
+
+        if (lensCheck.available) {
+          console.log('🌿 Username still available on Lens, creating account...');
+
+          const createResponse = await fetch('/api/lens/createAccount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: registrationData.username,
+              walletAddress: registrationData.walletAddress,
+              bio: `Nocena challenge enthusiast: ${registrationData.username}`,
+            }),
+          });
+
+          const createResult = await createResponse.json();
+
+          if (createResult.success) {
+            console.log('✅ Lens username created successfully:', createResult.txHash);
+            lensCreated = true;
+          } else {
+            console.warn('⚠️ Lens username creation failed:', createResult.error);
+          }
+        } else {
+          console.log('ℹ️ Username no longer available on Lens, proceeding without');
+        }
+      } catch (lensError) {
+        console.error('💥 Error creating Lens username:', lensError);
+        // Don't fail the whole registration if Lens fails
+      }
+
+      // STEP 5: Create user data and commit to AuthContext
+      console.log('👤 Creating user data for AuthContext...');
+      const userData: User = {
+        id: addedUser.id,
+        username: registrationData.username,
+        bio: '', // Empty bio for new users
+        wallet: registrationData.walletAddress,
+        profilePicture: '/images/profile.png',
+        coverPhoto: '/images/cover.jpg',
+        trailerVideo: '/trailer.mp4',
+        earnedTokens: 50,
+        earnedTokensDay: 0, // Maps to earnedTokensToday in Dgraph
+        earnedTokensWeek: 0, // Maps to earnedTokensThisWeek in Dgraph
+        earnedTokensMonth: 0, // Maps to earnedTokensThisMonth in Dgraph
+
+        // Personal Expression Fields (matching Dgraph schema)
+        personalField1Type: '',
+        personalField1Value: '',
+        personalField1Metadata: '',
+        personalField2Type: '',
+        personalField2Value: '',
+        personalField2Metadata: '',
+        personalField3Type: '',
+        personalField3Value: '',
+        personalField3Metadata: '',
+
+        pushSubscription: pushSubscription,
+        dailyChallenge: '0'.repeat(365),
+        weeklyChallenge: '0'.repeat(52),
+        monthlyChallenge: '0'.repeat(12),
+        followers: [],
+        following: [],
+        notifications: [],
+        completedChallenges: [],
+        receivedPrivateChallenges: [],
+        createdPrivateChallenges: [],
+        createdPublicChallenges: [],
+        participatingPublicChallenges: [],
+      };
+
+      // STEP 6: Commit to AuthContext only after everything is successful
+      console.log('🔐 Logging in user...');
+      await login(userData);
+
+      console.log('🎉 Registration complete!', {
+        userId: addedUser.id,
+        username: registrationData.username,
+        lensCreated: lensCreated,
+      });
+
+      setCurrentStep(RegisterStep.WELCOME);
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('💥 Registration error:', err);
       setError('Failed to register. Please try again.');
+      setCurrentStep(RegisterStep.USER_INFO);
     } finally {
       setLoading(false);
     }
   };
 
-  const onSubmit = async (data: FormValues) => {
-    console.log('Form submitted:', data);
+  // Handle welcome screen completion
+  useEffect(() => {
+    if (currentStep === RegisterStep.WELCOME) {
+      const timer = setTimeout(() => {
+        router.push('/home');
+      }, 4000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, router]);
+
+  const onSubmit = async (values: FormValues) => {
+    console.log('Form submitted:', values);
+  };
+
+  const getStepContent = () => {
+    switch (currentStep) {
+      case RegisterStep.INVITE_CODE:
+        return (
+          <RegisterInviteCodeStep
+            control={control}
+            onValidCode={handleValidInviteCode}
+            reset={reset}
+            loading={loading}
+            error={error}
+          />
+        );
+
+      case RegisterStep.WALLET_CONNECT:
+        return <RegisterWalletConnectStep onWalletConnected={handleWalletConnected} />;
+
+      case RegisterStep.USER_INFO:
+        return (
+          <div className="space-y-4">
+            {registrationData.isRecoveryMode && (
+              <div className="bg-blue-500/20 border border-blue-500 rounded-xl p-4">
+                <p className="text-blue-400 text-sm text-center">Completing your profile setup...</p>
+              </div>
+            )}
+            <RegisterFormStep control={control} loading={loading} setStep={handleFormComplete} />
+          </div>
+        );
+
+      case RegisterStep.NOTIFICATIONS:
+        return <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />;
+
+      default:
+        return null;
+    }
   };
 
   const getStepInfo = () => {
     switch (currentStep) {
       case RegisterStep.INVITE_CODE:
+        if (router.query.skip_wallet === 'true') {
+          return {
+            title: 'Almost Done!',
+            subtitle: 'Just need your invite code to continue',
+          };
+        }
         return {
           title: 'Join the Challenge',
           subtitle: 'Enter your invite code to create your account',
         };
-      case RegisterStep.REGISTER_FORM:
-        return {
-          title: 'Create Your Account',
-          subtitle: 'Choose your username and secure password',
-        };
-      case RegisterStep.REWARDS_EXPLANATION:
-        return {
-          title: 'Challenge2Earn',
-          subtitle:
-            'You will get a challenge each day to share with your friends. If you succesfully complete it you will earn a reward that will be securely stored in your wallet that we create for you. You can later withdraw any of the rewards into a curency of your choice - just make sure to remember the password for the wallet.',
-        };
-      case RegisterStep.WALLET_CHOICE:
-        return {
-          title: 'Reward Setup',
-          subtitle: 'Choose how to set up your reward system',
-        };
-      case RegisterStep.WALLET_CREATION:
-        return {
-          title: 'Wallet Created',
-          subtitle: 'Your secure reward wallet has been generated',
-        };
-      case RegisterStep.EXISTING_WALLET:
+      case RegisterStep.WALLET_CONNECT:
         return {
           title: 'Connect Wallet',
-          subtitle: 'Link your existing wallet address',
+          subtitle: 'Connect your wallet to start your Nocena journey',
         };
-      case RegisterStep.LENS_PROFILE:
+      case RegisterStep.USER_INFO:
         return {
-          title: 'Import Profile',
-          subtitle: 'Choose a Lens Protocol profile to import',
+          title: registrationData.isRecoveryMode ? 'Complete Your Profile' : 'Create Your Account',
+          subtitle: registrationData.isRecoveryMode ? 'Finish setting up your account' : 'Choose your username',
         };
       case RegisterStep.NOTIFICATIONS:
         return {
@@ -300,63 +425,25 @@ const RegisterPage = () => {
     }
   };
 
-  // SPECIAL HANDLING: Render welcome step outside of layout
   if (currentStep === RegisterStep.WELCOME) {
-    return <RegisterWelcomeStep inviteOwner={inviteOwner} />;
+    return <RegisterWelcomeStep inviteOwner={registrationData.inviteOwner || 'Someone'} />;
   }
 
   const stepInfo = getStepInfo();
 
   return (
     <AuthenticationLayout title={stepInfo.title} subtitle={stepInfo.subtitle}>
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
-        {currentStep === RegisterStep.INVITE_CODE && (
-          <RegisterInviteCodeStep
-            control={control}
-            onValidCode={handleValidInviteCode}
-            reset={reset}
-            loading={loading}
-            error={error}
-          />
-        )}
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
+          {getStepContent()}
 
-        {currentStep === RegisterStep.REGISTER_FORM && (
-          <RegisterFormStep setStep={handleFormComplete} control={control} />
-        )}
-
-        {currentStep === RegisterStep.REWARDS_EXPLANATION && (
-          <RegisterRewardsExplanationStep onNext={handleAutomaticSetup} onAdvancedSetup={handleAdvancedSetup} />
-        )}
-
-        {currentStep === RegisterStep.WALLET_CHOICE && <RegisterWalletSetupChoiceStep onChoice={handleWalletChoice} />}
-
-        {currentStep === RegisterStep.WALLET_CREATION && wallet && (
-          <RegisterWalletCreationStep wallet={wallet} onNext={handleWalletCreationComplete} />
-        )}
-
-        {currentStep === RegisterStep.EXISTING_WALLET && (
-          <RegisterExistingWalletStep onWalletConnected={handleWalletConnected} />
-        )}
-
-        {currentStep === RegisterStep.LENS_PROFILE && (
-          <RegisterLensProfileStep lensProfiles={lensProfiles} onProfileSelected={handleLensProfileSelected} />
-        )}
-
-        {currentStep === RegisterStep.NOTIFICATIONS && (
-          <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />
-        )}
-
-        {/* Show loading overlay during final registration */}
-        {loading && currentStep === RegisterStep.NOTIFICATIONS && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gradient-to-br from-nocenaBlue to-nocenaPink p-6 rounded-2xl text-center">
-              <div className="w-16 h-16 mx-auto mb-4 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-              <h3 className="text-white font-bold text-lg mb-2">Creating Your Account</h3>
-              <p className="text-white text-sm opacity-80">Setting up your profile...</p>
+          {error && currentStep !== RegisterStep.INVITE_CODE && (
+            <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
+              <p className="text-red-400 text-sm text-center">{error}</p>
             </div>
-          </div>
-        )}
-      </form>
+          )}
+        </form>
+      </FormProvider>
     </AuthenticationLayout>
   );
 };

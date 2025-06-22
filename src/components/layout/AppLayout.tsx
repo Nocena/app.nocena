@@ -47,6 +47,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [appIsVisible, setAppIsVisible] = useState(true);
   const [hasCustomBackHandler, setHasCustomBackHandler] = useState(false);
+  const [isRouterReady, setIsRouterReady] = useState(false);
+
+  // Safe pathname access with fallback
+  const currentPathname = router?.pathname || '';
+  const currentQuery = router?.query || {};
 
   // Track when component first mounts
   useEffect(() => {
@@ -56,16 +61,28 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     };
   }, []);
 
+  // Track router readiness
+  useEffect(() => {
+    if (router?.pathname && router?.isReady) {
+      setIsRouterReady(true);
+      logPerf(`Router is ready with pathname: ${router.pathname}`);
+    }
+  }, [router?.pathname, router?.isReady]);
+
   // Listen for custom back handler registration
   useEffect(() => {
     const handleCustomBackRegistration = (event: CustomEvent) => {
       setHasCustomBackHandler(event.detail.hasCustomBack);
     };
 
-    window.addEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
+    if (isBrowser) {
+      window.addEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
+    }
 
     return () => {
-      window.removeEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
+      if (isBrowser) {
+        window.removeEventListener('nocena_register_custom_back', handleCustomBackRegistration as EventListener);
+      }
     };
   }, []);
 
@@ -190,7 +207,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   // NEW: Listen for navigation messages from service worker
   useEffect(() => {
     // Listen for navigation messages from service worker
-    if (isBrowser && 'serviceWorker' in navigator) {
+    if (isBrowser && 'serviceWorker' in navigator && router?.push) {
       const handleServiceWorkerMessage = (event: MessageEvent) => {
         console.log('🔔 Received message from SW:', event.data);
 
@@ -206,10 +223,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       };
     }
-  }, [router]);
+  }, [router?.push]);
 
-  // Set the correct index based on the current path
+  // Set the correct index based on the current path - WITH SAFETY CHECKS
   useEffect(() => {
+    // Early return if router is not ready or pathname is not available
+    if (!isRouterReady || !currentPathname) {
+      logPerf(`Skipping index calculation - router not ready or no pathname`);
+      return;
+    }
+
     const pathToIndexMap: Record<string, number> = {
       '/home': 0,
       '/map': 1,
@@ -220,10 +243,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       '/createchallenge': 7, // Special index for create challenge page
     };
 
-    // Handle profile pages with IDs
-    if (router.pathname.startsWith('/profile/')) {
+    // Handle profile pages with IDs - WITH SAFETY CHECKS
+    if (currentPathname.startsWith('/profile/')) {
       // Check if this is the user's own profile
-      if (router.query.walletAddress === user?.wallet) {
+      if (currentQuery.walletAddress === user?.wallet) {
         setCurrentIndex(4); // Own profile
       } else {
         setCurrentIndex(6); // Other user's profile
@@ -232,18 +255,26 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     }
 
     // Check if the current path is in our mapping
-    const index = pathToIndexMap[router.pathname];
+    const index = pathToIndexMap[currentPathname];
     if (index !== undefined) {
       setCurrentIndex(index);
+      logPerf(`Set current index to ${index} for path ${currentPathname}`);
     }
-  }, [router.pathname, router.query, user?.wallet]);
+  }, [isRouterReady, currentPathname, currentQuery, user?.wallet]);
 
-  const isUserProfile = router.pathname.startsWith('/profile/') && router.query.walletAddress !== user?.wallet;
-  const isSpecialPage = router.pathname === '/completing' || router.pathname === '/createchallenge';
+  // Safe checks for special page determination
+  const isUserProfile = currentPathname.startsWith('/profile/') && currentQuery.walletAddress !== user?.wallet;
+  const isSpecialPage = currentPathname === '/completing' || currentPathname === '/createchallenge';
 
   // Memoized navigation handler to prevent unnecessary rerenders
   const handleNavClick = useCallback(
     async (index: number) => {
+      // Safety check for router
+      if (!router?.push) {
+        console.error('Router not available for navigation');
+        return;
+      }
+
       logPerf(`Navigation clicked: index ${index}`);
       const navigationStart = performance.now();
 
@@ -274,7 +305,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         4: 'profile',
       };
 
-      if (routeToComponentName[index]) {
+      if (routeToComponentName[index] && isBrowser) {
         const visibilityEvent = new CustomEvent('pageVisibilityChange', {
           detail: {
             pageName: routeToComponentName[index],
@@ -286,37 +317,46 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       // Perform route push first for faster response
       // Add shallow routing to prevent full page reload
-      router.push(route, undefined, { shallow: true });
+      try {
+        await router.push(route, undefined, { shallow: true });
+      } catch (error) {
+        console.error('Navigation failed:', error);
+        return;
+      }
 
       // After navigation, handle any operations that could block
       if (index === 2 && user?.id) {
         // For inbox, perform background operation after navigation
         window.requestAnimationFrame(async () => {
-          // Mark notifications as read
-          await markNotificationsAsRead(user.id);
-          setUnreadCount(0);
+          try {
+            // Mark notifications as read
+            await markNotificationsAsRead(user.id);
+            setUnreadCount(0);
 
-          // Update the cache to reflect read notifications
-          if (isBrowser) {
-            try {
-              const updatedCache = {
-                count: 0,
-                timestamp: Date.now(),
-              };
-              // Update memory cache first
-              cachedUnreadCount.current = updatedCache;
-              // Then persist to localStorage
-              localStorage.setItem('nocena_unread_count', JSON.stringify(updatedCache));
-            } catch (error) {
-              console.error('Failed to update unread count cache', error);
+            // Update the cache to reflect read notifications
+            if (isBrowser) {
+              try {
+                const updatedCache = {
+                  count: 0,
+                  timestamp: Date.now(),
+                };
+                // Update memory cache first
+                cachedUnreadCount.current = updatedCache;
+                // Then persist to localStorage
+                localStorage.setItem('nocena_unread_count', JSON.stringify(updatedCache));
+              } catch (error) {
+                console.error('Failed to update unread count cache', error);
+              }
             }
+          } catch (error) {
+            console.error('Failed to mark notifications as read:', error);
           }
         });
       }
 
       logPerf(`Navigation completed in ${(performance.now() - navigationStart).toFixed(2)}ms`);
     },
-    [router, user?.id, user?.wallet],
+    [router?.push, user?.id, user?.wallet],
   );
 
   const handleMenuToggle = useCallback(() => {
@@ -329,14 +369,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // Handle going back from special pages
   const handleBack = useCallback(() => {
+    if (!router?.back) {
+      console.error('Router not available for back navigation');
+      return;
+    }
+
     if (hasCustomBackHandler) {
       // Dispatch custom back event for pages that need it
-      window.dispatchEvent(new CustomEvent('nocena_custom_back'));
+      if (isBrowser) {
+        window.dispatchEvent(new CustomEvent('nocena_custom_back'));
+      }
     } else {
       // Use default router.back() for normal pages
       router.back();
     }
-  }, [router, hasCustomBackHandler]);
+  }, [router?.back, hasCustomBackHandler]);
 
   // Create a proper logout handler that ensures full page reload
   const handleAppLogout = useCallback(() => {
@@ -363,10 +410,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     }
   }, [handleLogout]);
 
+  // Early return if router is not ready
+  if (!isRouterReady) {
+    logPerf(`Waiting for router to be ready...`);
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   // Determine whether to use PageManager or direct children
   const usePageManager =
-    !router.pathname.startsWith('/completing') &&
-    !router.pathname.startsWith('/createchallenge') &&
+    !currentPathname.startsWith('/completing') &&
+    !currentPathname.startsWith('/createchallenge') &&
     children === undefined;
 
   if (isBrowser) {
@@ -376,7 +433,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   // Determine if bottom navbar should be shown based on the current route
   const showBottomNavbar = !isSpecialPage;
 
-  console.log('Current path:', router.pathname);
+  console.log('Current path:', currentPathname);
   console.log('showBottomNavbar:', showBottomNavbar);
 
   return (
@@ -435,11 +492,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       {/* Main Content - modified to adjust spacing based on page type */}
       <main
-        className={`flex-grow relative z-10 ${router.pathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : ''}`}
+        className={`flex-grow relative z-10 ${currentPathname === '/map' || isSpecialPage ? 'pt-0 pb-0' : ''}`}
         style={{
           // Adjust margin-top for different page types
           marginTop:
-            router.pathname === '/map'
+            currentPathname === '/map'
               ? 0
               : isSpecialPage
                 ? 'calc(env(safe-area-inset-top) + 56px)'

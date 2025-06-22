@@ -170,9 +170,13 @@ const PageManager: React.FC = () => {
   const router = useRouter();
   const [activeRoute, setActiveRoute] = useState('/home');
   const [loadedPages, setLoadedPages] = useState<string[]>([]);
+  const [isRouterReady, setIsRouterReady] = useState(false);
 
   // Keep track of previous active route for transition effects
   const prevRouteRef = useRef(activeRoute);
+
+  // Safe pathname access
+  const currentPathname = router?.pathname || '';
 
   // Track when a page has fully loaded
   const [pageLoadStatus, setPageLoadStatus] = useState<PageLoadStatus>({
@@ -198,61 +202,73 @@ const PageManager: React.FC = () => {
     };
   }, []);
 
-  // Update active route when router changes
+  // Track router readiness
   useEffect(() => {
-    if (router.pathname) {
-      const transitionStart = performance.now();
-      logPerf(`Route transition started: ${prevRouteRef.current} -> ${router.pathname}`);
-
-      const prevRoute = prevRouteRef.current;
-      setActiveRoute(router.pathname);
-      prevRouteRef.current = router.pathname;
-
-      // Show loading state immediately for better UX
-      window.requestAnimationFrame(() => {
-        // Fire visibility event first to prepare component
-        if (isBrowser) {
-          // Look up which component name corresponds to this route
-          const routeToComponentName: Record<string, string> = {
-            '/home': 'home',
-            '/map': 'map',
-            '/inbox': 'inbox',
-            '/search': 'search',
-            '/profile': 'profile',
-          };
-
-          const mainRoute = router.pathname.split('/')[1];
-          const componentName = routeToComponentName[`/${mainRoute}`] || mainRoute;
-
-          // Fire visibility event first for the new page
-          if (componentName) {
-            window.dispatchEvent(createVisibilityEvent(componentName, true));
-          }
-
-          // Then dispatch route change event
-          window.dispatchEvent(
-            new CustomEvent('routeChange', {
-              detail: {
-                from: prevRoute,
-                to: router.pathname,
-              } as RouteChangeEvent,
-            }),
-          );
-        }
-      });
-
-      // Add this page to loaded pages if not already loaded
-      if (!loadedPages.includes(router.pathname)) {
-        setLoadedPages((prev) => [...prev, router.pathname]);
-        logPerf(`Added route to loaded pages: ${router.pathname}`);
-      }
-
-      // Log complete transition time
-      window.requestAnimationFrame(() => {
-        logPerf(`Route transition completed in ${(performance.now() - transitionStart).toFixed(2)}ms`);
-      });
+    if (router?.pathname && router?.isReady) {
+      setIsRouterReady(true);
+      logPerf(`PageManager: Router is ready with pathname: ${router.pathname}`);
     }
-  }, [router.pathname, loadedPages]);
+  }, [router?.pathname, router?.isReady]);
+
+  // Update active route when router changes - WITH SAFETY CHECKS
+  useEffect(() => {
+    // Safety checks for router availability
+    if (!isRouterReady || !currentPathname) {
+      logPerf(`PageManager: Skipping route update - router not ready or no pathname`);
+      return;
+    }
+
+    const transitionStart = performance.now();
+    logPerf(`Route transition started: ${prevRouteRef.current} -> ${currentPathname}`);
+
+    const prevRoute = prevRouteRef.current;
+    setActiveRoute(currentPathname);
+    prevRouteRef.current = currentPathname;
+
+    // Show loading state immediately for better UX
+    window.requestAnimationFrame(() => {
+      // Fire visibility event first to prepare component
+      if (isBrowser) {
+        // Look up which component name corresponds to this route
+        const routeToComponentName: Record<string, string> = {
+          '/home': 'home',
+          '/map': 'map',
+          '/inbox': 'inbox',
+          '/search': 'search',
+          '/profile': 'profile',
+        };
+
+        const mainRoute = currentPathname.split('/')[1];
+        const componentName = routeToComponentName[`/${mainRoute}`] || mainRoute;
+
+        // Fire visibility event first for the new page
+        if (componentName) {
+          window.dispatchEvent(createVisibilityEvent(componentName, true));
+        }
+
+        // Then dispatch route change event
+        window.dispatchEvent(
+          new CustomEvent('routeChange', {
+            detail: {
+              from: prevRoute,
+              to: currentPathname,
+            } as RouteChangeEvent,
+          }),
+        );
+      }
+    });
+
+    // Add this page to loaded pages if not already loaded
+    if (!loadedPages.includes(currentPathname)) {
+      setLoadedPages((prev) => [...prev, currentPathname]);
+      logPerf(`Added route to loaded pages: ${currentPathname}`);
+    }
+
+    // Log complete transition time
+    window.requestAnimationFrame(() => {
+      logPerf(`Route transition completed in ${(performance.now() - transitionStart).toFixed(2)}ms`);
+    });
+  }, [isRouterReady, currentPathname, loadedPages]);
 
   // Preload adjacent pages after the first page is loaded
   useEffect(() => {
@@ -282,7 +298,7 @@ const PageManager: React.FC = () => {
 
   // Notify pages about their visibility status
   useEffect(() => {
-    if (!isBrowser) return;
+    if (!isBrowser || !isRouterReady) return;
 
     // Trigger visibility events for pages
     const routes = [
@@ -299,7 +315,7 @@ const PageManager: React.FC = () => {
 
       window.dispatchEvent(createVisibilityEvent(route.name, isVisible));
     });
-  }, [activeRoute]);
+  }, [activeRoute, isRouterReady]);
 
   // Save state to localStorage periodically
   useEffect(() => {
@@ -353,6 +369,24 @@ const PageManager: React.FC = () => {
       onProfileLoaded();
     }
   }, [isProfileRoute]);
+
+  // Early return if router is not ready
+  if (!isRouterReady) {
+    logPerf(`PageManager: Waiting for router to be ready...`);
+    return (
+      <div className="w-full p-6 space-y-4">
+        <div className="w-full bg-[#1A2734] rounded-lg p-4 animate-pulse">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-gray-700 rounded-full"></div>
+            <div className="flex-1">
+              <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Pre-render the loading placeholders
   const homeLoadingPlaceholder = <HomeLoading />;
