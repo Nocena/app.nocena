@@ -2,30 +2,72 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
   inviteOwner?: string;
+  videoPreloaded?: boolean;
+  preloadedVideo?: HTMLVideoElement | null;
 }
 
-const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
+const RegisterWelcomeStep: React.FC<Props> = ({ 
+  inviteOwner, 
+  videoPreloaded = false, 
+  preloadedVideo = null 
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
   const [showElements, setShowElements] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
+    
     if (video) {
-      video.play().catch(console.error);
+      // If we have a preloaded video, try to use it
+      if (videoPreloaded && preloadedVideo) {
+        console.log('🎬 Using preloaded video for welcome screen');
+        
+        // Copy the preloaded video source to our video element
+        video.src = preloadedVideo.src;
+        video.currentTime = 0; // Ensure we start from beginning
+        
+        // Mark as ready immediately since it's preloaded
+        setVideoLoaded(true);
+        setVideoReady(true);
+        
+        // Start playing immediately
+        video.play().catch(error => {
+          console.warn('Video autoplay failed:', error);
+          // Still show the welcome screen even if autoplay fails
+        });
+      } else {
+        console.log('🎬 Loading video normally (not preloaded)');
+        // Fallback to normal loading
+        video.load();
+        video.play().catch(error => {
+          console.warn('Video autoplay failed:', error);
+        });
+      }
     }
 
-    const timer = setTimeout(() => setShowElements(true), 800);
+    // Show elements with animation delay
+    const timer = setTimeout(() => setShowElements(true), videoPreloaded ? 500 : 800);
     return () => clearTimeout(timer);
-  }, []);
+  }, [videoPreloaded, preloadedVideo]);
 
   const handleVideoLoad = () => {
+    console.log('📼 Video loaded and ready to play');
     setVideoLoaded(true);
+    setVideoReady(true);
   };
 
   const handleVideoEnd = () => {
+    console.log('🎬 Welcome video finished playing');
     setVideoEnded(true);
+  };
+
+  const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    console.error('❌ Video failed to load:', e);
+    setVideoLoaded(false);
+    setVideoReady(false);
   };
 
   return (
@@ -34,18 +76,21 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
       <div className="absolute inset-0 flex items-center justify-center">
         <video
           ref={videoRef}
-          className="min-w-full min-h-full object-cover opacity-90"
+          className={`min-w-full min-h-full object-cover transition-opacity duration-1000 ${
+            videoReady ? 'opacity-90' : 'opacity-0'
+          }`}
           muted
           playsInline
           onLoadedData={handleVideoLoad}
           onEnded={handleVideoEnd}
+          onError={handleVideoError}
           preload="auto"
           style={{
             transform: 'scale(1.2)', // Slight zoom to ensure no black bars
             filter: 'brightness(0.7) contrast(1.1)', // Enhance for overlay text
           }}
         >
-          <source src="/intro.mp4" type="video/mp4" />
+          <source src="/intro.MP4" type="video/mp4" />
         </video>
       </div>
 
@@ -53,8 +98,8 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent via-transparent to-black/70"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-nocenaBlue/10 via-transparent to-nocenaPurple/10"></div>
 
-      {/* Loading State */}
-      {!videoLoaded && (
+      {/* Loading State - Only show if video is not preloaded or failed to load */}
+      {!videoReady && (
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900 flex items-center justify-center">
           <div className="text-center">
             <div className="flex justify-center space-x-3 mb-4">
@@ -68,7 +113,12 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
                 style={{ animationDelay: '0.2s' }}
               ></div>
             </div>
-            <p className="text-white/80 text-lg">Loading experience...</p>
+            <p className="text-white/80 text-lg">
+              {videoPreloaded ? 'Initializing experience...' : 'Loading experience...'}
+            </p>
+            {videoPreloaded && (
+              <p className="text-white/60 text-sm mt-2">Video ready, starting now!</p>
+            )}
           </div>
         </div>
       )}
@@ -77,7 +127,9 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
       <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none">
         {/* Top Floating Title */}
         <div
-          className={`text-center mt-16 transition-all duration-1500 ${showElements ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12'}`}
+          className={`text-center mt-16 transition-all duration-1500 ${
+            showElements ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12'
+          }`}
         >
           <div className="inline-block">
             <div className="bg-black/40 backdrop-blur-xl rounded-3xl px-8 py-6 border border-white/20 shadow-2xl">
@@ -92,7 +144,9 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
         <div className="space-y-6 pb-8">
           {/* Subtitle */}
           <div
-            className={`text-center transition-all duration-1000 delay-300 ${showElements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            className={`text-center transition-all duration-1000 delay-300 ${
+              showElements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
           >
             <div className="inline-block bg-black/50 backdrop-blur-xl rounded-2xl px-6 py-3 border border-white/10">
               <p className="text-white/90 text-lg font-light">The world is watching</p>
@@ -102,7 +156,9 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
           {/* Invite Card - Floating from right */}
           {inviteOwner && (
             <div
-              className={`transition-all duration-1000 delay-500 ${showElements ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}
+              className={`transition-all duration-1000 delay-500 ${
+                showElements ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'
+              }`}
             >
               <div className="ml-auto mr-4 w-fit">
                 <div className="bg-black/60 backdrop-blur-xl border border-white/20 rounded-2xl p-5 shadow-2xl max-w-xs">
@@ -133,7 +189,9 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
           {/* Token Card - Floating from left */}
           {inviteOwner && (
             <div
-              className={`transition-all duration-1000 delay-700 ${showElements ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
+              className={`transition-all duration-1000 delay-700 ${
+                showElements ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'
+              }`}
             >
               <div className="ml-4 w-fit">
                 <div className="bg-gradient-to-r from-nocenaPink/30 via-nocenaPurple/30 to-nocenaBlue/30 backdrop-blur-xl border border-nocenaPink/40 rounded-2xl p-5 shadow-2xl max-w-xs">
@@ -157,9 +215,11 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
             </div>
           )}
 
-          {/* Status */}
+          {/* Video Status Indicator */}
           <div
-            className={`text-center transition-all duration-1000 delay-900 ${showElements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            className={`text-center transition-all duration-1000 delay-900 ${
+              showElements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
           >
             <div className="inline-block bg-black/50 backdrop-blur-xl rounded-xl px-4 py-2 border border-white/10">
               <div className="flex items-center space-x-3">
@@ -168,15 +228,47 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner }) => {
                     <div className="w-3 h-3 bg-gradient-to-r from-nocenaPink to-nocenaBlue rounded-full animate-pulse"></div>
                     <span className="text-nocenaPink font-semibold">Ready to explore</span>
                   </>
-                ) : (
+                ) : videoReady ? (
                   <>
                     <div className="w-3 h-3 bg-gradient-to-r from-nocenaBlue to-nocenaPurple rounded-full animate-pulse"></div>
-                    <span className="text-white/90 font-medium">Initializing...</span>
+                    <span className="text-white/90 font-medium">Experience loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full animate-pulse"></div>
+                    <span className="text-white/90 font-medium">
+                      {videoPreloaded ? 'Starting...' : 'Initializing...'}
+                    </span>
                   </>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Video Performance Indicator (only in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div
+              className={`text-center transition-all duration-1000 delay-1100 ${
+                showElements ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+            >
+              <div className="inline-block bg-black/30 backdrop-blur-xl rounded-lg px-3 py-1 border border-white/5">
+                <div className="flex items-center space-x-2 text-xs">
+                  {videoPreloaded ? (
+                    <>
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span className="text-green-300">Video preloaded ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                      <span className="text-yellow-300">Loading on demand</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

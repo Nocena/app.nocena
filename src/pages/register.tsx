@@ -1,5 +1,5 @@
-// pages/register.tsx (Fixed with proper data flow)
-import React, { useState, useEffect } from 'react';
+// pages/register.tsx (Enhanced with video preloading)
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -46,6 +46,11 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Video preloading states
+  const [videoPreloaded, setVideoPreloaded] = useState(false);
+  const [videoPreloadError, setVideoPreloadError] = useState(false);
+  const preloadedVideoRef = useRef<HTMLVideoElement | null>(null);
+
   // Temporary registration data - not committed to context until success
   const [registrationData, setRegistrationData] = useState<Partial<RegistrationData>>({});
 
@@ -84,6 +89,78 @@ const RegisterPage = () => {
     watch,
     reset,
   } = methods;
+
+  // Video preloading effect - starts as soon as component mounts
+  useEffect(() => {
+    console.log('🎬 Starting welcome video preload...');
+    
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = false;
+    
+    // Add multiple formats for better compatibility
+    const formats = [
+      { src: '/intro.MP4', type: 'video/mp4' },
+    ];
+    
+    formats.forEach(format => {
+      const source = document.createElement('source');
+      source.src = format.src;
+      source.type = format.type;
+      video.appendChild(source);
+    });
+    
+    // Event listeners for preload status
+    const handleCanPlayThrough = () => {
+      console.log('✅ Welcome video fully preloaded and ready');
+      setVideoPreloaded(true);
+      setVideoPreloadError(false);
+    };
+    
+    const handleLoadedData = () => {
+      console.log('📼 Welcome video metadata loaded');
+    };
+    
+    const handleError = (e: Event) => {
+      console.warn('⚠️ Welcome video preload failed:', e);
+      setVideoPreloadError(true);
+      setVideoPreloaded(false); // Still allow progression
+    };
+    
+    const handleProgress = () => {
+      if (video.buffered.length > 0) {
+        const buffered = video.buffered.end(0);
+        const duration = video.duration;
+        if (duration > 0) {
+          const percentLoaded = (buffered / duration) * 100;
+          console.log(`📊 Video preload progress: ${percentLoaded.toFixed(1)}%`);
+        }
+      }
+    };
+    
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('error', handleError);
+    video.addEventListener('progress', handleProgress);
+    
+    // Start loading
+    video.load();
+    preloadedVideoRef.current = video;
+    
+    // Cleanup
+    return () => {
+      if (preloadedVideoRef.current) {
+        preloadedVideoRef.current.removeEventListener('canplaythrough', handleCanPlayThrough);
+        preloadedVideoRef.current.removeEventListener('loadeddata', handleLoadedData);
+        preloadedVideoRef.current.removeEventListener('error', handleError);
+        preloadedVideoRef.current.removeEventListener('progress', handleProgress);
+        preloadedVideoRef.current.remove();
+        preloadedVideoRef.current = null;
+      }
+    };
+  }, []);
 
   // Skip invite code step if coming from login (wallet already connected)
   useEffect(() => {
@@ -172,13 +249,77 @@ const RegisterPage = () => {
       setError('Missing registration data. Please try again.');
       return;
     }
-
+  
     setLoading(true);
     setError('');
-
+  
     try {
-      // STEP 1: Register the user in Dgraph first
-      console.log('🗄️ Creating user in Dgraph...');
+      // STEP 1: Check Lens username availability and create Lens account
+      console.log('🌿 Checking Lens username availability...');
+      let lensData: {
+        handle: string;
+        accountId: string;
+        txHash: string;
+        metadataUri: string;
+      } | null = null;
+  
+      try {
+        const lensCheckResponse = await fetch('/api/lens/checkUsername', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: registrationData.username }),
+        });
+  
+        const lensCheck = await lensCheckResponse.json();
+  
+        if (!lensCheck.available) {
+          throw new Error(`Username "${registrationData.username}" is not available on Lens Protocol`);
+        }
+  
+        console.log('🌿 Username available on Lens, creating account...');
+        
+        // Try to create Lens account
+        const createResponse = await fetch('/api/lens/createAccount', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: registrationData.username,
+            walletAddress: registrationData.walletAddress,
+            bio: `Nocena challenge enthusiast: ${registrationData.username}`,
+          }),
+        });
+  
+        const createResult = await createResponse.json();
+  
+        if (!createResult.success) {
+          throw new Error(`Failed to create Lens account: ${createResult.error}`);
+        }
+  
+        // Validate that we have all required Lens data
+        if (!createResult.txHash) {
+          throw new Error('Lens account creation did not return a transaction hash');
+        }
+  
+        lensData = {
+          handle: `${registrationData.username}.lens`,
+          accountId: createResult.accountId || `lens-account-${Date.now()}`, // Fallback if not provided
+          txHash: createResult.txHash,
+          metadataUri: `lens://nocena.app/metadata/lens-${registrationData.username}-${Date.now()}`,
+        };
+  
+        console.log('✅ Lens account created successfully:', {
+          handle: lensData.handle,
+          txHash: lensData.txHash,
+          accountId: lensData.accountId,
+        });
+  
+      } catch (lensError) {
+        console.error('💥 Error with Lens integration:', lensError);
+        throw new Error(`Lens Protocol integration failed: ${lensError instanceof Error ? lensError.message : 'Unknown error'}. Registration cannot continue.`);
+      }
+  
+      // STEP 2: Register the user in Dgraph with Lens data (only if Lens was successful)
+      console.log('🗄️ Creating user in Dgraph with Lens data...');
       const addedUser = await registerUser(
         registrationData.username,
         '', // bio (empty for new users)
@@ -205,15 +346,25 @@ const RegisterPage = () => {
         registrationData.inviteCode,
         registrationData.invitedById || '',
         pushSubscription,
+        // Lens data (guaranteed to be valid strings at this point)
+        lensData.handle,
+        lensData.accountId,
+        lensData.txHash,
+        lensData.metadataUri,
       );
-
+  
       if (!addedUser) {
         throw new Error('Failed to create user in database');
       }
-
-      console.log('✅ User created in Dgraph:', addedUser.id);
-
-      // STEP 2: Mark invite code as used
+  
+      console.log('✅ User created in Dgraph with Lens data:', {
+        userId: addedUser.id,
+        username: addedUser.username,
+        lensHandle: addedUser.lensHandle,
+        lensAccountId: addedUser.lensAccountId,
+      });
+  
+      // STEP 3: Mark invite code as used
       if (registrationData.inviteCode !== 'RECOVERY') {
         await fetch('/api/registration/use-invite', {
           method: 'POST',
@@ -224,8 +375,8 @@ const RegisterPage = () => {
           }),
         });
       }
-
-      // STEP 3: Generate initial invite codes
+  
+      // STEP 4: Generate initial invite codes
       try {
         await generateInviteCode(addedUser.id, 'initial');
         await generateInviteCode(addedUser.id, 'initial');
@@ -234,50 +385,7 @@ const RegisterPage = () => {
         console.error('Error generating initial invite codes:', inviteError);
         // Don't fail registration for this
       }
-
-      // STEP 4: Create Lens username if it was available during registration
-      console.log('🌿 Attempting to create Lens username...');
-      let lensCreated = false;
-
-      try {
-        // Check if username is still available on Lens
-        const response = await fetch('/api/lens/checkUsername', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: registrationData.username }),
-        });
-
-        const lensCheck = await response.json();
-
-        if (lensCheck.available) {
-          console.log('🌿 Username still available on Lens, creating account...');
-
-          const createResponse = await fetch('/api/lens/createAccount', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: registrationData.username,
-              walletAddress: registrationData.walletAddress,
-              bio: `Nocena challenge enthusiast: ${registrationData.username}`,
-            }),
-          });
-
-          const createResult = await createResponse.json();
-
-          if (createResult.success) {
-            console.log('✅ Lens username created successfully:', createResult.txHash);
-            lensCreated = true;
-          } else {
-            console.warn('⚠️ Lens username creation failed:', createResult.error);
-          }
-        } else {
-          console.log('ℹ️ Username no longer available on Lens, proceeding without');
-        }
-      } catch (lensError) {
-        console.error('💥 Error creating Lens username:', lensError);
-        // Don't fail the whole registration if Lens fails
-      }
-
+  
       // STEP 5: Create user data and commit to AuthContext
       console.log('👤 Creating user data for AuthContext...');
       const userData: User = {
@@ -289,11 +397,11 @@ const RegisterPage = () => {
         coverPhoto: '/images/cover.jpg',
         trailerVideo: '/trailer.mp4',
         earnedTokens: 50,
-        earnedTokensDay: 0, // Maps to earnedTokensToday in Dgraph
-        earnedTokensWeek: 0, // Maps to earnedTokensThisWeek in Dgraph
-        earnedTokensMonth: 0, // Maps to earnedTokensThisMonth in Dgraph
-
-        // Personal Expression Fields (matching Dgraph schema)
+        earnedTokensDay: 0,
+        earnedTokensWeek: 0,
+        earnedTokensMonth: 0,
+  
+        // Personal Expression Fields
         personalField1Type: '',
         personalField1Value: '',
         personalField1Metadata: '',
@@ -303,11 +411,18 @@ const RegisterPage = () => {
         personalField3Type: '',
         personalField3Value: '',
         personalField3Metadata: '',
-
+  
         pushSubscription: pushSubscription,
         dailyChallenge: '0'.repeat(365),
         weeklyChallenge: '0'.repeat(52),
         monthlyChallenge: '0'.repeat(12),
+        
+        // Include Lens data in user context (guaranteed to exist)
+        lensHandle: addedUser.lensHandle!,
+        lensAccountId: addedUser.lensAccountId!,
+        lensTransactionHash: addedUser.lensTransactionHash!,
+        lensMetadataUri: addedUser.lensMetadataUri!,
+        
         followers: [],
         following: [],
         notifications: [],
@@ -317,37 +432,46 @@ const RegisterPage = () => {
         createdPublicChallenges: [],
         participatingPublicChallenges: [],
       };
-
+  
       // STEP 6: Commit to AuthContext only after everything is successful
       console.log('🔐 Logging in user...');
       await login(userData);
-
+  
       console.log('🎉 Registration complete!', {
         userId: addedUser.id,
         username: registrationData.username,
-        lensCreated: lensCreated,
+        lensHandle: lensData.handle,
+        lensAccountId: lensData.accountId,
+        lensTransactionHash: lensData.txHash,
+        videoPreloaded: videoPreloaded,
       });
-
+  
       setCurrentStep(RegisterStep.WELCOME);
     } catch (err) {
       console.error('💥 Registration error:', err);
-      setError('Failed to register. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to register. Please try again.');
       setCurrentStep(RegisterStep.USER_INFO);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle welcome screen completion
+  // Handle welcome screen completion - longer duration if video is ready
   useEffect(() => {
     if (currentStep === RegisterStep.WELCOME) {
+      // Determine timing based on video readiness
+      const welcomeDuration = videoPreloaded ? 7000 : 5000; // 7s if video ready, 5s fallback
+      
+      console.log(`⏱️ Welcome screen will show for ${welcomeDuration}ms (video preloaded: ${videoPreloaded})`);
+      
       const timer = setTimeout(() => {
+        console.log('🏠 Navigating to home...');
         router.push('/home');
-      }, 4000);
+      }, welcomeDuration);
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, router]);
+  }, [currentStep, router, videoPreloaded]);
 
   const onSubmit = async (values: FormValues) => {
     console.log('Form submitted:', values);
@@ -382,7 +506,30 @@ const RegisterPage = () => {
         );
 
       case RegisterStep.NOTIFICATIONS:
-        return <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />;
+        return (
+          <div className="space-y-4">
+            <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />
+            
+            {/* Optional: Show video preload status */}
+            {!videoPreloaded && !videoPreloadError && (
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-purple-300 text-sm">Preparing welcome experience...</p>
+                </div>
+              </div>
+            )}
+            
+            {videoPreloaded && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 bg-green-400 rounded-full"></div>
+                  <p className="text-green-300 text-sm">Welcome experience ready!</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
 
       default:
         return null;
@@ -426,7 +573,13 @@ const RegisterPage = () => {
   };
 
   if (currentStep === RegisterStep.WELCOME) {
-    return <RegisterWelcomeStep inviteOwner={registrationData.inviteOwner || 'Someone'} />;
+    return (
+      <RegisterWelcomeStep 
+        inviteOwner={registrationData.inviteOwner || 'Someone'} 
+        videoPreloaded={videoPreloaded}
+        preloadedVideo={preloadedVideoRef.current}
+      />
+    );
   }
 
   const stepInfo = getStepInfo();
