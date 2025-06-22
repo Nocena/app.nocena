@@ -479,7 +479,6 @@ const RegisterPage = () => {
       setLoading(false);
     }
   };
-*/
 
   // Handle welcome screen completion - adjust timing based on video availability
   useEffect(() => {
