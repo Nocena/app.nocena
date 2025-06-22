@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
+import { ThirdwebProvider } from 'thirdweb/react';
 import { useAuth, AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
@@ -26,13 +27,15 @@ function MyAppContent({ Component, pageProps }: AppProps) {
   const [isRouteChanging, setIsRouteChanging] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Safe pathname access
+  const currentPathname = router?.pathname || '';
+
   // Handle route change loading indicator
   useEffect(() => {
-    const handleStart = () => {
-      // Clear any existing timeout to prevent flicker for fast page loads
-      if (loadingTimeout) clearTimeout(loadingTimeout);
+    if (!router?.events) return; // Safety check
 
-      // Only show loading indicator for transitions longer than 100ms
+    const handleStart = () => {
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       const timeout = setTimeout(() => setIsRouteChanging(true), 100);
       setLoadingTimeout(timeout);
     };
@@ -55,36 +58,31 @@ function MyAppContent({ Component, pageProps }: AppProps) {
   }, [router, loadingTimeout]);
 
   useEffect(() => {
-    // Detect device type on client side only
     if (typeof window !== 'undefined') {
       const ua = window.navigator.userAgent.toLowerCase();
       setIsIOS(/ipad|iphone|ipod/.test(ua) && !(window as any).MSStream);
       setIsAndroid(/android/.test(ua));
     }
 
-    // Define public routes that don't require authentication
+    // Safety check for router and pathname
+    if (!router?.pathname) return;
+
     const publicRoutes = ['/login', '/register', '/admin/seed-invites', '/test-admin'];
-
-    // Check if current route is public (including any admin routes)
     const isPublicRoute =
-      publicRoutes.some((route) => router.pathname.startsWith(route)) || router.pathname.startsWith('/admin/');
+      publicRoutes.some((route) => currentPathname.startsWith(route)) || currentPathname.startsWith('/admin/');
 
-    // Redirect to login if user is not authenticated and not on a public route
     if (!loading && !user && !isPublicRoute) {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, currentPathname]);
 
-  // For app visibility handling to optimize performance
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        // App is in background - save any pending state
         window.dispatchEvent(new Event('nocena_app_background'));
       } else if (document.visibilityState === 'visible') {
-        // App is visible again
         window.dispatchEvent(new Event('nocena_app_foreground'));
       }
     };
@@ -94,6 +92,25 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  // Early return if router is not ready
+  if (!router?.pathname) {
+    return (
+      <>
+        <Head>
+          <title>Nocena</title>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+          />
+          <meta name="theme-color" content="#000000" />
+        </Head>
+        <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+      </>
+    );
+  }
 
   if (loading) {
     return (
@@ -113,7 +130,6 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     );
   }
 
-  // Render platform-specific prompts
   const renderPWAPrompt = () => {
     if (isIOS) {
       return <IOSPWAPrompt />;
@@ -124,18 +140,16 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     return null;
   };
 
-  // List of pages that shouldn't use AppLayout (including admin pages)
   const noLayoutPages = ['/login', '/register'];
-  const isAdminPage = router.pathname.startsWith('/admin/') || router.pathname === '/test-admin';
-  const shouldUseAppLayout = !noLayoutPages.includes(router.pathname) && !isAdminPage;
+  const isAdminPage = currentPathname.startsWith('/admin/') || currentPathname === '/test-admin';
+  const shouldUseAppLayout = !noLayoutPages.includes(currentPathname) && !isAdminPage;
 
-  // If user is not authenticated and on public route, show the appropriate page
   if (
     !user &&
-    (router.pathname === '/login' ||
-      router.pathname === '/register' ||
-      router.pathname.startsWith('/admin/') ||
-      router.pathname === '/test-admin')
+    (currentPathname === '/login' ||
+      currentPathname === '/register' ||
+      currentPathname.startsWith('/admin/') ||
+      currentPathname === '/test-admin')
   ) {
     return (
       <>
@@ -152,9 +166,9 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <link rel="manifest" href="/manifest.json" />
         </Head>
         {isRouteChanging && <LoadingIndicator />}
-        {router.pathname === '/register' ? (
+        {currentPathname === '/register' ? (
           <RegisterPage />
-        ) : router.pathname === '/login' ? (
+        ) : currentPathname === '/login' ? (
           <LoginPage />
         ) : (
           <Component {...pageProps} />
@@ -164,7 +178,6 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     );
   }
 
-  // If user is not authenticated and not on a public route, they'll be redirected by the useEffect above
   if (!user) {
     return (
       <>
@@ -221,9 +234,11 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
 function MyApp(props: AppProps) {
   return (
-    <AuthProvider>
-      <MyAppContent {...props} />
-    </AuthProvider>
+    <ThirdwebProvider>
+      <AuthProvider>
+        <MyAppContent {...props} />
+      </AuthProvider>
+    </ThirdwebProvider>
   );
 }
 

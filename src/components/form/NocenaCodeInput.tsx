@@ -4,11 +4,11 @@ import ThematicContainer from '../ui/ThematicContainer';
 import { FormValues } from '../register/types';
 
 interface Props {
-  field: ControllerRenderProps<FormValues, 'inviteCode' | 'verificationCode'>;
+  field: ControllerRenderProps<FormValues, 'inviteCode'> | ControllerRenderProps<any, 'verificationCode'>;
   loading?: boolean;
   onlyNumber?: boolean;
-  onValidateInvite?: (code: string) => Promise<void>; // Add validation callback
-  validationError?: string; // Add validation error prop
+  onValidateInvite?: (code: string) => Promise<void>;
+  validationError?: string;
 }
 
 const NocenaCodeInputs = ({ field, loading, onlyNumber, onValidateInvite, validationError }: Props) => {
@@ -97,11 +97,14 @@ const NocenaCodeInputs = ({ field, loading, onlyNumber, onValidateInvite, valida
 
   const isCurrentlyLoading = loading || isValidating;
 
+  // Ensure field.value is treated as string array
+  const fieldValue: string[] = Array.isArray(field.value) ? field.value : [];
+
   return (
     <div className="relative">
       {/* Code Input Grid */}
       <div className="flex justify-center items-center">
-        {field.value.map((value, index) => (
+        {fieldValue.map((value: string, index: number) => (
           <ThematicContainer
             key={index}
             asButton={false}

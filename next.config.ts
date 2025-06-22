@@ -64,12 +64,13 @@ const nextConfig: NextConfig = {
             value:
               "default-src 'self' https: http:; " +
               "img-src 'self' data: blob: https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https: http:; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com blob:; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://embedded-wallet.thirdweb.com https://pay.thirdweb.com blob:; " +
               "worker-src 'self' blob:; " +
-              "child-src 'self' blob:; " +
+              "child-src 'self' blob: https://embedded-wallet.thirdweb.com https://pay.thirdweb.com; " +
+              "frame-src 'self' blob: https://embedded-wallet.thirdweb.com https://pay.thirdweb.com; " +
               "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
               "font-src 'self' data:; " +
-              "connect-src 'self' https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https: http:; " +
+              "connect-src 'self' https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https://embedded-wallet.thirdweb.com https://pay.thirdweb.com https: http:; " +
               "media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;",
           },
           {

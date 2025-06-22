@@ -1,113 +1,389 @@
 // pages/login.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { NocenaInput, PasswordInput } from '@components/form';
+import { ConnectButton, useActiveAccount } from 'thirdweb/react';
 import { getUserFromDgraph } from '../lib/api/dgraph';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { User, useAuth } from '../contexts/AuthContext';
-import { sanitizeInput } from '../lib/utils/security';
-import { verifyPassword } from '../lib/utils/passwordUtils';
 import AuthenticationLayout from '../components/layout/AuthenticationLayout';
+import { client, chain } from '../lib/thirdweb';
 
-type FormValues = {
-  username: string;
-  password: string;
-};
+// Import wallet connectors you want to use
+import { inAppWallet, createWallet } from 'thirdweb/wallets';
 
 const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [walletChecked, setWalletChecked] = useState(false);
+
+  // Refs to prevent multiple simultaneous login attempts
+  const isProcessingLogin = useRef(false);
+  const checkedAddresses = useRef<Set<string>>(new Set());
 
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
-  const onSubmitSignIn = async (values: FormValues) => {
-    setError('');
-    setLoading(true);
+  // Thirdweb v5 hooks
+  const account = useActiveAccount();
 
-    try {
-      // Get user data from backend
-      const userData = await getUserFromDgraph(values.username);
+  // Configure which wallets/login methods to show
+  const wallets = [
+    inAppWallet({
+      auth: {
+        options: ['google', 'apple', 'facebook', 'discord', 'telegram', 'x', 'email', 'phone'],
+      },
+    }),
+    createWallet('io.metamask'),
+    createWallet('com.coinbase.wallet'),
+    createWallet('walletConnect'),
+    createWallet('com.trustwallet.app'),
+  ];
 
-      if (!userData) {
-        setError('No account found with this username.');
-        setLoading(false);
-        return;
-      }
+  console.log('🔄 LOGIN PAGE RENDER:', {
+    accountAddress: account?.address,
+    loading,
+    error,
+    isAuthenticated,
+    userExists: !!user,
+    walletChecked,
+    isProcessingLogin: isProcessingLogin.current,
+    checkedAddresses: Array.from(checkedAddresses.current),
+  });
 
-      console.log('Found user:', userData); // Debug log
-
-      // Securely verify password
-      const isPasswordValid = await verifyPassword(values.password, userData.passwordHash);
-
-      if (!isPasswordValid) {
-        setError('Invalid password. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Password verified successfully'); // Debug log
-
-      // Format followers and following to ensure they're arrays
-      // This helps with the types in the AuthContext
-      const formattedUser: User = {
-        ...userData,
-        followers: Array.isArray(userData.followers) ? userData.followers : [],
-        following: Array.isArray(userData.following) ? userData.following : [],
-      };
-
-      // Login successful
-      await login(formattedUser);
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('✅ User already authenticated, redirecting to home:', user.username);
       router.push('/home');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Login failed. Please try again.');
-      setLoading(false);
     }
+  }, [isAuthenticated, user, router]);
+
+  // Handle user login when account connects
+  useEffect(() => {
+    const handleUserLogin = async () => {
+      const currentAddress = account?.address;
+
+      console.log('🎯 LOGIN EFFECT TRIGGERED:', {
+        currentAddress,
+        loading,
+        isProcessingLogin: isProcessingLogin.current,
+        alreadyChecked: currentAddress ? checkedAddresses.current.has(currentAddress) : false,
+        isAuthenticated,
+        walletChecked,
+      });
+
+      // Exit early if no address
+      if (!currentAddress) {
+        console.log('❌ No wallet address, resetting state');
+        setWalletChecked(false);
+        setError('');
+        return;
+      }
+
+      // Exit early if already authenticated
+      if (isAuthenticated) {
+        console.log('✅ Already authenticated, skipping login');
+        return;
+      }
+
+      // Exit early if already processing
+      if (isProcessingLogin.current) {
+        console.log('⏳ Already processing login, skipping');
+        return;
+      }
+
+      // Exit early if this address was already checked
+      if (checkedAddresses.current.has(currentAddress)) {
+        console.log('🔄 Address already checked, skipping API call');
+        return;
+      }
+
+      // Exit early if currently loading
+      if (loading) {
+        console.log('⏳ Already loading, skipping');
+        return;
+      }
+
+      console.log('🚀 STARTING LOGIN PROCESS for address:', currentAddress);
+
+      isProcessingLogin.current = true;
+      setLoading(true);
+      setError('');
+      setWalletChecked(false);
+
+      try {
+        console.log('📡 Calling getUserFromDgraph...');
+
+        // Check if user exists in our database
+        const userData = await getUserFromDgraph(currentAddress);
+
+        console.log('📡 getUserFromDgraph response:', {
+          userExists: !!userData,
+          username: userData?.username,
+          wallet: userData?.wallet,
+        });
+
+        // Mark this address as checked to prevent future API calls
+        checkedAddresses.current.add(currentAddress);
+        setWalletChecked(true);
+
+        if (!userData) {
+          console.log('❌ No user found for wallet, showing registration prompt');
+          setError('account_not_found');
+          setLoading(false);
+          isProcessingLogin.current = false;
+          return;
+        }
+
+        // Format user data for our context
+        const formattedUser: User = {
+          ...userData,
+          followers: Array.isArray(userData.followers) ? userData.followers : [],
+          following: Array.isArray(userData.following) ? userData.following : [],
+        };
+
+        console.log('👤 Formatted user data:', {
+          id: formattedUser.id,
+          username: formattedUser.username,
+          wallet: formattedUser.wallet,
+          followersCount: formattedUser.followers.length,
+          followingCount: formattedUser.following.length,
+        });
+
+        // Login successful
+        console.log('🔐 Calling login function...');
+        await login(formattedUser);
+
+        console.log('✅ Login successful, redirecting to home');
+        router.push('/home');
+      } catch (err) {
+        console.error('💥 Login error:', err);
+        setError('network_error');
+        // Don't mark as checked on network error so it can retry
+      } finally {
+        console.log('🏁 Login process finished');
+        setLoading(false);
+        isProcessingLogin.current = false;
+      }
+    };
+
+    handleUserLogin();
+  }, [account?.address, login, router, isAuthenticated]);
+
+  // Clear checked addresses when wallet disconnects
+  useEffect(() => {
+    if (!account?.address) {
+      checkedAddresses.current.clear();
+    }
+  }, [account?.address]);
+
+  const handleContinueRegistration = () => {
+    console.log('🔀 Redirecting to registration');
+    router.push('/register');
   };
 
-  const schema = yup.object().shape({
-    username: yup
-      .string()
-      .transform((value) => sanitizeInput(value))
-      .required('Username is required'),
-    password: yup
-      .string()
-      .transform((value) => sanitizeInput(value))
-      .min(6, 'Password must be at least 6 characters')
-      .required('Password is required'),
-  });
+  const renderErrorState = () => {
+    if (error === 'account_not_found') {
+      return (
+        <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
+          <p className="text-red-400 text-sm text-center">
+            Wallet connected! Complete your profile to start challenging.
+          </p>
+        </div>
+      );
+    }
 
-  const { control, handleSubmit } = useForm<FormValues>({
-    resolver: yupResolver(schema),
-  });
+    if (error === 'network_error') {
+      return (
+        <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
+          <div className="text-center space-y-2">
+            <p className="text-red-400 text-sm font-semibold">Network Error</p>
+            <p className="text-red-300 text-xs">Failed to check your profile. Please try again.</p>
+            <button
+              onClick={() => {
+                setError('');
+                if (account?.address) {
+                  checkedAddresses.current.delete(account.address);
+                }
+              }}
+              className="text-nocenaPink hover:text-nocenaPink/80 text-sm font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
-    <AuthenticationLayout title="Welcome player" subtitle="Login with your account to start the game">
-      <form onSubmit={handleSubmit(onSubmitSignIn)} className="w-full space-y-4 mb-6">
-        <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600 divide-y divide-gray-600">
-          <NocenaInput control={control} name="username" placeholder="Enter your username" />
-          <PasswordInput control={control} name="password" placeholder="Enter your password" />
+    <AuthenticationLayout title="Welcome back" subtitle="Connect your identity to continue">
+      <div className="w-full space-y-8">
+        {/* Main Action Card */}
+        <div className="bg-gray-800/50 rounded-[2rem] p-8 border border-gray-600">
+          {!account ? (
+            <div className="text-center space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-white font-bold text-xl">Choose Your Profile</h3>
+                <p className="text-gray-300 text-sm">
+                  Your wallet is your identity. Connect to access your profile and challenges.
+                </p>
+              </div>
+
+              <div className="py-4">
+                <ConnectButton
+                  client={client}
+                  chain={chain}
+                  wallets={wallets}
+                  theme="dark"
+                  connectModal={{
+                    title: 'Connect to Nocena',
+                    titleIcon: '/logo/LogoDark.png',
+                  }}
+                />
+              </div>
+
+              <div className="text-xs text-gray-400 max-w-sm mx-auto">
+                No usernames, no passwords. Your blockchain wallet serves as your secure digital identity.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {loading ? (
+                <div className="text-center space-y-4">
+                  <div className="relative w-16 h-16 mx-auto">
+                    <div className="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-nocenaBlue border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-white font-semibold">Checking your profile...</p>
+                    <p className="text-gray-400 text-sm font-mono">
+                      {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                    </p>
+                  </div>
+                </div>
+              ) : walletChecked && !error ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-white font-semibold text-lg">Profile Connected</p>
+                    <p className="text-gray-300 text-sm font-mono bg-black/30 rounded-lg px-3 py-1 inline-block">
+                      {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                    </p>
+                  </div>
+                  <ConnectButton
+                    client={client}
+                    chain={chain}
+                    wallets={wallets}
+                    theme="dark"
+                    connectModal={{
+                      title: 'Connect to Nocena',
+                      titleIcon: '/logo/LogoDark.png',
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-nocenaBlue rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-white font-semibold text-lg">Wallet Connected</p>
+                    <p className="text-gray-300 text-sm font-mono bg-black/30 rounded-lg px-3 py-1 inline-block">
+                      {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                    </p>
+                  </div>
+                  <ConnectButton
+                    client={client}
+                    chain={chain}
+                    wallets={wallets}
+                    theme="dark"
+                    connectModal={{
+                      title: 'Connect to Nocena',
+                      titleIcon: '/logo/LogoDark.png',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {/* Error/Registration State */}
+        {error && renderErrorState()}
 
-        <div className="mb-3">
-          <PrimaryButton text="Login" type="submit" disabled={loading} className="w-full" />
+        {/* Social Media Style Features */}
+        <div className="space-y-4">
+          <div className="text-center">
+            <p className="text-gray-300 text-sm">
+              {error === 'account_not_found' ? (
+                <>
+                  You're almost there -{' '}
+                  <Link
+                    href="/register?skip_wallet=true"
+                    className="text-nocenaPink hover:text-nocenaPink/80 font-semibold"
+                  >
+                    continue with registration
+                  </Link>
+                </>
+              ) : (
+                <>
+                  New challenger?{' '}
+                  <Link href="/register" className="text-nocenaPink hover:text-nocenaPink/80 font-semibold">
+                    Create your profile
+                  </Link>
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Identity Benefits */}
+          <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700 space-y-4">
+            <h4 className="text-white font-semibold text-center">Your Digital Identity</h4>
+
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-nocenaBlue rounded-full mt-2 flex-shrink-0"></div>
+                <div>
+                  <p className="text-white text-sm font-medium">One Wallet, One Identity</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-nocenaPurple rounded-full mt-2 flex-shrink-0"></div>
+                <div>
+                  <p className="text-white text-sm font-medium">Earn While You Play</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-nocenaPink rounded-full mt-2 flex-shrink-0"></div>
+                <div>
+                  <p className="text-white text-sm font-medium">Cross-Platform Profile</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </form>
-
-      <div className="text-center">
-        <p>
-          If you are new here{' '}
-          <Link href="/register" className="text-nocenaPink cursor-pointer">
-            enter invite code
-          </Link>
-        </p>
       </div>
     </AuthenticationLayout>
   );
