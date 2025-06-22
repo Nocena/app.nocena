@@ -162,7 +162,7 @@ export class LensProtocolService {
     error?: string;
   }> {
     console.log('🔍 LensProtocolService: Checking wallet for existing Lens account:', walletAddress);
-    
+
     // For V3, this would require a different approach - for now return false
     // This would need to be implemented with proper V3 account queries
     return {
@@ -183,12 +183,12 @@ export class LensProtocolService {
     },
   ): Promise<string> {
     console.log('📋 LensProtocolService: Creating account metadata for:', username);
-    
+
     // For username creation, we might not need complex metadata
     // This would be used when setting up the full profile later
     const metadataId = `lens-${username}-${Date.now()}`;
     const metadataUri = `lens://nocena.app/metadata/${metadataId}`;
-    
+
     console.log('✅ LensProtocolService: Metadata URI created:', metadataUri);
     return metadataUri;
   }
@@ -196,10 +196,7 @@ export class LensProtocolService {
   /**
    * Create a Lens Protocol username (V3 API)
    */
-  public static async createUsername(
-    username: string,
-    accessToken: string,
-  ): Promise<LensAccountCreationResult> {
+  public static async createUsername(username: string, accessToken: string): Promise<LensAccountCreationResult> {
     try {
       console.log('🏗️ LensProtocolService: Creating username with V3 API...');
 
@@ -227,14 +224,14 @@ export class LensProtocolService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ LensProtocolService: Create username HTTP error:', response.status, errorText);
-        
+
         try {
           const errorData = JSON.parse(errorText);
           console.error('❌ LensProtocolService: Parsed error data:', errorData);
         } catch (parseError) {
           console.error('❌ LensProtocolService: Could not parse error response');
         }
-        
+
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
@@ -363,7 +360,8 @@ export class LensProtocolService {
     if (!authToken) {
       return {
         success: false,
-        error: 'Authentication token is required for username creation. Please implement proper Lens authentication first.',
+        error:
+          'Authentication token is required for username creation. Please implement proper Lens authentication first.',
       };
     }
 
