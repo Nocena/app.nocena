@@ -19,7 +19,7 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner, videoPreloaded = fa
     if (video) {
       if (videoPreloaded && preloadedVideo) {
         console.log('🎬 Using preloaded video for instant playback');
-        
+
         // Method 1: Clone the preloaded video's state
         try {
           // Copy all the important properties from preloaded video
@@ -27,19 +27,23 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner, videoPreloaded = fa
           video.preload = 'auto';
           video.muted = true;
           video.playsInline = true;
-          
+
           // If the preloaded video has buffered data, this should be instant
-          if (preloadedVideo.readyState >= 3) { // HAVE_FUTURE_DATA or better
+          if (preloadedVideo.readyState >= 3) {
+            // HAVE_FUTURE_DATA or better
             console.log('✅ Preloaded video has sufficient data, should play instantly');
             setVideoLoaded(true);
             setVideoReady(true);
-            
+
             // Try to play immediately since data is ready
-            video.play().then(() => {
-              console.log('🎬 Preloaded video started playing successfully');
-            }).catch((error) => {
-              console.warn('⚠️ Autoplay failed but video is ready:', error);
-            });
+            video
+              .play()
+              .then(() => {
+                console.log('🎬 Preloaded video started playing successfully');
+              })
+              .catch((error) => {
+                console.warn('⚠️ Autoplay failed but video is ready:', error);
+              });
           } else {
             console.log('📼 Preloaded video needs more buffering');
             video.load(); // Trigger loading with the benefit of browser cache
@@ -54,7 +58,7 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner, videoPreloaded = fa
         console.log('🎬 No preloaded video, loading normally (this may take time for large files)');
         video.src = '/intro.MP4';
         video.load();
-        
+
         // Show ready state immediately since we don't want to wait
         setTimeout(() => {
           setVideoReady(true);
@@ -119,9 +123,11 @@ const RegisterWelcomeStep: React.FC<Props> = ({ inviteOwner, videoPreloaded = fa
       </div>
 
       {/* Background Gradient for when video is not visible */}
-      <div className={`absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900 transition-opacity duration-1000 ${
-        videoLoaded && videoReady ? 'opacity-0' : 'opacity-100'
-      }`}></div>
+      <div
+        className={`absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900 transition-opacity duration-1000 ${
+          videoLoaded && videoReady ? 'opacity-0' : 'opacity-100'
+        }`}
+      ></div>
 
       {/* Gradient Overlays for Readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent via-transparent to-black/70"></div>
