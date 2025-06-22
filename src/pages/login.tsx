@@ -123,7 +123,11 @@ const LoginPage = () => {
           username: userData?.username,
           wallet: userData?.wallet,
           hasLensData: !!(userData?.lensHandle || userData?.lensAccountId),
-          hasPersonalFields: !!(userData?.personalField1Type || userData?.personalField2Type || userData?.personalField3Type),
+          hasPersonalFields: !!(
+            userData?.personalField1Type ||
+            userData?.personalField2Type ||
+            userData?.personalField3Type
+          ),
         });
 
         // Mark this address as checked to prevent future API calls
@@ -148,7 +152,7 @@ const LoginPage = () => {
           profilePicture: userData.profilePicture || '/images/profile.png',
           coverPhoto: userData.coverPhoto || '/images/cover.jpg',
           trailerVideo: userData.trailerVideo || '/trailer.mp4',
-          
+
           // Token fields - ensure consistent naming with registration
           earnedTokens: userData.earnedTokens || 0,
           earnedTokensDay: userData.earnedTokensDay || userData.earnedTokensToday || 0,
@@ -181,14 +185,22 @@ const LoginPage = () => {
           // Social connections - ensure arrays
           followers: Array.isArray(userData.followers) ? userData.followers : [],
           following: Array.isArray(userData.following) ? userData.following : [],
-          
+
           // Activity arrays - ensure they exist
           notifications: Array.isArray(userData.notifications) ? userData.notifications : [],
           completedChallenges: Array.isArray(userData.completedChallenges) ? userData.completedChallenges : [],
-          receivedPrivateChallenges: Array.isArray(userData.receivedPrivateChallenges) ? userData.receivedPrivateChallenges : [],
-          createdPrivateChallenges: Array.isArray(userData.createdPrivateChallenges) ? userData.createdPrivateChallenges : [],
-          createdPublicChallenges: Array.isArray(userData.createdPublicChallenges) ? userData.createdPublicChallenges : [],
-          participatingPublicChallenges: Array.isArray(userData.participatingPublicChallenges) ? userData.participatingPublicChallenges : [],
+          receivedPrivateChallenges: Array.isArray(userData.receivedPrivateChallenges)
+            ? userData.receivedPrivateChallenges
+            : [],
+          createdPrivateChallenges: Array.isArray(userData.createdPrivateChallenges)
+            ? userData.createdPrivateChallenges
+            : [],
+          createdPublicChallenges: Array.isArray(userData.createdPublicChallenges)
+            ? userData.createdPublicChallenges
+            : [],
+          participatingPublicChallenges: Array.isArray(userData.participatingPublicChallenges)
+            ? userData.participatingPublicChallenges
+            : [],
         };
 
         console.log('👤 Enhanced formatted user data:', {
@@ -197,7 +209,11 @@ const LoginPage = () => {
           wallet: formattedUser.wallet,
           lensHandle: formattedUser.lensHandle,
           lensAccountId: formattedUser.lensAccountId,
-          hasPersonalFields: !!(formattedUser.personalField1Type || formattedUser.personalField2Type || formattedUser.personalField3Type),
+          hasPersonalFields: !!(
+            formattedUser.personalField1Type ||
+            formattedUser.personalField2Type ||
+            formattedUser.personalField3Type
+          ),
           followersCount: formattedUser.followers.length,
           followingCount: formattedUser.following.length,
           tokenFields: {
@@ -210,7 +226,7 @@ const LoginPage = () => {
             daily: formattedUser.dailyChallenge.length,
             weekly: formattedUser.weeklyChallenge.length,
             monthly: formattedUser.monthlyChallenge.length,
-          }
+          },
         });
 
         // Login successful

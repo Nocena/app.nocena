@@ -944,7 +944,7 @@ export const getUserFromDgraph = async (walletAddress: string) => {
       errors: response.data?.errors,
       userFound: !!response.data?.data?.queryUser?.[0],
       userCount: response.data?.data?.queryUser?.length || 0,
-      rawResponse: response.data?.data?.queryUser?.[0] ? 'User data received' : 'No user data'
+      rawResponse: response.data?.data?.queryUser?.[0] ? 'User data received' : 'No user data',
     });
 
     if (response.data.errors) {
@@ -1029,13 +1029,17 @@ export const getUserFromDgraph = async (walletAddress: string) => {
         username: userData.username,
         wallet: userData.wallet,
         hasLensData: !!(userData.lensHandle || userData.lensAccountId),
-        hasPersonalFields: !!(userData.personalField1Type || userData.personalField2Type || userData.personalField3Type),
+        hasPersonalFields: !!(
+          userData.personalField1Type ||
+          userData.personalField2Type ||
+          userData.personalField3Type
+        ),
         tokenData: {
           total: userData.earnedTokens,
           today: userData.earnedTokensToday,
           week: userData.earnedTokensThisWeek,
           month: userData.earnedTokensThisMonth,
-        }
+        },
       });
     } else {
       console.log('🔍 WALLET LOOKUP: No user found for wallet address:', walletAddress);
@@ -1200,6 +1204,47 @@ export const getUserByIdFromDgraph = async (userId: string) => {
   } catch (error) {
     console.error('Error fetching user by ID from Dgraph:', error);
     throw new Error('Failed to fetch user by ID.');
+  }
+};
+
+export const updateBio = async (userId: string, newBio: string): Promise<void> => {
+  const mutation = `
+    mutation UpdateUserBio($id: String!, $bio: String!) {
+      updateUser(input: { filter: { id: { eq: $id } }, set: { bio: $bio } }) {
+        user {
+          id
+          bio
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    id: userId,
+    bio: newBio,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      const errorMessages = response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(`Dgraph Error: ${errorMessages}`);
+    }
+
+    console.log('Bio successfully updated in Dgraph:', response.data);
+  } catch (error) {
+    console.error('Error updating bio in Dgraph:', error);
+    throw new Error('Failed to update bio in the database.');
   }
 };
 

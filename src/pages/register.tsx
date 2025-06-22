@@ -145,8 +145,10 @@ const RegisterPage = () => {
         const duration = video.duration;
         if (duration > 0) {
           const percentLoaded = (buffered / duration) * 100;
-          console.log(`📊 Video preload progress: ${percentLoaded.toFixed(1)}% (${buffered.toFixed(1)}s of ${duration.toFixed(1)}s)`);
-          
+          console.log(
+            `📊 Video preload progress: ${percentLoaded.toFixed(1)}% (${buffered.toFixed(1)}s of ${duration.toFixed(1)}s)`,
+          );
+
           // Consider it "ready enough" if we have at least 50% buffered
           if (percentLoaded >= 50 && !videoPreloaded) {
             console.log('🎯 Video 50% preloaded - should be ready for smooth playback');
@@ -162,31 +164,31 @@ const RegisterPage = () => {
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
-        readyState: video.readyState
+        readyState: video.readyState,
       });
     };
 
     const handleError = (e: Event) => {
       console.error('⚠️ Welcome video preload failed:', e);
       console.log('🔍 Checking if video file exists by trying direct fetch...');
-      
+
       // Try to fetch the video file directly to debug
       fetch('/intro.MP4')
-        .then(response => {
+        .then((response) => {
           if (response.ok) {
             console.log('✅ Video file exists and is accessible via fetch');
             console.log('📁 Video details:', {
               size: response.headers.get('content-length'),
-              type: response.headers.get('content-type')
+              type: response.headers.get('content-type'),
             });
           } else {
             console.error(`❌ Video file returned status: ${response.status}`);
           }
         })
-        .catch(fetchError => {
+        .catch((fetchError) => {
           console.error('❌ Video file not accessible:', fetchError);
         });
-      
+
       setVideoPreloadError(true);
       setVideoPreloaded(false); // Will use fallback experience
     };
@@ -320,23 +322,23 @@ const RegisterPage = () => {
     try {
       // STEP 1: Generate mock Lens data (no API calls, just local generation)
       console.log('🌿 [NO-LENS] Generating mock Lens data locally...');
-      
+
       // Generate completely local mock data - no API calls at all
       const mockTimestamp = Date.now().toString(36);
       const mockRandomSuffix = Math.random().toString(36).substr(2, 8);
-      
+
       const lensData = {
         handle: `${registrationData.username}.lens`,
         accountId: `mock-lens-${registrationData.username}-${mockTimestamp}`,
         txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-        metadataUri: `https://mock-lens.nocena.app/metadata/${registrationData.username}-${mockRandomSuffix}`
+        metadataUri: `https://mock-lens.nocena.app/metadata/${registrationData.username}-${mockRandomSuffix}`,
       };
 
       console.log('✅ [NO-LENS] Mock Lens data generated locally:', {
         handle: lensData.handle,
         txHash: lensData.txHash,
         accountId: lensData.accountId,
-        metadataUri: lensData.metadataUri
+        metadataUri: lensData.metadataUri,
       });
 
       // STEP 2: Register the user in Dgraph with mock Lens data
@@ -484,7 +486,9 @@ const RegisterPage = () => {
       // Determine timing: longer if video loads, shorter if no video (fallback experience)
       const welcomeDuration = videoPreloaded ? 7000 : 3000; // 7s with video, 3s without
 
-      console.log(`⏱️ Welcome screen will show for ${welcomeDuration}ms (video preloaded: ${videoPreloaded}, error: ${videoPreloadError})`);
+      console.log(
+        `⏱️ Welcome screen will show for ${welcomeDuration}ms (video preloaded: ${videoPreloaded}, error: ${videoPreloadError})`,
+      );
 
       const timer = setTimeout(() => {
         console.log('🏠 Navigating to home...');
@@ -616,7 +620,7 @@ const RegisterPage = () => {
             <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
               <p className="text-red-400 text-sm text-center">{error}</p>
             </div>
-            )}
+          )}
         </form>
       </FormProvider>
     </AuthenticationLayout>
