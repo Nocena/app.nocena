@@ -43,9 +43,12 @@ export const registerUser = async (
   invitedById?: string,
   pushSubscription?: string | null,
 ) => {
+  // Normalize wallet address to lowercase for consistency
+  const normalizedWallet = wallet.toLowerCase();
+
   console.log('🔧 REGISTER: Starting user registration with:', {
     username,
-    wallet,
+    wallet: normalizedWallet,
     inviteCode,
     invitedById,
     hasPushSubscription: !!pushSubscription,
@@ -122,7 +125,7 @@ export const registerUser = async (
       id: userId,
       username: username,
       bio: bio,
-      wallet: wallet,
+      wallet: normalizedWallet,
       profilePicture: profilePicture,
       coverPhoto: coverPhoto,
       trailerVideo: trailerVideo,
@@ -3311,5 +3314,152 @@ export const updateCoverPhoto = async (userId: string, coverPhoto: string): Prom
   } catch (error) {
     console.error('Error updating cover photo in Dgraph:', error);
     throw new Error('Failed to update cover photo in the database.');
+  }
+};
+
+export const checkWalletExists = async (wallet: string) => {
+  console.log('🔍 [DGRAPH] Checking wallet existence:', wallet);
+
+  const normalizedWallet = wallet.toLowerCase();
+  console.log('🔍 [DGRAPH] Normalized wallet:', normalizedWallet);
+  console.log('🔍 [DGRAPH] Original wallet:', wallet);
+
+  const query = `
+    query CheckWallet($wallet: String!, $originalWallet: String!) {
+      queryUser(filter: { 
+        or: [
+          { wallet: { eq: $wallet } },
+          { wallet: { eq: $originalWallet } }
+        ]
+      }) {
+        id
+        username
+        wallet
+      }
+    }
+  `;
+
+  const variables = {
+    wallet: normalizedWallet,
+    originalWallet: wallet,
+  };
+
+  console.log('🔍 [DGRAPH] Query variables:', JSON.stringify(variables, null, 2));
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+      variables,
+    });
+
+    console.log('🔍 [DGRAPH] Response status:', response.status);
+    console.log('🔍 [DGRAPH] Response data:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.errors) {
+      console.error('🔍 [DGRAPH] GraphQL errors:', response.data.errors);
+      throw new Error('Database query failed');
+    }
+
+    const users = response.data.data.queryUser;
+    const exists = users && users.length > 0;
+
+    console.log('🔍 [DGRAPH] Users found:', users);
+    console.log('🔍 [DGRAPH] User count:', users?.length || 0);
+    console.log('🔍 [DGRAPH] Exists result:', exists);
+
+    if (exists) {
+      console.log('🔍 [DGRAPH] Wallet exists! User details:', {
+        id: users[0].id,
+        username: users[0].username,
+        wallet: users[0].wallet,
+      });
+
+      return {
+        exists: true,
+        user: {
+          id: users[0].id,
+          username: users[0].username,
+        },
+      };
+    }
+
+    console.log('🔍 [DGRAPH] Wallet does not exist');
+    return { exists: false };
+  } catch (error) {
+    console.error('🔍 [DGRAPH] Error checking wallet:', error);
+    throw error;
+  }
+};
+
+export const checkUsernameExists = async (username: string) => {
+  console.log('🔍 [DGRAPH] Checking username existence:', username);
+
+  const normalizedUsername = username.toLowerCase().trim();
+  console.log('🔍 [DGRAPH] Normalized username:', normalizedUsername);
+
+  const query = `
+    query CheckUsername($username: String!, $originalUsername: String!) {
+      queryUser(filter: { 
+        or: [
+          { username: { eq: $username } },
+          { username: { eq: $originalUsername } }
+        ]
+      }) {
+        id
+        username
+        wallet
+      }
+    }
+  `;
+
+  const variables = {
+    username: normalizedUsername,
+    originalUsername: username.trim(),
+  };
+
+  console.log('🔍 [DGRAPH] Query variables:', JSON.stringify(variables, null, 2));
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, {
+      query,
+      variables,
+    });
+
+    console.log('🔍 [DGRAPH] Response status:', response.status);
+    console.log('🔍 [DGRAPH] Response data:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.errors) {
+      console.error('🔍 [DGRAPH] GraphQL errors:', response.data.errors);
+      throw new Error('Database query failed');
+    }
+
+    const users = response.data.data.queryUser;
+    const exists = users && users.length > 0;
+
+    console.log('🔍 [DGRAPH] Users found:', users);
+    console.log('🔍 [DGRAPH] User count:', users?.length || 0);
+    console.log('🔍 [DGRAPH] Exists result:', exists);
+
+    if (exists) {
+      console.log('🔍 [DGRAPH] Username exists! User details:', {
+        id: users[0].id,
+        username: users[0].username,
+        wallet: users[0].wallet,
+      });
+
+      return {
+        exists: true,
+        user: {
+          id: users[0].id,
+          username: users[0].username,
+        },
+      };
+    }
+
+    console.log('🔍 [DGRAPH] Username does not exist');
+    return { exists: false };
+  } catch (error) {
+    console.error('🔍 [DGRAPH] Error checking username:', error);
+    throw error;
   }
 };

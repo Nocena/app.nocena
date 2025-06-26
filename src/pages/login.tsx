@@ -1,4 +1,4 @@
-// pages/login.tsx - Updated to match enhanced registration
+// pages/login.tsx - Removed recovery mode, strict invite code enforcement
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -257,17 +257,12 @@ const LoginPage = () => {
     }
   }, [account?.address]);
 
-  const handleContinueRegistration = () => {
-    console.log('🔀 Redirecting to registration');
-    router.push('/register');
-  };
-
   const renderErrorState = () => {
     if (error === 'account_not_found') {
       return (
         <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
           <p className="text-red-400 text-sm text-center">
-            Wallet connected! Complete your profile to start challenging.
+            Wallet connected! You need an invite code to create your profile.
           </p>
         </div>
       );
@@ -416,12 +411,9 @@ const LoginPage = () => {
             <p className="text-gray-300 text-sm">
               {error === 'account_not_found' ? (
                 <>
-                  You're almost there -{' '}
-                  <Link
-                    href="/register?skip_wallet=true"
-                    className="text-nocenaPink hover:text-nocenaPink/80 font-semibold"
-                  >
-                    continue with registration
+                  You need to register first{' '}
+                  <Link href="/register" className="text-nocenaPink hover:text-nocenaPink/80 font-semibold">
+                    With an invite code
                   </Link>
                 </>
               ) : (
