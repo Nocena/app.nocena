@@ -11,8 +11,7 @@ import LoginPage from './login';
 import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
-import { WalletProvider } from '../contexts/WalletProvider';
-import { LensAuthProvider } from '../contexts/LensAuthProvider';
+import UpdatePrompt from '../components/UpdatePrompt'; // Add this import
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -110,6 +109,8 @@ function MyAppContent({ Component, pageProps }: AppProps) {
         <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
+        {/* Add UpdatePrompt here for loading states */}
+        <UpdatePrompt />
       </>
     );
   }
@@ -128,6 +129,8 @@ function MyAppContent({ Component, pageProps }: AppProps) {
         <div className="flex h-screen w-screen items-center justify-center bg-[#121212]">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
+        {/* Add UpdatePrompt here for loading states */}
+        <UpdatePrompt />
       </>
     );
   }
@@ -146,6 +149,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
   const isAdminPage = currentPathname.startsWith('/admin/') || currentPathname === '/test-admin';
   const shouldUseAppLayout = !noLayoutPages.includes(currentPathname) && !isAdminPage;
 
+  // For unauthenticated users on public pages (login, register, admin)
   if (
     !user &&
     (currentPathname === '/login' ||
@@ -176,10 +180,13 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <Component {...pageProps} />
         )}
         {renderPWAPrompt()}
+        {/* Add UpdatePrompt here for login/register pages */}
+        <UpdatePrompt />
       </>
     );
   }
 
+  // For unauthenticated users being redirected
   if (!user) {
     return (
       <>
@@ -200,10 +207,13 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
         {renderPWAPrompt()}
+        {/* Add UpdatePrompt here for redirect states */}
+        <UpdatePrompt />
       </>
     );
   }
 
+  // For authenticated users
   return (
     <>
       <Head>
@@ -226,10 +236,15 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <Component {...pageProps} />
         </AppLayout>
       ) : (
-        <Component {...pageProps} />
+        <>
+          <Component {...pageProps} />
+          {/* Add UpdatePrompt here for pages that don't use AppLayout */}
+          <UpdatePrompt />
+        </>
       )}
 
       {renderPWAPrompt()}
+      {/* Note: UpdatePrompt is already included in AppLayout for authenticated pages */}
     </>
   );
 }
