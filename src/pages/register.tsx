@@ -1,4 +1,4 @@
-// pages/register.tsx (Enhanced with mock Lens integration)
+// pages/register.tsx - Fixed to prevent duplicate registrations
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -30,7 +30,6 @@ interface RegistrationData {
   invitedById: string;
   walletAddress: string;
   pushSubscription?: string;
-  isRecoveryMode: boolean;
 }
 
 enum RegisterStep {
@@ -40,26 +39,6 @@ enum RegisterStep {
   NOTIFICATIONS = 3,
   WELCOME = 4,
 }
-
-// Mock Lens integration functions (NOT USED - kept for reference)
-// const mockLensIntegration = {
-//   checkUsername: async (username: string) => {
-//     await new Promise(resolve => setTimeout(resolve, 500));
-//     return { available: true, suggestedAlternatives: [] };
-//   },
-//   createAccount: async (username: string, walletAddress: string, bio: string) => {
-//     await new Promise(resolve => setTimeout(resolve, 1000));
-//     const mockAccountId = `lens-${username}-${Date.now().toString(36)}`;
-//     const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-//     return {
-//       success: true,
-//       accountId: mockAccountId,
-//       txHash: mockTxHash,
-//       handle: `${username}.lens`,
-//       metadataUri: `https://lens.api/metadata/${mockAccountId}`
-//     };
-//   }
-// };
 
 const RegisterPage = () => {
   const [currentStep, setCurrentStep] = useState(RegisterStep.INVITE_CODE);
@@ -73,6 +52,11 @@ const RegisterPage = () => {
 
   // Temporary registration data - not committed to context until success
   const [registrationData, setRegistrationData] = useState<Partial<RegistrationData>>({});
+
+  // CRITICAL: Registration state management to prevent duplicate registrations
+  const [registrationCompleted, setRegistrationCompleted] = useState(false);
+  const [registrationInProgress, setRegistrationInProgress] = useState(false);
+  const registrationAttemptRef = useRef<string | null>(null);
 
   const router = useRouter();
   const { login } = useAuth();
@@ -228,22 +212,6 @@ const RegisterPage = () => {
     };
   }, []);
 
-  // Skip invite code step if coming from login (wallet already connected)
-  useEffect(() => {
-    if (router.query.skip_wallet === 'true' && account?.address) {
-      // Set up recovery mode data temporarily
-      setRegistrationData((prev) => ({
-        ...prev,
-        inviteCode: 'RECOVERY',
-        inviteOwner: 'System',
-        invitedById: 'system',
-        walletAddress: account.address,
-        isRecoveryMode: true,
-      }));
-      setCurrentStep(RegisterStep.USER_INFO);
-    }
-  }, [router.query.skip_wallet, account?.address]);
-
   const handleValidInviteCode = async (code: string) => {
     try {
       setLoading(true);
@@ -266,15 +234,8 @@ const RegisterPage = () => {
           invitedById: data.invite.ownerId || '',
         }));
 
-        if (router.query.skip_wallet === 'true' && account?.address) {
-          setRegistrationData((prev) => ({
-            ...prev,
-            walletAddress: account.address,
-          }));
-          setCurrentStep(RegisterStep.USER_INFO);
-        } else {
-          setCurrentStep(RegisterStep.WALLET_CONNECT);
-        }
+        // Always proceed to wallet connect step after valid invite code
+        setCurrentStep(RegisterStep.WALLET_CONNECT);
       } else {
         setError(data.error || 'Invalid invite code');
       }
@@ -310,14 +271,52 @@ const RegisterPage = () => {
   };
 
   const handleNotificationsReady = async (pushSubscription: string) => {
+    // CRITICAL: Prevent duplicate registrations - check immediately
+    if (registrationInProgress) {
+      console.log('⚠️ Registration already in progress, ignoring duplicate attempt');
+      return;
+    }
+
+    if (registrationCompleted) {
+      console.log('⚠️ Registration already completed, ignoring duplicate attempt');
+      return;
+    }
+
+    // Create a unique attempt ID to track this specific registration attempt
+    const attemptId = `${registrationData.walletAddress}-${registrationData.username}-${Date.now()}`;
+
+    // Check if this exact attempt was already processed
+    if (registrationAttemptRef.current) {
+      console.log('⚠️ Registration attempt already in process, ignoring duplicate');
+      return;
+    }
+
+    console.log('🚀 REGISTRATION ATTEMPT:', {
+      attemptId,
+      registrationInProgress,
+      registrationCompleted,
+      currentAttempt: registrationAttemptRef.current,
+      username: registrationData.username,
+      wallet: registrationData.walletAddress,
+    });
+
     // Validate we have all required data
     if (!registrationData.username || !registrationData.walletAddress || !registrationData.inviteCode) {
       setError('Missing registration data. Please try again.');
       return;
     }
 
+    // Mark registration as in progress and store attempt ID
+    setRegistrationInProgress(true);
+    registrationAttemptRef.current = attemptId;
     setLoading(true);
     setError('');
+
+    console.log('🔒 REGISTRATION LOCKED:', {
+      attemptId,
+      inProgress: true,
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       // STEP 1: Generate mock Lens data (no API calls, just local generation)
@@ -388,17 +387,15 @@ const RegisterPage = () => {
         lensAccountId: addedUser.lensAccountId,
       });
 
-      // STEP 3: Mark invite code as used
-      if (registrationData.inviteCode !== 'RECOVERY') {
-        await fetch('/api/registration/use-invite', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            inviteCode: registrationData.inviteCode,
-            newUserId: addedUser.id,
-          }),
-        });
-      }
+      // STEP 3: Mark invite code as used (no recovery mode exception)
+      await fetch('/api/registration/use-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteCode: registrationData.inviteCode,
+          newUserId: addedUser.id,
+        }),
+      });
 
       // STEP 4: Generate initial invite codes
       try {
@@ -461,13 +458,18 @@ const RegisterPage = () => {
       console.log('🔐 Logging in user...');
       await login(userData);
 
-      console.log('🎉 Registration complete with NO Lens integration!', {
+      // Mark registration as completed
+      setRegistrationCompleted(true);
+
+      console.log('🎉 Registration complete with strict invite code enforcement!', {
+        attemptId,
         userId: addedUser.id,
         username: registrationData.username,
         lensHandle: lensData.handle,
         lensAccountId: lensData.accountId,
         lensTransactionHash: lensData.txHash,
         videoPreloaded: videoPreloaded,
+        registrationCompleted: true,
       });
 
       setCurrentStep(RegisterStep.WELCOME);
@@ -475,8 +477,16 @@ const RegisterPage = () => {
       console.error('💥 Registration error:', err);
       setError(err instanceof Error ? err.message : 'Failed to register. Please try again.');
       setCurrentStep(RegisterStep.USER_INFO);
+
+      // Reset registration state on error so user can try again
+      setRegistrationInProgress(false);
+      registrationAttemptRef.current = null;
     } finally {
       setLoading(false);
+      // Don't reset registrationInProgress here if successful, keep it locked
+      if (!registrationCompleted) {
+        setRegistrationInProgress(false);
+      }
     }
   };
 
@@ -520,40 +530,15 @@ const RegisterPage = () => {
         return <RegisterWalletConnectStep onWalletConnected={handleWalletConnected} />;
 
       case RegisterStep.USER_INFO:
-        return (
-          <div className="space-y-4">
-            {registrationData.isRecoveryMode && (
-              <div className="bg-blue-500/20 border border-blue-500 rounded-xl p-4">
-                <p className="text-blue-400 text-sm text-center">Completing your profile setup...</p>
-              </div>
-            )}
-            <RegisterFormStep control={control} loading={loading} setStep={handleFormComplete} />
-          </div>
-        );
+        return <RegisterFormStep control={control} loading={loading} setStep={handleFormComplete} />;
 
       case RegisterStep.NOTIFICATIONS:
         return (
           <div className="space-y-4">
-            <RegisterNotificationsStep onNotificationsReady={handleNotificationsReady} />
-
-            {/* Optional: Show video preload status */}
-            {!videoPreloaded && !videoPreloadError && (
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-purple-300 text-sm">Preparing welcome experience...</p>
-                </div>
-              </div>
-            )}
-
-            {videoPreloaded && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-green-400 rounded-full"></div>
-                  <p className="text-green-300 text-sm">Welcome experience ready!</p>
-                </div>
-              </div>
-            )}
+            <RegisterNotificationsStep
+              onNotificationsReady={handleNotificationsReady}
+              disabled={registrationInProgress || registrationCompleted}
+            />
           </div>
         );
 
@@ -565,12 +550,6 @@ const RegisterPage = () => {
   const getStepInfo = () => {
     switch (currentStep) {
       case RegisterStep.INVITE_CODE:
-        if (router.query.skip_wallet === 'true') {
-          return {
-            title: 'Almost Done!',
-            subtitle: 'Just need your invite code to continue',
-          };
-        }
         return {
           title: 'Join the Challenge',
           subtitle: 'Enter your invite code to create your account',
@@ -582,13 +561,17 @@ const RegisterPage = () => {
         };
       case RegisterStep.USER_INFO:
         return {
-          title: registrationData.isRecoveryMode ? 'Complete Your Profile' : 'Create Your Account',
-          subtitle: registrationData.isRecoveryMode ? 'Finish setting up your account' : 'Choose your username',
+          title: 'Create Your Account',
+          subtitle: 'Choose your username',
         };
       case RegisterStep.NOTIFICATIONS:
         return {
-          title: 'Stay Connected',
-          subtitle: 'Enable notifications for challenges and rewards',
+          title: 'Last step - you know the deal',
+          subtitle: registrationInProgress
+            ? 'Creating your account...'
+            : registrationCompleted
+              ? 'Account created!'
+              : 'Enable notifications for challenges and rewards and read our legal documents',
         };
       default:
         return {
