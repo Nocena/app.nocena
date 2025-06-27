@@ -1,8 +1,8 @@
-// pages/home/index.tsx - FIXED COMPLETION DETECTION
+// pages/home/index.tsx - WITH LATEST COMPLETION DISPLAY
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchFollowerCompletions } from '../../lib/api/dgraph';
+import { fetchFollowerCompletions, fetchLatestUserCompletion } from '../../lib/api/dgraph';
 import {
   getCurrentChallenge,
   getChallengeReward,
@@ -14,9 +14,8 @@ import {
 import ChallengeHeader from './components/ChallengeHeader';
 import ChallengeForm from './components/ChallengeForm';
 import CompletionFeed from './components/CompletionFeed';
+import CompletionItem from './components/CompletionItem';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-
-import LiquidGlass from 'liquid-glass-react';
 
 type ChallengeType = 'daily' | 'weekly' | 'monthly';
 
@@ -86,6 +85,10 @@ const HomeView = () => {
   const [currentChallenge, setCurrentChallenge] = useState<AIChallenge | null>(null);
   const [isLoadingChallenge, setIsLoadingChallenge] = useState(true);
 
+  // Latest completion state
+  const [latestCompletion, setLatestCompletion] = useState<any>(null);
+  const [isLoadingLatestCompletion, setIsLoadingLatestCompletion] = useState(false);
+
   // Debug user completion strings
   useEffect(() => {
     if (user) {
@@ -127,6 +130,28 @@ const HomeView = () => {
     loadChallenge();
   }, [selectedTab]);
 
+  // Fetch latest completion when user changes or when completion status changes
+  useEffect(() => {
+    if (!user) return;
+
+    const loadLatestCompletion = async () => {
+      setIsLoadingLatestCompletion(true);
+      try {
+        console.log('🔄 Fetching latest completion...');
+        const completion = await fetchLatestUserCompletion(user.id);
+        setLatestCompletion(completion);
+        console.log('✅ Latest completion:', completion);
+      } catch (error) {
+        console.error('❌ Error fetching latest completion:', error);
+        setLatestCompletion(null);
+      } finally {
+        setIsLoadingLatestCompletion(false);
+      }
+    };
+
+    loadLatestCompletion();
+  }, [user]);
+
   // Check completion status using the user's completion flags
   const hasCompleted = useMemo(() => {
     if (!user) return false;
@@ -139,6 +164,12 @@ const HomeView = () => {
   const reward = useMemo(() => {
     return getChallengeReward(currentChallenge, selectedTab);
   }, [currentChallenge, selectedTab]);
+
+  // Check if latest completion matches current challenge frequency
+  const latestCompletionMatchesTab = useMemo(() => {
+    if (!latestCompletion || !latestCompletion.aiChallenge) return false;
+    return latestCompletion.aiChallenge.frequency === selectedTab;
+  }, [latestCompletion, selectedTab]);
 
   // ONLY fetch follower completions if user has actually completed the challenge
   useEffect(() => {
@@ -244,6 +275,21 @@ const HomeView = () => {
               onCompleteChallenge={handleCompleteChallenge}
             />
 
+            {/* Show latest completion using CompletionItem if user has completed and it matches current tab */}
+            {hasCompleted && latestCompletionMatchesTab && latestCompletion && user && (
+              <div className="mt-8">
+                <CompletionItem
+                  profile={{
+                    userId: user.id,
+                    username: user.username,
+                    profilePicture: user.profilePicture,
+                  }}
+                  completion={latestCompletion}
+                  isSelf={true}
+                />
+              </div>
+            )}
+
             {/* Show completion feed if user has completed the challenge */}
             {hasCompleted && (
               <div className="mt-8">
@@ -252,6 +298,7 @@ const HomeView = () => {
                   isLoading={isFetchingCompletions}
                   followerCompletions={followerCompletions}
                   selectedTab={selectedTab}
+                  hasCompleted={hasCompleted}
                 />
               </div>
             )}

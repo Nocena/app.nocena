@@ -39,12 +39,9 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
     return (
       <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPink" rounded="xl" className="px-12 py-8">
         <div className="text-center">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-bold mb-4 text-green-300">{challenge.title}</h2>
-          <p className="text-lg text-green-200 mb-8 font-light">Challenge Completed!</p>
-
+          <h2 className="text-xl font-bold mb-4 text-green-300">{challenge.title}</h2>
           <div className="flex flex-col items-center space-y-6">
-            <div className="bg-green-600 text-white px-6 py-3 rounded-full text-lg font-medium">
+            <div className="bg-green-600 text-white px-6 py-3 rounded-full text-md font-medium">
               ✅ {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Challenge Complete
             </div>
 
@@ -55,8 +52,6 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
                 <span className="text-sm text-gray-300">earned</span>
               </div>
             </ThematicContainer>
-
-            <p className="text-sm text-gray-400 mt-4">Great job! Check out your friends' completions below.</p>
           </div>
         </div>
       </ThematicContainer>

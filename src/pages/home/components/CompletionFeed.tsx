@@ -9,9 +9,18 @@ interface CompletionFeedProps {
   isLoading: boolean;
   followerCompletions: any[];
   selectedTab: 'daily' | 'weekly' | 'monthly';
+  hasCompleted: boolean; // Add this prop to receive completion state from parent
+  onCompletionStatusChange?: (hasCompleted: boolean, completion?: any) => void; // Optional callback
 }
 
-const CompletionFeed: React.FC<CompletionFeedProps> = ({ user, isLoading, followerCompletions, selectedTab }) => {
+const CompletionFeed: React.FC<CompletionFeedProps> = ({
+  user,
+  isLoading,
+  followerCompletions,
+  selectedTab,
+  hasCompleted, // Use this instead of calculating internally
+  onCompletionStatusChange,
+}) => {
   const [userCompletion, setUserCompletion] = useState<any>(null);
   const [loadingUserCompletion, setLoadingUserCompletion] = useState(true);
 
@@ -76,17 +85,27 @@ const CompletionFeed: React.FC<CompletionFeedProps> = ({ user, isLoading, follow
 
         setUserCompletion(relevantCompletion || null);
 
+        // Notify parent component about the completion status if callback is provided
+        if (onCompletionStatusChange) {
+          onCompletionStatusChange(!!relevantCompletion, relevantCompletion);
+        }
+
         console.log(`Found ${selectedTab} completion:`, relevantCompletion);
       } catch (error) {
         console.error(`Error fetching user's ${selectedTab} completion:`, error);
         setUserCompletion(null);
+
+        // Notify parent about no completion
+        if (onCompletionStatusChange) {
+          onCompletionStatusChange(false, null);
+        }
       } finally {
         setLoadingUserCompletion(false);
       }
     };
 
     fetchUserCompletion();
-  }, [user, selectedTab]);
+  }, [user, selectedTab, onCompletionStatusChange]);
 
   // Show loading state
   if (isLoading || loadingUserCompletion) {
@@ -98,36 +117,46 @@ const CompletionFeed: React.FC<CompletionFeedProps> = ({ user, isLoading, follow
     );
   }
 
-  // Determine if user has completed the current period's challenge
-  const hasUserCompleted = !!userCompletion;
+  // Use the hasCompleted prop from parent instead of calculating it here
+  const hasUserCompleted = hasCompleted;
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h3 className="text-xl font-bold text-white mb-2">
-          {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Challenge Completions
-        </h3>
+    <div className="space-y-6 mb-20">
+      {/* Follower completions */}
+      {followerCompletions.length > 0 && (
+        <div>
+          <h4 className="text-lg font-semibold text-white mb-3">Friends' Completions</h4>
+          <div className="space-y-4">
+            {followerCompletions.map((item, index) => {
+              // Ensure we have a proper profile object
+              const profile = {
+                userId: item.userId || item.user?.id || item.id || `unknown-${index}`,
+                username: item.username || item.user?.username || item.displayName || 'Unknown User',
+                profilePicture: item.profilePicture || item.user?.profilePicture || null,
+              };
 
-        {hasUserCompleted ? (
-          <div className="inline-flex items-center px-4 py-2 bg-green-700 text-white rounded-full text-sm font-medium mb-4">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Challenge Completed! 🎉
-          </div>
-        ) : (
-          <div className="inline-flex items-center px-4 py-2 bg-gray-700 text-gray-300 rounded-full text-sm font-medium mb-4">
-            Challenge not completed yet
-          </div>
-        )}
-      </div>
+              // Ensure we have a completion object
+              const completion = item.completion || item;
 
-      {/* User's own completion */}
-      {userCompletion && (
+              return (
+                <CompletionItem
+                  key={`follower-${profile.userId}-${index}`}
+                  profile={profile}
+                  completion={completion}
+                  isSelf={false}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Show user's own completion if they have completed */}
+      {hasUserCompleted && userCompletion && (
         <div>
           <h4 className="text-lg font-semibold text-white mb-3">Your Completion</h4>
           <CompletionItem
-            key={`self-${user.id}-${userCompletion.id}`}
+            key={`user-${user.id}`}
             profile={{
               userId: user.id,
               username: user.username,
@@ -139,37 +168,18 @@ const CompletionFeed: React.FC<CompletionFeedProps> = ({ user, isLoading, follow
         </div>
       )}
 
-      {/* Follower completions */}
-      {followerCompletions.length > 0 && (
-        <div>
-          <h4 className="text-lg font-semibold text-white mb-3">Friends' Completions</h4>
-          <div className="space-y-4">
-            {followerCompletions.map((item, index) => (
-              <CompletionItem
-                key={`follower-${item.userId}-${index}`}
-                profile={{
-                  userId: item.userId,
-                  username: item.username,
-                  profilePicture: item.profilePicture,
-                }}
-                completion={item.completion}
-                isSelf={false}
-              />
-            ))}
-          </div>
+      {/* No completions message */}
+      {!hasUserCompleted && followerCompletions.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-400 text-lg mb-2">No {selectedTab} challenge completions yet</p>
+          <p className="text-gray-500 text-sm">Be the first to complete today's challenge!</p>
         </div>
       )}
 
-      {/* No completions message */}
-      {!userCompletion && followerCompletions.length === 0 && (
+      {/* Show message when user completed but no friends have */}
+      {hasUserCompleted && followerCompletions.length === 0 && (
         <div className="text-center py-8">
-          <div className="text-6xl mb-4">🎯</div>
-          <p className="text-gray-400 text-lg mb-2">No {selectedTab} challenge completions yet</p>
-          <p className="text-gray-500 text-sm">
-            {hasUserCompleted
-              ? 'None of your friends have completed this challenge yet.'
-              : "Be the first to complete today's challenge!"}
-          </p>
+          <p className="text-gray-500 text-sm">None of your friends have completed this challenge yet.</p>
         </div>
       )}
     </div>

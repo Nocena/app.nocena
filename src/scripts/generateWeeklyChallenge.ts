@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import axios from 'axios';
+import { weeklyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
+import { resetTimeBasedEarnings } from '../lib/api/dgraph';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -136,6 +138,58 @@ class WeeklyChallengeGenerator {
     }
   }
 
+  private async getUsedChallengeIds(): Promise<string[]> {
+    if (!DGRAPH_ENDPOINT) {
+      console.log('⚠️ DGRAPH_ENDPOINT not configured, skipping used challenges check');
+      return [];
+    }
+
+    const query = `
+      query GetUsedWeeklyChallenges {
+        queryAIChallenge(
+          filter: { frequency: { eq: "weekly" } }
+          order: { desc: createdAt }
+          first: 50
+        ) {
+          title
+          description
+        }
+      }
+    `;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
+      headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
+    }
+
+    try {
+      const response = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query,
+        },
+        {
+          headers,
+        },
+      );
+
+      if (response.data.errors) {
+        console.log('⚠️ Error fetching used weekly challenges:', response.data.errors);
+        return [];
+      }
+
+      const challenges = response.data.data?.queryAIChallenge || [];
+      // Create unique identifiers for used challenges based on title + description
+      return challenges.map((c: any) => `${c.title}:${c.description}`);
+    } catch (error) {
+      console.log('⚠️ Network error fetching used weekly challenges:', error);
+      return [];
+    }
+  }
+
   private getWeeklyPrompt(): string {
     return `You are an advanced alien researcher conducting comprehensive behavioral studies on human subjects through your Earth observation app "Nocena". Your weekly experiments are designed to understand human social dynamics, creativity, and adaptability.
 
@@ -245,14 +299,76 @@ IMPORTANT: Analyze the recent experiments above and generate something DIFFERENT
     }
   }
 
+  private selectWeeklyChallenge(): { title: string; description: string } {
+    // Select a random challenge from the weekly challenges array
+    const randomIndex = Math.floor(Math.random() * weeklyChallenges.length);
+    const selectedChallenge = weeklyChallenges[randomIndex];
+    
+    console.log(`🎯 Selected challenge ${randomIndex + 1} of ${weeklyChallenges.length}: ${selectedChallenge.title}`);
+    
+    return {
+      title: selectedChallenge.title,
+      description: selectedChallenge.description
+    };
+  }
+
+  private async selectUnusedWeeklyChallenge(): Promise<{ title: string; description: string }> {
+    try {
+      // Get used challenges
+      console.log('📚 Fetching used challenges to avoid repetition...');
+      const usedChallengeIds = await this.getUsedChallengeIds();
+
+      // Filter out used challenges
+      const availableChallenges = weeklyChallenges.filter(challenge => {
+        const challengeId = `${challenge.title}:${challenge.description}`;
+        return !usedChallengeIds.includes(challengeId);
+      });
+
+      console.log(`📊 Available challenges: ${availableChallenges.length} of ${weeklyChallenges.length} total`);
+
+      // If no unused challenges, reset and use all challenges
+      if (availableChallenges.length === 0) {
+        console.log('🔄 All challenges have been used! Resetting to use full list again.');
+        return this.selectWeeklyChallenge();
+      }
+
+      // Select random unused challenge
+      const randomIndex = Math.floor(Math.random() * availableChallenges.length);
+      const selectedChallenge = availableChallenges[randomIndex];
+      
+      console.log(`🎯 Selected unused challenge: ${selectedChallenge.title}`);
+      
+      return {
+        title: selectedChallenge.title,
+        description: selectedChallenge.description
+      };
+    } catch (error) {
+      console.error('⚠️ Error selecting unused challenge, falling back to random selection:', error);
+      return this.selectWeeklyChallenge();
+    }
+  }
+
   private getWeekOfYear(date: Date): number {
     const start = new Date(date.getFullYear(), 0, 1);
     const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
     return Math.ceil((days + start.getDay() + 1) / 7);
   }
 
-  async generateChallengeForDate(date: Date = new Date()): Promise<WeeklyAIChallenge> {
-    const { title, description } = await this.generateWeeklyChallenge();
+  async generateChallengeForDate(date: Date = new Date(), useAI: boolean = false): Promise<WeeklyAIChallenge> {
+    let title: string;
+    let description: string;
+
+    if (useAI) {
+      console.log('🤖 Using AI to generate weekly challenge...');
+      const challenge = await this.generateWeeklyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    } else {
+      console.log('📚 Using predefined weekly challenge list...');
+      const challenge = await this.selectUnusedWeeklyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    }
 
     const challenge: WeeklyAIChallenge = {
       id: uuidv4(),
@@ -347,7 +463,7 @@ const sendPushNotifications = async (challenge: WeeklyAIChallenge): Promise<void
     let failureCount = 0;
 
     console.log('🚀 Sending weekly challenge push notifications...');
-    console.log(`📢 Message: "${challenge.title} - Your alien researchers await data!"`);
+    console.log(`📢 Message: "${challenge.title} - Your weekly mission awaits!"`);
 
     const batchSize = 10;
     for (let i = 0; i < pushSubscriptions.length; i += batchSize) {
@@ -459,29 +575,52 @@ async function main() {
   const generator = new WeeklyChallengeGenerator();
 
   try {
-    console.log('🛸 Generating Weekly AI Challenge...\n');
+    // You can change this flag to switch between AI generation and predefined challenges
+    const useAI = false; // Set to true to use OpenAI, false to use predefined challenges
+    
+    console.log('🚀 Starting Weekly Challenge Process...\n');
 
-    const weeklyChallenge = await generator.generateChallengeForDate();
+    // Step 1: Reset weekly earnings for all users
+    console.log('💰 Resetting weekly earnings counters for all users...');
+    try {
+      await resetTimeBasedEarnings('weekly');
+      console.log('✅ Weekly earnings reset completed successfully!\n');
+    } catch (error) {
+      console.error('❌ Failed to reset weekly earnings:', error);
+      console.log('⚠️ Continuing with challenge generation despite earnings reset failure...\n');
+    }
+
+    // Step 2: Generate and process the weekly challenge
+    console.log('🛸 Generating Weekly AI Challenge...');
+    console.log(`📚 Total weekly challenges available: ${weeklyChallenges.length}`);
+    console.log(`🤖 Using ${useAI ? 'AI generation' : 'predefined challenges'}\n`);
+
+    const weeklyChallenge = await generator.generateChallengeForDate(new Date(), useAI);
     generator.printChallengeForDgraph(weeklyChallenge);
 
-    // Save to database
-    console.log('\n💾 Saving to database...');
+    // Step 3: Save to database
+    console.log('\n💾 Saving challenge to database...');
     const saved = await saveWeeklyChallengeToDatabase(weeklyChallenge);
 
     if (saved) {
       console.log('\n✅ Weekly challenge generated and saved successfully!');
 
-      // Send push notifications
+      // Step 4: Send push notifications
       console.log('\n🔔 Sending push notifications to users...');
       await sendPushNotifications(weeklyChallenge);
 
       console.log('\n🎉 Weekly challenge process completed successfully!');
+      console.log('\n📋 Summary:');
+      console.log('   ✅ Weekly earnings reset');
+      console.log('   ✅ Challenge generated');
+      console.log('   ✅ Challenge saved to database');
+      console.log('   ✅ Push notifications sent');
     } else {
       console.log('\n⚠️ Challenge generated but failed to save to database');
       console.log('You can manually save using the mutation above');
     }
   } catch (error) {
-    console.error('❌ Error generating weekly challenge:', error);
+    console.error('❌ Error in weekly challenge process:', error);
     process.exit(1);
   }
 }

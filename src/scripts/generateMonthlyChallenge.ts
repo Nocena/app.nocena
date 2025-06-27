@@ -4,6 +4,8 @@ import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import axios from 'axios';
+import { monthlyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
+import { resetTimeBasedEarnings } from '../lib/api/dgraph';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -82,6 +84,59 @@ export const getAllUserPushSubscriptions = async (): Promise<string[]> => {
   }
 };
 
+// Function to get users with push subscriptions for cleanup tracking
+const getUsersWithPushSubscriptions = async (): Promise<
+  { id: string; username: string; pushSubscription: string }[]
+> => {
+  console.log('🔔 USERS: Fetching users with push subscriptions for detailed tracking');
+
+  const query = `
+    query GetUsersWithPushSubscriptions {
+      queryUser {
+        id
+        username
+        pushSubscription
+      }
+    }
+  `;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
+    headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
+  }
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+      },
+      {
+        headers,
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('🔔 USERS: GraphQL errors:', response.data.errors);
+      return [];
+    }
+
+    const users = response.data.data.queryUser || [];
+    const validUsers = users.filter(
+      (user: any) => user.pushSubscription && user.pushSubscription.trim() !== '' && user.pushSubscription !== 'null',
+    );
+
+    console.log(`🔔 USERS: Found ${users.length} total users, ${validUsers.length} with valid push subscriptions`);
+    return validUsers;
+  } catch (error) {
+    console.error('🔔 USERS: Error fetching users:', error);
+    return [];
+  }
+};
+
 class MonthlyChallengeGenerator {
   private async getRecentChallenges(): Promise<string[]> {
     if (!DGRAPH_ENDPOINT) {
@@ -131,6 +186,58 @@ class MonthlyChallengeGenerator {
       return challenges.map((c: any) => `${c.title}: ${c.description}`);
     } catch (error) {
       console.log('⚠️ Network error fetching recent monthly challenges:', error);
+      return [];
+    }
+  }
+
+  private async getUsedChallengeIds(): Promise<string[]> {
+    if (!DGRAPH_ENDPOINT) {
+      console.log('⚠️ DGRAPH_ENDPOINT not configured, skipping used challenges check');
+      return [];
+    }
+
+    const query = `
+      query GetUsedMonthlyChallenges {
+        queryAIChallenge(
+          filter: { frequency: { eq: "monthly" } }
+          order: { desc: createdAt }
+          first: 12
+        ) {
+          title
+          description
+        }
+      }
+    `;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
+      headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
+    }
+
+    try {
+      const response = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query,
+        },
+        {
+          headers,
+        },
+      );
+
+      if (response.data.errors) {
+        console.log('⚠️ Error fetching used monthly challenges:', response.data.errors);
+        return [];
+      }
+
+      const challenges = response.data.data?.queryAIChallenge || [];
+      // Create unique identifiers for used challenges based on title + description
+      return challenges.map((c: any) => `${c.title}:${c.description}`);
+    } catch (error) {
+      console.log('⚠️ Network error fetching used monthly challenges:', error);
       return [];
     }
   }
@@ -245,8 +352,70 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
     }
   }
 
-  async generateChallengeForDate(date: Date = new Date()): Promise<MonthlyAIChallenge> {
-    const { title, description } = await this.generateMonthlyChallenge();
+  private selectMonthlyChallenge(): { title: string; description: string } {
+    // Select a random challenge from the monthly challenges array
+    const randomIndex = Math.floor(Math.random() * monthlyChallenges.length);
+    const selectedChallenge = monthlyChallenges[randomIndex];
+    
+    console.log(`🎯 Selected challenge ${randomIndex + 1} of ${monthlyChallenges.length}: ${selectedChallenge.title}`);
+    
+    return {
+      title: selectedChallenge.title,
+      description: selectedChallenge.description
+    };
+  }
+
+  private async selectUnusedMonthlyChallenge(): Promise<{ title: string; description: string }> {
+    try {
+      // Get used challenges
+      console.log('📚 Fetching used challenges to avoid repetition...');
+      const usedChallengeIds = await this.getUsedChallengeIds();
+
+      // Filter out used challenges
+      const availableChallenges = monthlyChallenges.filter(challenge => {
+        const challengeId = `${challenge.title}:${challenge.description}`;
+        return !usedChallengeIds.includes(challengeId);
+      });
+
+      console.log(`📊 Available challenges: ${availableChallenges.length} of ${monthlyChallenges.length} total`);
+
+      // If no unused challenges, reset and use all challenges
+      if (availableChallenges.length === 0) {
+        console.log('🔄 All challenges have been used! Resetting to use full list again.');
+        return this.selectMonthlyChallenge();
+      }
+
+      // Select random unused challenge
+      const randomIndex = Math.floor(Math.random() * availableChallenges.length);
+      const selectedChallenge = availableChallenges[randomIndex];
+      
+      console.log(`🎯 Selected unused challenge: ${selectedChallenge.title}`);
+      
+      return {
+        title: selectedChallenge.title,
+        description: selectedChallenge.description
+      };
+    } catch (error) {
+      console.error('⚠️ Error selecting unused challenge, falling back to random selection:', error);
+      return this.selectMonthlyChallenge();
+    }
+  }
+
+  async generateChallengeForDate(date: Date = new Date(), useAI: boolean = false): Promise<MonthlyAIChallenge> {
+    let title: string;
+    let description: string;
+
+    if (useAI) {
+      console.log('🤖 Using AI to generate monthly challenge...');
+      const challenge = await this.generateMonthlyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    } else {
+      console.log('📚 Using predefined monthly challenge list...');
+      const challenge = await this.selectUnusedMonthlyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    }
 
     const challenge: MonthlyAIChallenge = {
       id: uuidv4(),
@@ -337,9 +506,10 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
 
     let successCount = 0;
     let failureCount = 0;
+    const invalidSubscriptions: string[] = [];
 
     console.log('🚀 Sending monthly challenge push notifications...');
-    console.log(`📢 Message: "${challenge.title} - Audition for galactic fame!"`);
+    console.log(`📢 Message: "${challenge.title} - Your monthly transformation awaits!"`);
 
     const batchSize = 10;
     for (let i = 0; i < pushSubscriptions.length; i += batchSize) {
@@ -358,6 +528,12 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
         } catch (error: any) {
           failureCount++;
           console.error(`❌ Failed to send notification ${i + index + 1}:`, error?.message || error);
+
+          // If the subscription is invalid (410 Gone), mark it for removal
+          if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
+            console.log(`🗑️ Invalid subscription detected, marking for cleanup`);
+            invalidSubscriptions.push(pushSubscription);
+          }
         }
       });
 
@@ -372,8 +548,79 @@ const sendPushNotifications = async (challenge: MonthlyAIChallenge): Promise<voi
     console.log(`✅ Successful: ${successCount}`);
     console.log(`❌ Failed: ${failureCount}`);
     console.log(`📱 Total attempted: ${pushSubscriptions.length}`);
+    console.log(`🗑️ Invalid subscriptions found: ${invalidSubscriptions.length}`);
+
+    // Clean up invalid subscriptions if any found
+    if (invalidSubscriptions.length > 0) {
+      console.log(`\n🧹 Cleaning up ${invalidSubscriptions.length} invalid subscriptions...`);
+      await cleanupInvalidSubscriptions(invalidSubscriptions);
+    }
+
+    console.log('\n🎯 Monthly challenge push notification broadcast completed!');
   } catch (error) {
     console.error('❌ Error in monthly challenge push notification process:', error);
+  }
+};
+
+// Function to clean up invalid push subscriptions by subscription value
+const cleanupInvalidSubscriptions = async (invalidSubscriptions: string[]): Promise<void> => {
+  if (!DGRAPH_ENDPOINT || invalidSubscriptions.length === 0) {
+    return;
+  }
+
+  console.log('🧹 Starting cleanup of invalid push subscriptions...');
+
+  // Get users with these invalid subscriptions so we can update them
+  const users = await getUsersWithPushSubscriptions();
+  const userIdsToCleanup = users
+    .filter((user) => invalidSubscriptions.includes(user.pushSubscription))
+    .map((user) => user.id);
+
+  if (userIdsToCleanup.length === 0) {
+    console.log('🧹 No users found to cleanup');
+    return;
+  }
+
+  const mutation = `
+    mutation CleanupInvalidSubscriptions($userIds: [ID!]) {
+      updateUser(
+        input: {
+          filter: { id: { in: $userIds } },
+          set: { pushSubscription: null }
+        }
+      ) {
+        numUids
+      }
+    }
+  `;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
+    headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
+  }
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { userIds: userIdsToCleanup },
+      },
+      {
+        headers,
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('❌ Error cleaning up invalid subscriptions:', response.data.errors);
+    } else {
+      console.log(`✅ Cleaned up ${response.data.data?.updateUser?.numUids || 0} invalid subscriptions`);
+    }
+  } catch (error) {
+    console.error('❌ Network error cleaning up subscriptions:', error);
   }
 };
 
@@ -450,29 +697,52 @@ async function main() {
   const generator = new MonthlyChallengeGenerator();
 
   try {
-    console.log('🎬 Generating Monthly AI Challenge...\n');
+    // You can change this flag to switch between AI generation and predefined challenges
+    const useAI = false; // Set to true to use OpenAI, false to use predefined challenges
+    
+    console.log('🚀 Starting Monthly Challenge Process...\n');
 
-    const monthlyChallenge = await generator.generateChallengeForDate();
+    // Step 1: Reset monthly earnings for all users
+    console.log('💰 Resetting monthly earnings counters for all users...');
+    try {
+      await resetTimeBasedEarnings('monthly');
+      console.log('✅ Monthly earnings reset completed successfully!\n');
+    } catch (error) {
+      console.error('❌ Failed to reset monthly earnings:', error);
+      console.log('⚠️ Continuing with challenge generation despite earnings reset failure...\n');
+    }
+
+    // Step 2: Generate and process the monthly challenge
+    console.log('🎬 Generating Monthly AI Challenge...');
+    console.log(`📚 Total monthly challenges available: ${monthlyChallenges.length}`);
+    console.log(`🤖 Using ${useAI ? 'AI generation' : 'predefined challenges'}\n`);
+
+    const monthlyChallenge = await generator.generateChallengeForDate(new Date(), useAI);
     generator.printChallengeForDgraph(monthlyChallenge);
 
-    // Save to database
-    console.log('\n💾 Saving to database...');
+    // Step 3: Save to database
+    console.log('\n💾 Saving challenge to database...');
     const saved = await saveMonthlyChallengeToDatabase(monthlyChallenge);
 
     if (saved) {
       console.log('\n✅ Monthly challenge generated and saved successfully!');
 
-      // Send push notifications
+      // Step 4: Send push notifications
       console.log('\n🔔 Sending push notifications to users...');
       await sendPushNotifications(monthlyChallenge);
 
       console.log('\n🎉 Monthly challenge process completed successfully!');
+      console.log('\n📋 Summary:');
+      console.log('   ✅ Monthly earnings reset');
+      console.log('   ✅ Challenge generated');
+      console.log('   ✅ Challenge saved to database');
+      console.log('   ✅ Push notifications sent');
     } else {
       console.log('\n⚠️ Challenge generated but failed to save to database');
       console.log('You can manually save using the mutation above');
     }
   } catch (error) {
-    console.error('❌ Error generating monthly challenge:', error);
+    console.error('❌ Error in monthly challenge process:', error);
     process.exit(1);
   }
 }

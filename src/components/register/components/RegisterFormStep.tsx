@@ -39,22 +39,22 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
   // Simple local username validation
   const validateUsername = (username: string) => {
     const errors: string[] = [];
-    
+
     if (username.length < 3) {
       errors.push('Username must be at least 3 characters long');
     }
-    
+
     if (username.length > 20) {
       errors.push('Username must be 20 characters or less');
     }
-    
+
     if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(username)) {
       errors.push('Username must start with a letter and contain only letters, numbers, and underscores');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   };
 
@@ -62,7 +62,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
   const checkUsernameInDatabase = useCallback(async (usernameToCheck: string): Promise<boolean> => {
     try {
       console.log('🔍 [FRONTEND] Checking username in database:', usernameToCheck);
-      
+
       const response = await fetch('/api/registration/checkUsername', {
         method: 'POST',
         headers: {
@@ -160,11 +160,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
 
   // Check if form is valid
   const isFormValid = Boolean(
-    username && 
-    username.trim().length >= 3 && 
-    localValidation.isValid && 
-    !isCheckingDbUsername &&
-    !dbUsernameError
+    username && username.trim().length >= 3 && localValidation.isValid && !isCheckingDbUsername && !dbUsernameError,
   );
 
   // Simple continue function - just validate and move on
@@ -190,12 +186,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
 
       {/* Username input */}
       <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600">
-        <NocenaInput
-          control={control}
-          name="username"
-          placeholder="Choose your username"
-          required
-        />
+        <NocenaInput control={control} name="username" placeholder="Choose your username" required />
       </div>
 
       {/* Username Status */}
@@ -208,9 +199,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
 
       {/* Helper text */}
       <div className="text-center">
-        <p className="text-gray-300 text-sm font-light">
-          Choose the name by which you want to be known in challenges
-        </p>
+        <p className="text-gray-300 text-sm font-light">Choose the name by which you want to be known in challenges</p>
         <div className="text-gray-400 text-xs mt-2 space-y-1">
           <p>• 3-20 characters • Letters, numbers, and underscores only</p>
           <p>• Must start with a letter • Cannot be changed later</p>

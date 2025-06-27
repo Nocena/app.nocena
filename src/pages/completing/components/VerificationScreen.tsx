@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import { completeChallengeWorkflow, CompletionData } from '../../../lib/completing/challengeCompletionService';
+import { SimpleVerificationService } from '../../../lib/verification/simpleVerificationService';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface VerificationStep {
@@ -12,7 +13,7 @@ interface VerificationStep {
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress: number;
   message: string;
-  confidence: number;
+  confidence?: number;
 }
 
 interface Challenge {
@@ -55,6 +56,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   const [currentStepMessage, setCurrentStepMessage] = useState('Ready to verify submission');
   const [challengeDescription, setChallengeDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Development mode flag - set to false for production
+  const isDevelopmentMode = process.env.NODE_ENV === 'development';
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -127,11 +131,77 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     };
   };
 
-  const startVerification = async () => {
+  // REAL AI Verification Function
+  const startRealVerification = async () => {
     setVerificationStage('verifying');
     setErrorMessage('');
 
     try {
+      console.log('🤖 Starting REAL AI verification...');
+
+      // Create the real verification service
+      const verificationService = new SimpleVerificationService((steps) => {
+        // Update the UI with real progress from the verification service
+        setVerificationSteps(steps);
+        
+        // Update current step message
+        const runningStep = steps.find(s => s.status === 'running');
+        if (runningStep) {
+          setCurrentStepMessage(runningStep.message);
+        }
+      });
+
+      // Run the REAL verification process
+      const result = await verificationService.runFullVerification(
+        videoBlob, 
+        photoBlob, 
+        challenge.description // Use the challenge description for AI analysis
+      );
+
+      if (result.success && result.passed) {
+        // Real verification passed
+        const realResult = {
+          passed: true,
+          overallConfidence: result.overallConfidence,
+          details: 'All verification checks completed successfully. Challenge completion confirmed.',
+          steps: result.steps,
+          timestamp: new Date().toISOString(),
+        };
+
+        setVerificationResult(realResult);
+        setVerificationStage('complete');
+        setCurrentStepMessage('All verification checks passed!');
+      } else {
+        // Real verification failed
+        const failedResult = {
+          passed: false,
+          overallConfidence: result.overallConfidence,
+          details: 'Verification failed. One or more checks did not pass.',
+          steps: result.steps,
+          timestamp: new Date().toISOString(),
+        };
+
+        setVerificationResult(failedResult);
+        setVerificationStage('failed');
+        setCurrentStepMessage('Verification failed. Please check the issues below.');
+      }
+
+    } catch (error) {
+      console.error('Real verification error:', error);
+      setVerificationStage('failed');
+      setCurrentStepMessage('Verification process encountered an error.');
+      setErrorMessage('Verification failed. Please try again.');
+    }
+  };
+
+  // FAKE Verification Function (Development Mode)
+  const startFakeVerification = async () => {
+    setVerificationStage('verifying');
+    setErrorMessage('');
+
+    try {
+      console.log('🎭 Starting FAKE verification (Development Mode)...');
+
       const fakeSteps: VerificationStep[] = [
         {
           id: 'file-check',
@@ -236,6 +306,15 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     }
   };
 
+  // Main verification function that chooses between real and fake
+  const startVerification = async () => {
+    if (isDevelopmentMode) {
+      await startFakeVerification();
+    } else {
+      await startRealVerification();
+    }
+  };
+
   const handleClaimTokens = async () => {
     if (!challengeDescription.trim()) {
       setErrorMessage('Please add a description of your challenge completion.');
@@ -296,7 +375,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       case 'ready':
         return {
           title: 'AI Verification',
-          subtitle: 'Ready to analyze your submission',
+          subtitle: `Ready to analyze your submission${isDevelopmentMode ? ' (Dev Mode)' : ''}`,
           color: 'nocenaPink',
         };
       case 'verifying':
@@ -354,6 +433,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         <div className="text-sm text-gray-400">
           {challenge.title} • {stageInfo.subtitle}
         </div>
+        {isDevelopmentMode && (
+          <div className="mt-2 px-3 py-1 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+            <span className="text-xs text-yellow-400">🛠️ Development Mode - Using Mock Verification</span>
+          </div>
+        )}
       </div>
 
       {errorMessage && (
@@ -430,9 +514,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium mb-2">AI Analysis Ready</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {isDevelopmentMode ? 'Mock AI Analysis Ready' : 'AI Analysis Ready'}
+              </h3>
               <p className="text-sm text-gray-300 mb-4">
-                Our AI will verify your challenge completion using advanced computer vision
+                {isDevelopmentMode 
+                  ? 'Mock verification will simulate AI analysis for testing'
+                  : 'Our AI will verify your challenge completion using advanced computer vision'
+                }
               </p>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
@@ -453,7 +542,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
             <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-800/20 rounded-2xl p-6 mb-4">
               <div className="text-center mb-4">
                 <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-nocenaPink">Neural Analysis Active</h3>
+                <h3 className="text-lg font-medium text-nocenaPink">
+                  {isDevelopmentMode ? 'Mock Analysis Active' : 'Neural Analysis Active'}
+                </h3>
               </div>
 
               <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
@@ -505,7 +596,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
                 <h3 className="text-lg font-medium text-nocenaPurple mb-2">Verification Complete!</h3>
                 <p className="text-sm text-gray-300 mb-4">
-                  AI analysis passed with{' '}
+                  {isDevelopmentMode ? 'Mock analysis' : 'AI analysis'} passed with{' '}
                   {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
                 </p>
 

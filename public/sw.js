@@ -1,6 +1,6 @@
 // public/sw.js - Service Worker for Nocena PWA
 
-const CACHE_NAME = 'nocena-v1.1.0'; // UPDATE THIS VERSION FOR EACH RELEASE
+const CACHE_NAME = 'nocena-v1';
 const urlsToCache = [
   '/',
   '/home',
@@ -14,64 +14,12 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', function (event) {
-  console.log('Service Worker installing, version:', CACHE_NAME);
-  
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
       console.log('Opened cache');
       return cache.addAll(urlsToCache);
-    }).then(() => {
-      // Skip waiting to activate new service worker immediately
-      // This ensures updates are applied faster
-      return self.skipWaiting();
-    })
+    }),
   );
-});
-
-// Activate event - clean up old caches and take control
-self.addEventListener('activate', function (event) {
-  console.log('Service Worker activating, version:', CACHE_NAME);
-  
-  event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then(function (cacheNames) {
-        return Promise.all(
-          cacheNames.map(function (cacheName) {
-            if (cacheName !== CACHE_NAME) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          }),
-        );
-      }),
-      // Take control of all clients immediately
-      self.clients.claim()
-    ]).then(() => {
-      // Notify all clients that an update has occurred
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_UPDATED',
-            version: CACHE_NAME
-          });
-        });
-      });
-    })
-  );
-});
-
-// Handle messages from the main thread
-self.addEventListener('message', function(event) {
-  console.log('Service Worker received message:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
-  }
 });
 
 // Fetch event - serve from cache when possible
@@ -98,30 +46,11 @@ self.addEventListener('fetch', function (event) {
     return event.respondWith(fetch(event.request));
   }
 
-  // For other requests, use cache-first strategy with network fallback
+  // For other requests, use cache-first strategy
   event.respondWith(
     caches.match(event.request).then(function (response) {
       // Return cached version or fetch from network
-      if (response) {
-        return response;
-      }
-      
-      // If not in cache, fetch from network and cache for next time
-      return fetch(event.request).then(function(response) {
-        // Check if we received a valid response
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
-
-        // Clone the response since it's a stream
-        const responseToCache = response.clone();
-
-        caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, responseToCache);
-        });
-
-        return response;
-      });
+      return response || fetch(event.request);
     }),
   );
 });
@@ -217,4 +146,20 @@ self.addEventListener('sync', function (event) {
       console.log('Background sync triggered'),
     );
   }
+});
+
+// Handle service worker updates
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    caches.keys().then(function (cacheNames) {
+      return Promise.all(
+        cacheNames.map(function (cacheName) {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        }),
+      );
+    }),
+  );
 });
