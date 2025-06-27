@@ -3,6 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import { getProfilePictureUrl, getVideoUrl, getSelfieUrl } from '../../../lib/api/pinata';
 import IPFSMediaLoader from '../../../components/IPFSMediaLoader';
+import ThematicContainer from '../../../components/ui/ThematicContainer';
 
 interface ProfileInfo {
   userId: string;
@@ -74,10 +75,15 @@ const CompletionItem: React.FC<CompletionItemProps> = ({ profile, completion, is
   console.log('Selfie URL:', selfieUrl);
 
   return (
-    <div className="bg-[#2A3B4D] rounded-xl p-4 border border-[#4A5B6D] mb-4">
+    <ThematicContainer asButton={false} glassmorphic={true} color="nocenaBlue" rounded="xl" className="p-6 mb-4">
       {/* User profile section */}
-      <div className="flex items-center mb-3">
-        <div className="h-12 w-12 rounded-full bg-gray-700 overflow-hidden flex-shrink-0">
+      <div className="flex items-center mb-4">
+        <ThematicContainer
+          asButton={false}
+          color="nocenaPink"
+          rounded="full"
+          className="h-12 w-12 overflow-hidden flex-shrink-0"
+        >
           <Image
             src={profilePicUrl}
             alt={profile.username}
@@ -89,74 +95,78 @@ const CompletionItem: React.FC<CompletionItemProps> = ({ profile, completion, is
               e.currentTarget.src = '/images/profile.png';
             }}
           />
-        </div>
-        <div className="ml-3 flex-1">
-          <p className="font-semibold text-white">{profile.username}</p>
-          <p className="text-xs text-gray-400">
+        </ThematicContainer>
+
+        <div className="ml-4 flex-1">
+          <p className="font-bold text-white text-lg">{profile.username}</p>
+          <p className="text-sm text-gray-300">
             {completionDate.toLocaleDateString()} at {completionDate.toLocaleTimeString()}
           </p>
-          {completion.status && <p className="text-xs text-green-400 capitalize">{completion.status}</p>}
+          {completion.status && (
+            <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1 mt-1 inline-block">
+              <span className="text-xs font-medium capitalize">{completion.status}</span>
+            </ThematicContainer>
+          )}
         </div>
       </div>
 
       {/* Challenge description if available */}
       {media?.description && (
-        <div className="mb-3">
-          <p className="text-sm text-gray-300 italic">"{media.description}"</p>
-        </div>
+        <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPurple" rounded="lg" className="p-3 mb-4">
+          <p className="text-sm text-white italic">"{media.description}"</p>
+        </ThematicContainer>
       )}
 
       {/* Video and selfie content */}
       {videoUrl || selfieUrl ? (
-        <div className="mb-3">
-          <IPFSMediaLoader videoUrl={videoUrl} selfieUrl={selfieUrl} className="rounded-lg overflow-hidden" />
-        </div>
+        <ThematicContainer asButton={false} color="nocenaBlue" rounded="lg" className="mb-4 overflow-hidden">
+          <IPFSMediaLoader videoUrl={videoUrl} selfieUrl={selfieUrl} className="w-full" loop={true} />
+        </ThematicContainer>
       ) : (
-        <div className="bg-gray-800 rounded-lg p-4 mb-3 text-center text-gray-400">
-          <p>Media not available</p>
+        <ThematicContainer
+          asButton={false}
+          glassmorphic={true}
+          color="nocenaPurple"
+          rounded="lg"
+          className="p-4 mb-4 text-center"
+        >
+          <p className="text-gray-300">Media not available</p>
           {media && (
-            <p className="text-xs mt-1">
+            <p className="text-xs mt-1 text-gray-400">
               Video: {media.hasVideo ? 'Yes' : 'No'} | Selfie: {media.hasSelfie ? 'Yes' : 'No'}
             </p>
           )}
-        </div>
+        </ThematicContainer>
       )}
 
       {/* Verification status if available */}
       {media?.verificationResult && (
-        <div className="mb-3 p-2 bg-gray-700 rounded-md">
-          <p className="text-xs text-green-400">
-            ✓ Verified with {Math.round((media.verificationResult.overallConfidence || 0) * 100)}% confidence
-          </p>
-        </div>
+        <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPink" rounded="lg" className="p-3 mb-4">
+          <div className="flex items-center">
+            <span className="text-green-400 mr-2 text-lg">✓</span>
+            <p className="text-sm font-medium">
+              Verified with {Math.round((media.verificationResult.overallConfidence || 0) * 100)}% confidence
+            </p>
+          </div>
+        </ThematicContainer>
       )}
 
       {/* Action buttons and stats */}
-      <div className="flex items-center justify-between mt-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <button className="text-gray-400 hover:text-white transition-colors flex items-center">
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-            <span>{completion.likesCount || 0}</span>
-          </button>
-
-          {/* Challenge type indicator */}
-          {completion.challengeType && (
-            <span className="text-xs px-2 py-1 bg-purple-900 text-purple-300 rounded-full">
-              {completion.challengeType.toUpperCase()}
-            </span>
-          )}
+          <ThematicContainer asButton={true} color="nocenaPink" className="px-3 py-2 flex items-center">
+            <span className="text-red-400 mr-2">♥</span>
+            <span className="text-sm font-medium">{completion.likesCount || 0}</span>
+          </ThematicContainer>
         </div>
 
-        {isSelf && <span className="text-xs px-2 py-1 bg-blue-900 text-blue-300 rounded-full">Your completion</span>}
+        {isSelf && (
+          <ThematicContainer asButton={false} color="nocenaBlue" className="px-3 py-1">
+            <span className="text-xs font-medium">Your completion</span>
+          </ThematicContainer>
+        )}
       </div>
-    </div>
+    </ThematicContainer>
   );
 };
 

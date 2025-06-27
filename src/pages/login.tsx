@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { ConnectButton, useActiveAccount } from 'thirdweb/react';
 import { getUserFromDgraph } from '../lib/api/dgraph';
-import PrimaryButton from '../components/ui/PrimaryButton';
 import { User, useAuth } from '../contexts/AuthContext';
 import AuthenticationLayout from '../components/layout/AuthenticationLayout';
 import { client, chain } from '../lib/thirdweb';

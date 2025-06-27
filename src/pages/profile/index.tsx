@@ -7,7 +7,6 @@ import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
-import ThematicImage from '../../components/ui/ThematicImage';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
 import TrailerSection from './components/TrailerSection';
@@ -32,9 +31,7 @@ const ProfileView: React.FC = () => {
   const [profilePic, setProfilePic] = useState<string | StaticImageData>(user?.profilePicture || defaultProfilePic);
   const [coverPhoto, setCoverPhoto] = useState<string>(user?.coverPhoto || '/images/cover.jpg');
   const [username, setUsername] = useState<string>(user?.username || 'Guest');
-  const [bio, setBio] = useState<string>(
-    user?.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!',
-  );
+  const [bio, setBio] = useState<string>(user?.bio || 'No bio yet');
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');

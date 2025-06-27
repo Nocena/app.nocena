@@ -865,9 +865,19 @@ export const getAdminInviteStats = async () => {
 };
 
 export const getUserFromDgraph = async (walletAddress: string) => {
+  console.log('🔍 WALLET LOOKUP: Original wallet address:', walletAddress);
+
+  const normalizedWallet = walletAddress.toLowerCase();
+  console.log('🔍 WALLET LOOKUP: Normalized wallet address:', normalizedWallet);
+
   const query = `
-    query GetUserByWallet($walletAddress: String!) {
-      queryUser(filter: { wallet: { eq: $walletAddress } }) {
+    query GetUserByWallet($walletAddress: String!, $normalizedWallet: String!) {
+      queryUser(filter: { 
+        or: [
+          { wallet: { eq: $walletAddress } },
+          { wallet: { eq: $normalizedWallet } }
+        ]
+      }) {
         id
         username
         wallet
@@ -928,13 +938,16 @@ export const getUserFromDgraph = async (walletAddress: string) => {
   `;
 
   try {
-    console.log('🔍 WALLET LOOKUP: Searching for wallet address:', walletAddress);
+    console.log('🔍 WALLET LOOKUP: Searching for wallet address with both cases');
 
     const response = await axios.post(
       DGRAPH_ENDPOINT,
       {
         query,
-        variables: { walletAddress },
+        variables: {
+          walletAddress: walletAddress,
+          normalizedWallet: normalizedWallet,
+        },
       },
       {
         headers: {
@@ -960,6 +973,7 @@ export const getUserFromDgraph = async (walletAddress: string) => {
     // Format the data to match your User interface
     if (userData) {
       console.log('🔍 WALLET LOOKUP: Raw user data fields:', Object.keys(userData));
+      console.log('🔍 WALLET LOOKUP: Found user with wallet:', userData.wallet);
 
       // Convert followers from objects to string array of ids
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
@@ -1046,6 +1060,7 @@ export const getUserFromDgraph = async (walletAddress: string) => {
       });
     } else {
       console.log('🔍 WALLET LOOKUP: No user found for wallet address:', walletAddress);
+      console.log('🔍 WALLET LOOKUP: Also searched normalized version:', normalizedWallet);
     }
 
     return userData;
@@ -2040,7 +2055,7 @@ export const updateUserChallengeStrings = async (userId: string, frequency: stri
   switch (frequency.toLowerCase()) {
     case 'daily':
       fieldName = 'dailyChallenge';
-      position = getDayOfYear(now) - 1; // 0-based index
+      position = getDayOfYear(now); // 0-based index
       break;
     case 'weekly':
       fieldName = 'weeklyChallenge';
@@ -2296,53 +2311,63 @@ export async function fetchUserCompletions(
   const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
   try {
-    let challengeFilter = '';
+    // Build the filter object properly
+    let filterConditions = ['{ completionDate: { between: { min: $startDate, max: $endDate } } }'];
+
     if (challengeType === 'ai') {
-      challengeFilter = ', has: aiChallenge';
+      filterConditions.push('{ has: aiChallenge }');
     } else if (challengeType === 'private') {
-      challengeFilter = ', has: privateChallenge';
+      filterConditions.push('{ has: privateChallenge }');
     } else if (challengeType === 'public') {
-      challengeFilter = ', has: publicChallenge';
+      filterConditions.push('{ has: publicChallenge }');
     }
 
+    const filterString =
+      filterConditions.length > 1 ? `and: [${filterConditions.join(', ')}]` : filterConditions[0].slice(1, -1); // Remove outer braces for single condition
+
+    // Query through User's completedChallenges field
     const query = `
       query FetchUserCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
         getUser(id: $userId) {
-          completions(
+          completedChallenges(
             filter: { 
-              completionDate: { between: { min: $startDate, max: $endDate } }${challengeFilter}
+              ${filterString}
             }
             order: { desc: completionDate }
           ) {
+          id
+          media
+          completionDate
+          completionDay
+          completionWeek
+          completionMonth
+          completionYear
+          status
+          challengeType
+          likesCount
+          user {
             id
-            media
-            completionDate
-            completionDay
-            completionWeek
-            completionMonth
-            completionYear
-            status
-            challengeType
-            likesCount
-            aiChallenge {
-              id
-              title
-              description
-              frequency
-              reward
-            }
-            privateChallenge {
-              id
-              title
-              description
-              reward
-            }
-            publicChallenge {
-              id
-              title
-              description
-              reward
-            }
+            username
+            profilePicture
+          }
+          aiChallenge {
+            id
+            title
+            description
+            frequency
+            reward
+          }
+          privateChallenge {
+            id
+            title
+            description
+            reward
+          }
+          publicChallenge {
+            id
+            title
+            description
+            reward
           }
         }
       }
@@ -2366,7 +2391,7 @@ export async function fetchUserCompletions(
       throw new Error('Failed to fetch user completions');
     }
 
-    return response.data.data?.getUser?.completions || [];
+    return response.data.data?.getUser?.completedChallenges || [];
   } catch (error) {
     console.error('Error fetching user completions:', error);
     throw error;
@@ -2374,26 +2399,122 @@ export async function fetchUserCompletions(
 }
 
 /**
- * Fetch follower completions for a specific date and challenge type
+ * Fetch user's latest AI completion (regardless of date)
  */
-export async function fetchFollowerCompletions(
+export async function fetchLatestUserCompletion(
   userId: string,
-  dateString: string, // YYYY-MM-DD format
-  challengeType: 'daily' | 'weekly' | 'monthly' = 'daily',
-): Promise<any[]> {
+  challengeType: 'ai' | 'private' | 'public' = 'ai',
+): Promise<any | null> {
   const axios = (await import('axios')).default;
   const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
   try {
-    // Calculate date range based on challenge type
-    const targetDate = new Date(dateString);
+    let hasCondition = 'has: aiChallenge';
+    if (challengeType === 'private') {
+      hasCondition = 'has: privateChallenge';
+    } else if (challengeType === 'public') {
+      hasCondition = 'has: publicChallenge';
+    }
+
+    const query = `
+      query GetLatestUserCompletion($userId: String!) {
+        getUser(id: $userId) {
+          completedChallenges(
+            filter: { 
+              and: [
+                { ${hasCondition} },
+                { challengeType: { eq: "${challengeType}" } }
+              ]
+            }
+            order: { desc: completionDate }
+            first: 1
+          ) {
+            id
+            media
+            completionDate
+            completionDay
+            completionWeek
+            completionMonth
+            completionYear
+            status
+            challengeType
+            likesCount
+            user {
+              id
+              username
+              profilePicture
+            }
+            aiChallenge {
+              id
+              title
+              description
+              frequency
+              reward
+              day
+              week
+              month
+              year
+            }
+            privateChallenge {
+              id
+              title
+              description
+              reward
+            }
+            publicChallenge {
+              id
+              title
+              description
+              reward
+            }
+          }
+        }
+      }
+    `;
+
+    console.log('Fetching latest completion for user:', userId);
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: {
+          userId,
+        },
+      },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch latest user completion');
+    }
+
+    const completions = response.data.data?.getUser?.completedChallenges || [];
+    return completions.length > 0 ? completions[0] : null;
+  } catch (error) {
+    console.error('Error fetching latest user completion:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch follower completions for a given date and challenge frequency
+ */
+export async function fetchFollowerCompletions(userId: string, date: string, frequency: string): Promise<any[]> {
+  const axios = (await import('axios')).default;
+  const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
+
+  try {
+    // Calculate date range for the given date
+    const targetDate = new Date(date);
     let startDate: Date;
     let endDate: Date;
 
-    if (challengeType === 'daily') {
+    if (frequency === 'daily') {
       startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
       endDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
-    } else if (challengeType === 'weekly') {
+    } else if (frequency === 'weekly') {
       const dayOfWeek = targetDate.getDay();
       const monday = new Date(targetDate);
       monday.setDate(targetDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
@@ -2409,16 +2530,19 @@ export async function fetchFollowerCompletions(
     }
 
     const query = `
-      query FetchFollowerCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!, $frequency: String!) {
+      query FetchFollowerCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
         getUser(id: $userId) {
           following {
             id
             username
             profilePicture
-            completions(
+            completedChallenges(
               filter: { 
-                completionDate: { between: { min: $startDate, max: $endDate } },
-                has: aiChallenge
+                and: [
+                  { completionDate: { between: { min: $startDate, max: $endDate } } },
+                  { has: aiChallenge },
+                  { challengeType: { eq: "ai" } }
+                ]
               }
               order: { desc: completionDate }
               first: 1
@@ -2428,19 +2552,22 @@ export async function fetchFollowerCompletions(
               completionDate
               status
               challengeType
-              likesCount
               aiChallenge {
                 id
                 title
-                description
                 frequency
-                reward
               }
             }
           }
         }
       }
     `;
+
+    console.log('Fetching follower completions:', {
+      userId,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
 
     const response = await axios.post(
       DGRAPH_ENDPOINT,
@@ -2450,7 +2577,6 @@ export async function fetchFollowerCompletions(
           userId,
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-          frequency: challengeType,
         },
       },
       { headers: { 'Content-Type': 'application/json' } },
@@ -2461,26 +2587,19 @@ export async function fetchFollowerCompletions(
       throw new Error('Failed to fetch follower completions');
     }
 
-    const followers = response.data.data?.getUser?.following || [];
+    const following = response.data.data?.getUser?.following || [];
 
-    // Format the response to match the expected structure
-    const completions = followers
-      .filter((follower: any) => follower.completions && follower.completions.length > 0)
-      .map((follower: any) => ({
-        userId: follower.id,
-        username: follower.username,
-        profilePicture: follower.profilePicture,
-        completion: follower.completions[0], // Most recent completion
-      }))
-      .filter((item: any) => {
-        // Additional filtering for challenge frequency if available
-        const completion = item.completion;
-        if (completion.aiChallenge?.frequency) {
-          return completion.aiChallenge.frequency === challengeType;
-        }
-        return true;
-      });
+    // Transform the data to match expected format
+    const completions = following
+      .filter((user: any) => user.completedChallenges.length > 0)
+      .map((user: any) => ({
+        userId: user.id,
+        username: user.username,
+        profilePicture: user.profilePicture,
+        completion: user.completedChallenges[0], // Get the most recent completion
+      }));
 
+    console.log('Transformed follower completions:', completions);
     return completions;
   } catch (error) {
     console.error('Error fetching follower completions:', error);
@@ -2844,22 +2963,36 @@ export const markNotificationsAsRead = async (userId: string) => {
   }
 };
 
-//L: Update earned tokens for user (so far without polygon layer)
+/**
+ * Updates user's token balance and time-based earnings tracking
+ * FIXED: Get current values first, then set new totals
+ */
 export const updateUserTokens = async (userId: string, tokenAmount: number): Promise<void> => {
-  const query = `
-    query GetUserTokens($userId: String!) {
-      getUser(id: $userId) {
-        earnedTokens
-      }
-    }
-  `;
+  console.log(`Updating tokens for user ${userId}: +${tokenAmount}`);
+
+  if (tokenAmount <= 0) {
+    throw new Error('Token amount must be positive');
+  }
+
+  const now = new Date();
 
   try {
-    // First get current token balance
-    const queryResponse = await axios.post(
+    // First, get the current token values
+    const getUserQuery = `
+      query GetUserTokens($userId: String!) {
+        getUser(id: $userId) {
+          earnedTokens
+          earnedTokensToday
+          earnedTokensThisWeek
+          earnedTokensThisMonth
+        }
+      }
+    `;
+
+    const getUserResponse = await axios.post(
       DGRAPH_ENDPOINT,
       {
-        query,
+        query: getUserQuery,
         variables: { userId },
       },
       {
@@ -2867,20 +3000,49 @@ export const updateUserTokens = async (userId: string, tokenAmount: number): Pro
       },
     );
 
-    if (queryResponse.data.errors) {
-      throw new Error(`Dgraph query error: ${queryResponse.data.errors[0].message}`);
+    if (getUserResponse.data.errors) {
+      console.error('Error fetching current user tokens:', getUserResponse.data.errors);
+      throw new Error('Failed to fetch current user tokens');
     }
 
-    const currentTokens = queryResponse.data.data.getUser?.earnedTokens || 0;
-    const newTokens = currentTokens + tokenAmount;
+    const currentUser = getUserResponse.data.data.getUser;
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
 
-    // Update token balance
-    const mutation = `
-      mutation UpdateUserTokens($userId: String!, $tokens: Int!) {
-        updateUser(input: { filter: { id: { eq: $userId } }, set: { earnedTokens: $tokens } }) {
+    // Calculate new totals
+    const newEarnedTokens = (currentUser.earnedTokens || 0) + tokenAmount;
+    const newEarnedTokensToday = (currentUser.earnedTokensToday || 0) + tokenAmount;
+    const newEarnedTokensThisWeek = (currentUser.earnedTokensThisWeek || 0) + tokenAmount;
+    const newEarnedTokensThisMonth = (currentUser.earnedTokensThisMonth || 0) + tokenAmount;
+
+    // Update with new totals
+    const updateMutation = `
+      mutation UpdateUserTokens(
+        $userId: String!,
+        $earnedTokens: Int!,
+        $earnedTokensToday: Int!,
+        $earnedTokensThisWeek: Int!,
+        $earnedTokensThisMonth: Int!,
+        $lastEarningsUpdate: DateTime!
+      ) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          set: {
+            earnedTokens: $earnedTokens,
+            earnedTokensToday: $earnedTokensToday,
+            earnedTokensThisWeek: $earnedTokensThisWeek,
+            earnedTokensThisMonth: $earnedTokensThisMonth,
+            lastEarningsUpdate: $lastEarningsUpdate
+          }
+        }) {
           user {
             id
             earnedTokens
+            earnedTokensToday
+            earnedTokensThisWeek
+            earnedTokensThisMonth
+            lastEarningsUpdate
           }
         }
       }
@@ -2889,8 +3051,15 @@ export const updateUserTokens = async (userId: string, tokenAmount: number): Pro
     const updateResponse = await axios.post(
       DGRAPH_ENDPOINT,
       {
-        query: mutation,
-        variables: { userId, tokens: newTokens },
+        query: updateMutation,
+        variables: {
+          userId,
+          earnedTokens: newEarnedTokens,
+          earnedTokensToday: newEarnedTokensToday,
+          earnedTokensThisWeek: newEarnedTokensThisWeek,
+          earnedTokensThisMonth: newEarnedTokensThisMonth,
+          lastEarningsUpdate: now.toISOString(),
+        },
       },
       {
         headers: { 'Content-Type': 'application/json' },
@@ -2898,8 +3067,19 @@ export const updateUserTokens = async (userId: string, tokenAmount: number): Pro
     );
 
     if (updateResponse.data.errors) {
-      throw new Error(`Dgraph mutation error: ${updateResponse.data.errors[0].message}`);
+      console.error('Dgraph mutation error:', updateResponse.data.errors);
+      throw new Error('Failed to update user tokens');
     }
+
+    const updatedUser = updateResponse.data.data.updateUser.user[0];
+    console.log('Successfully updated user tokens:', {
+      userId,
+      tokenAmount: `+${tokenAmount}`,
+      newTotal: updatedUser.earnedTokens,
+      todayTotal: updatedUser.earnedTokensToday,
+      weekTotal: updatedUser.earnedTokensThisWeek,
+      monthTotal: updatedUser.earnedTokensThisMonth,
+    });
   } catch (error) {
     console.error('Error updating user tokens:', error);
     throw error;
@@ -3007,9 +3187,63 @@ export const handleChallengeCreation = async (
   }
 };
 
-// Public challenges
+/**
+ * Helper function to reset time-based earnings counters
+ * This should be called by a scheduled job (daily/weekly/monthly)
+ */
+export const resetTimeBasedEarnings = async (resetType: 'daily' | 'weekly' | 'monthly'): Promise<void> => {
+  console.log(`Resetting ${resetType} earnings for all users`);
 
-// Add this function to your backend file
+  let setFields: any = {
+    lastEarningsUpdate: new Date().toISOString(),
+  };
+
+  if (resetType === 'daily') {
+    setFields.earnedTokensToday = 0;
+  } else if (resetType === 'weekly') {
+    setFields.earnedTokensThisWeek = 0;
+  } else if (resetType === 'monthly') {
+    setFields.earnedTokensThisMonth = 0;
+  }
+
+  const mutation = `
+    mutation ResetTimeBasedEarnings($setFields: UserPatch!) {
+      updateUser(input: {
+        filter: {},  # Apply to all users
+        set: $setFields
+      }) {
+        numUids
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          setFields,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Dgraph mutation error:', response.data.errors);
+      throw new Error(`Failed to reset ${resetType} earnings`);
+    }
+
+    console.log(`Successfully reset ${resetType} earnings for ${response.data.data.updateUser.numUids} users`);
+  } catch (error) {
+    console.error(`Error resetting ${resetType} earnings:`, error);
+    throw error;
+  }
+};
+
+// Public challenges
 
 /**
  * Fetches all active public challenges
@@ -3460,6 +3694,95 @@ export const checkUsernameExists = async (username: string) => {
     return { exists: false };
   } catch (error) {
     console.error('🔍 [DGRAPH] Error checking username:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get leaderboard data for different time periods
+ */
+export const getLeaderboard = async (
+  period: 'all-time' | 'today' | 'week' | 'month',
+  limit: number = 50,
+): Promise<any[]> => {
+  console.log(`Fetching ${period} leaderboard (top ${limit})`);
+
+  let orderField: string;
+  let selectField: string;
+
+  switch (period) {
+    case 'today':
+      orderField = 'earnedTokensToday';
+      selectField = 'earnedTokensToday';
+      break;
+    case 'week':
+      orderField = 'earnedTokensThisWeek';
+      selectField = 'earnedTokensThisWeek';
+      break;
+    case 'month':
+      orderField = 'earnedTokensThisMonth';
+      selectField = 'earnedTokensThisMonth';
+      break;
+    case 'all-time':
+    default:
+      orderField = 'earnedTokens';
+      selectField = 'earnedTokens';
+      break;
+  }
+
+  const query = `
+    query GetLeaderboard($limit: Int!) {
+      queryUser(
+        order: { desc: ${orderField} },
+        first: $limit,
+        filter: { ${selectField}: { gt: 0 } }
+      ) {
+        id
+        username
+        profilePicture
+        earnedTokens
+        earnedTokensToday
+        earnedTokensThisWeek
+        earnedTokensThisMonth
+        lastEarningsUpdate
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { limit },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      throw new Error('Failed to fetch leaderboard');
+    }
+
+    const users = response.data.data.queryUser || [];
+    console.log(`Fetched ${period} leaderboard with ${users.length} users`);
+
+    return users.map((user: any, index: number) => ({
+      rank: index + 1,
+      userId: user.id,
+      username: user.username,
+      profilePicture: user.profilePicture,
+      currentPeriodTokens: user[selectField] || 0,
+      allTimeTokens: user.earnedTokens || 0,
+      todayTokens: user.earnedTokensToday || 0,
+      weekTokens: user.earnedTokensThisWeek || 0,
+      monthTokens: user.earnedTokensThisMonth || 0,
+      lastUpdate: user.lastEarningsUpdate,
+    }));
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
     throw error;
   }
 };

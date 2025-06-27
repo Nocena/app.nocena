@@ -1,4 +1,4 @@
-// lib/completing/challengeCompletionService.ts - SIMPLIFIED VERSION
+// lib/completing/challengeCompletionService.ts - COMPLETE VERSION
 
 import { createChallengeCompletion, updateUserTokens, createNotification } from '../api/dgraph';
 
@@ -33,7 +33,7 @@ export interface MediaMetadata {
 export async function completeChallengeWorkflow(
   userId: string,
   completionData: CompletionData,
-  updateAuthUser?: (userData: any) => void, // Keep this parameter
+  updateAuthUser?: (userData: any) => void,
 ): Promise<{ success: boolean; message: string; completionId?: string }> {
   try {
     const { video, photo, verificationResult, description, challenge } = completionData;
@@ -90,7 +90,7 @@ export async function completeChallengeWorkflow(
       JSON.stringify(mediaMetadata),
     );
 
-    // Update user's tokens
+    // Update user's tokens - now automatically updates all time-based fields
     await updateUserTokens(userId, challenge.reward);
 
     // Update the AuthContext if the callback is provided (for AI challenges)
@@ -118,7 +118,7 @@ export async function completeChallengeWorkflow(
   }
 }
 
-// KEEP: Calculate what the updated completion strings should be for AuthContext
+// Calculate what the updated completion strings should be for AuthContext
 function calculateUpdatedCompletionStrings(challengeType: 'daily' | 'weekly' | 'monthly'): any {
   const now = new Date();
 
@@ -158,8 +158,6 @@ function calculateUpdatedCompletionStrings(challengeType: 'daily' | 'weekly' | '
     };
   }
 }
-
-// ... (keep all the existing functions unchanged)
 
 async function getOrCreateSimpleAIChallenge(
   title: string,

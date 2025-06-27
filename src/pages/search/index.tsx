@@ -1,16 +1,31 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicImage from '../../components/ui/ThematicImage';
+import ThematicContainer from '../../components/ui/ThematicContainer';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { fetchAllUsers, toggleFollowUser } from '../../lib/api/dgraph';
+import { toggleFollowUser, searchUsers as searchUsersAPI } from '../../lib/api/dgraph';
 import SearchBox, { SearchUser } from './components/SearchBox';
 import Image from 'next/image';
 
 const nocenixIcon = '/nocenix.ico';
+
+// Define interface for leaderboard user
+interface LeaderboardUser {
+  rank: number;
+  userId: string;
+  username: string;
+  profilePicture: string;
+  currentPeriodTokens: number;
+  allTimeTokens: number;
+  todayTokens: number;
+  weekTokens: number;
+  monthTokens: number;
+  lastUpdate: string;
+  isPlaceholder?: boolean; // For fake users when not enough real users
+}
 
 // Define interface for auth user data
 interface AuthUserData {
@@ -24,275 +39,202 @@ interface AuthUserData {
   following?: Array<string | { id: string }>;
 }
 
-// Define interface for follower/following item
-interface FollowItem {
-  id: string;
-  [key: string]: unknown;
-}
+type ChallengeType = 'today' | 'week' | 'month';
 
 const SearchView = () => {
-  const [users, setUsers] = useState<SearchUser[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<SearchUser[]>([]);
+  const [dailyLeaderboard, setDailyLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [weeklyLeaderboard, setWeeklyLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [monthlyLeaderboard, setMonthlyLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [activeTab, setActiveTab] = useState<ChallengeType>('today');
   const [pendingFollowActions, setPendingFollowActions] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false); // Start with false to use cache first
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
-  const [initialRenderComplete, setInitialRenderComplete] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const { user } = useAuth();
   const router = useRouter();
 
-  // Convert AuthUser to SearchUser helper
-  const convertToSearchUser = useCallback((authUser: AuthUserData): SearchUser => {
-    return {
-      id: authUser.id,
-      username: authUser.username,
-      profilePicture: authUser.profilePicture || '/images/profile.png',
-      wallet: authUser.wallet || '',
-      earnedTokens: authUser.earnedTokens || 0,
-      bio: authUser.bio || '',
-      // Convert followers array to array of IDs
-      followers: Array.isArray(authUser.followers)
-        ? authUser.followers.map((f: string | FollowItem) => (typeof f === 'string' ? f : f.id))
-        : [],
-      // Convert following array to array of IDs
-      following: Array.isArray(authUser.following)
-        ? authUser.following.map((f: string | FollowItem) => (typeof f === 'string' ? f : f.id))
-        : [],
-    };
+  // No more placeholder generation - only show real users
+
+  // Fetch leaderboard data - only real users with tokens for the period
+  const fetchLeaderboard = useCallback(async (period: ChallengeType): Promise<LeaderboardUser[]> => {
+    try {
+      console.log(`Fetching ${period} leaderboard...`);
+      const response = await fetch(`/api/leaderboard?period=${period}&limit=10`);
+
+      if (!response.ok) {
+        console.error(`Leaderboard API failed: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log(`${period} leaderboard response:`, data);
+
+      const leaderboard = data.leaderboard || [];
+
+      // Filter out users with 0 tokens for the current period
+      const usersWithTokens = leaderboard.filter((user: LeaderboardUser) => user.currentPeriodTokens > 0);
+
+      console.log(`${period} users with tokens:`, usersWithTokens);
+      return usersWithTokens;
+    } catch (error) {
+      console.error(`Error fetching ${period} leaderboard:`, error);
+      // Return empty array if API fails - no fallback data
+      return [];
+    }
   }, []);
 
-  // Check if this page is visible in the PageManager
+  // Refresh leaderboards - simple approach
+  const refreshLeaderboards = useCallback(
+    async (forceRefresh = false) => {
+      const now = Date.now();
+
+      // Don't refresh if we just refreshed within the last 10 seconds (unless forced)
+      if (!forceRefresh && now - lastRefreshTime < 10000) {
+        console.log('Skipping refresh - too recent');
+        return;
+      }
+
+      console.log('Refreshing leaderboards...');
+      setIsLoading(true);
+      setLastRefreshTime(now);
+
+      try {
+        const [daily, weekly, monthly] = await Promise.all([
+          fetchLeaderboard('today'),
+          fetchLeaderboard('week'),
+          fetchLeaderboard('month'),
+        ]);
+
+        setDailyLeaderboard(daily);
+        setWeeklyLeaderboard(weekly);
+        setMonthlyLeaderboard(monthly);
+
+        // Cache the fresh data
+        try {
+          localStorage.setItem(
+            'nocena_cached_leaderboards',
+            JSON.stringify({
+              data: { daily, weekly, monthly },
+              timestamp: now,
+            }),
+          );
+        } catch (error) {
+          console.error('Failed to cache leaderboards:', error);
+        }
+
+        console.log('Leaderboards refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing leaderboards:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [fetchLeaderboard, lastRefreshTime],
+  );
+  const searchUsers = useCallback(async (term: string): Promise<SearchUser[]> => {
+    if (!term.trim()) return [];
+
+    try {
+      // Use your existing searchUsers function from dgraph.ts
+      const results = await searchUsersAPI(term);
+      return results.map((user) => ({
+        id: user.id,
+        username: user.username,
+        profilePicture: user.profilePicture || '/images/profile.png',
+        wallet: user.wallet || '',
+        earnedTokens: 0, // You might want to fetch this from user data
+        bio: '',
+        followers: [],
+        following: [],
+      }));
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
+  }, []);
+
+  // Simple page visibility handling - refresh when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail && customEvent.detail.pageName === 'search') {
-        setIsPageVisible(customEvent.detail.isVisible);
-      }
-    };
+        const wasVisible = isPageVisible;
+        const nowVisible = customEvent.detail.isVisible;
+        setIsPageVisible(nowVisible);
 
-    const handleRouteChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail) {
-        if (customEvent.detail.to === '/search') {
-          setIsPageVisible(true);
-        } else if (customEvent.detail.from === '/search') {
-          setIsPageVisible(false);
+        // Always refresh when page becomes visible
+        if (!wasVisible && nowVisible) {
+          console.log('Search page became visible - refreshing leaderboards');
+          refreshLeaderboards(true); // Force refresh when opening page
         }
       }
     };
 
     window.addEventListener('pageVisibilityChange', handleVisibilityChange);
-    window.addEventListener('routeChange', handleRouteChange);
-
-    // Initialize visibility based on current route
     setIsPageVisible(window.location.pathname === '/search');
 
     return () => {
       window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
-      window.removeEventListener('routeChange', handleRouteChange);
     };
-  }, []);
+  }, [isPageVisible]); // Removed refreshLeaderboards from dependencies
 
-  // First load - check for cached data
-  useEffect(() => {
-    // Try to load from PageManager state first
-    try {
-      const pageState = getPageState();
-      if (pageState && pageState.feed) {
-        const { data: cachedUsers, lastFetched } = pageState.feed;
-
-        // Only use data if it's not too old (10 minutes)
-        if (cachedUsers && Array.isArray(cachedUsers) && cachedUsers.length > 0 && Date.now() - lastFetched < 600000) {
-          setUsers(cachedUsers);
-          setFilteredUsers(cachedUsers);
-        }
-      } else {
-        // Try localStorage if PageManager doesn't have data
-        const cachedData = localStorage.getItem('nocena_cached_users');
-        if (cachedData) {
-          const { data, timestamp } = JSON.parse(cachedData);
-          if (Array.isArray(data) && data.length > 0 && Date.now() - timestamp < 600000) {
-            setUsers(data);
-            setFilteredUsers(data);
-          }
-        }
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to load cached users', error);
-    }
-
-    setInitialRenderComplete(true);
-  }, []);
-
-  // Fetch users - optimized to prevent unnecessary fetches
-  const fetchUserData = useCallback(
-    async (showLoading = true) => {
-      if (showLoading) setIsLoading(true);
-
-      try {
-        const allUsers = await fetchAllUsers();
-
-        // Convert AuthUser[] to SearchUser[]
-        const searchUsers = allUsers.map(convertToSearchUser);
-
-        setUsers(searchUsers);
-        setFilteredUsers(searchUsers);
-
-        // Update both PageManager state and localStorage cache
-        updatePageState('feed', searchUsers);
-
-        localStorage.setItem(
-          'nocena_cached_users',
-          JSON.stringify({
-            data: searchUsers,
-            timestamp: Date.now(),
-          }),
-        );
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching users:', error);
-      } finally {
-        if (showLoading) setIsLoading(false);
-      }
-    },
-    [convertToSearchUser],
-  );
-
-  // Fetch users when the component becomes visible or on initial render if needed
-  useEffect(() => {
-    if (!initialRenderComplete) return;
-
-    const shouldFetch =
-      users.length === 0 || // No data
-      (isPageVisible && !isLoading); // Page is visible and not already loading
-
-    if (shouldFetch) {
-      // Only show loading indicator if we have no data yet
-      fetchUserData(users.length === 0);
-    }
-  }, [isPageVisible, initialRenderComplete, users.length, isLoading, fetchUserData]);
-
-  // Set up background refresh when page is visible
+  // Load leaderboards - only once when page becomes visible
   useEffect(() => {
     if (!isPageVisible) return;
 
-    // Create a function to refresh users silently
-    const refreshFunction = () => {
-      // Get pageState to check last fetch time
-      const pageState = getPageState();
-      const lastFetched = pageState?.feed?.lastFetched || 0;
+    console.log('Loading leaderboards for search page');
+    refreshLeaderboards(true); // Force refresh on page load
+  }, [isPageVisible]); // Only depend on isPageVisible
 
-      // Only refresh if data is older than 5 minutes
-      if (Date.now() - lastFetched > 300000) {
-        fetchUserData(false); // Silent background refresh
-      }
-    };
-
-    // Create interval with compatibility for both browser and Node.js timer types
-    const intervalId = window.setInterval(refreshFunction, 300000); // Check every 5 minutes
-
-    // Add to tracking for memory optimization
-    if (typeof window !== 'undefined' && window.nocena_app_timers) {
-      window.nocena_app_timers.push(intervalId);
-    }
-
-    return () => window.clearInterval(intervalId);
-  }, [isPageVisible, fetchUserData]);
-
-  // Handle app foreground events
-  useEffect(() => {
-    const handleAppForeground = () => {
-      if (isPageVisible) {
-        // When app comes back to foreground and this page is visible,
-        // silently refresh users if it's been more than 5 minutes
-        const pageState = getPageState();
-        const lastFetched = pageState?.feed?.lastFetched || 0;
-
-        if (Date.now() - lastFetched > 300000) {
-          fetchUserData(false);
-        }
-      }
-    };
-
-    window.addEventListener('nocena_app_foreground', handleAppForeground);
-
-    return () => {
-      window.removeEventListener('nocena_app_foreground', handleAppForeground);
-    };
-  }, [isPageVisible, fetchUserData]);
-
-  // Filter users based on search term - optimized for performance
+  // Handle search
   const handleSearch = useCallback(
-    (term: string) => {
+    async (term: string) => {
       setSearchTerm(term);
 
       if (!term.trim()) {
-        setFilteredUsers(users);
+        setShowSearchResults(false);
+        setSearchResults([]);
         return;
       }
 
-      // Debounce for better performance
-      const filtered = users.filter((user) => user.username.toLowerCase().includes(term.toLowerCase()));
-
-      setFilteredUsers(filtered);
+      setShowSearchResults(true);
+      const results = await searchUsers(term);
+      setSearchResults(results);
     },
-    [users],
+    [searchUsers],
   );
 
-  // Optimized follow handler with better state management
+  // Handle user selection from search
+  const handleUserSelect = useCallback(
+    (selectedUser: SearchUser) => {
+      if (user?.id === selectedUser.id) {
+        router.push('/profile');
+      } else {
+        router.push(`/profile/${selectedUser.id}`);
+      }
+    },
+    [router, user?.id],
+  );
+
+  // Handle follow action
   const handleFollow = useCallback(
     async (targetUserId: string) => {
-      if (!user || !user.id || !targetUserId || user.id === targetUserId) return;
+      if (!user || !user.id || !targetUserId || user.id === targetUserId || pendingFollowActions.has(targetUserId)) {
+        return;
+      }
 
-      // Add to pending actions to prevent multiple clicks
-      if (pendingFollowActions.has(targetUserId)) return;
       setPendingFollowActions((prev) => new Set(prev).add(targetUserId));
 
-      // Immediately update UI for better user experience
-      const updateUserFollowState = (userList: SearchUser[]) => {
-        return userList.map((u) => {
-          if (u.id === targetUserId) {
-            const isCurrentlyFollowing = u.followers && Array.isArray(u.followers) && u.followers.includes(user.id);
-
-            const updatedFollowers = isCurrentlyFollowing
-              ? (u.followers || []).filter((id) => id !== user.id)
-              : [...(u.followers || []), user.id];
-
-            return { ...u, followers: updatedFollowers };
-          }
-          return u;
-        });
-      };
-
-      // Update both lists
-      const updatedUsers = updateUserFollowState(users);
-      const updatedFilteredUsers = updateUserFollowState(filteredUsers);
-
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedFilteredUsers);
-
-      // Also update the cached state
-      updatePageState('feed', updatedUsers);
-
       try {
-        // Make API call in the background
-        const success = await toggleFollowUser(user.id, targetUserId, user.username);
-
-        // If API call fails, revert the UI change
-        if (!success) {
-          const revertedUsers = updateUserFollowState(updatedUsers);
-          const revertedFilteredUsers = updateUserFollowState(updatedFilteredUsers);
-
-          setUsers(revertedUsers);
-          setFilteredUsers(revertedFilteredUsers);
-          updatePageState('feed', revertedUsers);
-        }
+        await toggleFollowUser(user.id, targetUserId, user.username);
+        // Refresh leaderboards to update follow states
+        // You might want to implement a more efficient update here
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('Error toggling follow:', error);
       } finally {
-        // Remove from pending actions
         setPendingFollowActions((prev) => {
           const updated = new Set(prev);
           updated.delete(targetUserId);
@@ -300,118 +242,268 @@ const SearchView = () => {
         });
       }
     },
-    [user, pendingFollowActions, users, filteredUsers],
+    [user, pendingFollowActions],
   );
 
-  const handleProfileRedirect = useCallback(
-    (clickedUser: SearchUser) => {
-      if (!clickedUser.wallet) return;
-
-      if (user?.id === clickedUser.id) {
-        router.push(`/profile`);
+  // Handle profile navigation
+  const handleProfileNavigation = useCallback(
+    (leaderboardUser: LeaderboardUser) => {
+      if (user?.id === leaderboardUser.userId) {
+        router.push('/profile');
       } else {
-        router.push(`/profile/${clickedUser.id}`);
+        router.push(`/profile/${leaderboardUser.userId}`);
       }
     },
     [router, user?.id],
   );
 
-  // Define the handler for SearchBox's onUserSelect
-  const handleUserSelect = useCallback(
-    (user: SearchUser) => {
-      handleProfileRedirect(user);
-    },
-    [handleProfileRedirect],
-  );
-
-  // Memoize the user list to prevent unnecessary re-renders
-  const userList = useMemo(() => {
-    if (isLoading && filteredUsers.length === 0) {
-      return (
-        <div className="w-full flex justify-center items-center py-8">
-          <LoadingSpinner />
-        </div>
-      );
+  // Get current leaderboard based on active tab
+  const currentLeaderboard = useMemo(() => {
+    switch (activeTab) {
+      case 'today':
+        return dailyLeaderboard;
+      case 'week':
+        return weeklyLeaderboard;
+      case 'month':
+        return monthlyLeaderboard;
+      default:
+        return dailyLeaderboard;
     }
+  }, [activeTab, dailyLeaderboard, weeklyLeaderboard, monthlyLeaderboard]);
 
-    if (filteredUsers.length === 0) {
-      return (
-        <div className="w-full text-center py-8 text-gray-400">
-          {searchTerm.trim() ? 'No users found matching your search' : 'No users found'}
-        </div>
-      );
+  // Get button color for tabs
+  const getButtonColor = (tab: ChallengeType) => {
+    switch (tab) {
+      case 'today':
+        return 'nocenaPink';
+      case 'week':
+        return 'nocenaPurple';
+      case 'month':
+        return 'nocenaBlue';
+      default:
+        return 'nocenaBlue';
     }
+  };
 
-    return filteredUsers.map((userData) => {
-      const isFollowing =
-        userData.followers && Array.isArray(userData.followers) && user && userData.followers.includes(user.id);
-      const isCurrentUser = userData.id === user?.id;
-      const isPending = pendingFollowActions.has(userData.id);
+  // Render top 3 leaderboard items (larger)
+  const renderTopThreeItem = useCallback(
+    (item: LeaderboardUser, index: number) => {
+      const isCurrentUser = user?.id === item.userId;
+      const isPending = pendingFollowActions.has(item.userId);
+
+      // Rankings for top 3
+      const getRankDisplay = (rank: number) => {
+        if (rank === 1) return { text: '1st', color: 'text-yellow-400' };
+        if (rank === 2) return { text: '2nd', color: 'text-gray-300' };
+        if (rank === 3) return { text: '3rd', color: 'text-orange-400' };
+        return { text: `${rank}th`, color: 'text-gray-400' };
+      };
+
+      const rankDisplay = getRankDisplay(item.rank);
 
       return (
-        <div
-          key={userData.id}
-          className="w-full bg-nocenaBg/80 py-3 px-3 rounded-lg flex flex-col cursor-pointer overflow-hidden transition-all hover:bg-nocenaBg"
+        <ThematicContainer
+          key={item.userId}
+          asButton={false}
+          glassmorphic={true}
+          color={isCurrentUser ? 'nocenaPurple' : 'nocenaBlue'}
+          rounded="xl"
+          className={`p-6 mb-4 cursor-pointer`}
+          isActive={isCurrentUser}
+          onClick={() => handleProfileNavigation(item)}
         >
           <div className="flex items-center">
-            <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => handleProfileRedirect(userData)}>
-              <ThematicImage className="rounded-full flex-shrink-0">
+            {/* Large Rank */}
+            <div className="flex-shrink-0 w-16 text-center">
+              <span className={`text-2xl font-bold ${rankDisplay.color}`}>{rankDisplay.text}</span>
+            </div>
+
+            {/* Large Profile Picture */}
+            <div className="flex-shrink-0 mx-4">
+              <ThematicImage className="rounded-full">
                 <Image
-                  src={userData.profilePicture || '/images/profile.png'}
+                  src={item.profilePicture || '/images/profile.png'}
                   alt="Profile"
-                  width={96}
-                  height={96}
-                  className="w-10 h-10 object-cover rounded-full"
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-cover rounded-full"
                 />
               </ThematicImage>
+            </div>
 
-              <div className="flex-1 min-w-0 mr-2">
-                <h1 className="truncate text-left max-w-full text-sm font-medium">{userData.username}</h1>
-                <div className="flex items-center mt-0.5">
-                  <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
-                  <span className="text-xs ml-1 text-gray-400">{userData.earnedTokens}</span>
-                </div>
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="font-bold text-lg truncate text-white">{item.username}</h3>
+                {isCurrentUser && (
+                  <ThematicContainer
+                    asButton={false}
+                    glassmorphic={true}
+                    color="nocenaPink"
+                    rounded="full"
+                    className="px-2 py-1"
+                  >
+                    <span className="text-xs font-medium">You</span>
+                  </ThematicContainer>
+                )}
+              </div>
+              <div className="flex items-center">
+                <Image src={nocenixIcon} alt="Nocenix" width={20} height={20} />
+                <span className="text-lg ml-2 text-yellow-400 font-bold">
+                  {item.currentPeriodTokens.toLocaleString()}
+                </span>
               </div>
             </div>
 
             {/* Follow Button */}
-            <div className="flex-shrink-0">
-              <PrimaryButton
-                text={
-                  isCurrentUser
-                    ? 'Your Profile'
-                    : isPending
-                      ? isFollowing
-                        ? 'Following...'
-                        : 'Unfollowing...'
-                      : isFollowing
-                        ? 'Following'
-                        : 'Follow'
-                }
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent profile navigation when clicking the button
-                  if (!isCurrentUser) handleFollow(userData.id);
-                }}
-                className="px-3 py-1 text-xs min-w-[5rem] h-8"
-                isActive={!!isFollowing}
-                disabled={isCurrentUser || isPending}
-              />
-            </div>
+            {!isCurrentUser && (
+              <div className="flex-shrink-0 ml-4">
+                <PrimaryButton
+                  text={isPending ? 'Loading...' : 'Follow'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollow(item.userId);
+                  }}
+                  className="px-4 py-2 text-sm"
+                  disabled={isPending}
+                />
+              </div>
+            )}
           </div>
-        </div>
+        </ThematicContainer>
       );
-    });
-  }, [filteredUsers, user, pendingFollowActions, isLoading, searchTerm, handleProfileRedirect, handleFollow]);
+    },
+    [user?.id, pendingFollowActions, handleProfileNavigation, handleFollow],
+  );
 
-  // Immediately show cached results on first render
-  if (!initialRenderComplete && users.length === 0) {
+  // Render remaining 7 items (smaller)
+  const renderRemainingItem = useCallback(
+    (item: LeaderboardUser, index: number) => {
+      const isCurrentUser = user?.id === item.userId;
+      const isPending = pendingFollowActions.has(item.userId);
+
+      return (
+        <ThematicContainer
+          key={item.userId}
+          asButton={false}
+          glassmorphic={true}
+          color={isCurrentUser ? 'nocenaPurple' : 'nocenaBlue'}
+          rounded="lg"
+          className={`p-3 mb-2 cursor-pointer`}
+          isActive={isCurrentUser}
+          onClick={() => handleProfileNavigation(item)}
+        >
+          <div className="flex items-center">
+            {/* Small Rank */}
+            <div className="flex-shrink-0 w-8 text-center">
+              <span className="text-sm font-medium text-gray-400">#{item.rank}</span>
+            </div>
+
+            {/* Small Profile Picture */}
+            <div className="flex-shrink-0 mx-3">
+              <ThematicImage className="rounded-full">
+                <Image
+                  src={item.profilePicture || '/images/profile.png'}
+                  alt="Profile"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 object-cover rounded-full"
+                />
+              </ThematicImage>
+            </div>
+
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-sm truncate text-white">{item.username}</h4>
+                {isCurrentUser && <span className="text-xs bg-purple-600 px-1 py-0.5 rounded text-white">You</span>}
+              </div>
+              <div className="flex items-center mt-1">
+                <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
+                <span className="text-sm ml-1 text-yellow-400 font-medium">
+                  {item.currentPeriodTokens.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Follow Button */}
+            {!isCurrentUser && (
+              <div className="flex-shrink-0 ml-2">
+                <PrimaryButton
+                  text={isPending ? '...' : 'Follow'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollow(item.userId);
+                  }}
+                  className="px-2 py-1 text-xs h-6"
+                  disabled={isPending}
+                />
+              </div>
+            )}
+          </div>
+        </ThematicContainer>
+      );
+    },
+    [user?.id, pendingFollowActions, handleProfileNavigation, handleFollow],
+  );
+
+  if (showSearchResults) {
     return (
       <div className="text-white p-4 min-h-screen mt-20">
         <div className="flex flex-col items-center">
-          <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={[]} />
-          <div className="w-full max-w-md space-y-2 mt-6 px-1">
-            <div className="w-full flex justify-center items-center py-8">
-              <LoadingSpinner />
+          <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={searchResults} />
+
+          <div className="w-full max-w-md mt-4">
+            <ThematicContainer
+              asButton={true}
+              glassmorphic={true}
+              color="nocenaPink"
+              rounded="lg"
+              className="mb-4 p-2"
+              onClick={() => {
+                setShowSearchResults(false);
+                setSearchTerm('');
+                setSearchResults([]);
+              }}
+            >
+              <span className="text-sm">← Back to Leaderboards</span>
+            </ThematicContainer>
+
+            <div className="space-y-2">
+              {searchResults.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">No users found matching "{searchTerm}"</div>
+              ) : (
+                searchResults.map((user) => (
+                  <ThematicContainer
+                    key={user.id}
+                    asButton={false}
+                    glassmorphic={true}
+                    color="nocenaBlue"
+                    rounded="lg"
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleUserSelect(user)}
+                  >
+                    <div className="flex items-center">
+                      <ThematicImage className="rounded-full flex-shrink-0">
+                        <Image
+                          src={user.profilePicture || '/images/profile.png'}
+                          alt="Profile"
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 object-cover rounded-full"
+                        />
+                      </ThematicImage>
+                      <div className="ml-3 flex-1">
+                        <h3 className="font-medium text-sm">{user.username}</h3>
+                        <div className="flex items-center mt-1">
+                          <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
+                          <span className="text-xs ml-1 text-gray-400">{user.earnedTokens || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </ThematicContainer>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -422,11 +514,78 @@ const SearchView = () => {
   return (
     <div className="text-white p-4 min-h-screen mt-20">
       <div className="flex flex-col items-center">
-        {/* SearchBox Component */}
-        <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={users} />
+        {/* Search Box */}
+        <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={[]} />
 
-        {/* User List */}
-        <div className="w-full max-w-md space-y-2 mt-6 px-1 mb-28">{userList}</div>
+        {/* Title */}
+        <div className="w-full max-w-md mt-6 mb-4">
+          <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            Leaderboards
+          </h1>
+          <p className="text-center text-sm text-gray-400 mt-1">Compete with other Nocena users</p>
+        </div>
+
+        {/* Tab Navigation - Always refresh on tab change */}
+        <div className="flex justify-center mb-8 space-x-4">
+          {(['today', 'week', 'month'] as ChallengeType[]).map((tab) => (
+            <ThematicContainer
+              key={tab}
+              asButton={true}
+              glassmorphic={false}
+              color={getButtonColor(tab)}
+              isActive={activeTab === tab}
+              onClick={() => {
+                if (tab !== activeTab) {
+                  console.log(`Switching to ${tab} tab - refreshing leaderboards`);
+                  setActiveTab(tab);
+                  // Always refresh when switching tabs to get latest data
+                  refreshLeaderboards(true);
+                }
+              }}
+              className="px-6 py-2"
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </ThematicContainer>
+          ))}
+        </div>
+
+        {/* Leaderboard */}
+        <div className="w-full max-w-md mb-28">
+          {isLoading ? (
+            <div className="w-full flex justify-center items-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : currentLeaderboard.length === 0 ? (
+            <ThematicContainer
+              asButton={false}
+              glassmorphic={true}
+              color="nocenaBlue"
+              rounded="xl"
+              className="p-8 text-center"
+            >
+              <div className="text-gray-400 mb-4">
+                <h3 className="text-lg font-medium mb-2">No Rankings Yet</h3>
+                <p className="text-sm">
+                  Be the first to complete{' '}
+                  {activeTab === 'today' ? 'a daily' : activeTab === 'week' ? 'a weekly' : 'a monthly'} challenge and
+                  claim the top spot!
+                </p>
+              </div>
+              <div className="text-4xl mb-4">🏆</div>
+              <p className="text-xs text-gray-500">Complete challenges to appear on the {activeTab} leaderboard</p>
+            </ThematicContainer>
+          ) : (
+            <>
+              {/* Top 3 - Large display */}
+              {currentLeaderboard.slice(0, 3).map((item, index) => renderTopThreeItem(item, index))}
+
+              {/* Remaining 7 - Smaller display */}
+              {currentLeaderboard.slice(3).map((item, index) => renderRemainingItem(item, index + 3))}
+            </>
+          )}
+        </div>
+
+        {/* Footer note - removed since no more demo users */}
       </div>
     </div>
   );

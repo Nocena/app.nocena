@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import axios from 'axios';
+import { dailyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
+import { resetTimeBasedEarnings } from '../lib/api/dgraph';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -191,6 +193,58 @@ class DailyChallengeGenerator {
     }
   }
 
+  private async getUsedChallengeIds(): Promise<string[]> {
+    if (!DGRAPH_ENDPOINT) {
+      console.log('⚠️ DGRAPH_ENDPOINT not configured, skipping used challenges check');
+      return [];
+    }
+
+    const query = `
+      query GetUsedChallenges {
+        queryAIChallenge(
+          filter: { frequency: { eq: "daily" } }
+          order: { desc: createdAt }
+          first: 100
+        ) {
+          title
+          description
+        }
+      }
+    `;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
+      headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
+    }
+
+    try {
+      const response = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query,
+        },
+        {
+          headers,
+        },
+      );
+
+      if (response.data.errors) {
+        console.log('⚠️ Error fetching used challenges:', response.data.errors);
+        return [];
+      }
+
+      const challenges = response.data.data?.queryAIChallenge || [];
+      // Create unique identifiers for used challenges based on title + description
+      return challenges.map((c: any) => `${c.title}:${c.description}`);
+    } catch (error) {
+      console.log('⚠️ Network error fetching used challenges:', error);
+      return [];
+    }
+  }
+
   private getDailyPrompt(): string {
     return `You are a mysterious mind of a organization from the future briefing their agents on daily missions to get ready for harder tasks comming.
 
@@ -289,14 +343,76 @@ IMPORTANT: Look at the recent challenges above and generate something DIFFERENT.
     }
   }
 
+  private selectDailyChallenge(): { title: string; description: string } {
+    // Select a random challenge from the daily challenges array
+    const randomIndex = Math.floor(Math.random() * dailyChallenges.length);
+    const selectedChallenge = dailyChallenges[randomIndex];
+    
+    console.log(`🎯 Selected challenge ${randomIndex + 1} of ${dailyChallenges.length}: ${selectedChallenge.title}`);
+    
+    return {
+      title: selectedChallenge.title,
+      description: selectedChallenge.description
+    };
+  }
+
+  private async selectUnusedDailyChallenge(): Promise<{ title: string; description: string }> {
+    try {
+      // Get used challenges
+      console.log('📚 Fetching used challenges to avoid repetition...');
+      const usedChallengeIds = await this.getUsedChallengeIds();
+
+      // Filter out used challenges
+      const availableChallenges = dailyChallenges.filter(challenge => {
+        const challengeId = `${challenge.title}:${challenge.description}`;
+        return !usedChallengeIds.includes(challengeId);
+      });
+
+      console.log(`📊 Available challenges: ${availableChallenges.length} of ${dailyChallenges.length} total`);
+
+      // If no unused challenges, reset and use all challenges
+      if (availableChallenges.length === 0) {
+        console.log('🔄 All challenges have been used! Resetting to use full list again.');
+        return this.selectDailyChallenge();
+      }
+
+      // Select random unused challenge
+      const randomIndex = Math.floor(Math.random() * availableChallenges.length);
+      const selectedChallenge = availableChallenges[randomIndex];
+      
+      console.log(`🎯 Selected unused challenge: ${selectedChallenge.title}`);
+      
+      return {
+        title: selectedChallenge.title,
+        description: selectedChallenge.description
+      };
+    } catch (error) {
+      console.error('⚠️ Error selecting unused challenge, falling back to random selection:', error);
+      return this.selectDailyChallenge();
+    }
+  }
+
   private getDayOfYear(date: Date): number {
     const start = new Date(date.getFullYear(), 0, 0);
     const diff = date.getTime() - start.getTime();
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   }
 
-  async generateChallengeForDate(date: Date = new Date()): Promise<AIChallenge> {
-    const { title, description } = await this.generateDailyChallenge();
+  async generateChallengeForDate(date: Date = new Date(), useAI: boolean = false): Promise<AIChallenge> {
+    let title: string;
+    let description: string;
+
+    if (useAI) {
+      console.log('🤖 Using AI to generate challenge...');
+      const challenge = await this.generateDailyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    } else {
+      console.log('📚 Using predefined challenge list...');
+      const challenge = await this.selectUnusedDailyChallenge();
+      title = challenge.title;
+      description = challenge.description;
+    }
 
     const challenge: AIChallenge = {
       id: uuidv4(),
@@ -584,29 +700,52 @@ async function main() {
   const generator = new DailyChallengeGenerator();
 
   try {
-    console.log('🚀 Generating Daily AI Challenge...\n');
+    // You can change this flag to switch between AI generation and predefined challenges
+    const useAI = false; // Set to true to use OpenAI, false to use predefined challenges
+    
+    console.log('🚀 Starting Daily Challenge Process...\n');
 
-    const dailyChallenge = await generator.generateChallengeForDate();
+    // Step 1: Reset daily earnings for all users
+    console.log('💰 Resetting daily earnings counters for all users...');
+    try {
+      await resetTimeBasedEarnings('daily');
+      console.log('✅ Daily earnings reset completed successfully!\n');
+    } catch (error) {
+      console.error('❌ Failed to reset daily earnings:', error);
+      console.log('⚠️ Continuing with challenge generation despite earnings reset failure...\n');
+    }
+
+    // Step 2: Generate and process the daily challenge
+    console.log('🎯 Generating Daily AI Challenge...');
+    console.log(`📚 Total daily challenges available: ${dailyChallenges.length}`);
+    console.log(`🤖 Using ${useAI ? 'AI generation' : 'predefined challenges'}\n`);
+
+    const dailyChallenge = await generator.generateChallengeForDate(new Date(), useAI);
     generator.printChallengeForDgraph(dailyChallenge);
 
-    // Save to database
-    console.log('\n💾 Saving to database...');
+    // Step 3: Save to database
+    console.log('\n💾 Saving challenge to database...');
     const saved = await saveDailyChallengeToDatabase(dailyChallenge);
 
     if (saved) {
       console.log('\n✅ Daily challenge generated and saved successfully!');
 
-      // Send push notifications
+      // Step 4: Send push notifications
       console.log('\n🔔 Sending push notifications to users...');
       await sendPushNotifications(dailyChallenge);
 
       console.log('\n🎉 Daily challenge process completed successfully!');
+      console.log('\n📋 Summary:');
+      console.log('   ✅ Daily earnings reset');
+      console.log('   ✅ Challenge generated');
+      console.log('   ✅ Challenge saved to database');
+      console.log('   ✅ Push notifications sent');
     } else {
       console.log('\n⚠️ Challenge generated but failed to save to database');
       console.log('You can manually save using the mutation above');
     }
   } catch (error) {
-    console.error('❌ Error generating challenge:', error);
+    console.error('❌ Error in daily challenge process:', error);
     process.exit(1);
   }
 }
