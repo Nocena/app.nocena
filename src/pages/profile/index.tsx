@@ -103,6 +103,18 @@ const ProfileView: React.FC = () => {
     const file = event.target.files?.[0];
     if (file && user) {
       try {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          alert('Please select a valid image file.');
+          return;
+        }
+
+        // Check file size (max 5MB for profile picture)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Image file must be smaller than 5MB.');
+          return;
+        }
+
         const options = {
           maxSizeMB: 0.5,
           maxWidthOrHeight: 512,
@@ -133,33 +145,43 @@ const ProfileView: React.FC = () => {
               }
             }
 
-            // Upload new image
+            // Upload new image with FIXED API call
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json' 
+              },
               body: JSON.stringify({
                 file: base64String,
                 fileName: `profile-${user.id}-${Date.now()}.webp`,
+                fileType: 'image' // FIXED: Added required fileType field
               }),
             });
 
             if (!response.ok) {
-              throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
+              const errorText = await response.text();
+              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
 
-            const { url } = await response.json();
-            setProfilePic(url);
-            await updateProfilePicture(user.id, url);
+            const result = await response.json();
+            
+            // FIXED: Check for the correct response format from your API
+            const ipfsUrl = result.ipfsHash 
+              ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}`
+              : result.url; // Fallback to url if that's what your API returns
+
+            setProfilePic(ipfsUrl);
+            await updateProfilePicture(user.id, ipfsUrl);
 
             // Update user state
-            const updatedUser = { ...user, profilePicture: url };
+            const updatedUser = { ...user, profilePicture: ipfsUrl };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             const profileCacheKey = `profile_${user.id}`;
             updatePageState(profileCacheKey, {
               ...(getPageState()[profileCacheKey]?.data || {}),
-              profilePicture: url,
+              profilePicture: ipfsUrl,
             });
 
             console.log('Profile picture successfully updated.');
@@ -221,28 +243,38 @@ const ProfileView: React.FC = () => {
               }
             }
 
-            // Upload new cover photo to IPFS
+            // Upload new cover photo to IPFS with FIXED API call
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json' 
+              },
               body: JSON.stringify({
                 file: base64String,
                 fileName: `cover-${user.id}-${Date.now()}.webp`,
+                fileType: 'image' // FIXED: Added required fileType field
               }),
             });
 
             if (!response.ok) {
-              throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
+              const errorText = await response.text();
+              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
 
-            const { url } = await response.json();
-            setCoverPhoto(url);
+            const result = await response.json();
+            
+            // FIXED: Check for the correct response format from your API
+            const ipfsUrl = result.ipfsHash 
+              ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}`
+              : result.url; // Fallback to url if that's what your API returns
 
-            // Update in database (need to add this function to dgraph.ts)
-            await updateCoverPhoto(user.id, url);
+            setCoverPhoto(ipfsUrl);
 
-            // Update user state (same pattern as profile picture)
-            const updatedUser = { ...user, coverPhoto: url };
+            // Update in database
+            await updateCoverPhoto(user.id, ipfsUrl);
+
+            // Update user state
+            const updatedUser = { ...user, coverPhoto: ipfsUrl };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
@@ -250,7 +282,7 @@ const ProfileView: React.FC = () => {
             const profileCacheKey = `profile_${user.id}`;
             updatePageState(profileCacheKey, {
               ...(getPageState()[profileCacheKey]?.data || {}),
-              coverPhoto: url,
+              coverPhoto: ipfsUrl,
             });
 
             console.log('Cover photo successfully updated.');
