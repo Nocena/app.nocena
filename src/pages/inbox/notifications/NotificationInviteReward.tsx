@@ -63,7 +63,7 @@ const NotificationInviteReward: React.FC<NotificationInviteRewardProps> = ({
               alt="Friend Profile"
               width={40}
               height={40}
-              className="w-8 h-8 object-cover"
+              className="w-8 h-8 object-cover rounded-full"
             />
           </ThematicImage>
           {/* Username - bigger and bold */}
@@ -87,7 +87,7 @@ const NotificationInviteReward: React.FC<NotificationInviteRewardProps> = ({
             </div>
           )}
 
-          <ThematicContainer asButton={false} color="nocenaPurple" className="px-4 py-1">
+          <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
             <div className="flex items-center space-x-1">
               <span className="text-xl font-semibold">50</span>
               <Image src="/nocenix.ico" alt="Nocenix" width={32} height={32} />

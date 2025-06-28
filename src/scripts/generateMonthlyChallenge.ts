@@ -356,12 +356,12 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
     // Select a random challenge from the monthly challenges array
     const randomIndex = Math.floor(Math.random() * monthlyChallenges.length);
     const selectedChallenge = monthlyChallenges[randomIndex];
-    
+
     console.log(`🎯 Selected challenge ${randomIndex + 1} of ${monthlyChallenges.length}: ${selectedChallenge.title}`);
-    
+
     return {
       title: selectedChallenge.title,
-      description: selectedChallenge.description
+      description: selectedChallenge.description,
     };
   }
 
@@ -372,7 +372,7 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
       const usedChallengeIds = await this.getUsedChallengeIds();
 
       // Filter out used challenges
-      const availableChallenges = monthlyChallenges.filter(challenge => {
+      const availableChallenges = monthlyChallenges.filter((challenge) => {
         const challengeId = `${challenge.title}:${challenge.description}`;
         return !usedChallengeIds.includes(challengeId);
       });
@@ -388,12 +388,12 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
       // Select random unused challenge
       const randomIndex = Math.floor(Math.random() * availableChallenges.length);
       const selectedChallenge = availableChallenges[randomIndex];
-      
+
       console.log(`🎯 Selected unused challenge: ${selectedChallenge.title}`);
-      
+
       return {
         title: selectedChallenge.title,
-        description: selectedChallenge.description
+        description: selectedChallenge.description,
       };
     } catch (error) {
       console.error('⚠️ Error selecting unused challenge, falling back to random selection:', error);
@@ -699,7 +699,7 @@ async function main() {
   try {
     // You can change this flag to switch between AI generation and predefined challenges
     const useAI = false; // Set to true to use OpenAI, false to use predefined challenges
-    
+
     console.log('🚀 Starting Monthly Challenge Process...\n');
 
     // Step 1: Reset monthly earnings for all users

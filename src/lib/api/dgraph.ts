@@ -1070,16 +1070,18 @@ export const getUserFromDgraph = async (walletAddress: string) => {
   }
 };
 
-// Updated getUserByIdFromDgraph function - ADD ALL MISSING FIELDS
+// Fixed getUserByIdFromDgraph function - matches your schema exactly
 export const getUserByIdFromDgraph = async (userId: string) => {
+  console.log('=== getUserByIdFromDgraph called ===');
+  console.log('userId parameter:', userId);
+
   const query = `
     query GetUserById($userId: String!) {
       queryUser(filter: { id: { eq: $userId } }) {
         id
         username
-        phoneNumber
-        wallet
         bio
+        wallet
         profilePicture
         coverPhoto
         trailerVideo
@@ -1087,6 +1089,16 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         earnedTokensToday
         earnedTokensThisWeek
         earnedTokensThisMonth
+        lastEarningsUpdate
+        pushSubscription
+        
+        # Lens Protocol fields
+        lensHandle
+        lensAccountId
+        lensTransactionHash
+        lensMetadataUri
+        
+        # Personal Expression Fields
         personalField1Type
         personalField1Value
         personalField1Metadata
@@ -1096,14 +1108,17 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         personalField3Type
         personalField3Value
         personalField3Metadata
-        lensHandle
-        lensAccountId
-        lensTransactionHash
-        lensMetadataUri
-        pushSubscription
+        
+        # Invite tracking
+        invitedById
+        inviteCode
+        
+        # AI challenge tracking
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
+        
+        # Relationships
         followers {
           id
         }
@@ -1136,6 +1151,10 @@ export const getUserByIdFromDgraph = async (userId: string) => {
   `;
 
   try {
+    console.log('=== Making Dgraph query ===');
+    console.log('Query:', query);
+    console.log('Variables:', { userId });
+
     const response = await axios.post(
       DGRAPH_ENDPOINT,
       {
@@ -1147,10 +1166,19 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       },
     );
 
+    console.log('=== Dgraph response ===');
+    console.log('Full response:', response.data);
+    console.log('Response data:', response.data?.data);
+    console.log('Query result:', response.data?.data?.queryUser);
+
     const userData = response.data?.data?.queryUser[0] || null;
+    console.log('=== Extracted user data ===');
+    console.log('userData:', userData);
 
     // Format the data to match your User interface
     if (userData) {
+      console.log('=== Processing user data ===');
+      
       // Convert followers from objects to string array of ids
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
@@ -1163,6 +1191,7 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
 
       // Ensure token fields have defaults for existing users
+      userData.earnedTokens = userData.earnedTokens || 0;
       userData.earnedTokensToday = userData.earnedTokensToday || 0;
       userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
       userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
@@ -1184,12 +1213,22 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.lensTransactionHash = userData.lensTransactionHash || '';
       userData.lensMetadataUri = userData.lensMetadataUri || '';
 
+      // Ensure invite fields have defaults
+      userData.invitedById = userData.invitedById || '';
+      userData.inviteCode = userData.inviteCode || '';
+
       // Ensure media fields have defaults
       userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
       userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
+      userData.bio = userData.bio || '';
 
       // Ensure push subscription has default
       userData.pushSubscription = userData.pushSubscription || '';
+
+      // Ensure challenge strings have defaults (very important!)
+      userData.dailyChallenge = userData.dailyChallenge || '0'.repeat(365);
+      userData.weeklyChallenge = userData.weeklyChallenge || '0'.repeat(52);
+      userData.monthlyChallenge = userData.monthlyChallenge || '0'.repeat(12);
 
       // Format completed challenges to match your interface
       userData.completedChallenges =
@@ -1216,11 +1255,22 @@ export const getUserByIdFromDgraph = async (userId: string) => {
             proofCID: c.media,
           };
         }) || [];
+
+      console.log('=== Final processed user data ===');
+      console.log('Processed userData:', userData);
+    } else {
+      console.log('=== No user found ===');
+      console.log('queryUser returned:', response.data?.data?.queryUser);
     }
 
     return userData;
   } catch (error) {
-    console.error('Error fetching user by ID from Dgraph:', error);
+    console.error('=== Error in getUserByIdFromDgraph ===');
+    console.error('Error details:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      console.error('Response status:', (error as any).response.status);
+      console.error('Response data:', (error as any).response.data);
+    }
     throw new Error('Failed to fetch user by ID.');
   }
 };

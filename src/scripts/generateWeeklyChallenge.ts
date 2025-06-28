@@ -303,12 +303,12 @@ IMPORTANT: Analyze the recent experiments above and generate something DIFFERENT
     // Select a random challenge from the weekly challenges array
     const randomIndex = Math.floor(Math.random() * weeklyChallenges.length);
     const selectedChallenge = weeklyChallenges[randomIndex];
-    
+
     console.log(`🎯 Selected challenge ${randomIndex + 1} of ${weeklyChallenges.length}: ${selectedChallenge.title}`);
-    
+
     return {
       title: selectedChallenge.title,
-      description: selectedChallenge.description
+      description: selectedChallenge.description,
     };
   }
 
@@ -319,7 +319,7 @@ IMPORTANT: Analyze the recent experiments above and generate something DIFFERENT
       const usedChallengeIds = await this.getUsedChallengeIds();
 
       // Filter out used challenges
-      const availableChallenges = weeklyChallenges.filter(challenge => {
+      const availableChallenges = weeklyChallenges.filter((challenge) => {
         const challengeId = `${challenge.title}:${challenge.description}`;
         return !usedChallengeIds.includes(challengeId);
       });
@@ -335,12 +335,12 @@ IMPORTANT: Analyze the recent experiments above and generate something DIFFERENT
       // Select random unused challenge
       const randomIndex = Math.floor(Math.random() * availableChallenges.length);
       const selectedChallenge = availableChallenges[randomIndex];
-      
+
       console.log(`🎯 Selected unused challenge: ${selectedChallenge.title}`);
-      
+
       return {
         title: selectedChallenge.title,
-        description: selectedChallenge.description
+        description: selectedChallenge.description,
       };
     } catch (error) {
       console.error('⚠️ Error selecting unused challenge, falling back to random selection:', error);
@@ -577,7 +577,7 @@ async function main() {
   try {
     // You can change this flag to switch between AI generation and predefined challenges
     const useAI = false; // Set to true to use OpenAI, false to use predefined challenges
-    
+
     console.log('🚀 Starting Weekly Challenge Process...\n');
 
     // Step 1: Reset weekly earnings for all users

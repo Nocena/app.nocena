@@ -511,14 +511,19 @@ const OtherProfileView: React.FC = () => {
         <div className="min-h-screen">
           {/* Cover Photo Section */}
           <div className="relative h-80 overflow-hidden">
-            {user.coverPhoto && user.coverPhoto !== '/images/cover.jpg' ? (
-              <Image src={user.coverPhoto} alt="Cover" fill className="object-cover" />
-            ) : (
-              <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
-            )}
-
-            {/* Gradient overlay for smooth blending effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-transparent via-70% to-black/80" />
+            <div 
+              className="absolute inset-0"
+              style={{
+                WebkitMask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
+                mask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)'
+              }}
+            >
+              {user.coverPhoto && user.coverPhoto !== '/images/cover.jpg' ? (
+                <Image src={user.coverPhoto} alt="Cover" fill className="object-cover" />
+              ) : (
+                <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
+              )}
+            </div>
           </div>
 
           {/* Profile Section - with improved bottom padding */}
@@ -606,7 +611,7 @@ const OtherProfileView: React.FC = () => {
             </div>
 
             {/* Three Section Menu using ThematicContainer */}
-            <div className="flex justify-center mb-6 space-x-4">
+            <div className="mb-6 flex space-x-3 w-full">
               {[
                 { key: 'trailer', label: 'Trailer' },
                 { key: 'calendar', label: 'Calendar' },
@@ -619,9 +624,11 @@ const OtherProfileView: React.FC = () => {
                   color={getButtonColor(key)}
                   isActive={activeSection === key}
                   onClick={() => setActiveSection(key as any)}
-                  className="px-8 py-2"
+                  className="flex-1 min-w-0 px-2 py-1" // Added min-w-0 to prevent flex shrinking issues
                 >
-                  {label}
+                  <span className="text-sm font-medium whitespace-nowrap text-center w-full">
+                    {label}
+                  </span>
                 </ThematicContainer>
               ))}
             </div>

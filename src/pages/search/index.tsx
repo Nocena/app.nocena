@@ -6,7 +6,7 @@ import ThematicImage from '../../components/ui/ThematicImage';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { toggleFollowUser, searchUsers as searchUsersAPI } from '../../lib/api/dgraph';
+import { toggleFollowUser } from '../../lib/api/dgraph';
 import SearchBox, { SearchUser } from './components/SearchBox';
 import Image from 'next/image';
 
@@ -48,15 +48,10 @@ const SearchView = () => {
   const [activeTab, setActiveTab] = useState<ChallengeType>('today');
   const [pendingFollowActions, setPendingFollowActions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const { user } = useAuth();
   const router = useRouter();
-
-  // No more placeholder generation - only show real users
 
   // Fetch leaderboard data - only real users with tokens for the period
   const fetchLeaderboard = useCallback(async (period: ChallengeType): Promise<LeaderboardUser[]> => {
@@ -134,27 +129,6 @@ const SearchView = () => {
     },
     [fetchLeaderboard, lastRefreshTime],
   );
-  const searchUsers = useCallback(async (term: string): Promise<SearchUser[]> => {
-    if (!term.trim()) return [];
-
-    try {
-      // Use your existing searchUsers function from dgraph.ts
-      const results = await searchUsersAPI(term);
-      return results.map((user) => ({
-        id: user.id,
-        username: user.username,
-        profilePicture: user.profilePicture || '/images/profile.png',
-        wallet: user.wallet || '',
-        earnedTokens: 0, // You might want to fetch this from user data
-        bio: '',
-        followers: [],
-        following: [],
-      }));
-    } catch (error) {
-      console.error('Error searching users:', error);
-      return [];
-    }
-  }, []);
 
   // Simple page visibility handling - refresh when page becomes visible
   useEffect(() => {
@@ -179,7 +153,7 @@ const SearchView = () => {
     return () => {
       window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
     };
-  }, [isPageVisible]); // Removed refreshLeaderboards from dependencies
+  }, [isPageVisible]);
 
   // Load leaderboards - only once when page becomes visible
   useEffect(() => {
@@ -187,27 +161,9 @@ const SearchView = () => {
 
     console.log('Loading leaderboards for search page');
     refreshLeaderboards(true); // Force refresh on page load
-  }, [isPageVisible]); // Only depend on isPageVisible
+  }, [isPageVisible]);
 
-  // Handle search
-  const handleSearch = useCallback(
-    async (term: string) => {
-      setSearchTerm(term);
-
-      if (!term.trim()) {
-        setShowSearchResults(false);
-        setSearchResults([]);
-        return;
-      }
-
-      setShowSearchResults(true);
-      const results = await searchUsers(term);
-      setSearchResults(results);
-    },
-    [searchUsers],
-  );
-
-  // Handle user selection from search
+  // Handle user selection from search - SearchBox will handle its own dropdown
   const handleUserSelect = useCallback(
     (selectedUser: SearchUser) => {
       if (user?.id === selectedUser.id) {
@@ -285,98 +241,117 @@ const SearchView = () => {
     }
   };
 
-  // Render top 3 leaderboard items (larger)
+  // Render top 3 leaderboard items (podium style)
   const renderTopThreeItem = useCallback(
     (item: LeaderboardUser, index: number) => {
       const isCurrentUser = user?.id === item.userId;
       const isPending = pendingFollowActions.has(item.userId);
 
-      // Rankings for top 3
-      const getRankDisplay = (rank: number) => {
-        if (rank === 1) return { text: '1st', color: 'text-yellow-400' };
-        if (rank === 2) return { text: '2nd', color: 'text-gray-300' };
-        if (rank === 3) return { text: '3rd', color: 'text-orange-400' };
-        return { text: `${rank}th`, color: 'text-gray-400' };
+      // Podium heights and styles
+      const getPodiumStyle = (rank: number) => {
+        if (rank === 1)
+          return {
+            height: 'h-32',
+            color: 'nocenaBlue' as const,
+            crown: '👑',
+            textColor: 'text-yellow-400',
+            order: 'order-2',
+          };
+        if (rank === 2)
+          return {
+            height: 'h-24',
+            color: 'nocenaPurple' as const,
+            crown: '🥈',
+            textColor: 'text-gray-300',
+            order: 'order-1',
+          };
+        if (rank === 3)
+          return {
+            height: 'h-20',
+            color: 'nocenaPink' as const,
+            crown: '🥉',
+            textColor: 'text-orange-400',
+            order: 'order-3',
+          };
+        return {
+          height: 'h-16',
+          color: 'nocenaBlue' as const,
+          crown: '',
+          textColor: 'text-gray-400',
+          order: 'order-1',
+        };
       };
 
-      const rankDisplay = getRankDisplay(item.rank);
+      const style = getPodiumStyle(item.rank);
 
       return (
-        <ThematicContainer
+        <div
           key={item.userId}
-          asButton={false}
-          glassmorphic={true}
-          color={isCurrentUser ? 'nocenaPurple' : 'nocenaBlue'}
-          rounded="xl"
-          className={`p-6 mb-4 cursor-pointer`}
-          isActive={isCurrentUser}
+          className={`flex flex-col items-center ${style.order} cursor-pointer`}
           onClick={() => handleProfileNavigation(item)}
         >
-          <div className="flex items-center">
-            {/* Large Rank */}
-            <div className="flex-shrink-0 w-16 text-center">
-              <span className={`text-2xl font-bold ${rankDisplay.color}`}>{rankDisplay.text}</span>
-            </div>
-
-            {/* Large Profile Picture */}
-            <div className="flex-shrink-0 mx-4">
-              <ThematicImage className="rounded-full">
-                <Image
-                  src={item.profilePicture || '/images/profile.png'}
-                  alt="Profile"
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 object-cover rounded-full"
-                />
-              </ThematicImage>
-            </div>
-
-            {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="font-bold text-lg truncate text-white">{item.username}</h3>
-                {isCurrentUser && (
-                  <ThematicContainer
-                    asButton={false}
-                    glassmorphic={true}
-                    color="nocenaPink"
-                    rounded="full"
-                    className="px-2 py-1"
-                  >
-                    <span className="text-xs font-medium">You</span>
-                  </ThematicContainer>
-                )}
-              </div>
-              <div className="flex items-center">
-                <Image src={nocenixIcon} alt="Nocenix" width={20} height={20} />
-                <span className="text-lg ml-2 text-yellow-400 font-bold">
-                  {item.currentPeriodTokens.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* Follow Button */}
-            {!isCurrentUser && (
-              <div className="flex-shrink-0 ml-4">
-                <PrimaryButton
-                  text={isPending ? 'Loading...' : 'Follow'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFollow(item.userId);
-                  }}
-                  className="px-4 py-2 text-sm"
-                  disabled={isPending}
-                />
+          {/* Profile Picture with Crown */}
+          <div className="relative mb-2">
+            <ThematicImage className="rounded-full">
+              <Image
+                src={item.profilePicture || '/images/profile.png'}
+                alt="Profile"
+                width={item.rank === 1 ? 80 : 64}
+                height={item.rank === 1 ? 80 : 64}
+                className={`${item.rank === 1 ? 'w-20 h-20' : 'w-16 h-16'} object-cover rounded-full`}
+              />
+            </ThematicImage>
+            <div className="absolute -top-2 -right-2 text-2xl">{style.crown}</div>
+            {isCurrentUser && (
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                <ThematicContainer asButton={false} color="nocenaPink" rounded="full" className="px-2 py-0.5">
+                  <span className="text-xs font-medium">You</span>
+                </ThematicContainer>
               </div>
             )}
           </div>
-        </ThematicContainer>
+
+          {/* Username */}
+          <h3 className="font-bold text-sm text-white text-center mb-1 max-w-20 truncate">{item.username}</h3>
+
+          {/* Token Count */}
+          <div className="flex items-center justify-center mb-2">
+            <Image src="/nocenix.ico" alt="Nocenix" width={16} height={16} />
+            <span className="text-xs font-semibold ml-1 text-white">{item.currentPeriodTokens.toLocaleString()}</span>
+          </div>
+
+          {/* Podium Base */}
+          <ThematicContainer
+            asButton={false}
+            color={style.color}
+            rounded="t-lg"
+            className={`w-20 ${style.height} flex items-end justify-center pb-2`}
+            isActive={isCurrentUser}
+          >
+            <span className={`text-2xl font-bold ${style.textColor}`}>{item.rank}</span>
+          </ThematicContainer>
+
+          {/* Follow Button for non-current users */}
+          {!isCurrentUser && (
+            <div className="mt-2">
+              <PrimaryButton
+                text={isPending ? '⏳' : '+ Follow'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFollow(item.userId);
+                }}
+                className="px-3 py-1 text-xs"
+                disabled={isPending}
+              />
+            </div>
+          )}
+        </div>
       );
     },
     [user?.id, pendingFollowActions, handleProfileNavigation, handleFollow],
   );
 
-  // Render remaining 7 items (smaller)
+  // Render remaining items (clean list style)
   const renderRemainingItem = useCallback(
     (item: LeaderboardUser, index: number) => {
       const isCurrentUser = user?.id === item.userId;
@@ -388,57 +363,61 @@ const SearchView = () => {
           asButton={false}
           glassmorphic={true}
           color={isCurrentUser ? 'nocenaPurple' : 'nocenaBlue'}
-          rounded="lg"
-          className={`p-3 mb-2 cursor-pointer`}
+          rounded="xl"
+          className="p-4 mb-3 cursor-pointer hover:scale-[1.02] transition-transform"
           isActive={isCurrentUser}
           onClick={() => handleProfileNavigation(item)}
         >
-          <div className="flex items-center">
-            {/* Small Rank */}
-            <div className="flex-shrink-0 w-8 text-center">
-              <span className="text-sm font-medium text-gray-400">#{item.rank}</span>
-            </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* Rank */}
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-800/50">
+                <span className="text-sm font-bold text-gray-300">#{item.rank}</span>
+              </div>
 
-            {/* Small Profile Picture */}
-            <div className="flex-shrink-0 mx-3">
+              {/* Profile Picture */}
               <ThematicImage className="rounded-full">
                 <Image
                   src={item.profilePicture || '/images/profile.png'}
                   alt="Profile"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 object-cover rounded-full"
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 object-cover rounded-full"
                 />
               </ThematicImage>
-            </div>
 
-            {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-sm truncate text-white">{item.username}</h4>
-                {isCurrentUser && <span className="text-xs bg-purple-600 px-1 py-0.5 rounded text-white">You</span>}
-              </div>
-              <div className="flex items-center mt-1">
-                <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
-                <span className="text-sm ml-1 text-yellow-400 font-medium">
-                  {item.currentPeriodTokens.toLocaleString()}
-                </span>
+              {/* User Info */}
+              <div className="flex-1">
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-semibold text-white">{item.username}</h3>
+                  {isCurrentUser && (
+                    <ThematicContainer asButton={false} color="nocenaPink" rounded="full" className="px-2 py-0.5">
+                      <span className="text-xs font-medium">You</span>
+                    </ThematicContainer>
+                  )}
+                </div>
+
+                {/* Token display */}
+                <div className="flex items-center mt-1">
+                  <Image src="/nocenix.ico" alt="Nocenix" width={16} height={16} />
+                  <span className="text-sm font-medium text-gray-300 ml-1">
+                    {item.currentPeriodTokens.toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Follow Button */}
             {!isCurrentUser && (
-              <div className="flex-shrink-0 ml-2">
-                <PrimaryButton
-                  text={isPending ? '...' : 'Follow'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFollow(item.userId);
-                  }}
-                  className="px-2 py-1 text-xs h-6"
-                  disabled={isPending}
-                />
-              </div>
+              <PrimaryButton
+                text={isPending ? '⏳' : 'Follow'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFollow(item.userId);
+                }}
+                className="px-4 py-2 text-sm"
+                disabled={isPending}
+              />
             )}
           </div>
         </ThematicContainer>
@@ -447,82 +426,15 @@ const SearchView = () => {
     [user?.id, pendingFollowActions, handleProfileNavigation, handleFollow],
   );
 
-  if (showSearchResults) {
-    return (
-      <div className="text-white p-4 min-h-screen mt-20">
-        <div className="flex flex-col items-center">
-          <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={searchResults} />
-
-          <div className="w-full max-w-md mt-4">
-            <ThematicContainer
-              asButton={true}
-              glassmorphic={true}
-              color="nocenaPink"
-              rounded="lg"
-              className="mb-4 p-2"
-              onClick={() => {
-                setShowSearchResults(false);
-                setSearchTerm('');
-                setSearchResults([]);
-              }}
-            >
-              <span className="text-sm">← Back to Leaderboards</span>
-            </ThematicContainer>
-
-            <div className="space-y-2">
-              {searchResults.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">No users found matching "{searchTerm}"</div>
-              ) : (
-                searchResults.map((user) => (
-                  <ThematicContainer
-                    key={user.id}
-                    asButton={false}
-                    glassmorphic={true}
-                    color="nocenaBlue"
-                    rounded="lg"
-                    className="p-3 cursor-pointer"
-                    onClick={() => handleUserSelect(user)}
-                  >
-                    <div className="flex items-center">
-                      <ThematicImage className="rounded-full flex-shrink-0">
-                        <Image
-                          src={user.profilePicture || '/images/profile.png'}
-                          alt="Profile"
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 object-cover rounded-full"
-                        />
-                      </ThematicImage>
-                      <div className="ml-3 flex-1">
-                        <h3 className="font-medium text-sm">{user.username}</h3>
-                        <div className="flex items-center mt-1">
-                          <Image src={nocenixIcon} alt="Nocenix" width={14} height={14} />
-                          <span className="text-xs ml-1 text-gray-400">{user.earnedTokens || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </ThematicContainer>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="text-white p-4 min-h-screen mt-20">
       <div className="flex flex-col items-center">
-        {/* Search Box */}
-        <SearchBox onSearch={handleSearch} onUserSelect={handleUserSelect} users={[]} />
+        {/* Search Box - will handle its own dropdown overlay */}
+        <SearchBox onUserSelect={handleUserSelect} />
 
         {/* Title */}
         <div className="w-full max-w-md mt-6 mb-4">
-          <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Leaderboards
-          </h1>
-          <p className="text-center text-sm text-gray-400 mt-1">Compete with other Nocena users</p>
+          <p className="text-center text-sm text-gray-400 mt-1">Best challengers</p>
         </div>
 
         {/* Tab Navigation - Always refresh on tab change */}
@@ -575,17 +487,26 @@ const SearchView = () => {
               <p className="text-xs text-gray-500">Complete challenges to appear on the {activeTab} leaderboard</p>
             </ThematicContainer>
           ) : (
-            <>
-              {/* Top 3 - Large display */}
-              {currentLeaderboard.slice(0, 3).map((item, index) => renderTopThreeItem(item, index))}
+            <div className="space-y-6">
+              {/* Top 3 Podium */}
+              {currentLeaderboard.slice(0, 3).length > 0 && (
+                <div className="mb-8">
+                  <div className="flex justify-center items-end space-x-4 mb-6">
+                    {currentLeaderboard.slice(0, 3).map((item, index) => renderTopThreeItem(item, index))}
+                  </div>
+                </div>
+              )}
 
-              {/* Remaining 7 - Smaller display */}
-              {currentLeaderboard.slice(3).map((item, index) => renderRemainingItem(item, index + 3))}
-            </>
+              {/* Rest of the leaderboard */}
+              {currentLeaderboard.slice(3).length > 0 && (
+                <div>
+                  <h3 className="text-left text-sm font-semibold text-gray-400 mb-4 px-2">Runnerups</h3>
+                  {currentLeaderboard.slice(3).map((item, index) => renderRemainingItem(item, index + 3))}
+                </div>
+              )}
+            </div>
           )}
         </div>
-
-        {/* Footer note - removed since no more demo users */}
       </div>
     </div>
   );
