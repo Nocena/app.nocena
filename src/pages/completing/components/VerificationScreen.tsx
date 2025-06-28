@@ -436,7 +436,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         <div className="text-sm text-gray-400">
           {challenge.title} • {stageInfo.subtitle}
         </div>
-        
+
         {/* Development Mode Controls */}
         {isDevelopmentEnvironment && (
           <div className="mt-4 px-4 py-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl">
@@ -461,10 +461,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               </div>
             </div>
             <div className="text-xs text-yellow-300">
-              {useMockVerification 
-                ? 'Using simulated AI verification for testing' 
-                : 'Using actual AI verification service'
-              }
+              {useMockVerification
+                ? 'Using simulated AI verification for testing'
+                : 'Using actual AI verification service'}
             </div>
           </div>
         )}
@@ -545,25 +544,32 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </svg>
               </div>
               <h3 className="text-lg font-medium mb-2">
-                {isDevelopmentEnvironment && useMockVerification 
-                  ? 'Mock AI Analysis Ready' 
-                  : 'AI Analysis Ready'
-                }
+                {isDevelopmentEnvironment && useMockVerification ? 'Mock AI Analysis Ready' : 'AI Analysis Ready'}
               </h3>
               <p className="text-sm text-gray-300 mb-4">
                 {isDevelopmentEnvironment && useMockVerification
                   ? 'Mock verification will simulate AI analysis for testing'
-                  : 'Our AI will verify your challenge completion using advanced computer vision'
-                }
+                  : 'Our AI will verify your challenge completion using advanced computer vision'}
               </p>
               {(!isDevelopmentEnvironment || !useMockVerification) && (
                 <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 mb-4">
                   <div className="flex items-start gap-2">
-                    <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <p className="text-xs text-blue-300 leading-relaxed">
-                      <strong>First-time setup:</strong> Initial verification may take an extra few seconds while face recognition models are downloaded and initialized.
+                      <strong>First-time setup:</strong> Initial verification may take an extra few seconds while face
+                      recognition models are downloaded and initialized.
                     </p>
                   </div>
                 </div>
@@ -588,10 +594,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               <div className="text-center mb-4">
                 <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-nocenaPink">
-                  {isDevelopmentEnvironment && useMockVerification 
-                    ? 'Mock Analysis Active' 
-                    : 'Neural Analysis Active'
-                  }
+                  {isDevelopmentEnvironment && useMockVerification ? 'Mock Analysis Active' : 'Neural Analysis Active'}
                 </h3>
               </div>
 

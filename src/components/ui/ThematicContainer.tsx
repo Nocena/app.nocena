@@ -93,16 +93,21 @@ const ThematicContainer: React.FC<Props> = ({
 
   // Extract flex-related classes from className to apply to wrapper
   const extractFlexClasses = (className: string) => {
-    const flexClasses = className.split(' ').filter(cls => 
-      cls.startsWith('flex') || cls.startsWith('w-') || cls.startsWith('min-w') || cls.startsWith('max-w')
-    );
-    const remainingClasses = className.split(' ').filter(cls => 
-      !cls.startsWith('flex') && !cls.startsWith('w-') && !cls.startsWith('min-w') && !cls.startsWith('max-w')
-    );
-    
+    const flexClasses = className
+      .split(' ')
+      .filter(
+        (cls) => cls.startsWith('flex') || cls.startsWith('w-') || cls.startsWith('min-w') || cls.startsWith('max-w'),
+      );
+    const remainingClasses = className
+      .split(' ')
+      .filter(
+        (cls) =>
+          !cls.startsWith('flex') && !cls.startsWith('w-') && !cls.startsWith('min-w') && !cls.startsWith('max-w'),
+      );
+
     return {
       flexClasses: flexClasses.join(' '),
-      remainingClasses: remainingClasses.join(' ')
+      remainingClasses: remainingClasses.join(' '),
     };
   };
 
@@ -225,10 +230,10 @@ const ThematicContainer: React.FC<Props> = ({
   if (asButton) {
     return (
       <div className={flexClasses || 'inline-block'}>
-        <button 
-          type={type} 
-          onClick={disabled ? undefined : onClick} 
-          disabled={disabled} 
+        <button
+          type={type}
+          onClick={disabled ? undefined : onClick}
+          disabled={disabled}
           {...commonProps}
           className={`${commonProps.className} w-full h-full`} // Ensure button fills the wrapper
         >
@@ -241,7 +246,11 @@ const ThematicContainer: React.FC<Props> = ({
   } else {
     // Render as a div
     return (
-      <div {...commonProps} className={`${commonProps.className} ${flexClasses}`} onClick={onClick ? (disabled ? undefined : onClick) : undefined}>
+      <div
+        {...commonProps}
+        className={`${commonProps.className} ${flexClasses}`}
+        onClick={onClick ? (disabled ? undefined : onClick) : undefined}
+      >
         {getGlowEffect()}
         {getMilkyOverlay()}
         {children}

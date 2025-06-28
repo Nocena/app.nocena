@@ -511,11 +511,11 @@ const OtherProfileView: React.FC = () => {
         <div className="min-h-screen">
           {/* Cover Photo Section */}
           <div className="relative h-80 overflow-hidden">
-            <div 
+            <div
               className="absolute inset-0"
               style={{
                 WebkitMask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
-                mask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)'
+                mask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
               }}
             >
               {user.coverPhoto && user.coverPhoto !== '/images/cover.jpg' ? (
@@ -626,9 +626,7 @@ const OtherProfileView: React.FC = () => {
                   onClick={() => setActiveSection(key as any)}
                   className="flex-1 min-w-0 px-2 py-1" // Added min-w-0 to prevent flex shrinking issues
                 >
-                  <span className="text-sm font-medium whitespace-nowrap text-center w-full">
-                    {label}
-                  </span>
+                  <span className="text-sm font-medium whitespace-nowrap text-center w-full">{label}</span>
                 </ThematicContainer>
               ))}
             </div>
