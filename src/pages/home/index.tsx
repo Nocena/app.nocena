@@ -33,7 +33,7 @@ function hasCompletedDaily(user: any): boolean {
     value: user.dailyChallenge.charAt(dayOfYear - 1),
   });
 
-  return user.dailyChallenge.charAt(dayOfYear - 1) === '1';
+  return user.dailyChallenge.charAt(dayOfYear - 2) === '1'; //L: why -2? I don't know, but it works (same as in dgraph.ts when I save the string)
 }
 
 function hasCompletedWeekly(user: any): boolean {
