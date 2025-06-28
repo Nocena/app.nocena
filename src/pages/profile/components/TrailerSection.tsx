@@ -73,29 +73,29 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
     const file = event.target.files?.[0];
     if (file && user && !isOtherProfile) {
       setIsUploading(true);
-
+  
       try {
         // Validate file type
         if (!file.type.startsWith('video/')) {
           alert('Please select a valid video file.');
           return;
         }
-
+  
         // Check file size (max 100MB for video)
         if (file.size > 100 * 1024 * 1024) {
           alert('Video file must be smaller than 100MB.');
           return;
         }
-
+  
         console.log('Starting video compression and upload...');
-
+  
         // Convert to base64 - no compression for video files, handle them as-is
         const reader = new FileReader();
-
+  
         reader.onloadend = async () => {
           try {
             const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
-
+  
             // Clean up old trailer video if it's not the default
             if (
               user.trailerVideo &&
@@ -109,7 +109,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
                 });
               }
             }
-
+  
             // Upload new video to IPFS
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
@@ -117,31 +117,39 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
               body: JSON.stringify({
                 file: base64String,
                 fileName: `trailer-${user.id}-${Date.now()}.${file.name.split('.').pop()}`,
+                fileType: 'video',
               }),
             });
-
+  
             if (!response.ok) {
-              throw new Error(`Upload failed: ${response.status} - ${await response.text()}`);
+              const errorText = await response.text();
+              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
-
-            const { url } = await response.json();
-            setTrailerVideo(url);
-
+  
+            const result = await response.json();
+  
+            // Check for the correct response format from your API
+            const ipfsUrl = result.ipfsHash 
+              ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}` 
+              : result.url; // Fallback to url if that's what your API returns
+  
+            setTrailerVideo(ipfsUrl);
+  
             // Update in database
-            await updateTrailerVideo(user.id, url);
-
+            await updateTrailerVideo(user.id, ipfsUrl);
+  
             // Update user state (same pattern as profile picture)
-            const updatedUser = { ...user, trailerVideo: url };
+            const updatedUser = { ...user, trailerVideo: ipfsUrl };
             login(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
-
+  
             // Update page cache
             const profileCacheKey = `profile_${user.id}`;
             updatePageState(profileCacheKey, {
               ...(getPageState()[profileCacheKey]?.data || {}),
-              trailerVideo: url,
+              trailerVideo: ipfsUrl,
             });
-
+  
             console.log('Trailer video successfully updated.');
           } catch (error) {
             console.error('Upload error:', error);
@@ -150,7 +158,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
             setIsUploading(false);
           }
         };
-
+  
         reader.readAsDataURL(file);
       } catch (error) {
         console.error('Video upload failed:', error);
@@ -159,7 +167,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
       }
     }
   };
-
+  
   return (
     <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPink" rounded="xl" className="p-6">
       <div className="flex items-center justify-between mb-4">

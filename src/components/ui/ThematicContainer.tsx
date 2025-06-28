@@ -12,7 +12,7 @@ interface Props {
   type?: HTMLButtonElement['type'];
   onClick?: (e: React.FormEvent<HTMLElement>) => void;
   asButton?: boolean; // Whether to render as a button or div
-  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full'; // Extended rounded options
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full' | 't-lg'; // Added t-lg for top-only rounded
   glassmorphic?: boolean; // New prop to toggle glassmorphic effect
 }
 
@@ -59,6 +59,8 @@ const ThematicContainer: React.FC<Props> = ({
         return ' rounded-3xl';
       case 'full':
         return ' rounded-full';
+      case 't-lg':
+        return ' rounded-t-lg'; // Added support for top-only rounded corners
       default:
         return ' rounded-full';
     }
@@ -82,12 +84,29 @@ const ThematicContainer: React.FC<Props> = ({
         return '24px';
       case 'full':
         return '9999px';
+      case 't-lg':
+        return '8px 8px 0 0'; // Top-only border radius
       default:
         return '9999px';
     }
   };
 
-  const getContainerClasses = () => {
+  // Extract flex-related classes from className to apply to wrapper
+  const extractFlexClasses = (className: string) => {
+    const flexClasses = className.split(' ').filter(cls => 
+      cls.startsWith('flex') || cls.startsWith('w-') || cls.startsWith('min-w') || cls.startsWith('max-w')
+    );
+    const remainingClasses = className.split(' ').filter(cls => 
+      !cls.startsWith('flex') && !cls.startsWith('w-') && !cls.startsWith('min-w') && !cls.startsWith('max-w')
+    );
+    
+    return {
+      flexClasses: flexClasses.join(' '),
+      remainingClasses: remainingClasses.join(' ')
+    };
+  };
+
+  const getContainerClasses = (remainingClasses: string) => {
     let classes = 'relative text-lg font-medium font-sans transition-all duration-300';
 
     // Add rounded classes based on prop
@@ -115,7 +134,7 @@ const ThematicContainer: React.FC<Props> = ({
       classes += ' backdrop-blur-md';
     }
 
-    return classes;
+    return `${classes} ${remainingClasses}`;
   };
 
   const getBackgroundStyle = () => {
@@ -196,15 +215,23 @@ const ThematicContainer: React.FC<Props> = ({
     );
   };
 
+  const { flexClasses, remainingClasses } = extractFlexClasses(className);
+
   const commonProps = {
-    className: `${getContainerClasses()} ${className}`,
+    className: getContainerClasses(remainingClasses),
     style: getBackgroundStyle(),
   };
 
   if (asButton) {
     return (
-      <div className="inline-block">
-        <button type={type} onClick={disabled ? undefined : onClick} disabled={disabled} {...commonProps}>
+      <div className={flexClasses || 'inline-block'}>
+        <button 
+          type={type} 
+          onClick={disabled ? undefined : onClick} 
+          disabled={disabled} 
+          {...commonProps}
+          className={`${commonProps.className} w-full h-full`} // Ensure button fills the wrapper
+        >
           {getGlowEffect()}
           {getMilkyOverlay()}
           {children}
@@ -214,7 +241,7 @@ const ThematicContainer: React.FC<Props> = ({
   } else {
     // Render as a div
     return (
-      <div {...commonProps} onClick={onClick ? (disabled ? undefined : onClick) : undefined}>
+      <div {...commonProps} className={`${commonProps.className} ${flexClasses}`} onClick={onClick ? (disabled ? undefined : onClick) : undefined}>
         {getGlowEffect()}
         {getMilkyOverlay()}
         {children}

@@ -36,6 +36,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
   const { user } = useAuth();
 
   // Handle search - supports both local filtering and API search
+  // Add this at the beginning of your search useEffect, right after sanitizedQuery check
   useEffect(() => {
     const debounceTimeout = setTimeout(async () => {
       const sanitizedQuery = sanitizeInput(searchQuery);
@@ -46,6 +47,9 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
         return;
       }
 
+      // Clear previous results first
+      setSuggestedUsers([]);
+
       // Call onSearch callback if provided (for parent component filtering)
       if (onSearch) {
         onSearch(sanitizedQuery);
@@ -55,7 +59,9 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
       if (users && users.length > 0) {
         const filtered = users
           .filter((u) => u.username.toLowerCase().includes(sanitizedQuery.toLowerCase()))
-          .slice(0, 8); // Limit to 8 results
+          // Remove duplicates by ID
+          .filter((user, index, self) => self.findIndex((u) => u.id === user.id) === index)
+          .slice(0, 8);
 
         setSuggestedUsers(filtered);
         setIsDropdownOpen(filtered.length > 0);
@@ -67,17 +73,20 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onUserSelect, onSearch, users }) 
       try {
         const results = await searchUsers(sanitizedQuery);
 
-        // Ensure results have all required properties
-        const formattedResults: SearchUser[] = results.map((user: any) => ({
-          id: user.id,
-          username: user.username,
-          profilePicture: user.profilePicture || '/images/profile.png',
-          wallet: user.wallet || '',
-          earnedTokens: user.earnedTokens || 0, // Provide default value to ensure this is always a number
-          bio: user.bio,
-          followers: user.followers || [],
-          following: user.following || [],
-        }));
+        // Ensure results have all required properties and remove duplicates
+        const formattedResults: SearchUser[] = results
+          .map((user: any) => ({
+            id: user.id,
+            username: user.username,
+            profilePicture: user.profilePicture || '/images/profile.png',
+            wallet: user.wallet || '',
+            earnedTokens: user.earnedTokens || 0,
+            bio: user.bio,
+            followers: user.followers || [],
+            following: user.following || [],
+          }))
+          // Remove duplicates by ID
+          .filter((user, index, self) => self.findIndex((u) => u.id === user.id) === index);
 
         setSuggestedUsers(formattedResults);
         setIsDropdownOpen(formattedResults.length > 0);

@@ -57,8 +57,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   const [challengeDescription, setChallengeDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Development mode flag - set to false for production
-  const isDevelopmentMode = process.env.NODE_ENV === 'development';
+  // Development mode configuration
+  const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';
+  const [useMockVerification, setUseMockVerification] = useState(true); // Default to mock in dev
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -143,9 +144,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       const verificationService = new SimpleVerificationService((steps) => {
         // Update the UI with real progress from the verification service
         setVerificationSteps(steps);
-        
+
         // Update current step message
-        const runningStep = steps.find(s => s.status === 'running');
+        const runningStep = steps.find((s) => s.status === 'running');
         if (runningStep) {
           setCurrentStepMessage(runningStep.message);
         }
@@ -153,9 +154,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
       // Run the REAL verification process
       const result = await verificationService.runFullVerification(
-        videoBlob, 
-        photoBlob, 
-        challenge.description // Use the challenge description for AI analysis
+        videoBlob,
+        photoBlob,
+        challenge.description, // Use the challenge description for AI analysis
       );
 
       if (result.success && result.passed) {
@@ -185,7 +186,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         setVerificationStage('failed');
         setCurrentStepMessage('Verification failed. Please check the issues below.');
       }
-
     } catch (error) {
       console.error('Real verification error:', error);
       setVerificationStage('failed');
@@ -308,7 +308,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   // Main verification function that chooses between real and fake
   const startVerification = async () => {
-    if (isDevelopmentMode) {
+    if (isDevelopmentEnvironment && useMockVerification) {
       await startFakeVerification();
     } else {
       await startRealVerification();
@@ -371,11 +371,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   };
 
   const getStageInfo = () => {
+    const verificationMode = isDevelopmentEnvironment && useMockVerification ? 'Mock' : 'Real';
+    const subtitle = isDevelopmentEnvironment ? `${verificationMode} verification mode` : '';
+
     switch (verificationStage) {
       case 'ready':
         return {
           title: 'AI Verification',
-          subtitle: `Ready to analyze your submission${isDevelopmentMode ? ' (Dev Mode)' : ''}`,
+          subtitle: subtitle || 'Ready to analyze your submission',
           color: 'nocenaPink',
         };
       case 'verifying':
@@ -433,9 +436,36 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         <div className="text-sm text-gray-400">
           {challenge.title} • {stageInfo.subtitle}
         </div>
-        {isDevelopmentMode && (
-          <div className="mt-2 px-3 py-1 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
-            <span className="text-xs text-yellow-400">🛠️ Development Mode - Using Mock Verification</span>
+        
+        {/* Development Mode Controls */}
+        {isDevelopmentEnvironment && (
+          <div className="mt-4 px-4 py-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-yellow-400 font-medium">🛠️ Development Mode</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-yellow-400">Mock</span>
+                <button
+                  onClick={() => setUseMockVerification(!useMockVerification)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                    useMockVerification ? 'bg-yellow-600' : 'bg-nocenaPink'
+                  }`}
+                  disabled={verificationStage !== 'ready'}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useMockVerification ? 'translate-x-1' : 'translate-x-6'
+                    }`}
+                  />
+                </button>
+                <span className="text-xs text-yellow-400">Real</span>
+              </div>
+            </div>
+            <div className="text-xs text-yellow-300">
+              {useMockVerification 
+                ? 'Using simulated AI verification for testing' 
+                : 'Using actual AI verification service'
+              }
+            </div>
           </div>
         )}
       </div>
@@ -515,14 +545,29 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </svg>
               </div>
               <h3 className="text-lg font-medium mb-2">
-                {isDevelopmentMode ? 'Mock AI Analysis Ready' : 'AI Analysis Ready'}
+                {isDevelopmentEnvironment && useMockVerification 
+                  ? 'Mock AI Analysis Ready' 
+                  : 'AI Analysis Ready'
+                }
               </h3>
               <p className="text-sm text-gray-300 mb-4">
-                {isDevelopmentMode 
+                {isDevelopmentEnvironment && useMockVerification
                   ? 'Mock verification will simulate AI analysis for testing'
                   : 'Our AI will verify your challenge completion using advanced computer vision'
                 }
               </p>
+              {(!isDevelopmentEnvironment || !useMockVerification) && (
+                <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs text-blue-300 leading-relaxed">
+                      <strong>First-time setup:</strong> Initial verification may take an extra few seconds while face recognition models are downloaded and initialized.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
                   <span className="text-gray-400">Video:</span>
@@ -543,7 +588,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
               <div className="text-center mb-4">
                 <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-nocenaPink">
-                  {isDevelopmentMode ? 'Mock Analysis Active' : 'Neural Analysis Active'}
+                  {isDevelopmentEnvironment && useMockVerification 
+                    ? 'Mock Analysis Active' 
+                    : 'Neural Analysis Active'
+                  }
                 </h3>
               </div>
 
@@ -596,7 +644,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
                 <h3 className="text-lg font-medium text-nocenaPurple mb-2">Verification Complete!</h3>
                 <p className="text-sm text-gray-300 mb-4">
-                  {isDevelopmentMode ? 'Mock analysis' : 'AI analysis'} passed with{' '}
+                  {isDevelopmentEnvironment && useMockVerification ? 'Mock analysis' : 'AI analysis'} passed with{' '}
                   {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
                 </p>
 

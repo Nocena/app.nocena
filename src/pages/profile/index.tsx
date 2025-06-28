@@ -148,13 +148,13 @@ const ProfileView: React.FC = () => {
             // Upload new image with FIXED API call
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json' 
+              headers: {
+                'Content-Type': 'application/json',
               },
               body: JSON.stringify({
                 file: base64String,
                 fileName: `profile-${user.id}-${Date.now()}.webp`,
-                fileType: 'image' // FIXED: Added required fileType field
+                fileType: 'image', // FIXED: Added required fileType field
               }),
             });
 
@@ -164,11 +164,9 @@ const ProfileView: React.FC = () => {
             }
 
             const result = await response.json();
-            
+
             // FIXED: Check for the correct response format from your API
-            const ipfsUrl = result.ipfsHash 
-              ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}`
-              : result.url; // Fallback to url if that's what your API returns
+            const ipfsUrl = result.ipfsHash ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}` : result.url; // Fallback to url if that's what your API returns
 
             setProfilePic(ipfsUrl);
             await updateProfilePicture(user.id, ipfsUrl);
@@ -246,13 +244,13 @@ const ProfileView: React.FC = () => {
             // Upload new cover photo to IPFS with FIXED API call
             const response = await fetch('/api/pinFileToIPFS', {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json' 
+              headers: {
+                'Content-Type': 'application/json',
               },
               body: JSON.stringify({
                 file: base64String,
                 fileName: `cover-${user.id}-${Date.now()}.webp`,
-                fileType: 'image' // FIXED: Added required fileType field
+                fileType: 'image', // FIXED: Added required fileType field
               }),
             });
 
@@ -262,11 +260,9 @@ const ProfileView: React.FC = () => {
             }
 
             const result = await response.json();
-            
+
             // FIXED: Check for the correct response format from your API
-            const ipfsUrl = result.ipfsHash 
-              ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}`
-              : result.url; // Fallback to url if that's what your API returns
+            const ipfsUrl = result.ipfsHash ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}` : result.url; // Fallback to url if that's what your API returns
 
             setCoverPhoto(ipfsUrl);
 
@@ -299,6 +295,8 @@ const ProfileView: React.FC = () => {
       }
     }
   };
+
+  
 
   // Bio editing handlers
   const handleEditBioClick = () => setIsEditingBio(true);
@@ -365,14 +363,19 @@ const ProfileView: React.FC = () => {
       <div className="min-h-screen">
         {/* Cover Photo Section */}
         <div className="relative h-80 overflow-hidden">
-          {coverPhoto !== '/images/cover.jpg' ? (
-            <Image src={coverPhoto} alt="Cover" fill className="object-cover" />
-          ) : (
-            <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
-          )}
-
-          {/* Gradient overlay for smooth blending effect */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-transparent via-70% to-black/80" />
+          <div 
+            className="absolute inset-0"
+            style={{
+              WebkitMask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
+              mask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)'
+            }}
+          >
+            {coverPhoto !== '/images/cover.jpg' ? (
+              <Image src={coverPhoto} alt="Cover" fill className="object-cover" />
+            ) : (
+              <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
+            )}
+          </div>
 
           <div
             className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
@@ -492,7 +495,7 @@ const ProfileView: React.FC = () => {
           </div>
 
           {/* Three Section Menu using ThematicContainer */}
-          <div className="flex justify-center mb-6 space-x-4">
+          <div className="mb-6 flex space-x-3 w-full">
             {[
               { key: 'trailer', label: 'Trailer' },
               { key: 'calendar', label: 'Calendar' },
@@ -505,9 +508,11 @@ const ProfileView: React.FC = () => {
                 color={getButtonColor(key)}
                 isActive={activeSection === key}
                 onClick={() => setActiveSection(key as any)}
-                className="px-8 py-2"
+                className="flex-1 min-w-0 px-2 py-1" // Added min-w-0 to prevent flex shrinking issues
               >
-                {label}
+                <span className="text-sm font-medium whitespace-nowrap text-center w-full">
+                  {label}
+                </span>
               </ThematicContainer>
             ))}
           </div>
