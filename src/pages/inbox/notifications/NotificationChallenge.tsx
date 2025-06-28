@@ -101,7 +101,7 @@ const NotificationChallenge: React.FC<NotificationChallengeProps> = ({
               alt="Challenger Profile"
               width={40}
               height={40}
-              className="w-8 h-8 object-cover"
+              className="w-8 h-8 object-cover rounded-full"
             />
           </ThematicImage>
           {/* Username - bigger and bold */}
