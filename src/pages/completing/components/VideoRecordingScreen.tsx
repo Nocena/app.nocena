@@ -31,7 +31,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraInitialized, setCameraInitialized] = useState(false);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -40,7 +40,6 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
   const actualDurationRef = useRef<number>(0);
-  const retryCountRef = useRef<number>(0);
 
   // Clean up function
   const cleanupCamera = useCallback(() => {
@@ -59,252 +58,273 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
     }
   }, []);
 
-  // iOS-specific video play function with user gesture requirement
-  const playVideoWithUserGesture = useCallback(async (videoElement: HTMLVideoElement) => {
-    try {
-      // For iOS, we need to ensure this is called from a user gesture
-      console.log('Attempting to play video with user gesture...');
-      await videoElement.play();
-      console.log('Video play successful');
-      return true;
-    } catch (error) {
-      console.error('Video play failed:', error);
+  // Check camera permissions first - Android Chrome specific handling
+  const checkCameraPermissions = useCallback(async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError('Camera not supported on this device.');
       return false;
     }
-  }, []);
 
-  // Initialize camera with iOS-specific handling
-  const initializeCamera = useCallback(
-    async (userTriggered = false) => {
+    try {
+      // For Android Chrome, we need to explicitly request camera permission first
+      // Sometimes Chrome only prompts for microphone if both are requested together
+      console.log('Checking camera permissions...');
+      
+      // First, try to request just camera permission to force the prompt
       try {
-        setCameraError(null);
-        setCameraInitialized(false);
-        retryCountRef.current += 1;
-
-        console.log(`Initializing camera (attempt ${retryCountRef.current}, user triggered: ${userTriggered})`);
-
-        // Detect if we're in PWA mode
-        const isPWA =
-          (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-        console.log('PWA mode detected:', isPWA);
-
-        // Clean up any existing stream
-        cleanupCamera();
-
-        // Use basic constraints for better iOS compatibility
-        const constraints = {
-          video: {
-            facingMode: facingMode,
-            // In PWA mode, be even more conservative with constraints
-            ...(isPWA && {
-              width: { max: 1280 },
-              height: { max: 720 },
-              frameRate: { max: 30 },
-            }),
-          },
-          audio: true,
-        };
-
-        console.log('Requesting camera with constraints:', constraints);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-        if (!stream || !stream.active) {
-          throw new Error('Stream is not active');
-        }
-
-        streamRef.current = stream;
-        console.log('Stream obtained:', stream.id, 'Active:', stream.active);
-
-        if (videoRef.current) {
-          const videoElement = videoRef.current;
-
-          // Critical: Set all required attributes BEFORE setting srcObject
-          videoElement.muted = true;
-          videoElement.playsInline = true;
-          videoElement.autoplay = true;
-          videoElement.controls = false;
-
-          // Set webkit-specific attributes for older iOS versions
-          videoElement.setAttribute('webkit-playsinline', 'true');
-          videoElement.setAttribute('playsinline', 'true');
-
-          console.log('Setting video srcObject...');
-          videoElement.srcObject = stream;
-
-          // For iOS, we often need to handle video playing manually
-          const handleVideoPlay = async () => {
-            try {
-              console.log('Video metadata loaded, attempting play...');
-              console.log('Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-              console.log('Video readyState:', videoElement.readyState);
-              console.log('PWA mode:', isPWA);
-
-              // In PWA mode, we ALWAYS need user interaction
-              if (isPWA && !userTriggered && !isUserInteracting) {
-                console.log('PWA mode requires user interaction, waiting...');
-                setCameraError('Tap the record button to start camera');
-                return;
-              }
-
-              // On iOS, video.play() often needs to be called from a user gesture
-              if (userTriggered || isUserInteracting) {
-                const playSuccess = await playVideoWithUserGesture(videoElement);
-                if (playSuccess) {
-                  setCameraInitialized(true);
-                  setupMediaRecorder(stream);
-                  console.log('Camera initialized successfully');
-                } else {
-                  throw new Error('Failed to play video');
-                }
-              } else {
-                // Try automatic play, but don't fail if it doesn't work
-                try {
-                  await videoElement.play();
-                  setCameraInitialized(true);
-                  setupMediaRecorder(stream);
-                  console.log('Camera initialized successfully (auto-play)');
-                } catch (autoPlayError) {
-                  console.log('Auto-play failed, waiting for user interaction:', autoPlayError);
-                  // Don't throw error here, just wait for user interaction
-                  setCameraError('Tap the record button to start camera');
-                }
-              }
-            } catch (error) {
-              console.error('Error in handleVideoPlay:', error);
-              throw error;
-            }
-          };
-
-          // Set up event listeners
-          videoElement.addEventListener('loadedmetadata', handleVideoPlay, { once: true });
-
-          // Fallback: force load and try immediate play if metadata is already loaded
-          if (videoElement.readyState >= 1) {
-            console.log('Video already has metadata, starting immediately');
-            setTimeout(handleVideoPlay, 100);
-          }
-
-          // iOS fallback: try to force load
-          try {
-            videoElement.load();
-          } catch (loadError) {
-            console.log('Video load() not needed or failed:', loadError);
-          }
-        } else {
-          throw new Error('Video element not available');
-        }
-      } catch (error: any) {
-        console.error('Error accessing camera:', error);
-        let errorMessage = 'Unable to access camera.';
-
-        if (error.name === 'NotAllowedError') {
-          errorMessage = 'Camera permission denied. Please allow camera access and refresh.';
-        } else if (error.name === 'NotFoundError') {
-          errorMessage = 'No camera found on this device.';
-        } else if (error.name === 'NotReadableError') {
-          errorMessage = 'Camera is already in use by another application.';
-        } else if (error.name === 'OverconstrainedError') {
-          errorMessage = 'Camera settings not supported.';
-        } else if (error.message.includes('user gesture')) {
-          errorMessage = 'Tap the record button to start camera';
-        }
-
-        setCameraError(errorMessage);
-
-        // Retry with more basic constraints if this was the first attempt
-        if (retryCountRef.current === 1 && error.name === 'OverconstrainedError') {
-          console.log('Retrying with basic constraints...');
-          setTimeout(() => {
-            const basicConstraints = {
-              video: true,
-              audio: true,
-            };
-            navigator.mediaDevices
-              .getUserMedia(basicConstraints)
-              .then((stream) => {
-                streamRef.current = stream;
-                if (videoRef.current) {
-                  videoRef.current.srcObject = stream;
-                  setCameraError('Tap the record button to start camera');
-                }
-              })
-              .catch((retryError) => {
-                console.error('Basic constraints also failed:', retryError);
-                setCameraError('Camera initialization failed completely.');
-              });
-          }, 500);
-        }
-      }
-    },
-    [facingMode, cleanupCamera, playVideoWithUserGesture, isUserInteracting],
-  );
-
-  // Setup MediaRecorder with iOS-compatible settings
-  const setupMediaRecorder = useCallback(
-    (stream: MediaStream) => {
-      try {
-        chunksRef.current = [];
-
-        // Use MP4 for better iOS compatibility
-        let mimeType = 'video/webm';
-        if (MediaRecorder.isTypeSupported('video/mp4')) {
-          mimeType = 'video/mp4';
-        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-          mimeType = 'video/webm;codecs=h264';
-        } else if (MediaRecorder.isTypeSupported('video/webm')) {
-          mimeType = 'video/webm';
-        }
-
-        console.log('Using MIME type:', mimeType);
-
-        const options: MediaRecorderOptions = {
-          mimeType: mimeType,
-        };
-
-        const mediaRecorder = new MediaRecorder(stream, options);
-        mediaRecorderRef.current = mediaRecorder;
-
-        mediaRecorder.ondataavailable = (event) => {
-          console.log('Data available:', event.data.size, 'bytes');
-          if (event.data.size > 0) {
-            chunksRef.current.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          console.log('MediaRecorder stopped, chunks:', chunksRef.current.length);
-          const actualDuration = actualDurationRef.current;
-
-          if (chunksRef.current.length === 0) {
-            setCameraError('Recording failed. Please try again.');
-            return;
-          }
-
-          const blob = new Blob(chunksRef.current, {
-            type: mimeType,
+        console.log('Requesting camera-only permission first...');
+        const cameraOnlyStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: facingMode },
+          audio: false 
+        });
+        console.log('Camera permission granted');
+        cameraOnlyStream.getTracks().forEach(track => track.stop());
+        
+        // Now request microphone separately
+        console.log('Requesting microphone permission...');
+        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ 
+          video: false,
+          audio: true 
+        });
+        console.log('Microphone permission granted');
+        audioOnlyStream.getTracks().forEach(track => track.stop());
+        
+        return true;
+      } catch (cameraError: any) {
+        console.log('Camera-first approach failed, trying combined request:', cameraError);
+        
+        // Fallback to combined request
+        try {
+          const combinedStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facingMode },
+            audio: true
           });
-
-          console.log('Created blob:', blob.size, 'bytes, type:', blob.type);
-          onVideoRecorded(blob, actualDuration);
-        };
-
-        mediaRecorder.onerror = (event: any) => {
-          console.error('MediaRecorder error:', event.error);
-          setCameraError('Recording error occurred. Please try again.');
-        };
-
-        console.log('MediaRecorder setup complete');
-      } catch (error) {
-        console.error('Error setting up MediaRecorder:', error);
-        setCameraError('Failed to setup video recording.');
+          console.log('Combined permission request successful');
+          combinedStream.getTracks().forEach(track => track.stop());
+          return true;
+        } catch (combinedError: any) {
+          console.error('Both permission approaches failed:', combinedError);
+          
+          if (combinedError.name === 'NotAllowedError') {
+            setCameraError('Camera or microphone access denied. Please allow both camera and microphone access.');
+          } else if (combinedError.name === 'NotFoundError') {
+            setCameraError('Camera or microphone not found on this device.');
+          } else {
+            setCameraError('Unable to access camera and microphone. Please check your device settings.');
+          }
+          return false;
+        }
       }
-    },
-    [onVideoRecorded],
-  );
+    } catch (error) {
+      console.log('Permission check completely failed:', error);
+      setCameraError('Failed to check camera permissions. Please try again.');
+      return false;
+    }
+  }, [facingMode]);
+
+  // Initialize camera with better Android compatibility
+  const initializeCamera = useCallback(async () => {
+    try {
+      setCameraError(null);
+      setCameraInitialized(false);
+
+      console.log('Initializing camera...');
+
+      // Clean up any existing stream
+      cleanupCamera();
+
+      // Check permissions first (this will properly request both camera and microphone)
+      if (!permissionChecked) {
+        const canProceed = await checkCameraPermissions();
+        setPermissionChecked(true);
+        if (!canProceed) {
+          return;
+        }
+      }
+
+      // Now that permissions are confirmed, request the actual stream
+      // Use more compatible constraints for Android
+      const baseConstraints = {
+        video: {
+          facingMode: facingMode,
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 30 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      };
+
+      console.log('Requesting final stream with constraints:', baseConstraints);
+      
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(baseConstraints);
+      } catch (error: any) {
+        console.log('Detailed constraints failed, trying basic:', error);
+        // Fallback to very basic constraints for problematic devices
+        const fallbackConstraints = {
+          video: { facingMode: facingMode },
+          audio: true
+        };
+        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+      }
+
+      if (!stream || !stream.active) {
+        throw new Error('Stream is not active');
+      }
+
+      streamRef.current = stream;
+      console.log('Stream obtained:', stream.id, 'Active:', stream.active);
+
+      if (videoRef.current) {
+        const videoElement = videoRef.current;
+
+        // Set all required attributes for cross-platform compatibility
+        videoElement.muted = true;
+        videoElement.playsInline = true;
+        videoElement.autoplay = true;
+        videoElement.controls = false;
+        
+        // Additional attributes for older browsers/devices
+        videoElement.setAttribute('webkit-playsinline', 'true');
+        videoElement.setAttribute('playsinline', 'true');
+        videoElement.setAttribute('autoplay', 'true');
+        videoElement.setAttribute('muted', 'true');
+
+        console.log('Setting video srcObject...');
+        videoElement.srcObject = stream;
+
+        // Handle video loading and playing
+        const handleCanPlay = async () => {
+          try {
+            console.log('Video can play, attempting to start...');
+            await videoElement.play();
+            setCameraInitialized(true);
+            setupMediaRecorder(stream);
+            console.log('Camera initialized successfully');
+          } catch (playError) {
+            console.error('Video play error:', playError);
+            // On some devices, we need user interaction to play
+            setCameraError('Tap the record button to start the camera');
+          }
+        };
+
+        // Use canplay event for better compatibility
+        videoElement.addEventListener('canplay', handleCanPlay, { once: true });
+        
+        // Fallback timeout
+        setTimeout(() => {
+          if (!cameraInitialized && videoElement.readyState >= 3) {
+            console.log('Fallback: forcing video play attempt');
+            handleCanPlay();
+          }
+        }, 1000);
+
+      } else {
+        throw new Error('Video element not available');
+      }
+    } catch (error: any) {
+      console.error('Error accessing camera:', error);
+      let errorMessage = 'Unable to access camera.';
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Camera settings not supported on this device.';
+      } else if (error.name === 'AbortError') {
+        errorMessage = 'Camera access was interrupted.';
+      } else if (error.name === 'SecurityError') {
+        errorMessage = 'Camera access blocked for security reasons.';
+      }
+
+      setCameraError(errorMessage);
+    }
+  }, [facingMode, cleanupCamera, checkCameraPermissions, permissionChecked]);
+
+  // Setup MediaRecorder with better format support
+  const setupMediaRecorder = useCallback((stream: MediaStream) => {
+    try {
+      chunksRef.current = [];
+
+      // Try different MIME types in order of preference for cross-platform compatibility
+      const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus', 
+        'video/webm;codecs=h264,opus',
+        'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4'
+      ];
+
+      let selectedMimeType = '';
+      for (const mimeType of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          selectedMimeType = mimeType;
+          console.log('Selected MIME type:', mimeType);
+          break;
+        }
+      }
+
+      if (!selectedMimeType) {
+        throw new Error('No supported video format found');
+      }
+
+      const options: MediaRecorderOptions = {
+        mimeType: selectedMimeType,
+        videoBitsPerSecond: 2500000, // 2.5 Mbps for good quality
+        audioBitsPerSecond: 128000   // 128 kbps for audio
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        console.log('Data available:', event.data.size, 'bytes');
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        console.log('MediaRecorder stopped, chunks:', chunksRef.current.length);
+        const actualDuration = actualDurationRef.current;
+
+        if (chunksRef.current.length === 0) {
+          setCameraError('Recording failed. Please try again.');
+          return;
+        }
+
+        const blob = new Blob(chunksRef.current, {
+          type: selectedMimeType,
+        });
+
+        console.log('Created blob:', blob.size, 'bytes, type:', blob.type);
+        onVideoRecorded(blob, actualDuration);
+      };
+
+      mediaRecorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event.error);
+        setCameraError('Recording error occurred. Please try again.');
+      };
+
+      console.log('MediaRecorder setup complete');
+    } catch (error) {
+      console.error('Error setting up MediaRecorder:', error);
+      setCameraError('Failed to setup video recording.');
+    }
+  }, [onVideoRecorded]);
 
   // Initialize camera on component mount
   useEffect(() => {
-    initializeCamera(false);
+    initializeCamera();
     return cleanupCamera;
   }, [facingMode, initializeCamera, cleanupCamera]);
 
@@ -325,39 +345,34 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   }, [stage]);
 
   const startCountdown = useCallback(async () => {
-    setIsUserInteracting(true);
-
-    // If camera isn't initialized, try to initialize it with user gesture
+    // If camera isn't initialized, try to start it with user interaction
     if (!cameraInitialized && videoRef.current && streamRef.current) {
       try {
-        const success = await playVideoWithUserGesture(videoRef.current);
-        if (success) {
-          setCameraInitialized(true);
-          if (mediaRecorderRef.current) {
-            setStage('countdown');
-            setCountdown(3);
-          } else {
-            setupMediaRecorder(streamRef.current);
-            setTimeout(() => {
-              setStage('countdown');
-              setCountdown(3);
-            }, 500);
-          }
-        } else {
-          setCameraError('Unable to start camera. Please try again.');
-        }
+        await videoRef.current.play();
+        setCameraInitialized(true);
+        setupMediaRecorder(streamRef.current);
+        setTimeout(() => {
+          setStage('countdown');
+          setCountdown(3);
+        }, 100);
       } catch (error) {
         console.error('Error starting camera from user gesture:', error);
         setCameraError('Unable to start camera. Please try again.');
       }
     } else if (!cameraInitialized || !mediaRecorderRef.current) {
-      // Try to reinitialize camera with user gesture
-      initializeCamera(true);
+      // Try to reinitialize camera
+      initializeCamera();
+      setTimeout(() => {
+        if (cameraInitialized) {
+          setStage('countdown');
+          setCountdown(3);
+        }
+      }, 500);
     } else {
       setStage('countdown');
       setCountdown(3);
     }
-  }, [cameraInitialized, playVideoWithUserGesture, setupMediaRecorder, initializeCamera]);
+  }, [cameraInitialized, setupMediaRecorder, initializeCamera]);
 
   const startRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
@@ -367,7 +382,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         setRecordingTime(30);
 
         recordingStartTimeRef.current = Date.now();
-        mediaRecorderRef.current.start(1000);
+        mediaRecorderRef.current.start(1000); // Record in 1-second chunks
 
         timerRef.current = setInterval(() => {
           setRecordingTime((prev) => {
@@ -416,7 +431,6 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
     try {
       setCameraInitialized(false);
-      retryCountRef.current = 0;
       setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
     } catch (error) {
       console.error('Error flipping camera:', error);
@@ -427,27 +441,42 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
     return `00:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleRetry = useCallback(() => {
+    setCameraError(null);
+    setCameraInitialized(false);
+    setPermissionChecked(false);
+    initializeCamera();
+  }, [initializeCamera]);
+
   if (cameraError) {
     return (
       <div className="fixed inset-0 bg-black text-white z-50 flex items-center justify-center p-6">
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <div className="text-red-400 text-xl mb-4">⚠️</div>
           <div className="text-lg mb-4">{cameraError}</div>
-          <button
-            onClick={() => {
-              setCameraError(null);
-              setCameraInitialized(false);
-              retryCountRef.current = 0;
-              setIsUserInteracting(true);
-              initializeCamera(true);
-            }}
-            className="bg-nocenaPink px-6 py-3 rounded-lg text-white font-medium"
-          >
-            Try Again
-          </button>
-          <button onClick={onBack} className="ml-4 bg-gray-600 px-6 py-3 rounded-lg text-white font-medium">
-            Go Back
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={handleRetry}
+              className="w-full bg-nocenaPink px-6 py-3 rounded-lg text-white font-medium"
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={onBack} 
+              className="w-full bg-gray-600 px-6 py-3 rounded-lg text-white font-medium"
+            >
+              Go Back
+            </button>
+          </div>
+          {cameraError.includes('permission') && (
+            <div className="text-sm text-gray-400 mt-4">
+              <p>If the problem persists:</p>
+              <p>• Allow BOTH camera AND microphone access</p>
+              <p>• Check browser permissions in settings</p>
+              <p>• Try refreshing the page</p>
+              <p>• Make sure no other apps are using the camera</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -512,7 +541,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </ThematicContainer>
-        </button>
+          </button>
       </div>
 
       {/* Countdown Overlay */}
@@ -555,7 +584,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           <div className="text-center text-white">
             <div className="w-12 h-12 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <div className="text-lg">Initializing camera...</div>
-            <div className="text-sm mt-2 opacity-75">Tap record button if camera doesn't start</div>
+            <div className="text-sm mt-2 opacity-75">This should only take a moment</div>
           </div>
         </div>
       )}
@@ -585,6 +614,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           <button
             onClick={startCountdown}
             className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-300 bg-black/20 backdrop-blur-sm"
+            disabled={!cameraInitialized}
           >
             <div
               className="absolute inset-2 rounded-full transition-opacity"

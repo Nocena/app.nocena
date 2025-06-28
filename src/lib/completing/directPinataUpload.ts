@@ -18,7 +18,7 @@ export class DirectPinataUploadService {
     fileName: string,
     fileType: 'image' | 'video',
     userId: string,
-    maxRetries: number = 3
+    maxRetries: number = 3,
   ): Promise<string> {
     const timestamp = Date.now();
     const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, '_');
@@ -53,7 +53,7 @@ export class DirectPinataUploadService {
         const response = await fetch(this.pinataEndpoint, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${this.pinataJWT}`,
+            Authorization: `Bearer ${this.pinataJWT}`,
           },
           body: formData,
         });
@@ -61,27 +61,26 @@ export class DirectPinataUploadService {
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Pinata upload failed (attempt ${attempt}):`, response.status, errorText);
-          
+
           // Don't retry on client errors (4xx)
           if (response.status >= 400 && response.status < 500) {
             throw new Error(`Pinata upload failed: ${response.status} - ${errorText}`);
           }
-          
+
           throw new Error(`Pinata server error: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
-        
+
         if (!result.IpfsHash) {
           throw new Error('No IPFS hash returned from Pinata');
         }
 
         console.log(`Direct upload successful on attempt ${attempt}:`, result.IpfsHash);
         return result.IpfsHash;
-
       } catch (error) {
         console.error(`Direct upload attempt ${attempt} failed:`, error);
-        
+
         // Don't retry on certain errors
         if (error instanceof Error) {
           if (error.message.includes('400') || error.message.includes('401') || error.message.includes('403')) {
@@ -109,7 +108,7 @@ export class DirectPinataUploadService {
   async uploadChallengeMedia(
     videoBlob: Blob,
     photoBlob: Blob,
-    userId: string
+    userId: string,
   ): Promise<{ videoCID: string; selfieCID: string }> {
     console.log('Starting direct challenge media upload...');
     console.log('Video blob size:', videoBlob.size, 'Photo blob size:', photoBlob.size);
@@ -117,22 +116,12 @@ export class DirectPinataUploadService {
     try {
       // Upload photo first (smaller file)
       console.log('Uploading photo directly to Pinata...');
-      const selfieCID = await this.uploadFile(
-        photoBlob,
-        'challenge_selfie.jpg',
-        'image',
-        userId
-      );
+      const selfieCID = await this.uploadFile(photoBlob, 'challenge_selfie.jpg', 'image', userId);
       console.log('Photo uploaded successfully, CID:', selfieCID);
 
       // Upload video
       console.log('Uploading video directly to Pinata...');
-      const videoCID = await this.uploadFile(
-        videoBlob,
-        'challenge_video.webm',
-        'video',
-        userId
-      );
+      const videoCID = await this.uploadFile(videoBlob, 'challenge_video.webm', 'video', userId);
       console.log('Video uploaded successfully, CID:', videoCID);
 
       // Sanity check
@@ -141,7 +130,6 @@ export class DirectPinataUploadService {
       }
 
       return { videoCID, selfieCID };
-
     } catch (error) {
       console.error('Direct challenge media upload failed:', error);
       throw new Error(`Media upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

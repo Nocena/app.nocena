@@ -1178,7 +1178,7 @@ export const getUserByIdFromDgraph = async (userId: string) => {
     // Format the data to match your User interface
     if (userData) {
       console.log('=== Processing user data ===');
-      
+
       // Convert followers from objects to string array of ids
       userData.followers = userData.followers?.map((f: any) => f.id) || [];
       userData.following = userData.following?.map((f: any) => f.id) || [];
