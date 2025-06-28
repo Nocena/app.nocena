@@ -2105,7 +2105,7 @@ export const updateUserChallengeStrings = async (userId: string, frequency: stri
   switch (frequency.toLowerCase()) {
     case 'daily':
       fieldName = 'dailyChallenge';
-      position = getDayOfYear(now); // 0-based index
+      position = getDayOfYear(now) - 2; // 0-based index - L: not sure why -2 but it works
       break;
     case 'weekly':
       fieldName = 'weeklyChallenge';
