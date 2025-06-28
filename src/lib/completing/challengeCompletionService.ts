@@ -1,6 +1,6 @@
-// lib/completing/challengeCompletionService.ts - COMPLETE VERSION
-
+// lib/completing/challengeCompletionService.ts - UPDATED VERSION
 import { createChallengeCompletion, updateUserTokens, createNotification } from '../api/dgraph';
+import { directPinataUpload } from './directPinataUpload';
 
 export interface CompletionData {
   video: Blob;
@@ -41,10 +41,10 @@ export async function completeChallengeWorkflow(
     console.log('Starting challenge completion workflow for user:', userId);
     console.log('Video blob size:', video.size, 'Photo blob size:', photo.size);
 
-    // Upload media with proper error handling
-    const { videoCID, selfieCID } = await uploadChallengeMedia(video, photo, userId);
+    // UPDATED: Use direct upload instead of going through your API
+    const { videoCID, selfieCID } = await directPinataUpload.uploadChallengeMedia(video, photo, userId);
 
-    console.log('Media uploaded successfully:', { videoCID, selfieCID });
+    console.log('Media uploaded successfully via direct upload:', { videoCID, selfieCID });
 
     const timestamp = Date.now();
     const mediaMetadata: MediaMetadata = {
@@ -90,7 +90,7 @@ export async function completeChallengeWorkflow(
       JSON.stringify(mediaMetadata),
     );
 
-    // Update user's tokens - now automatically updates all time-based fields
+    // Update user's tokens
     await updateUserTokens(userId, challenge.reward);
 
     // Update the AuthContext if the callback is provided (for AI challenges)
@@ -118,7 +118,7 @@ export async function completeChallengeWorkflow(
   }
 }
 
-// Calculate what the updated completion strings should be for AuthContext
+// Rest of your existing functions remain the same...
 function calculateUpdatedCompletionStrings(challengeType: 'daily' | 'weekly' | 'monthly'): any {
   const now = new Date();
 
@@ -126,13 +126,12 @@ function calculateUpdatedCompletionStrings(challengeType: 'daily' | 'weekly' | '
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Create updated daily challenge string
-    const currentString = Array(365).fill('0'); // Start with all zeros
-    currentString[dayOfYear] = '1'; // Mark today as completed
+    const currentString = Array(365).fill('0');
+    currentString[dayOfYear] = '1';
 
     return {
       dailyChallenge: currentString.join(''),
-      earnedTokens: 0, // This will be updated separately by updateUserTokens
+      earnedTokens: 0,
     };
   } else if (challengeType === 'weekly') {
     const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -316,92 +315,4 @@ async function markPrivateChallengeCompleted(challengeId: string): Promise<void>
   `;
 
   await axios.post(DGRAPH_ENDPOINT, { query: mutation, variables: { challengeId } });
-}
-
-async function uploadChallengeMedia(
-  videoBlob: Blob,
-  photoBlob: Blob,
-  userId: string,
-): Promise<{ videoCID: string; selfieCID: string }> {
-  const timestamp = Date.now();
-  const safeUserId = userId.replace(/[^a-zA-Z0-9]/g, '_');
-
-  const videoFileName = `challenge_video_${safeUserId}_${timestamp}.webm`;
-  const photoFileName = `challenge_selfie_${safeUserId}_${timestamp}.jpg`;
-
-  console.log('Converting blobs to base64...');
-  const videoBase64 = await blobToBase64(videoBlob);
-  const photoBase64 = await blobToBase64(photoBlob);
-
-  console.log('Base64 conversion complete. Video size:', videoBase64.length, 'Photo size:', photoBase64.length);
-
-  try {
-    console.log('Uploading photo...');
-    const selfieCID = await uploadFileToAPI(photoBase64, photoFileName, 'image');
-    console.log('Photo uploaded successfully, CID:', selfieCID);
-
-    console.log('Uploading video...');
-    const videoCID = await uploadFileToAPI(videoBase64, videoFileName, 'video');
-    console.log('Video uploaded successfully, CID:', videoCID);
-
-    if (videoCID === selfieCID) {
-      throw new Error('Upload error: Video and photo have the same CID, indicating a problem with upload');
-    }
-
-    return { videoCID, selfieCID };
-  } catch (error) {
-    console.error('Media upload failed:', error);
-    throw new Error(`Media upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      if (!base64) {
-        reject(new Error('Failed to extract base64 data'));
-        return;
-      }
-      resolve(base64);
-    };
-    reader.onerror = () => reject(new Error('Failed to read blob as base64'));
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function uploadFileToAPI(base64Data: string, fileName: string, fileType: string): Promise<string> {
-  console.log(`Uploading ${fileType}: ${fileName} (${base64Data.length} chars)`);
-
-  if (!base64Data || base64Data.length === 0) {
-    throw new Error(`Empty ${fileType} data`);
-  }
-
-  const response = await fetch('/api/pinFileToIPFS', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file: base64Data,
-      fileName,
-      fileType,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`${fileType} upload failed:`, response.status, errorText);
-    throw new Error(`${fileType} upload failed: ${response.status} - ${errorText}`);
-  }
-
-  const result = await response.json();
-
-  if (!result.ipfsHash) {
-    console.error(`No IPFS hash in response for ${fileType}:`, result);
-    throw new Error(`No IPFS hash returned for ${fileType}`);
-  }
-
-  console.log(`${fileType} upload successful:`, result.ipfsHash);
-  return result.ipfsHash;
 }
