@@ -69,42 +69,42 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
       // For Android Chrome, we need to explicitly request camera permission first
       // Sometimes Chrome only prompts for microphone if both are requested together
       console.log('Checking camera permissions...');
-      
+
       // First, try to request just camera permission to force the prompt
       try {
         console.log('Requesting camera-only permission first...');
-        const cameraOnlyStream = await navigator.mediaDevices.getUserMedia({ 
+        const cameraOnlyStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facingMode },
-          audio: false 
+          audio: false,
         });
         console.log('Camera permission granted');
-        cameraOnlyStream.getTracks().forEach(track => track.stop());
-        
+        cameraOnlyStream.getTracks().forEach((track) => track.stop());
+
         // Now request microphone separately
         console.log('Requesting microphone permission...');
-        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ 
+        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
           video: false,
-          audio: true 
+          audio: true,
         });
         console.log('Microphone permission granted');
-        audioOnlyStream.getTracks().forEach(track => track.stop());
-        
+        audioOnlyStream.getTracks().forEach((track) => track.stop());
+
         return true;
       } catch (cameraError: any) {
         console.log('Camera-first approach failed, trying combined request:', cameraError);
-        
+
         // Fallback to combined request
         try {
           const combinedStream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: facingMode },
-            audio: true
+            audio: true,
           });
           console.log('Combined permission request successful');
-          combinedStream.getTracks().forEach(track => track.stop());
+          combinedStream.getTracks().forEach((track) => track.stop());
           return true;
         } catch (combinedError: any) {
           console.error('Both permission approaches failed:', combinedError);
-          
+
           if (combinedError.name === 'NotAllowedError') {
             setCameraError('Camera or microphone access denied. Please allow both camera and microphone access.');
           } else if (combinedError.name === 'NotFoundError') {
@@ -149,17 +149,17 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           facingMode: facingMode,
           width: { ideal: 1280, max: 1920 },
           height: { ideal: 720, max: 1080 },
-          frameRate: { ideal: 30, max: 30 }
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
-        }
+          autoGainControl: true,
+        },
       };
 
       console.log('Requesting final stream with constraints:', baseConstraints);
-      
+
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(baseConstraints);
@@ -168,7 +168,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         // Fallback to very basic constraints for problematic devices
         const fallbackConstraints = {
           video: { facingMode: facingMode },
-          audio: true
+          audio: true,
         };
         stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
       }
@@ -188,7 +188,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         videoElement.playsInline = true;
         videoElement.autoplay = true;
         videoElement.controls = false;
-        
+
         // Additional attributes for older browsers/devices
         videoElement.setAttribute('webkit-playsinline', 'true');
         videoElement.setAttribute('playsinline', 'true');
@@ -215,7 +215,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
 
         // Use canplay event for better compatibility
         videoElement.addEventListener('canplay', handleCanPlay, { once: true });
-        
+
         // Fallback timeout
         setTimeout(() => {
           if (!cameraInitialized && videoElement.readyState >= 3) {
@@ -223,7 +223,6 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
             handleCanPlay();
           }
         }, 1000);
-
       } else {
         throw new Error('Video element not available');
       }
@@ -250,77 +249,80 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
   }, [facingMode, cleanupCamera, checkCameraPermissions, permissionChecked]);
 
   // Setup MediaRecorder with better format support
-  const setupMediaRecorder = useCallback((stream: MediaStream) => {
-    try {
-      chunksRef.current = [];
+  const setupMediaRecorder = useCallback(
+    (stream: MediaStream) => {
+      try {
+        chunksRef.current = [];
 
-      // Try different MIME types in order of preference for cross-platform compatibility
-      const mimeTypes = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus', 
-        'video/webm;codecs=h264,opus',
-        'video/webm',
-        'video/mp4;codecs=h264,aac',
-        'video/mp4'
-      ];
+        // Try different MIME types in order of preference for cross-platform compatibility
+        const mimeTypes = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=h264,opus',
+          'video/webm',
+          'video/mp4;codecs=h264,aac',
+          'video/mp4',
+        ];
 
-      let selectedMimeType = '';
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          console.log('Selected MIME type:', mimeType);
-          break;
+        let selectedMimeType = '';
+        for (const mimeType of mimeTypes) {
+          if (MediaRecorder.isTypeSupported(mimeType)) {
+            selectedMimeType = mimeType;
+            console.log('Selected MIME type:', mimeType);
+            break;
+          }
         }
+
+        if (!selectedMimeType) {
+          throw new Error('No supported video format found');
+        }
+
+        const options: MediaRecorderOptions = {
+          mimeType: selectedMimeType,
+          videoBitsPerSecond: 2500000, // 2.5 Mbps for good quality
+          audioBitsPerSecond: 128000, // 128 kbps for audio
+        };
+
+        const mediaRecorder = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (event) => {
+          console.log('Data available:', event.data.size, 'bytes');
+          if (event.data.size > 0) {
+            chunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          console.log('MediaRecorder stopped, chunks:', chunksRef.current.length);
+          const actualDuration = actualDurationRef.current;
+
+          if (chunksRef.current.length === 0) {
+            setCameraError('Recording failed. Please try again.');
+            return;
+          }
+
+          const blob = new Blob(chunksRef.current, {
+            type: selectedMimeType,
+          });
+
+          console.log('Created blob:', blob.size, 'bytes, type:', blob.type);
+          onVideoRecorded(blob, actualDuration);
+        };
+
+        mediaRecorder.onerror = (event: any) => {
+          console.error('MediaRecorder error:', event.error);
+          setCameraError('Recording error occurred. Please try again.');
+        };
+
+        console.log('MediaRecorder setup complete');
+      } catch (error) {
+        console.error('Error setting up MediaRecorder:', error);
+        setCameraError('Failed to setup video recording.');
       }
-
-      if (!selectedMimeType) {
-        throw new Error('No supported video format found');
-      }
-
-      const options: MediaRecorderOptions = {
-        mimeType: selectedMimeType,
-        videoBitsPerSecond: 2500000, // 2.5 Mbps for good quality
-        audioBitsPerSecond: 128000   // 128 kbps for audio
-      };
-
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        console.log('Data available:', event.data.size, 'bytes');
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        console.log('MediaRecorder stopped, chunks:', chunksRef.current.length);
-        const actualDuration = actualDurationRef.current;
-
-        if (chunksRef.current.length === 0) {
-          setCameraError('Recording failed. Please try again.');
-          return;
-        }
-
-        const blob = new Blob(chunksRef.current, {
-          type: selectedMimeType,
-        });
-
-        console.log('Created blob:', blob.size, 'bytes, type:', blob.type);
-        onVideoRecorded(blob, actualDuration);
-      };
-
-      mediaRecorder.onerror = (event: any) => {
-        console.error('MediaRecorder error:', event.error);
-        setCameraError('Recording error occurred. Please try again.');
-      };
-
-      console.log('MediaRecorder setup complete');
-    } catch (error) {
-      console.error('Error setting up MediaRecorder:', error);
-      setCameraError('Failed to setup video recording.');
-    }
-  }, [onVideoRecorded]);
+    },
+    [onVideoRecorded],
+  );
 
   // Initialize camera on component mount
   useEffect(() => {
@@ -455,16 +457,10 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
           <div className="text-red-400 text-xl mb-4">⚠️</div>
           <div className="text-lg mb-4">{cameraError}</div>
           <div className="space-y-3">
-            <button
-              onClick={handleRetry}
-              className="w-full bg-nocenaPink px-6 py-3 rounded-lg text-white font-medium"
-            >
+            <button onClick={handleRetry} className="w-full bg-nocenaPink px-6 py-3 rounded-lg text-white font-medium">
               Try Again
             </button>
-            <button 
-              onClick={onBack} 
-              className="w-full bg-gray-600 px-6 py-3 rounded-lg text-white font-medium"
-            >
+            <button onClick={onBack} className="w-full bg-gray-600 px-6 py-3 rounded-lg text-white font-medium">
               Go Back
             </button>
           </div>
@@ -541,7 +537,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </ThematicContainer>
-          </button>
+        </button>
       </div>
 
       {/* Countdown Overlay */}
