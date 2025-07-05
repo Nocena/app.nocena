@@ -1,6 +1,5 @@
-// lib/completing/challengeCompletionService.ts - UPDATED VERSION
+// lib/completing/challengeCompletionService.ts - UPDATED WITH FILCDN
 import { createChallengeCompletion, updateUserTokens, createNotification } from '../api/dgraph';
-import { directPinataUpload } from './directPinataUpload';
 
 export interface CompletionData {
   video: Blob;
@@ -19,8 +18,8 @@ export interface CompletionData {
 }
 
 export interface MediaMetadata {
-  videoCID: string;
-  selfieCID: string;
+  videoCID: string; // Now FilCDN COMMP
+  selfieCID: string; // Now FilCDN COMMP
   timestamp: number;
   description: string;
   verificationResult: any;
@@ -28,6 +27,113 @@ export interface MediaMetadata {
   hasSelfie?: boolean;
   videoFileName?: string;
   selfieFileName?: string;
+  // FilCDN specific fields
+  videoFileCDNUrl?: string;
+  selfieFileCDNUrl?: string;
+}
+
+// FilCDN URL construction helper
+const getFileCDNUrl = (commp: string): string => {
+  const walletAddress = process.env.NEXT_PUBLIC_FILECOIN_WALLET || '0x48Cd52D541A2d130545f3930F5330Ef31cD22B95';
+  return `https://${walletAddress}.calibration.filcdn.io/${commp}`;
+};
+
+// FilCDN Upload Function for challenge media
+const uploadBlobToFileCDN = async (
+  blob: Blob,
+  fileName: string,
+  userId: string,
+): Promise<{ commp: string; fileName: string; fileSize: number }> => {
+  console.log(`🚀 Starting FilCDN upload for ${fileName}:`, `(${(blob.size / 1024 / 1024).toFixed(2)}MB)`);
+
+  const sessionId = `challenge-${userId}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  const chunkSize = 2 * 1024 * 1024; // 2MB chunks
+  const totalChunks = Math.ceil(blob.size / chunkSize);
+
+  console.log(`📦 Upload plan: ${totalChunks} chunks of ${chunkSize} bytes each`);
+
+  // Upload chunks sequentially
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * chunkSize;
+    const end = Math.min(start + chunkSize, blob.size);
+    const chunk = blob.slice(start, end);
+
+    console.log(`📤 Uploading chunk ${chunkIndex + 1}/${totalChunks} (${chunk.size} bytes)`);
+
+    const formData = new FormData();
+    formData.append('chunk', chunk);
+    formData.append('sessionId', sessionId);
+    formData.append('chunkIndex', chunkIndex.toString());
+    formData.append('totalChunks', totalChunks.toString());
+    formData.append('fileName', fileName);
+    formData.append('totalSize', blob.size.toString());
+
+    const response = await fetch('/api/filcdn/chunked-upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Chunk ${chunkIndex} upload failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || `Chunk ${chunkIndex} upload failed`);
+    }
+
+    console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
+
+    // If this was the last chunk, we should get the final result
+    if (result.complete) {
+      console.log('🎉 Upload completed!', result.data);
+      return {
+        commp: result.data.commp,
+        fileName: result.data.fileName,
+        fileSize: result.data.fileSize,
+      };
+    }
+  }
+
+  throw new Error('Upload completed but no final result received');
+};
+
+// Updated media upload function using FilCDN
+async function uploadChallengeMediaToFileCDN(
+  video: Blob,
+  photo: Blob,
+  userId: string,
+): Promise<{ videoCID: string; selfieCID: string; videoFileCDNUrl: string; selfieFileCDNUrl: string }> {
+  console.log('🎬 Starting challenge media upload to FilCDN...');
+  const timestamp = Date.now();
+
+  try {
+    // Upload video to FilCDN
+    console.log('📹 Uploading video to FilCDN...');
+    const videoResult = await uploadBlobToFileCDN(video, `challenge_video_${userId}_${timestamp}.webm`, userId);
+    const videoFileCDNUrl = getFileCDNUrl(videoResult.commp);
+    console.log(`✅ Video uploaded to FilCDN: ${videoResult.commp}`);
+
+    // Upload photo to FilCDN
+    console.log('📸 Uploading photo to FilCDN...');
+    const photoResult = await uploadBlobToFileCDN(photo, `challenge_selfie_${userId}_${timestamp}.jpg`, userId);
+    const selfieFileCDNUrl = getFileCDNUrl(photoResult.commp);
+    console.log(`✅ Photo uploaded to FilCDN: ${photoResult.commp}`);
+
+    return {
+      videoCID: videoResult.commp, // Using COMMP as CID for consistency
+      selfieCID: photoResult.commp, // Using COMMP as CID for consistency
+      videoFileCDNUrl,
+      selfieFileCDNUrl,
+    };
+  } catch (error) {
+    console.error('❌ FilCDN upload failed:', error);
+    throw new Error(
+      `Failed to upload challenge media to FilCDN: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
+  }
 }
 
 export async function completeChallengeWorkflow(
@@ -38,13 +144,26 @@ export async function completeChallengeWorkflow(
   try {
     const { video, photo, verificationResult, description, challenge } = completionData;
 
-    console.log('Starting challenge completion workflow for user:', userId);
-    console.log('Video blob size:', video.size, 'Photo blob size:', photo.size);
+    console.log('🎯 Starting challenge completion workflow for user:', userId);
+    console.log('📊 Media info:', {
+      videoSize: `${(video.size / 1024 / 1024).toFixed(2)}MB`,
+      photoSize: `${(photo.size / 1024 / 1024).toFixed(2)}MB`,
+      challengeType: challenge.type,
+    });
 
-    // UPDATED: Use direct upload instead of going through your API
-    const { videoCID, selfieCID } = await directPinataUpload.uploadChallengeMedia(video, photo, userId);
+    // UPDATED: Use FilCDN instead of Pinata
+    const { videoCID, selfieCID, videoFileCDNUrl, selfieFileCDNUrl } = await uploadChallengeMediaToFileCDN(
+      video,
+      photo,
+      userId,
+    );
 
-    console.log('Media uploaded successfully via direct upload:', { videoCID, selfieCID });
+    console.log('🎉 Media uploaded successfully to FilCDN:', {
+      videoCID,
+      selfieCID,
+      videoFileCDNUrl,
+      selfieFileCDNUrl,
+    });
 
     const timestamp = Date.now();
     const mediaMetadata: MediaMetadata = {
@@ -57,6 +176,9 @@ export async function completeChallengeWorkflow(
       hasSelfie: true,
       videoFileName: `challenge_video_${userId}_${timestamp}.webm`,
       selfieFileName: `challenge_selfie_${userId}_${timestamp}.jpg`,
+      // FilCDN specific URLs
+      videoFileCDNUrl,
+      selfieFileCDNUrl,
     };
 
     let challengeId: string;
@@ -82,6 +204,8 @@ export async function completeChallengeWorkflow(
       throw new Error('Invalid challenge type');
     }
 
+    console.log(`📝 Creating challenge completion record for ${challengeType} challenge: ${challengeId}`);
+
     // Create the completion record
     const completionId = await createChallengeCompletion(
       userId,
@@ -89,6 +213,8 @@ export async function completeChallengeWorkflow(
       challengeType,
       JSON.stringify(mediaMetadata),
     );
+
+    console.log(`💰 Updating user tokens: +${challenge.reward} Nocenix`);
 
     // Update user's tokens
     await updateUserTokens(userId, challenge.reward);
@@ -98,11 +224,13 @@ export async function completeChallengeWorkflow(
       const updatedCompletionStrings = calculateUpdatedCompletionStrings(
         challenge.frequency as 'daily' | 'weekly' | 'monthly',
       );
-      console.log('Updating AuthContext with:', updatedCompletionStrings);
+      console.log('🔄 Updating AuthContext with:', updatedCompletionStrings);
       updateAuthUser(updatedCompletionStrings);
     }
 
     await handlePostCompletionActions(userId, challengeId, challengeType, challenge, completionId);
+
+    console.log(`🎉 Challenge completion workflow finished successfully!`);
 
     return {
       success: true,
@@ -110,7 +238,7 @@ export async function completeChallengeWorkflow(
       completionId,
     };
   } catch (error) {
-    console.error('Challenge completion failed:', error);
+    console.error('❌ Challenge completion failed:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Challenge completion failed',
