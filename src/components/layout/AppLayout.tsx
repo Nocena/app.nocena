@@ -241,6 +241,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       '/profile': 4,
       '/completing': 5,
       '/createchallenge': 7, // Special index for create challenge page
+      '/livestream': 8, // Special index for livestream page
+      '/watch': 9, // Special index for watch index page
     };
 
     // Handle profile pages with IDs - WITH SAFETY CHECKS
@@ -254,6 +256,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       return;
     }
 
+    // Handle watch pages with session IDs
+    if (currentPathname.startsWith('/watch/')) {
+      setCurrentIndex(10); // Special index for individual watch session page
+      return;
+    }
+
     // Check if the current path is in our mapping
     const index = pathToIndexMap[currentPathname];
     if (index !== undefined) {
@@ -264,7 +272,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // Safe checks for special page determination
   const isUserProfile = currentPathname.startsWith('/profile/') && currentQuery.walletAddress !== user?.wallet;
-  const isSpecialPage = currentPathname === '/completing' || currentPathname === '/createchallenge';
+  const isSpecialPage =
+    currentPathname === '/completing' ||
+    currentPathname === '/createchallenge' ||
+    currentPathname === '/livestream' ||
+    currentPathname === '/watch' ||
+    currentPathname.startsWith('/watch/');
 
   // Memoized navigation handler to prevent unnecessary rerenders
   const handleNavClick = useCallback(
@@ -290,6 +303,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         5: '/completing',
         6: '/profile',
         7: '/createchallenge',
+        8: '/livestream',
+        9: '/watch',
+        10: '/watch', // Individual watch session pages will handle their own routing
       };
 
       // Determine the target route
@@ -424,6 +440,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const usePageManager =
     !currentPathname.startsWith('/completing') &&
     !currentPathname.startsWith('/createchallenge') &&
+    !currentPathname.startsWith('/livestream') &&
+    !currentPathname.startsWith('/watch') &&
     children === undefined;
 
   if (isBrowser) {

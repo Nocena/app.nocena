@@ -302,6 +302,41 @@ const HomeView = () => {
                 />
               </div>
             )}
+
+            {/* Watch Live Streams Button */}
+            <div className="mt-8 mb-8">
+              <div className="bg-black/40 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">Live Streams</h3>
+                    <p className="text-gray-400 text-sm mb-4">
+                      Watch live streams from the community powered by FilCDN's decentralized network
+                    </p>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span>Sub-second latency</span>
+                      <span>Global CDN</span>
+                      <span>Decentralized</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col space-y-3 ml-6">
+                    <button
+                      onClick={() => router.push('/watch')}
+                      className="bg-nocenaPink hover:bg-pink-600 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-300"
+                    >
+                      Watch Streams
+                    </button>
+
+                    <button
+                      onClick={() => router.push('/livestream')}
+                      className="bg-gray-800/80 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-300 text-sm"
+                    >
+                      Go Live
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>

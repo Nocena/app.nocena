@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import { updateBio, updateProfilePicture, updateCoverPhoto } from '../../lib/api/dgraph';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -8,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicContainer from '../../components/ui/ThematicContainer';
+import PrimaryButton from '../../components/ui/PrimaryButton';
 import FollowersPopup from './components/FollowersPopup';
 import TrailerSection from './components/TrailerSection';
 import StatsSection from './components/StatsSection';
@@ -35,6 +37,7 @@ interface UploadResult {
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
   const { user, login } = useAuth();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +133,12 @@ const ProfileView: React.FC = () => {
     }
 
     throw new Error('Upload completed but no final result received');
+  };
+
+  // Livestream handler
+  const handleStartLivestream = () => {
+    console.log('Starting livestream...');
+    router.push('/livestream');
   };
 
   // Sync user data when user changes
@@ -531,6 +540,11 @@ const ProfileView: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Livestream Button */}
+          <div className="mb-6">
+            <PrimaryButton text="Start Livestream" onClick={handleStartLivestream} className="w-full" />
           </div>
 
           {/* Three Section Menu using ThematicContainer */}
