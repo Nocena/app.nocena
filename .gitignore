@@ -39,3 +39,4 @@ certificates/
 *.pem
 *.key
 *.cert
+.sessions.json
