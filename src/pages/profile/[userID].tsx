@@ -600,7 +600,7 @@ const OtherProfileView: React.FC = () => {
                 isActive={!isFollowing}
                 disabled={isPendingFollow || !currentUser}
               />
-
+{/*
               <PrimaryButton
                 text="Challenge Me"
                 onClick={handleChallengeClick}
@@ -608,6 +608,7 @@ const OtherProfileView: React.FC = () => {
                 isActive={false}
                 disabled={!currentUser || currentUser.id === user.id}
               />
+              */}
             </div>
 
             {/* Three Section Menu using ThematicContainer */}

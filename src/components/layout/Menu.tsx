@@ -3,13 +3,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../ui/PrimaryButton';
 import ThematicImage from '../ui/ThematicImage';
 import ThematicContainer from '../ui/ThematicContainer';
-import InviteFriends from './menu/InviteFriends';
+// import InviteFriends from './menu/InviteFriends';
 import WalletMenu from './menu/Wallet';
 import NocenixMenu from './menu/Nocenix';
 import VerificationMenu from './menu/Verification';
 import SettingsMenu from './menu/Settings';
 import FAQMenu from './menu/FAQ';
-import ContactMenu from './menu/Contact';
+import SupportMenu from './menu/Support';
+import FeedbackMenu from './menu/Feedback';
 import Image from 'next/image';
 
 interface MenuProps {
@@ -219,14 +220,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           onClick={() => setActiveSection('nocenix')}
         />
 
-        {/* Special Invite Friends Item */}
+        {/* COMMENTED OUT: Special Invite Friends Item */}
+        {/* 
         <div className="mx-3 mb-4 relative">
-          {/* Glow effect background */}
           <div className="absolute inset-0 bg-gradient-to-r from-nocenaBlue/20 to-nocenaPurple/20 rounded-xl blur-md"></div>
 
           <div
             onTouchStart={(e) => {
-              // Store initial touch position and time for gesture detection
               const touch = e.touches[0];
               e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
               e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
@@ -284,6 +284,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
             </div>
           </div>
         </div>
+        */}
 
         <MenuItem
           icon={
@@ -321,20 +322,32 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
             </svg>
           }
           title="FAQ"
-          description="Frequently asked questions"
+          description="Beta info and common questions"
           onClick={() => setActiveSection('faq')}
         />
 
         <MenuItem
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           }
-          title="Contact Us"
-          description="Get help and support"
-          onClick={() => setActiveSection('contact')}
+          title="Support"
+          description="Help & contact"
+          onClick={() => setActiveSection('support')}
+        />
+
+        <MenuItem
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 9V5a3 3 0 0 0-6 0v4" />
+              <rect x="2" y="9" width="20" height="12" rx="2" ry="2" />
+              <circle cx="12" cy="15" r="1" />
+            </svg>
+          }
+          title="Feedback"
+          description="Help us improve Nocena"
+          onClick={() => setActiveSection('feedback')}
         />
       </div>
 
@@ -475,16 +488,18 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         return <WalletMenu onBack={() => setActiveSection(null)} />;
       case 'nocenix':
         return <NocenixMenu onBack={() => setActiveSection(null)} />;
-      case 'invite':
-        return <InviteFriends onBack={() => setActiveSection(null)} />;
+      // case 'invite':
+      //   return <InviteFriends onBack={() => setActiveSection(null)} />;
       case 'verification':
         return <VerificationMenu onBack={() => setActiveSection(null)} />;
       case 'settings':
         return <SettingsMenu onBack={() => setActiveSection(null)} />;
       case 'faq':
         return <FAQMenu onBack={() => setActiveSection(null)} />;
-      case 'contact':
-        return <ContactMenu onBack={() => setActiveSection(null)} />;
+      case 'support':
+        return <SupportMenu onBack={() => setActiveSection(null)} />;
+      case 'feedback':
+        return <FeedbackMenu onBack={() => setActiveSection(null)} />;
       default:
         return renderMainMenu();
     }
