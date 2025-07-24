@@ -6,7 +6,6 @@ import { getUserByIdFromDgraph, toggleFollowUser } from '../../lib/api/dgraph';
 import { useAuth, User as AuthUser } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 import PrimaryButton from '../../components/ui/PrimaryButton';
-import ThematicImage from '../../components/ui/ThematicImage';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
 import TrailerSection from './components/TrailerSection';
@@ -600,7 +599,7 @@ const OtherProfileView: React.FC = () => {
                 isActive={!isFollowing}
                 disabled={isPendingFollow || !currentUser}
               />
-{/*
+              {/*
               <PrimaryButton
                 text="Challenge Me"
                 onClick={handleChallengeClick}

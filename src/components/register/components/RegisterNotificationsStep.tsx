@@ -15,7 +15,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   const [error, setError] = useState('');
 
   // Legal agreement states
-  const [notificationsAgreed, setNotificationsAgreed] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
@@ -23,45 +22,122 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  const allAgreementsAccepted = notificationsAgreed && termsAgreed && privacyAgreed;
+  const allAgreementsAccepted = termsAgreed && privacyAgreed;
+  const notificationsEnabled = pushSubscription !== null;
 
   useEffect(() => {
+    console.log('🔍 Component mounted, checking notification status...');
+    
     // Check current notification permission on component mount
     if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-      if (Notification.permission === 'granted' && !disabled) {
-        handleEnableNotifications();
+      const currentPermission = Notification.permission;
+      console.log('Current permission on mount:', currentPermission);
+      setNotificationPermission(currentPermission);
+
+      if (currentPermission === 'granted' && !disabled) {
+        console.log('✅ Permission already granted, attempting to get existing subscription...');
+        // If already granted, just get the subscription
+        subscribeToPushNotifications()
+          .then((subscription) => {
+            console.log('Existing subscription result:', subscription ? 'Found' : 'Not found');
+            if (subscription) {
+              setPushSubscription(subscription);
+            }
+          })
+          .catch((error) => {
+            console.error('Error getting existing subscription:', error);
+          });
       }
     }
   }, [disabled]);
 
+  // Function to detect if we're in private/incognito mode
+  const isPrivateBrowsing = async (): Promise<boolean> => {
+    try {
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const estimate = await navigator.storage.estimate();
+        return (estimate.quota || 0) < 120000000;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const handleEnableNotifications = async () => {
+    console.log('🔔 Enable notifications clicked');
+
     if (disabled) {
       console.log('⚠️ Notifications setup disabled, ignoring request');
       return;
     }
 
+    // If we already have a subscription, don't do anything
+    if (pushSubscription) {
+      console.log('✅ Already have subscription');
+      return;
+    }
+
+    // If notifications are denied, we can't trigger the popup again
+    // The browser blocks repeated requests after denial
+    if (notificationPermission === 'denied') {
+      console.log('🚫 Notifications denied, cannot trigger popup again');
+      setError(
+        "You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n" +
+        "• Chrome: Click the lock icon in the address bar → Notifications → Allow\n" +
+        "• Safari: Go to Settings → Websites → Notifications → Allow for this site\n" +
+        "• Firefox: Click the shield icon → Turn off blocking for Notifications"
+      );
+      return;
+    }
+
+    // Check for private browsing mode
+    const isPrivate = await isPrivateBrowsing();
+    if (isPrivate) {
+      console.log('🕵️ Private browsing detected');
+      setError('Notifications may not work in private/incognito mode. Please try in a regular browser window.');
+      return;
+    }
+
+    console.log('🚀 Starting notification setup process...');
     setIsSettingUp(true);
     setError('');
 
     try {
+      console.log('📲 Requesting notification permission...');
       const permission = await requestNotificationPermission();
+      console.log('🎯 Permission result:', permission);
       setNotificationPermission(permission);
 
       if (permission === 'granted') {
+        console.log('✅ Permission granted, subscribing to push notifications...');
         const subscription = await subscribeToPushNotifications();
+        console.log('📨 Subscription result:', subscription);
+
         if (subscription) {
           setPushSubscription(subscription);
+          console.log('🎉 Notification setup completed successfully!');
         } else {
+          console.error('❌ Failed to get push subscription');
           setError('Failed to setup notifications. Please try again.');
         }
+      } else if (permission === 'denied') {
+        console.log('🚫 Permission denied by user');
+        setError(
+          "You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n" +
+          "• Chrome: Click the lock icon in the address bar → Notifications → Allow\n" +
+          "• Safari: Go to Settings → Websites → Notifications → Allow for this site\n" +
+          "• Firefox: Click the shield icon → Turn off blocking for Notifications"
+        );
       } else {
-        setError('Notifications are required to receive challenges and rewards. Please allow notifications.');
+        console.log('❓ Permission dismissed or default:', permission);
+        setError('Please allow notifications when the browser asks, then try again.');
       }
     } catch (error) {
-      console.error('Error setting up notifications:', error);
+      console.error('💥 Error setting up notifications:', error);
       setError('Failed to setup notifications. Please try again.');
     } finally {
+      console.log('🏁 Notification setup process finished');
       setIsSettingUp(false);
     }
   };
@@ -78,168 +154,86 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   };
 
   const isInteractionDisabled = disabled || isSettingUp;
-  const canProceed = pushSubscription && allAgreementsAccepted && !isInteractionDisabled;
+  const canProceed = notificationsEnabled && allAgreementsAccepted && !isInteractionDisabled;
 
   return (
     <div className="flex flex-col px-6 py-8">
       {/* Main Content */}
       <div className="space-y-6">
-        {/* Notifications Status */}
-        {pushSubscription ? (
-          <div className="p-6 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-2xl border border-emerald-500/30">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                  <polyline points="20,6 9,17 4,12" />
-                </svg>
-              </div>
+        {/* Error Display */}
+        {error && !disabled && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
               <div>
-                <h3 className="text-emerald-400 font-bold text-base tracking-wide">NOTIFICATIONS ACTIVE</h3>
-                <p className="text-emerald-100 text-sm font-light">
-                  {disabled ? 'Creating your account...' : 'Ready to receive challenges and rewards'}
-                </p>
+                <p className="text-sm text-red-300 font-medium mb-1">Notifications Required</p>
+                <pre className="text-sm text-red-200 font-light whitespace-pre-line">{error}</pre>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Error Display */}
-            {error && !disabled && (
-              <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4">
-                <p className="text-sm text-red-300 font-light">{error}</p>
-              </div>
-            )}
-
-            {/* Registration Status */}
-            {disabled && (
-              <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl p-4">
-                <div className="flex items-center justify-center space-x-3">
-                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-blue-300 font-light">Creating your account, please wait...</p>
-                </div>
-              </div>
-            )}
-
-            {/* Notification Features Preview */}
-            <div className="grid gap-3">
-              <div className="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
-                <div className="w-10 h-10 bg-gradient-to-br from-nocenaBlue to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12,6 12,12 16,14" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold text-sm">Daily Challenge Alerts</h4>
-                  <p className="text-gray-400 text-xs">Get notified when new challenges are available</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
-                <div className="w-10 h-10 bg-gradient-to-br from-nocenaPink to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold text-sm">Reward Notifications</h4>
-                  <p className="text-gray-400 text-xs">Know instantly when you earn tokens</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="m22 21-3-3 3-3" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold text-sm">Friend Activity</h4>
-                  <p className="text-gray-400 text-xs">See when friends complete challenges</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Enable Notifications Button */}
-            {!pushSubscription && (
-              <button
-                onClick={handleEnableNotifications}
-                disabled={isInteractionDisabled}
-                className={`w-full text-sm py-4 px-6 bg-gradient-to-r from-nocenaBlue to-nocenaPink text-white rounded-xl hover:shadow-xl transition-all duration-300 font-medium tracking-wide border border-white/10 ${
-                  isInteractionDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
-                }`}
-              >
-                {disabled ? (
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>CREATING ACCOUNT...</span>
-                  </div>
-                ) : isSettingUp ? (
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>SETTING UP NOTIFICATIONS...</span>
-                  </div>
-                ) : (
-                  'ENABLE NOTIFICATIONS'
-                )}
-              </button>
-            )}
           </div>
         )}
 
+        {/* Registration Status */}
+        {disabled && (
+          <div className="bg-blue-500/20 border border-blue-500/50 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm text-blue-300 font-light">Creating your account, please wait...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Section */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center w-16 h-16 mx-auto bg-nocenaPink/20 rounded-full">
+            {notificationsEnabled ? (
+              <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v1.5l-3 .75v11.25a.75.75 0 001.5 0V6l8.25-2.25v7.5"/>
+              </svg>
+            )}
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+            </h3>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {notificationsEnabled 
+                ? 'Great! You\'ll receive notifications about new challenges, friend activities, and rewards.'
+                : 'Get notified about new challenges, friend activities, and rewards so you never miss out on the action.'
+              }
+            </p>
+          </div>
+
+          {/* Only show the notification button when notifications are NOT enabled */}
+          {!notificationsEnabled && (
+            <PrimaryButton
+              text={
+                isSettingUp
+                  ? 'Setting up notifications...'
+                  : notificationPermission === 'denied'
+                    ? 'Show me how to enable notifications'
+                    : 'Enable notifications'
+              }
+              onClick={handleEnableNotifications}
+              disabled={isInteractionDisabled}
+              className="w-full"
+            />
+          )}
+        </div>
+
         {/* Legal Agreements Section */}
-        <div className="p-5 bg-gray-800/30 rounded-xl border border-gray-700">
-          <h3 className="text-white font-semibold text-sm mb-4 flex items-center">
-            <svg className="w-4 h-4 mr-2 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Required Agreements
-          </h3>
-
+        <div className="space-y-4">
+          <h4 className="text-white font-medium text-center">Before we continue</h4>
+          
           <div className="space-y-3">
-            {/* Notifications Agreement */}
-            <label className="flex items-start space-x-3 cursor-pointer group">
-              <div className="relative flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={notificationsAgreed}
-                  onChange={(e) => setNotificationsAgreed(e.target.checked)}
-                  disabled={isInteractionDisabled}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
-                    notificationsAgreed
-                      ? 'bg-nocenaPink border-nocenaPink'
-                      : 'border-gray-500 group-hover:border-gray-400'
-                  } ${isInteractionDisabled ? 'opacity-50' : ''}`}
-                >
-                  {notificationsAgreed && (
-                    <svg
-                      className="w-3 h-3 text-white absolute top-0.5 left-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <div className="text-sm">
-                <span className="text-gray-300">
-                  I consent to receive push notifications for challenges, rewards, and app updates.
-                </span>
-              </div>
-            </label>
-
             {/* Terms & Conditions */}
             <label className="flex items-start space-x-3 cursor-pointer group">
               <div className="relative flex-shrink-0 mt-0.5">
@@ -323,29 +317,23 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
         </div>
       </div>
 
-      {/* Main Action Button */}
-      <div className="mt-8">
-        <PrimaryButton
-          text={
-            disabled
-              ? 'Creating account...'
-              : !pushSubscription
-                ? 'Enable notifications first'
+      {/* Complete Setup Button - Only show when notifications are enabled */}
+      {notificationsEnabled && (
+        <div className="mt-8">
+          <PrimaryButton
+            text={
+              disabled
+                ? 'Creating account...'
                 : !allAgreementsAccepted
-                  ? 'Accept all to continue'
+                  ? 'Accept agreements to continue'
                   : 'Complete setup'
-          }
-          onClick={
-            pushSubscription && !allAgreementsAccepted
-              ? undefined
-              : pushSubscription
-                ? handleComplete
-                : handleEnableNotifications
-          }
-          className={`w-full ${!canProceed ? 'opacity-50' : ''}`}
-          disabled={!canProceed}
-        />
-      </div>
+            }
+            onClick={canProceed ? handleComplete : undefined}
+            className={`w-full ${!canProceed ? 'opacity-50' : ''}`}
+            disabled={!canProceed}
+          />
+        </div>
+      )}
 
       {/* Legal Modals */}
       <LegalPopupModal

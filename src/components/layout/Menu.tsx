@@ -380,13 +380,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
                 if (touchDuration < 300 && !hasMoved) {
                   e.preventDefault();
                   e.stopPropagation();
-                  window.open('https://x.com/nocena', '_blank');
+                  window.open('https://x.com/nocena_app', '_blank');
                 }
               }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.open('https://x.com/nocena', '_blank');
+                window.open('https://x.com/nocena_app', '_blank');
               }}
               className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 active:from-blue-700 active:to-blue-900 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-lg select-none"
               role="button"
@@ -460,13 +460,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
                 if (touchDuration < 300 && !hasMoved) {
                   e.preventDefault();
                   e.stopPropagation();
-                  window.open('https://t.me/nocena', '_blank');
+                  window.open('https://t.me/+whC098-RLD02N2I0', '_blank');
                 }
               }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.open('https://t.me/nocena', '_blank');
+                window.open('https://t.me/+whC098-RLD02N2I0', '_blank');
               }}
               className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 active:from-blue-600 active:to-blue-800 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-lg select-none"
               role="button"
