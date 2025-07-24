@@ -1,0 +1,22 @@
+{
+    "name": "Nocena",
+    "tagline": "Crypto powered #SocialFI dApp built to help creators profit from their content",
+    "description": "A BeReal inspired SocialFi for influencers to earn rewards for their content. There are 3 types of challenges. AI generated - used for users to mine the token. Public challenges - B2B model mainly and for community. Private challenges - for users to challenge one another.",
+    "team": [
+      {
+        "name": "Jakub Lustyk",
+        "email": "lustykjakub@gmail.com"
+      },
+      {
+        "name": "Caden Piper",
+        "email": "cadenjpiper@gmail.com"
+      },
+      {
+        "name": "Matija Micunovic",
+        "email": "micunovicmatija629@gmail.com"
+      }
+    ],
+    "demo_url": "app.nocena.com",
+    "video_url": "https://youtu.be/xBzzq82ShW8",
+    "technologies": ["React", "Next.js", "Flow", "FilCDN", "Pinata", "Filecoin", "Dgraph", "Lens Protocol", "ThirdWeb", "Tesor Flow", "ChatGPT", "Vapid", "Typescript", "TailwindCSS", "Node.js", "ngrok"]
+  }

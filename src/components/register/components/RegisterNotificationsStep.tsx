@@ -27,7 +27,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
 
   useEffect(() => {
     console.log('🔍 Component mounted, checking notification status...');
-    
     // Check current notification permission on component mount
     if ('Notification' in window) {
       const currentPermission = Notification.permission;
@@ -48,6 +47,8 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
             console.error('Error getting existing subscription:', error);
           });
       }
+    } else {
+      console.error('❌ Notifications not supported in this browser');
     }
   }, [disabled]);
 
@@ -63,7 +64,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
       return false;
     }
   };
-
   const handleEnableNotifications = async () => {
     console.log('🔔 Enable notifications clicked');
 
@@ -139,6 +139,39 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     } finally {
       console.log('🏁 Notification setup process finished');
       setIsSettingUp(false);
+=======
+    if (!checked) {
+      console.log('📴 Unchecking notifications agreement');
+      setNotificationsAgreed(false);
+      setError('');
+      return;
+    }
+
+    // If checking and we already have a subscription, just update the agreement
+    if (checked && pushSubscription) {
+      console.log('✅ Already have subscription, just updating agreement');
+      setNotificationsAgreed(true);
+      setError('');
+      return;
+    }
+
+    // Check for private browsing mode
+    const isPrivate = await isPrivateBrowsing();
+    if (isPrivate) {
+      console.log('🕵️ Private browsing detected');
+      setError('Notifications may not work in private/incognito mode. Please try in a regular browser window.');
+      setNotificationsAgreed(false);
+      return;
+    }
+
+    // If checking and we don't have a subscription, ALWAYS trigger permission request
+    if (checked) {
+      console.log('🚀 Starting notification setup process...');
+      setIsSettingUp(true);
+      setError('');
+
+      try {
+        console.log('📲 Requesting notification permission...');
     }
   };
 

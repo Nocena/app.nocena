@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { updateBio, updateProfilePicture, updateCoverPhoto } from '../../lib/api/dgraph';
-import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
-import imageCompression from 'browser-image-compression';
+// Temporarily disable image compression until CSP is fixed
+// import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
@@ -21,6 +21,17 @@ import useFollowersData from '../../hooks/useFollowersData';
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
 
+// FilCDN Upload Interface
+interface UploadResult {
+  fileName: string;
+  fileSize: number;
+  commp: string;
+  debugInfo?: {
+    tempDir: string;
+    finalHash: string;
+  };
+}
+
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
   const { user, login } = useAuth();
@@ -36,6 +47,11 @@ const ProfileView: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
 
+  // Upload states
+  const [isUploadingProfile, setIsUploadingProfile] = useState<boolean>(false);
+  const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   // Challenge data
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
     user?.dailyChallenge.split('').map((char) => char === '1') || [],
@@ -50,6 +66,71 @@ const ProfileView: React.FC = () => {
   // Use custom hook for followers data
   const { followersCount, followers, showFollowersPopup, setShowFollowersPopup, handleFollowersClick } =
     useFollowersData(user?.id);
+
+  // FilCDN URL construction
+  const getFileCDNUrl = (commp: string) => {
+    const walletAddress = process.env.NEXT_PUBLIC_FILECOIN_WALLET || '0x48Cd52D541A2d130545f3930F5330Ef31cD22B95';
+    return `https://${walletAddress}.calibration.filcdn.io/${commp}`;
+  };
+
+  // FilCDN Upload Function using your existing chunked upload API
+  const uploadToFileCDN = async (file: File, fileType: 'profile' | 'cover'): Promise<UploadResult> => {
+    console.log(`🚀 Starting FilCDN upload for ${fileType}:`, file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+    const sessionId = `${fileType}-${user?.id}-${Date.now()}`;
+    const chunkSize = 2 * 1024 * 1024; // 2MB chunks
+    const totalChunks = Math.ceil(file.size / chunkSize);
+
+    console.log(`📦 Upload plan: ${totalChunks} chunks of ${chunkSize} bytes each`);
+
+    // Upload chunks sequentially
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      const chunk = file.slice(start, end);
+
+      console.log(`📤 Uploading chunk ${chunkIndex + 1}/${totalChunks} (${chunk.size} bytes)`);
+
+      const formData = new FormData();
+      formData.append('chunk', chunk);
+      formData.append('sessionId', sessionId);
+      formData.append('chunkIndex', chunkIndex.toString());
+      formData.append('totalChunks', totalChunks.toString());
+      formData.append('fileName', `${fileType}-${user?.id}-${Date.now()}.${file.name.split('.').pop()}`);
+      formData.append('totalSize', file.size.toString());
+
+      const response = await fetch('/api/filcdn/chunked-upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chunk ${chunkIndex} upload failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || `Chunk ${chunkIndex} upload failed`);
+      }
+
+      console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
+
+      // If this was the last chunk, we should get the final result
+      if (result.complete) {
+        console.log('🎉 Upload completed!', result.data);
+        return {
+          fileName: result.data.fileName,
+          fileSize: result.data.fileSize,
+          commp: result.data.commp,
+          debugInfo: result.data.debugInfo,
+        };
+      }
+    }
+
+    throw new Error('Upload completed but no final result received');
+  };
 
   // Sync user data when user changes
   useEffect(() => {
@@ -88,13 +169,13 @@ const ProfileView: React.FC = () => {
 
   // Image upload handlers
   const handleProfilePicClick = () => {
-    if (fileInputRef.current) {
+    if (fileInputRef.current && !isUploadingProfile) {
       fileInputRef.current.click();
     }
   };
 
   const handleCoverPhotoClick = () => {
-    if (coverInputRef.current) {
+    if (coverInputRef.current && !isUploadingCover) {
       coverInputRef.current.click();
     }
   };
@@ -102,97 +183,59 @@ const ProfileView: React.FC = () => {
   const handleProfilePicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && user) {
+      setIsUploadingProfile(true);
+      setUploadError(null);
+
       try {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-          alert('Please select a valid image file.');
-          return;
+          throw new Error('Please select a valid image file.');
         }
 
         // Check file size (max 5MB for profile picture)
         if (file.size > 5 * 1024 * 1024) {
-          alert('Image file must be smaller than 5MB.');
-          return;
+          throw new Error('Image file must be smaller than 5MB.');
         }
 
-        const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 512,
-          useWebWorker: true,
-          fileType: 'image/webp',
-        };
+        console.log(`Profile image selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-        const compressedFile = await imageCompression(file, options);
-        const reader = new FileReader();
+        // Upload to FilCDN using chunked upload
+        console.log('🚀 Starting FilCDN upload...');
+        const uploadResult = await uploadToFileCDN(file, 'profile');
+        console.log('✅ FilCDN upload completed:', uploadResult);
 
-        reader.onloadend = async () => {
-          try {
-            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+        // Construct FilCDN URL
+        const fileCDNUrl = getFileCDNUrl(uploadResult.commp);
+        console.log('🔗 FilCDN URL:', fileCDNUrl);
 
-            // Clean up old profile picture
-            if (
-              user.profilePicture &&
-              user.profilePicture !== DEFAULT_PROFILE_PIC &&
-              !user.profilePicture.includes('/images/profile.png')
-            ) {
-              const oldCid = user.profilePicture.includes('/')
-                ? user.profilePicture.split('/').pop()
-                : user.profilePicture;
-              if (oldCid) {
-                await unpinFromPinata(oldCid).catch((error) => {
-                  console.warn('Failed to unpin old profile picture:', error);
-                });
-              }
-            }
+        // Update local state immediately
+        setProfilePic(fileCDNUrl);
 
-            // Upload new image with FIXED API call
-            const response = await fetch('/api/pinFileToIPFS', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                file: base64String,
-                fileName: `profile-${user.id}-${Date.now()}.webp`,
-                fileType: 'image', // FIXED: Added required fileType field
-              }),
-            });
+        // Update in database
+        await updateProfilePicture(user.id, fileCDNUrl);
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-            }
+        // Update user state
+        const updatedUser = { ...user, profilePicture: fileCDNUrl };
+        login(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
-            const result = await response.json();
+        // Update page cache
+        const profileCacheKey = `profile_${user.id}`;
+        updatePageState(profileCacheKey, {
+          ...(getPageState()[profileCacheKey]?.data || {}),
+          profilePicture: fileCDNUrl,
+        });
 
-            // FIXED: Check for the correct response format from your API
-            const ipfsUrl = result.ipfsHash ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}` : result.url; // Fallback to url if that's what your API returns
-
-            setProfilePic(ipfsUrl);
-            await updateProfilePicture(user.id, ipfsUrl);
-
-            // Update user state
-            const updatedUser = { ...user, profilePicture: ipfsUrl };
-            login(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-
-            const profileCacheKey = `profile_${user.id}`;
-            updatePageState(profileCacheKey, {
-              ...(getPageState()[profileCacheKey]?.data || {}),
-              profilePicture: ipfsUrl,
-            });
-
-            console.log('Profile picture successfully updated.');
-          } catch (error) {
-            console.error('Upload error:', error);
-            alert('Failed to update profile picture. Please try again.');
-          }
-        };
-
-        reader.readAsDataURL(compressedFile);
+        console.log('🎉 Profile picture successfully uploaded to FilCDN and saved!');
       } catch (error) {
-        console.error('Image compression failed:', error);
-        alert('Image compression failed. Please try with a different image.');
+        console.error('❌ Profile picture upload error:', error);
+        setUploadError(error instanceof Error ? error.message : 'Failed to upload profile picture');
+      } finally {
+        setIsUploadingProfile(false);
+        // Reset file input
+        if (event.target) {
+          event.target.value = '';
+        }
       }
     }
   };
@@ -200,98 +243,59 @@ const ProfileView: React.FC = () => {
   const handleCoverPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && user) {
+      setIsUploadingCover(true);
+      setUploadError(null);
+
       try {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-          alert('Please select a valid image file.');
-          return;
+          throw new Error('Please select a valid image file.');
         }
 
         // Check file size (max 10MB for cover photo)
         if (file.size > 10 * 1024 * 1024) {
-          alert('Image file must be smaller than 10MB.');
-          return;
+          throw new Error('Image file must be smaller than 10MB.');
         }
 
-        const options = {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          fileType: 'image/webp',
-        };
+        console.log(`Cover photo selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-        const compressedFile = await imageCompression(file, options);
-        const reader = new FileReader();
+        // Upload to FilCDN using chunked upload
+        console.log('🚀 Starting FilCDN upload...');
+        const uploadResult = await uploadToFileCDN(file, 'cover');
+        console.log('✅ FilCDN upload completed:', uploadResult);
 
-        reader.onloadend = async () => {
-          try {
-            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
+        // Construct FilCDN URL
+        const fileCDNUrl = getFileCDNUrl(uploadResult.commp);
+        console.log('🔗 FilCDN URL:', fileCDNUrl);
 
-            // Clean up old cover photo if it's not the default
-            if (
-              user.coverPhoto &&
-              user.coverPhoto !== '/images/cover.jpg' &&
-              !user.coverPhoto.includes('/images/cover.jpg')
-            ) {
-              const oldCid = user.coverPhoto.includes('/') ? user.coverPhoto.split('/').pop() : user.coverPhoto;
-              if (oldCid) {
-                await unpinFromPinata(oldCid).catch((error) => {
-                  console.warn('Failed to unpin old cover photo:', error);
-                });
-              }
-            }
+        // Update local state immediately
+        setCoverPhoto(fileCDNUrl);
 
-            // Upload new cover photo to IPFS with FIXED API call
-            const response = await fetch('/api/pinFileToIPFS', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                file: base64String,
-                fileName: `cover-${user.id}-${Date.now()}.webp`,
-                fileType: 'image', // FIXED: Added required fileType field
-              }),
-            });
+        // Update in database
+        await updateCoverPhoto(user.id, fileCDNUrl);
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-            }
+        // Update user state
+        const updatedUser = { ...user, coverPhoto: fileCDNUrl };
+        login(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
 
-            const result = await response.json();
+        // Update page cache
+        const profileCacheKey = `profile_${user.id}`;
+        updatePageState(profileCacheKey, {
+          ...(getPageState()[profileCacheKey]?.data || {}),
+          coverPhoto: fileCDNUrl,
+        });
 
-            // FIXED: Check for the correct response format from your API
-            const ipfsUrl = result.ipfsHash ? `https://gateway.pinata.cloud/ipfs/${result.ipfsHash}` : result.url; // Fallback to url if that's what your API returns
-
-            setCoverPhoto(ipfsUrl);
-
-            // Update in database
-            await updateCoverPhoto(user.id, ipfsUrl);
-
-            // Update user state
-            const updatedUser = { ...user, coverPhoto: ipfsUrl };
-            login(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-
-            // Update page cache
-            const profileCacheKey = `profile_${user.id}`;
-            updatePageState(profileCacheKey, {
-              ...(getPageState()[profileCacheKey]?.data || {}),
-              coverPhoto: ipfsUrl,
-            });
-
-            console.log('Cover photo successfully updated.');
-          } catch (error) {
-            console.error('Upload error:', error);
-            alert('Failed to update cover photo. Please try again.');
-          }
-        };
-
-        reader.readAsDataURL(compressedFile);
+        console.log('🎉 Cover photo successfully uploaded to FilCDN and saved!');
       } catch (error) {
-        console.error('Image compression failed:', error);
-        alert('Image compression failed. Please try with a different image.');
+        console.error('❌ Cover photo upload error:', error);
+        setUploadError(error instanceof Error ? error.message : 'Failed to upload cover photo');
+      } finally {
+        setIsUploadingCover(false);
+        // Reset file input
+        if (event.target) {
+          event.target.value = '';
+        }
       }
     }
   };
@@ -359,6 +363,21 @@ const ProfileView: React.FC = () => {
       }}
     >
       <div className="min-h-screen">
+        {/* Upload Error Display */}
+        {uploadError && (
+          <div className="fixed top-4 left-4 right-4 z-50 p-4 bg-red-600/90 backdrop-blur-sm text-white rounded-lg border border-red-400">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">❌ {uploadError}</span>
+              <button
+                onClick={() => setUploadError(null)}
+                className="text-white/80 hover:text-white text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Cover Photo Section */}
         <div className="relative h-80 overflow-hidden">
           <div
@@ -376,11 +395,20 @@ const ProfileView: React.FC = () => {
           </div>
 
           <div
-            className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+            className={`absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity ${
+              isUploadingCover ? 'cursor-not-allowed' : 'cursor-pointer'
+            }`}
             onClick={handleCoverPhotoClick}
           >
             <div className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
-              Change Cover Photo
+              {isUploadingCover ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Uploading to FilCDN...</span>
+                </div>
+              ) : (
+                'Change Cover Photo'
+              )}
             </div>
           </div>
 
@@ -390,6 +418,7 @@ const ProfileView: React.FC = () => {
             ref={coverInputRef}
             style={{ display: 'none' }}
             onChange={handleCoverPhotoUpload}
+            disabled={isUploadingCover}
           />
         </div>
 
@@ -399,9 +428,12 @@ const ProfileView: React.FC = () => {
           <div className="relative -mt-24 mb-4">
             <div className="flex items-end justify-between">
               {/* Profile Picture */}
-              <div onClick={handleProfilePicClick} className="relative cursor-pointer group">
+              <div
+                onClick={handleProfilePicClick}
+                className={`relative group ${isUploadingProfile ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+              >
                 <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 p-1">
-                  <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1">
+                  <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1 relative">
                     <Image
                       src={profilePic}
                       alt="Profile"
@@ -409,6 +441,14 @@ const ProfileView: React.FC = () => {
                       height={120}
                       className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform"
                     />
+                    {isUploadingProfile && (
+                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span className="text-xs text-white font-medium">Uploading...</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -441,6 +481,7 @@ const ProfileView: React.FC = () => {
               ref={fileInputRef}
               style={{ display: 'none' }}
               onChange={handleProfilePicUpload}
+              disabled={isUploadingProfile}
             />
           </div>
 
@@ -506,7 +547,7 @@ const ProfileView: React.FC = () => {
                 color={getButtonColor(key)}
                 isActive={activeSection === key}
                 onClick={() => setActiveSection(key as any)}
-                className="flex-1 min-w-0 px-2 py-1" // Added min-w-0 to prevent flex shrinking issues
+                className="flex-1 min-w-0 px-2 py-1"
               >
                 <span className="text-sm font-medium whitespace-nowrap text-center w-full">{label}</span>
               </ThematicContainer>
