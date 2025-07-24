@@ -27,6 +27,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
 
   useEffect(() => {
     console.log('🔍 Component mounted, checking notification status...');
+
     // Check current notification permission on component mount
     if ('Notification' in window) {
       const currentPermission = Notification.permission;
@@ -47,8 +48,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
             console.error('Error getting existing subscription:', error);
           });
       }
-    } else {
-      console.error('❌ Notifications not supported in this browser');
     }
   }, [disabled]);
 
@@ -64,6 +63,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
       return false;
     }
   };
+
   const handleEnableNotifications = async () => {
     console.log('🔔 Enable notifications clicked');
 
@@ -83,10 +83,10 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     if (notificationPermission === 'denied') {
       console.log('🚫 Notifications denied, cannot trigger popup again');
       setError(
-        "You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n" +
-        "• Chrome: Click the lock icon in the address bar → Notifications → Allow\n" +
-        "• Safari: Go to Settings → Websites → Notifications → Allow for this site\n" +
-        "• Firefox: Click the shield icon → Turn off blocking for Notifications"
+        'You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n' +
+          '• Chrome: Click the lock icon in the address bar → Notifications → Allow\n' +
+          '• Safari: Go to Settings → Websites → Notifications → Allow for this site\n' +
+          '• Firefox: Click the shield icon → Turn off blocking for Notifications',
       );
       return;
     }
@@ -124,10 +124,10 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
       } else if (permission === 'denied') {
         console.log('🚫 Permission denied by user');
         setError(
-          "You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n" +
-          "• Chrome: Click the lock icon in the address bar → Notifications → Allow\n" +
-          "• Safari: Go to Settings → Websites → Notifications → Allow for this site\n" +
-          "• Firefox: Click the shield icon → Turn off blocking for Notifications"
+          'You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n' +
+            '• Chrome: Click the lock icon in the address bar → Notifications → Allow\n' +
+            '• Safari: Go to Settings → Websites → Notifications → Allow for this site\n' +
+            '• Firefox: Click the shield icon → Turn off blocking for Notifications',
         );
       } else {
         console.log('❓ Permission dismissed or default:', permission);
@@ -139,39 +139,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     } finally {
       console.log('🏁 Notification setup process finished');
       setIsSettingUp(false);
-=======
-    if (!checked) {
-      console.log('📴 Unchecking notifications agreement');
-      setNotificationsAgreed(false);
-      setError('');
-      return;
-    }
-
-    // If checking and we already have a subscription, just update the agreement
-    if (checked && pushSubscription) {
-      console.log('✅ Already have subscription, just updating agreement');
-      setNotificationsAgreed(true);
-      setError('');
-      return;
-    }
-
-    // Check for private browsing mode
-    const isPrivate = await isPrivateBrowsing();
-    if (isPrivate) {
-      console.log('🕵️ Private browsing detected');
-      setError('Notifications may not work in private/incognito mode. Please try in a regular browser window.');
-      setNotificationsAgreed(false);
-      return;
-    }
-
-    // If checking and we don't have a subscription, ALWAYS trigger permission request
-    if (checked) {
-      console.log('🚀 Starting notification setup process...');
-      setIsSettingUp(true);
-      setError('');
-
-      try {
-        console.log('📲 Requesting notification permission...');
     }
   };
 
@@ -197,8 +164,18 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
         {error && !disabled && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 mb-6">
             <div className="flex items-start space-x-3">
-              <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              <svg
+                className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"
+                />
               </svg>
               <div>
                 <p className="text-sm text-red-300 font-medium mb-1">Notifications Required</p>
@@ -227,21 +204,25 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
               </svg>
             ) : (
               <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z"/>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v1.5l-3 .75v11.25a.75.75 0 001.5 0V6l8.25-2.25v7.5"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 3v1.5l-3 .75v11.25a.75.75 0 001.5 0V6l8.25-2.25v7.5"
+                />
               </svg>
             )}
           </div>
-          
+
           <div>
             <h3 className="text-xl font-semibold text-white mb-2">
               {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
             </h3>
             <p className="text-gray-300 text-sm leading-relaxed">
-              {notificationsEnabled 
-                ? 'Great! You\'ll receive notifications about new challenges, friend activities, and rewards.'
-                : 'Get notified about new challenges, friend activities, and rewards so you never miss out on the action.'
-              }
+              {notificationsEnabled
+                ? "Great! You'll receive notifications about new challenges, friend activities, and rewards."
+                : 'Get notified about new challenges, friend activities, and rewards so you never miss out on the action.'}
             </p>
           </div>
 
@@ -265,7 +246,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
         {/* Legal Agreements Section */}
         <div className="space-y-4">
           <h4 className="text-white font-medium text-center">Before we continue</h4>
-          
+
           <div className="space-y-3">
             {/* Terms & Conditions */}
             <label className="flex items-start space-x-3 cursor-pointer group">
