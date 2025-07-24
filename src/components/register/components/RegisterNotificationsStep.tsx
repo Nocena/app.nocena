@@ -15,7 +15,6 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   const [error, setError] = useState('');
 
   // Legal agreement states
-  const [notificationsAgreed, setNotificationsAgreed] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
@@ -23,13 +22,11 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  const allAgreementsAccepted = notificationsAgreed && termsAgreed && privacyAgreed;
+  const allAgreementsAccepted = termsAgreed && privacyAgreed;
+  const notificationsEnabled = pushSubscription !== null;
 
   useEffect(() => {
     console.log('🔍 Component mounted, checking notification status...');
-    console.log('Browser support:', 'Notification' in window);
-    console.log('ServiceWorker support:', 'serviceWorker' in navigator);
-    console.log('PushManager support:', 'PushManager' in window);
 
     // Check current notification permission on component mount
     if ('Notification' in window) {
@@ -51,14 +48,11 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
             console.error('Error getting existing subscription:', error);
           });
       }
-    } else {
-      console.error('❌ Notifications not supported in this browser');
     }
   }, [disabled]);
 
   // Function to detect if we're in private/incognito mode
   const isPrivateBrowsing = async (): Promise<boolean> => {
-    // This is a rough detection - not 100% reliable across all browsers
     try {
       if ('storage' in navigator && 'estimate' in navigator.storage) {
         const estimate = await navigator.storage.estimate();
@@ -70,26 +64,30 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     }
   };
 
-  const handleNotificationsToggle = async (checked: boolean) => {
-    console.log('🔔 Notification toggle clicked:', { checked, disabled, pushSubscription });
+  const handleEnableNotifications = async () => {
+    console.log('🔔 Enable notifications clicked');
 
     if (disabled) {
       console.log('⚠️ Notifications setup disabled, ignoring request');
       return;
     }
 
-    if (!checked) {
-      console.log('📴 Unchecking notifications agreement');
-      setNotificationsAgreed(false);
-      setError('');
+    // If we already have a subscription, don't do anything
+    if (pushSubscription) {
+      console.log('✅ Already have subscription');
       return;
     }
 
-    // If checking and we already have a subscription, just update the agreement
-    if (checked && pushSubscription) {
-      console.log('✅ Already have subscription, just updating agreement');
-      setNotificationsAgreed(true);
-      setError('');
+    // If notifications are denied, we can't trigger the popup again
+    // The browser blocks repeated requests after denial
+    if (notificationPermission === 'denied') {
+      console.log('🚫 Notifications denied, cannot trigger popup again');
+      setError(
+        'You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n' +
+          '• Chrome: Click the lock icon in the address bar → Notifications → Allow\n' +
+          '• Safari: Go to Settings → Websites → Notifications → Allow for this site\n' +
+          '• Firefox: Click the shield icon → Turn off blocking for Notifications',
+      );
       return;
     }
 
@@ -98,67 +96,49 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     if (isPrivate) {
       console.log('🕵️ Private browsing detected');
       setError('Notifications may not work in private/incognito mode. Please try in a regular browser window.');
-      setNotificationsAgreed(false);
       return;
     }
 
-    // If checking and we don't have a subscription, ALWAYS trigger permission request
-    if (checked) {
-      console.log('🚀 Starting notification setup process...');
-      setIsSettingUp(true);
-      setError('');
+    console.log('🚀 Starting notification setup process...');
+    setIsSettingUp(true);
+    setError('');
 
-      try {
-        console.log('📲 Requesting notification permission...');
-        console.log(
-          'Current Notification.permission:',
-          'Notification' in window ? Notification.permission : 'Not supported',
-        );
-        console.log('About to call requestNotificationPermission()...');
+    try {
+      console.log('📲 Requesting notification permission...');
+      const permission = await requestNotificationPermission();
+      console.log('🎯 Permission result:', permission);
+      setNotificationPermission(permission);
 
-        // Let's see what this function actually does
-        const permission = await requestNotificationPermission();
-        console.log('🎯 Permission result from requestNotificationPermission():', permission);
-        console.log('Current Notification.permission after request:', Notification.permission);
-        setNotificationPermission(permission);
+      if (permission === 'granted') {
+        console.log('✅ Permission granted, subscribing to push notifications...');
+        const subscription = await subscribeToPushNotifications();
+        console.log('📨 Subscription result:', subscription);
 
-        if (permission === 'granted') {
-          console.log('✅ Permission granted, subscribing to push notifications...');
-          console.log('About to call subscribeToPushNotifications()...');
-          const subscription = await subscribeToPushNotifications();
-          console.log('📨 Subscription result:', subscription);
-          console.log('Subscription type:', typeof subscription);
-
-          if (subscription) {
-            setPushSubscription(subscription);
-            setNotificationsAgreed(true);
-            console.log('🎉 Notification setup completed successfully!');
-          } else {
-            console.error('❌ Failed to get push subscription - subscription is falsy');
-            setError('Failed to setup notifications. Please try again.');
-            setNotificationsAgreed(false);
-          }
-        } else if (permission === 'denied') {
-          console.log('🚫 Permission denied by user');
-          setError(
-            "Notifications are blocked. If you're in private/incognito mode, please try in a regular window. Otherwise, check your browser notification settings.",
-          );
-          setNotificationsAgreed(false);
+        if (subscription) {
+          setPushSubscription(subscription);
+          console.log('🎉 Notification setup completed successfully!');
         } else {
-          console.log('❓ Permission dismissed or default:', permission);
-          setError('Please allow notifications when the browser asks, then try again.');
-          setNotificationsAgreed(false);
+          console.error('❌ Failed to get push subscription');
+          setError('Failed to setup notifications. Please try again.');
         }
-      } catch (error) {
-        console.error('💥 Error setting up notifications:', error);
-        console.error('Error details:', {
-          error,
-        });
-        setNotificationsAgreed(false);
-      } finally {
-        console.log('🏁 Notification setup process finished');
-        setIsSettingUp(false);
+      } else if (permission === 'denied') {
+        console.log('🚫 Permission denied by user');
+        setError(
+          'You have blocked notifications which are required for private beta testing. You need to enable them on the browser level now:\n\n' +
+            '• Chrome: Click the lock icon in the address bar → Notifications → Allow\n' +
+            '• Safari: Go to Settings → Websites → Notifications → Allow for this site\n' +
+            '• Firefox: Click the shield icon → Turn off blocking for Notifications',
+        );
+      } else {
+        console.log('❓ Permission dismissed or default:', permission);
+        setError('Please allow notifications when the browser asks, then try again.');
       }
+    } catch (error) {
+      console.error('💥 Error setting up notifications:', error);
+      setError('Failed to setup notifications. Please try again.');
+    } finally {
+      console.log('🏁 Notification setup process finished');
+      setIsSettingUp(false);
     }
   };
 
@@ -174,7 +154,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
   };
 
   const isInteractionDisabled = disabled || isSettingUp;
-  const canProceed = pushSubscription && allAgreementsAccepted && !isInteractionDisabled;
+  const canProceed = notificationsEnabled && allAgreementsAccepted && !isInteractionDisabled;
 
   return (
     <div className="flex flex-col px-6 py-8">
@@ -183,7 +163,25 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
         {/* Error Display */}
         {error && !disabled && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-red-300 font-light">{error}</p>
+            <div className="flex items-start space-x-3">
+              <svg
+                className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+              <div>
+                <p className="text-sm text-red-300 font-medium mb-1">Notifications Required</p>
+                <pre className="text-sm text-red-200 font-light whitespace-pre-line">{error}</pre>
+              </div>
+            </div>
           </div>
         )}
 
@@ -197,63 +195,59 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
           </div>
         )}
 
-        {/* Legal Agreements Section */}
-        <div className="p-5 bg-gray-800/30 rounded-xl border border-gray-700">
-          <h3 className="text-white font-semibold text-sm mb-4 flex items-center">
-            <svg className="w-4 h-4 mr-2 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Required Agreements
-          </h3>
-
-          <div className="space-y-4">
-            {/* Notifications Agreement */}
-            <label className="flex items-start space-x-3 cursor-pointer group">
-              <div className="relative flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={notificationsAgreed}
-                  onChange={(e) => handleNotificationsToggle(e.target.checked)}
-                  disabled={isInteractionDisabled}
-                  className="sr-only"
+        {/* Notifications Section */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center w-16 h-16 mx-auto bg-nocenaPink/20 rounded-full">
+            {notificationsEnabled ? (
+              <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 3v1.5l-3 .75v11.25a.75.75 0 001.5 0V6l8.25-2.25v7.5"
                 />
-                <div
-                  className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
-                    notificationsAgreed
-                      ? 'bg-nocenaPink border-nocenaPink'
-                      : 'border-gray-500 group-hover:border-gray-400'
-                  } ${isInteractionDisabled ? 'opacity-50' : ''}`}
-                >
-                  {notificationsAgreed && (
-                    <svg
-                      className="w-3 h-3 text-white absolute top-0.5 left-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                {/* Loading indicator for notifications setup */}
-                {isSettingUp && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 border border-nocenaPink border-t-transparent rounded-full animate-spin"></div>
-                )}
-              </div>
-              <div className="text-sm">
-                <span className="text-gray-300">
-                  {isSettingUp
-                    ? 'Setting up notifications...'
-                    : 'I consent to receive push notifications for challenges, rewards, and app updates.'}
-                </span>
-              </div>
-            </label>
+              </svg>
+            )}
+          </div>
 
+          <div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+            </h3>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {notificationsEnabled
+                ? "Great! You'll receive notifications about new challenges, friend activities, and rewards."
+                : 'Get notified about new challenges, friend activities, and rewards so you never miss out on the action.'}
+            </p>
+          </div>
+
+          {/* Only show the notification button when notifications are NOT enabled */}
+          {!notificationsEnabled && (
+            <PrimaryButton
+              text={
+                isSettingUp
+                  ? 'Setting up notifications...'
+                  : notificationPermission === 'denied'
+                    ? 'Show me how to enable notifications'
+                    : 'Enable notifications'
+              }
+              onClick={handleEnableNotifications}
+              disabled={isInteractionDisabled}
+              className="w-full"
+            />
+          )}
+        </div>
+
+        {/* Legal Agreements Section */}
+        <div className="space-y-4">
+          <h4 className="text-white font-medium text-center">Before we continue</h4>
+
+          <div className="space-y-3">
             {/* Terms & Conditions */}
             <label className="flex items-start space-x-3 cursor-pointer group">
               <div className="relative flex-shrink-0 mt-0.5">
@@ -337,25 +331,23 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
         </div>
       </div>
 
-      {/* Main Action Button */}
-      <div className="mt-8">
-        <PrimaryButton
-          text={
-            disabled
-              ? 'Creating account...'
-              : !notificationsAgreed
-                ? 'Enable notifications to continue'
-                : !pushSubscription
-                  ? 'Setting up notifications...'
-                  : !allAgreementsAccepted
-                    ? 'Accept all agreements to continue'
-                    : 'Complete setup'
-          }
-          onClick={canProceed ? handleComplete : undefined}
-          className={`w-full ${!canProceed ? 'opacity-50' : ''}`}
-          disabled={!canProceed}
-        />
-      </div>
+      {/* Complete Setup Button - Only show when notifications are enabled */}
+      {notificationsEnabled && (
+        <div className="mt-8">
+          <PrimaryButton
+            text={
+              disabled
+                ? 'Creating account...'
+                : !allAgreementsAccepted
+                  ? 'Accept agreements to continue'
+                  : 'Complete setup'
+            }
+            onClick={canProceed ? handleComplete : undefined}
+            className={`w-full ${!canProceed ? 'opacity-50' : ''}`}
+            disabled={!canProceed}
+          />
+        </div>
+      )}
 
       {/* Legal Modals */}
       <LegalPopupModal
