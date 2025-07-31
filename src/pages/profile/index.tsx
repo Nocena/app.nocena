@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { updateBio, updateProfilePicture, updateCoverPhoto } from '../../lib/api/dgraph';
+import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
-// Temporarily disable image compression until CSP is fixed
-// import imageCompression from 'browser-image-compression';
+import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicContainer from '../../components/ui/ThematicContainer';
+import PrimaryButton from '../../components/ui/PrimaryButton';
 import FollowersPopup from './components/FollowersPopup';
 import TrailerSection from './components/TrailerSection';
 import StatsSection from './components/StatsSection';
@@ -20,17 +21,6 @@ import useFollowersData from '../../hooks/useFollowersData';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
-
-// FilCDN Upload Interface
-interface UploadResult {
-  fileName: string;
-  fileSize: number;
-  commp: string;
-  debugInfo?: {
-    tempDir: string;
-    finalHash: string;
-  };
-}
 
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
@@ -47,10 +37,11 @@ const ProfileView: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
 
-  // Upload states
-  const [isUploadingProfile, setIsUploadingProfile] = useState<boolean>(false);
-  const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  // Avatar generation state
+  const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(null);
+  const [avatarStage, setAvatarStage] = useState<'idle' | 'generating' | 'waiting' | 'completed'>('idle');
+  const [avatarCollectionId, setAvatarCollectionId] = useState<string>('');
+  const [avatarError, setAvatarError] = useState<string>('');
 
   // Challenge data
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
@@ -66,71 +57,6 @@ const ProfileView: React.FC = () => {
   // Use custom hook for followers data
   const { followersCount, followers, showFollowersPopup, setShowFollowersPopup, handleFollowersClick } =
     useFollowersData(user?.id);
-
-  // FilCDN URL construction
-  const getFileCDNUrl = (commp: string) => {
-    const walletAddress = process.env.NEXT_PUBLIC_FILECOIN_WALLET || '0x48Cd52D541A2d130545f3930F5330Ef31cD22B95';
-    return `https://${walletAddress}.calibration.filcdn.io/${commp}`;
-  };
-
-  // FilCDN Upload Function using your existing chunked upload API
-  const uploadToFileCDN = async (file: File, fileType: 'profile' | 'cover'): Promise<UploadResult> => {
-    console.log(`🚀 Starting FilCDN upload for ${fileType}:`, file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-
-    const sessionId = `${fileType}-${user?.id}-${Date.now()}`;
-    const chunkSize = 2 * 1024 * 1024; // 2MB chunks
-    const totalChunks = Math.ceil(file.size / chunkSize);
-
-    console.log(`📦 Upload plan: ${totalChunks} chunks of ${chunkSize} bytes each`);
-
-    // Upload chunks sequentially
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
-      const chunk = file.slice(start, end);
-
-      console.log(`📤 Uploading chunk ${chunkIndex + 1}/${totalChunks} (${chunk.size} bytes)`);
-
-      const formData = new FormData();
-      formData.append('chunk', chunk);
-      formData.append('sessionId', sessionId);
-      formData.append('chunkIndex', chunkIndex.toString());
-      formData.append('totalChunks', totalChunks.toString());
-      formData.append('fileName', `${fileType}-${user?.id}-${Date.now()}.${file.name.split('.').pop()}`);
-      formData.append('totalSize', file.size.toString());
-
-      const response = await fetch('/api/filcdn/chunked-upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Chunk ${chunkIndex} upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || `Chunk ${chunkIndex} upload failed`);
-      }
-
-      console.log(`✅ Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`);
-
-      // If this was the last chunk, we should get the final result
-      if (result.complete) {
-        console.log('🎉 Upload completed!', result.data);
-        return {
-          fileName: result.data.fileName,
-          fileSize: result.data.fileSize,
-          commp: result.data.commp,
-          debugInfo: result.data.debugInfo,
-        };
-      }
-    }
-
-    throw new Error('Upload completed but no final result received');
-  };
 
   // Sync user data when user changes
   useEffect(() => {
@@ -167,15 +93,60 @@ const ProfileView: React.FC = () => {
     );
   }, [dailyChallenges, weeklyChallenges, monthlyChallenges]);
 
+  // Avatar generation handler
+  const handleGenerateAvatar = async () => {
+    setAvatarStage('generating');
+    setAvatarError('');
+
+    try {
+      const basePrompt =
+        'Low poly minimal cartoony avatar for a social app. Full body. Simplistic design. Virality. Futuristic challenge app. Exciting gradient background. Main colors #2353FF, #6024FB, #FF15C9. Glassmorphism, behance, pinterest.';
+      const fullPrompt = `${basePrompt} - loosely based on this profile picture, some reseblance but main focus on the avatar to be easily updatable with cloathing like shoes, pants, shirt and cap`;
+
+      const response = await fetch('/api/chainGPT/generate-avatar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: fullPrompt,
+          profilePicture: profilePic, // Send the profile picture
+          userID: user?.id,
+          model: 'velogen',
+          width: 512,
+          height: 768,
+          enhance: '2x',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAvatarCollectionId(data.collectionId);
+        setAvatarStage('waiting');
+
+        // Start polling for completion
+        pollAvatarProgress(data.collectionId);
+      } else {
+        setAvatarError(data.error || 'Failed to start avatar generation');
+        setAvatarStage('idle');
+      }
+    } catch (error) {
+      console.error('Avatar generation failed:', error);
+      setAvatarError('Failed to generate avatar. Please try again.');
+      setAvatarStage('idle');
+    }
+  };
+
   // Image upload handlers
   const handleProfilePicClick = () => {
-    if (fileInputRef.current && !isUploadingProfile) {
+    if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
   const handleCoverPhotoClick = () => {
-    if (coverInputRef.current && !isUploadingCover) {
+    if (coverInputRef.current) {
       coverInputRef.current.click();
     }
   };
@@ -183,59 +154,81 @@ const ProfileView: React.FC = () => {
   const handleProfilePicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && user) {
-      setIsUploadingProfile(true);
-      setUploadError(null);
-
       try {
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          throw new Error('Please select a valid image file.');
-        }
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 512,
+          useWebWorker: true,
+          fileType: 'image/webp',
+        };
 
-        // Check file size (max 5MB for profile picture)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error('Image file must be smaller than 5MB.');
-        }
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
 
-        console.log(`Profile image selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        reader.onloadend = async () => {
+          try {
+            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
 
-        // Upload to FilCDN using chunked upload
-        console.log('🚀 Starting FilCDN upload...');
-        const uploadResult = await uploadToFileCDN(file, 'profile');
-        console.log('✅ FilCDN upload completed:', uploadResult);
+            // Clean up old profile picture
+            if (
+              user.profilePicture &&
+              user.profilePicture !== DEFAULT_PROFILE_PIC &&
+              !user.profilePicture.includes('/images/profile.png')
+            ) {
+              const oldCid = user.profilePicture.includes('/')
+                ? user.profilePicture.split('/').pop()
+                : user.profilePicture;
+              if (oldCid) {
+                await unpinFromPinata(oldCid).catch((error) => {
+                  console.warn('Failed to unpin old profile picture:', error);
+                });
+              }
+            }
 
-        // Construct FilCDN URL
-        const fileCDNUrl = getFileCDNUrl(uploadResult.commp);
-        console.log('🔗 FilCDN URL:', fileCDNUrl);
+            // Upload new image with all required fields
+            const response = await fetch('/api/pinFileToIPFS', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                file: base64String,
+                fileName: `profile-${user.id}-${Date.now()}.webp`,
+                fileType: 'image', // ADD THIS REQUIRED FIELD
+              }),
+            });
 
-        // Update local state immediately
-        setProfilePic(fileCDNUrl);
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+            }
 
-        // Update in database
-        await updateProfilePicture(user.id, fileCDNUrl);
+            const { ipfsHash } = await response.json(); // API returns ipfsHash, not url
+            const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
-        // Update user state
-        const updatedUser = { ...user, profilePicture: fileCDNUrl };
-        login(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+            setProfilePic(ipfsUrl);
+            await updateProfilePicture(user.id, ipfsUrl);
 
-        // Update page cache
-        const profileCacheKey = `profile_${user.id}`;
-        updatePageState(profileCacheKey, {
-          ...(getPageState()[profileCacheKey]?.data || {}),
-          profilePicture: fileCDNUrl,
-        });
+            // Update user state
+            const updatedUser = { ...user, profilePicture: ipfsUrl };
+            login(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        console.log('🎉 Profile picture successfully uploaded to FilCDN and saved!');
+            const profileCacheKey = `profile_${user.id}`;
+            updatePageState(profileCacheKey, {
+              ...(getPageState()[profileCacheKey]?.data || {}),
+              profilePicture: ipfsUrl,
+            });
+
+            console.log('Profile picture successfully updated.');
+          } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to update profile picture. Please try again.');
+          }
+        };
+
+        reader.readAsDataURL(compressedFile);
       } catch (error) {
-        console.error('❌ Profile picture upload error:', error);
-        setUploadError(error instanceof Error ? error.message : 'Failed to upload profile picture');
-      } finally {
-        setIsUploadingProfile(false);
-        // Reset file input
-        if (event.target) {
-          event.target.value = '';
-        }
+        console.error('Image compression failed:', error);
+        alert('Image compression failed. Please try with a different image.');
       }
     }
   };
@@ -243,59 +236,94 @@ const ProfileView: React.FC = () => {
   const handleCoverPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && user) {
-      setIsUploadingCover(true);
-      setUploadError(null);
-
       try {
         // Validate file type
         if (!file.type.startsWith('image/')) {
-          throw new Error('Please select a valid image file.');
+          alert('Please select a valid image file.');
+          return;
         }
 
         // Check file size (max 10MB for cover photo)
         if (file.size > 10 * 1024 * 1024) {
-          throw new Error('Image file must be smaller than 10MB.');
+          alert('Image file must be smaller than 10MB.');
+          return;
         }
 
-        console.log(`Cover photo selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: 'image/webp',
+        };
 
-        // Upload to FilCDN using chunked upload
-        console.log('🚀 Starting FilCDN upload...');
-        const uploadResult = await uploadToFileCDN(file, 'cover');
-        console.log('✅ FilCDN upload completed:', uploadResult);
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
 
-        // Construct FilCDN URL
-        const fileCDNUrl = getFileCDNUrl(uploadResult.commp);
-        console.log('🔗 FilCDN URL:', fileCDNUrl);
+        reader.onloadend = async () => {
+          try {
+            const base64String = (reader.result as string).replace(/^data:.+;base64,/, '');
 
-        // Update local state immediately
-        setCoverPhoto(fileCDNUrl);
+            // Clean up old cover photo if it's not the default
+            if (
+              user.coverPhoto &&
+              user.coverPhoto !== '/images/cover.jpg' &&
+              !user.coverPhoto.includes('/images/cover.jpg')
+            ) {
+              const oldCid = user.coverPhoto.includes('/') ? user.coverPhoto.split('/').pop() : user.coverPhoto;
+              if (oldCid) {
+                await unpinFromPinata(oldCid).catch((error) => {
+                  console.warn('Failed to unpin old cover photo:', error);
+                });
+              }
+            }
 
-        // Update in database
-        await updateCoverPhoto(user.id, fileCDNUrl);
+            // Upload new cover photo to IPFS with all required fields
+            const response = await fetch('/api/pinFileToIPFS', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                file: base64String,
+                fileName: `cover-${user.id}-${Date.now()}.webp`,
+                fileType: 'image', // ADD THIS REQUIRED FIELD
+              }),
+            });
 
-        // Update user state
-        const updatedUser = { ...user, coverPhoto: fileCDNUrl };
-        login(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+            }
 
-        // Update page cache
-        const profileCacheKey = `profile_${user.id}`;
-        updatePageState(profileCacheKey, {
-          ...(getPageState()[profileCacheKey]?.data || {}),
-          coverPhoto: fileCDNUrl,
-        });
+            const { ipfsHash } = await response.json(); // API returns ipfsHash, not url
+            const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
-        console.log('🎉 Cover photo successfully uploaded to FilCDN and saved!');
+            setCoverPhoto(ipfsUrl);
+
+            // Update in database
+            await updateCoverPhoto(user.id, ipfsUrl);
+
+            // Update user state
+            const updatedUser = { ...user, coverPhoto: ipfsUrl };
+            login(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+
+            // Update page cache
+            const profileCacheKey = `profile_${user.id}`;
+            updatePageState(profileCacheKey, {
+              ...(getPageState()[profileCacheKey]?.data || {}),
+              coverPhoto: ipfsUrl,
+            });
+
+            console.log('Cover photo successfully updated.');
+          } catch (error) {
+            console.error('Upload error:', error);
+            alert('Failed to update cover photo. Please try again.');
+          }
+        };
+
+        reader.readAsDataURL(compressedFile);
       } catch (error) {
-        console.error('❌ Cover photo upload error:', error);
-        setUploadError(error instanceof Error ? error.message : 'Failed to upload cover photo');
-      } finally {
-        setIsUploadingCover(false);
-        // Reset file input
-        if (event.target) {
-          event.target.value = '';
-        }
+        console.error('Image compression failed:', error);
+        alert('Image compression failed. Please try with a different image.');
       }
     }
   };
@@ -335,6 +363,45 @@ const ProfileView: React.FC = () => {
     setIsEditingBio(false);
   };
 
+  const pollAvatarProgress = async (collectionId: string) => {
+    const checkProgress = async () => {
+      try {
+        const response = await fetch(`api/chainGPT/check-avatar-progress?collectionId=${collectionId}`);
+        const data = await response.json();
+
+        if (data.success && data.progress) {
+          const progress = data.progress;
+
+          // Check if generation is completed
+          if (progress.data && progress.data.generated && progress.data.images) {
+            // Avatar generation completed, set the image
+            const avatarImageUrl = progress.data.images[0]; // First generated image
+            setGeneratedAvatar(avatarImageUrl);
+            setAvatarStage('completed');
+          } else {
+            // Continue polling if not completed
+            setTimeout(checkProgress, 3000); // Check every 3 seconds
+          }
+        }
+      } catch (err) {
+        console.error('Error checking avatar progress:', err);
+        setAvatarError('Error checking progress');
+        setAvatarStage('idle');
+      }
+    };
+
+    checkProgress();
+  };
+
+  // Callback function for avatar
+  const handleAvatarUpdated = (newAvatarUrl: string) => {
+    console.log('🎉 Avatar updated in ProfileView:', newAvatarUrl);
+    setGeneratedAvatar(newAvatarUrl);
+
+    // Optional: Save to user profile/database
+    // await saveAvatarToProfile(user?.id, newAvatarUrl);
+  };
+
   const getButtonColor = (section: string) => {
     switch (section) {
       case 'trailer':
@@ -362,53 +429,24 @@ const ProfileView: React.FC = () => {
         height: '100vh',
       }}
     >
-      <div className="min-h-screen">
-        {/* Upload Error Display */}
-        {uploadError && (
-          <div className="fixed top-4 left-4 right-4 z-50 p-4 bg-red-600/90 backdrop-blur-sm text-white rounded-lg border border-red-400">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">❌ {uploadError}</span>
-              <button
-                onClick={() => setUploadError(null)}
-                className="text-white/80 hover:text-white text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
+      <div className="min-h-screen mb-20">
         {/* Cover Photo Section */}
         <div className="relative h-80 overflow-hidden">
-          <div
-            className="absolute inset-0"
-            style={{
-              WebkitMask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
-              mask: 'linear-gradient(to bottom, #101010 0%, #101010 60%, transparent 100%)',
-            }}
-          >
-            {coverPhoto !== '/images/cover.jpg' ? (
-              <Image src={coverPhoto} alt="Cover" fill className="object-cover" />
-            ) : (
-              <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
-            )}
-          </div>
+          {coverPhoto !== '/images/cover.jpg' ? (
+            <Image src={coverPhoto} alt="Cover" fill className="object-cover" />
+          ) : (
+            <Image src="/images/cover.jpg" alt="Cover" fill className="object-cover" />
+          )}
+
+          {/* Gradient overlay for smooth blending effect */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% via-transparent via-70% to-black/80" />
 
           <div
-            className={`absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity ${
-              isUploadingCover ? 'cursor-not-allowed' : 'cursor-pointer'
-            }`}
+            className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
             onClick={handleCoverPhotoClick}
           >
             <div className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
-              {isUploadingCover ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Uploading to FilCDN...</span>
-                </div>
-              ) : (
-                'Change Cover Photo'
-              )}
+              Change Cover Photo
             </div>
           </div>
 
@@ -418,7 +456,6 @@ const ProfileView: React.FC = () => {
             ref={coverInputRef}
             style={{ display: 'none' }}
             onChange={handleCoverPhotoUpload}
-            disabled={isUploadingCover}
           />
         </div>
 
@@ -428,12 +465,9 @@ const ProfileView: React.FC = () => {
           <div className="relative -mt-24 mb-4">
             <div className="flex items-end justify-between">
               {/* Profile Picture */}
-              <div
-                onClick={handleProfilePicClick}
-                className={`relative group ${isUploadingProfile ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-              >
+              <div onClick={handleProfilePicClick} className="relative cursor-pointer group">
                 <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 p-1">
-                  <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1 relative">
+                  <div className="w-full h-full bg-slate-900/80 backdrop-blur-sm rounded-full p-1">
                     <Image
                       src={profilePic}
                       alt="Profile"
@@ -441,14 +475,6 @@ const ProfileView: React.FC = () => {
                       height={120}
                       className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform"
                     />
-                    {isUploadingProfile && (
-                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                        <div className="flex flex-col items-center space-y-2">
-                          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          <span className="text-xs text-white font-medium">Uploading...</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -481,7 +507,6 @@ const ProfileView: React.FC = () => {
               ref={fileInputRef}
               style={{ display: 'none' }}
               onChange={handleProfilePicUpload}
-              disabled={isUploadingProfile}
             />
           </div>
 
@@ -534,7 +559,7 @@ const ProfileView: React.FC = () => {
           </div>
 
           {/* Three Section Menu using ThematicContainer */}
-          <div className="mb-6 flex space-x-3 w-full">
+          <div className="flex justify-center mb-6 space-x-4">
             {[
               { key: 'trailer', label: 'Trailer' },
               { key: 'calendar', label: 'Calendar' },
@@ -547,9 +572,9 @@ const ProfileView: React.FC = () => {
                 color={getButtonColor(key)}
                 isActive={activeSection === key}
                 onClick={() => setActiveSection(key as any)}
-                className="flex-1 min-w-0 px-2 py-1"
+                className="px-8 py-2"
               >
-                <span className="text-sm font-medium whitespace-nowrap text-center w-full">{label}</span>
+                {label}
               </ThematicContainer>
             ))}
           </div>
@@ -557,11 +582,38 @@ const ProfileView: React.FC = () => {
           {/* Content Based on Active Section */}
           <div className="space-y-4">
             {activeSection === 'trailer' && (
-              <TrailerSection
-                currentStreak={currentStreak}
-                totalChallenges={totalChallenges}
-                tokenBalance={tokenBalance}
-              />
+              <div className="space-y-4">
+                <TrailerSection
+                  profilePicture={profilePic}
+                  generatedAvatar={generatedAvatar}
+                  onAvatarUpdated={handleAvatarUpdated}
+                />
+
+                {/* Avatar Generation Button */}
+                <div className="px-2">
+                  <PrimaryButton
+                    onClick={handleGenerateAvatar}
+                    disabled={avatarStage !== 'idle'}
+                    className="w-full"
+                    text="Generate Nocena Avatar"
+                  />
+                  {avatarStage === 'generating' ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Starting Generation...</span>
+                    </div>
+                  ) : avatarStage === 'waiting' ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Generating Avatar...</span>
+                    </div>
+                  ) : avatarStage === 'completed' ? (
+                    'Generate New Avatar'
+                  ) : (
+                    'Generate Nocena Avatar'
+                  )}
+                </div>
+              </div>
             )}
 
             {activeSection === 'calendar' && (

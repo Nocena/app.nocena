@@ -11,6 +11,9 @@ importers:
       '@apollo/client':
         specifier: ^3.12.11
         version: 3.13.8(@types/react@19.1.8)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@chaingpt/nft':
+        specifier: ^0.0.9
+        version: 0.0.9
       '@filoz/synapse-sdk':
         specifier: ^0.16.1
         version: 0.16.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -139,7 +142,7 @@ importers:
         version: 2.7.0
       openai:
         specifier: ^5.1.0
-        version: 5.8.2(ws@8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.67)
+        version: 5.8.2(ws@8.18.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.67)
       react:
         specifier: ^19.0.0
         version: 19.1.0
@@ -870,6 +873,9 @@ packages:
     peerDependenciesMeta:
       aptos:
         optional: true
+
+  '@chaingpt/nft@0.0.9':
+    resolution: {integrity: sha512-q1zfg4t+hUdSKr6fothPfv7OgcfJMa0E7Ng9TtijN+TNQBvwNClT/lioacKL2fumkraTVvreA/nHOrR+j618wQ==}
 
   '@coinbase/wallet-sdk@3.9.3':
     resolution: {integrity: sha512-N/A2DRIf0Y3PHc1XAMvbBUu4zisna6qAdqABMZwBMNEfWrXpAwx16pZGkYCLGE+Rvv1edbcB2LYDRnACNcmCiw==}
@@ -9865,6 +9871,12 @@ snapshots:
       - debug
       - utf-8-validate
 
+  '@chaingpt/nft@0.0.9':
+    dependencies:
+      axios: 1.10.0
+    transitivePeerDependencies:
+      - debug
+
   '@coinbase/wallet-sdk@3.9.3':
     dependencies:
       bn.js: 5.2.2
@@ -10365,7 +10377,7 @@ snapshots:
     dependencies:
       '@ethersproject/bytes': 5.7.0
       '@ethersproject/logger': 5.7.0
-      bn.js: 5.2.1
+      bn.js: 5.2.2
 
   '@ethersproject/bignumber@5.8.0':
     dependencies:
@@ -10630,7 +10642,7 @@ snapshots:
       '@ethersproject/bytes': 5.7.0
       '@ethersproject/logger': 5.7.0
       '@ethersproject/properties': 5.7.0
-      bn.js: 5.2.1
+      bn.js: 5.2.2
       elliptic: 6.5.4
       hash.js: 1.1.7
 
@@ -16500,13 +16512,13 @@ snapshots:
 
   browserify-rsa@4.1.1:
     dependencies:
-      bn.js: 5.2.1
+      bn.js: 5.2.2
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
   browserify-sign@4.2.3:
     dependencies:
-      bn.js: 5.2.1
+      bn.js: 5.2.2
       browserify-rsa: 4.1.1
       create-hash: 1.2.0
       create-hmac: 1.1.7
@@ -19530,9 +19542,9 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@5.8.2(ws@8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.67):
+  openai@5.8.2(ws@8.18.2(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.67):
     optionalDependencies:
-      ws: 8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      ws: 8.18.2(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       zod: 3.25.67
 
   openid-client@5.7.1:
@@ -20330,7 +20342,7 @@ snapshots:
 
   rlp@2.2.7:
     dependencies:
-      bn.js: 5.2.1
+      bn.js: 5.2.2
 
   rollup-plugin-terser@7.0.2(rollup@2.79.2):
     dependencies:
@@ -21692,7 +21704,7 @@ snapshots:
 
   web3-eth-iban@1.10.4:
     dependencies:
-      bn.js: 5.2.1
+      bn.js: 5.2.2
       web3-utils: 1.10.4
 
   web3-eth-iban@1.5.2:

@@ -29,6 +29,7 @@
   "license": "ISC",
   "dependencies": {
     "@apollo/client": "^3.12.11",
+    "@chaingpt/nft": "^0.0.9",
     "@filoz/synapse-sdk": "^0.16.1",
     "@googlemaps/js-api-loader": "^1.16.8",
     "@hookform/resolvers": "^4.1.3",

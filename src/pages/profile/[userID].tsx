@@ -634,13 +634,7 @@ const OtherProfileView: React.FC = () => {
             {/* Content Based on Active Section - with bottom margin */}
             <div className="space-y-4 mb-8">
               {activeSection === 'trailer' && (
-                <TrailerSection
-                  currentStreak={currentStreak}
-                  totalChallenges={totalChallenges}
-                  tokenBalance={user.earnedTokens}
-                  user={user}
-                  isOtherProfile={true}
-                />
+                <TrailerSection profilePicture="placeholder" generatedAvatar="placeholder" />
               )}
 
               {activeSection === 'calendar' && (
