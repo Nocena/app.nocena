@@ -1,4 +1,4 @@
-// pages/register.tsx - Fixed to prevent duplicate registrations
+// pages/register.tsx - Fixed to prevent duplicate registrations with optional notifications
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ interface RegistrationData {
   inviteOwner: string;
   invitedById: string;
   walletAddress: string;
-  pushSubscription?: string;
+  pushSubscription?: string | null; // Updated to allow null
 }
 
 enum RegisterStep {
@@ -270,7 +270,8 @@ const RegisterPage = () => {
     setCurrentStep(RegisterStep.NOTIFICATIONS);
   };
 
-  const handleNotificationsReady = async (pushSubscription: string) => {
+  // Updated to accept string | null for optional notifications
+  const handleNotificationsReady = async (pushSubscription: string | null) => {
     // CRITICAL: Prevent duplicate registrations - check immediately
     if (registrationInProgress) {
       console.log('⚠️ Registration already in progress, ignoring duplicate attempt');
@@ -298,6 +299,7 @@ const RegisterPage = () => {
       currentAttempt: registrationAttemptRef.current,
       username: registrationData.username,
       wallet: registrationData.walletAddress,
+      pushSubscription: pushSubscription ? 'Enabled' : 'Skipped/Failed',
     });
 
     // Validate we have all required data
@@ -316,6 +318,7 @@ const RegisterPage = () => {
       attemptId,
       inProgress: true,
       timestamp: new Date().toISOString(),
+      notificationsEnabled: !!pushSubscription,
     });
 
     try {
@@ -373,7 +376,7 @@ const RegisterPage = () => {
         lensData.metadataUri,
         // These are the optional parameters at the end
         registrationData.invitedById || '',
-        pushSubscription,
+        pushSubscription || '', // Convert null to empty string for the API
       );
 
       if (!addedUser) {
@@ -385,6 +388,7 @@ const RegisterPage = () => {
         username: addedUser.username,
         lensHandle: addedUser.lensHandle,
         lensAccountId: addedUser.lensAccountId,
+        notificationsEnabled: !!pushSubscription,
       });
 
       // STEP 3: Mark invite code as used (no recovery mode exception)
@@ -433,7 +437,7 @@ const RegisterPage = () => {
         personalField3Value: '',
         personalField3Metadata: '',
 
-        pushSubscription: pushSubscription,
+        pushSubscription: pushSubscription || '', // Store actual value or empty string
         dailyChallenge: '0'.repeat(365),
         weeklyChallenge: '0'.repeat(52),
         monthlyChallenge: '0'.repeat(12),
@@ -461,7 +465,7 @@ const RegisterPage = () => {
       // Mark registration as completed
       setRegistrationCompleted(true);
 
-      console.log('🎉 Registration complete with strict invite code enforcement!', {
+      console.log('🎉 Registration complete with optional notifications!', {
         attemptId,
         userId: addedUser.id,
         username: registrationData.username,
@@ -470,6 +474,7 @@ const RegisterPage = () => {
         lensTransactionHash: lensData.txHash,
         videoPreloaded: videoPreloaded,
         registrationCompleted: true,
+        notificationsEnabled: !!pushSubscription,
       });
 
       setCurrentStep(RegisterStep.WELCOME);
