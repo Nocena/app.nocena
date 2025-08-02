@@ -53,6 +53,7 @@ export const registerUser = async (
     invitedById,
     hasPushSubscription: !!pushSubscription,
     pushSubscriptionLength: pushSubscription?.length,
+    pushSubscriptionValue: pushSubscription || '(empty/null)',
     earnedTokens,
     earnedTokensToday,
     earnedTokensThisWeek,
@@ -64,10 +65,11 @@ export const registerUser = async (
     lensMetadataUri,
   });
 
-  // Validate that pushSubscription is provided
-  if (!pushSubscription) {
-    throw new Error('Push subscription is required for user registration');
-  }
+  // REMOVED: The validation that was blocking registration without push subscriptions
+  // Push subscriptions are now optional - we'll store empty string if not provided
+  const finalPushSubscription = pushSubscription || '';
+  
+  console.log('🔧 REGISTER: Final push subscription value:', finalPushSubscription ? 'PROVIDED' : 'EMPTY');
 
   // Validate that all Lens data is provided
   if (!lensHandle || !lensAccountId || !lensTransactionHash || !lensMetadataUri) {
@@ -147,7 +149,7 @@ export const registerUser = async (
       monthlyChallenge: monthlyChallenge,
       inviteCode: inviteCode,
       invitedById: invitedById || null,
-      pushSubscription: pushSubscription,
+      pushSubscription: finalPushSubscription, // Use the final value (empty string if null)
       // Lens fields are guaranteed to be valid strings
       lensHandle: lensHandle,
       lensAccountId: lensAccountId,
@@ -161,7 +163,10 @@ export const registerUser = async (
     },
   };
 
-  console.log('🔧 REGISTER: Mutation variables:', JSON.stringify(variables, null, 2));
+  console.log('🔧 REGISTER: Mutation variables (push subscription):', {
+    pushSubscription: finalPushSubscription ? 'HAS_VALUE' : 'EMPTY',
+    pushSubscriptionLength: finalPushSubscription.length,
+  });
 
   try {
     const response = await axios.post(DGRAPH_ENDPOINT, {
@@ -194,14 +199,14 @@ export const registerUser = async (
       userData.createdPublicChallenges = [];
       userData.participatingPublicChallenges = [];
 
-      // Verify pushSubscription was saved
-      if (!userData.pushSubscription) {
-        console.warn('🔧 REGISTER: Warning - pushSubscription was not saved to database');
-      } else {
+      // Log push subscription status
+      if (userData.pushSubscription) {
         console.log(
           '🔧 REGISTER: Successfully saved pushSubscription:',
           userData.pushSubscription.substring(0, 50) + '...',
         );
+      } else {
+        console.log('🔧 REGISTER: No push subscription provided - user can enable later');
       }
 
       // Verify Lens data was saved (should always be present now)
@@ -260,7 +265,8 @@ export const registerUser = async (
       });
     }
 
-    console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username);
+    console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username, 
+      `(notifications: ${userData.pushSubscription ? 'enabled' : 'disabled'})`);
     return userData;
   } catch (error) {
     console.error('🔧 REGISTER: Error during user registration:', error);
