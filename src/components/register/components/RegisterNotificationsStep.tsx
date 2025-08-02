@@ -108,7 +108,9 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
     const isPrivate = await isPrivateBrowsing();
     if (isPrivate) {
       console.log('🕵️ Private browsing detected');
-      setError('Notifications may not work in private/incognito mode. You can continue without notifications or try in a regular browser window.');
+      setError(
+        'Notifications may not work in private/incognito mode. You can continue without notifications or try in a regular browser window.',
+      );
       setHasTriedNotifications(true);
       return;
     }
@@ -171,7 +173,7 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
 
   const handleSkipNotifications = () => {
     if (disabled) return;
-    
+
     setError('');
     setHasTriedNotifications(true);
     console.log('⏭️ User chose to skip notifications');
@@ -245,18 +247,17 @@ const RegisterNotificationsStep = ({ onNotificationsReady, disabled = false }: P
 
           <div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              {notificationsEnabled 
-                ? 'Notifications Enabled' 
-                : hasTriedNotifications 
+              {notificationsEnabled
+                ? 'Notifications Enabled'
+                : hasTriedNotifications
                   ? 'Notifications (Optional)'
-                  : 'Enable Notifications'
-              }
+                  : 'Enable Notifications'}
             </h3>
             <p className="text-gray-300 text-sm leading-relaxed">
               {notificationsEnabled
                 ? "Great! You'll receive notifications about new challenges, friend activities, and rewards."
                 : hasTriedNotifications
-                  ? "You can still use Nocena without notifications. You can enable them later in settings."
+                  ? 'You can still use Nocena without notifications. You can enable them later in settings.'
                   : 'Get notified about new challenges, friend activities, and rewards so you never miss out on the action.'}
             </p>
           </div>

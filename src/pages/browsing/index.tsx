@@ -100,10 +100,10 @@ const BrowsingPage: React.FC = () => {
       }
 
       const completions = data.data.queryChallengeCompletion || [];
-      
+
       // Find the completion for the specific challenge and user
-      const targetCompletion = completions.find((comp: any) => 
-        comp.publicChallenge?.id === challengeId && comp.user?.id === userId
+      const targetCompletion = completions.find(
+        (comp: any) => comp.publicChallenge?.id === challengeId && comp.user?.id === userId,
       );
 
       if (!targetCompletion) {
@@ -146,7 +146,7 @@ const BrowsingPage: React.FC = () => {
     return (
       <div className="min-h-screen w-full bg-black flex flex-col relative">
         <VideoBackground videoSrc="/AppBG.mp4" />
-        
+
         {/* Header with back button */}
         <div
           className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 mt-4"
@@ -182,7 +182,7 @@ const BrowsingPage: React.FC = () => {
     return (
       <div className="min-h-screen w-full bg-black flex flex-col relative">
         <VideoBackground videoSrc="/AppBG.mp4" />
-        
+
         {/* Header with back button */}
         <div
           className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 mt-4"
@@ -209,8 +209,8 @@ const BrowsingPage: React.FC = () => {
         {/* Error content */}
         <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
           <div className="text-red-400 mb-4 text-lg">{error || 'Challenge completion not found'}</div>
-          <button 
-            onClick={handleBack} 
+          <button
+            onClick={handleBack}
             className="px-6 py-3 bg-nocenaPink rounded-full text-white font-medium hover:opacity-90 transition-opacity"
           >
             Go Back
@@ -226,7 +226,7 @@ const BrowsingPage: React.FC = () => {
     <div className="min-h-screen w-full bg-black flex flex-col relative">
       {/* Background Video */}
       <VideoBackground videoSrc="/AppBG.mp4" />
-      
+
       {/* Header with back button - positioned outside the full-screen media */}
       <div
         className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-[100] mt-4"
@@ -254,12 +254,7 @@ const BrowsingPage: React.FC = () => {
       <div className="absolute inset-0 bg-black">
         {/* Full-screen media with IPFSMediaLoader */}
         <div className="absolute inset-0">
-          <IPFSMediaLoader 
-            videoUrl={videoUrl} 
-            selfieUrl={selfieUrl} 
-            className="w-full h-full" 
-            loop={true} 
-          />
+          <IPFSMediaLoader videoUrl={videoUrl} selfieUrl={selfieUrl} className="w-full h-full" loop={true} />
         </div>
 
         {/* User info overlay - bottom left */}

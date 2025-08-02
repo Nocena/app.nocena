@@ -7,6 +7,7 @@ import { ThirdwebProvider } from 'thirdweb/react';
 import { useAuth, AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
+import SpecialPageLayout from '../components/layout/SpecialPageLayout';
 import LoginPage from './login';
 import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
@@ -140,11 +141,25 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     return null;
   };
 
-  // UPDATED: Add browsing, completing, and createchallenge to noLayoutPages
-  const noLayoutPages = ['/login', '/register', '/browsing', '/completing', '/createchallenge'];
+  // Define layout types
+  const noLayoutPages = ['/login', '/register'];
+  const specialPages = ['/browsing', '/completing', '/createchallenge'];
   const isAdminPage = currentPathname.startsWith('/admin/') || currentPathname === '/test-admin';
-  const shouldUseAppLayout = !noLayoutPages.includes(currentPathname) && !isAdminPage;
 
+  // Determine layout type
+  const isSpecialPage = specialPages.includes(currentPathname);
+  const shouldUseAppLayout = !noLayoutPages.includes(currentPathname) && !isAdminPage && !isSpecialPage;
+  const shouldUseSpecialLayout = isSpecialPage && user;
+
+  console.log('Layout decision:', {
+    currentPathname,
+    isSpecialPage,
+    shouldUseAppLayout,
+    shouldUseSpecialLayout,
+    user: !!user,
+  });
+
+  // Handle public routes (login, register, admin)
   if (
     !user &&
     (currentPathname === '/login' ||
@@ -203,6 +218,20 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     );
   }
 
+  // Get page title for special pages
+  const getSpecialPageTitle = () => {
+    switch (currentPathname) {
+      case '/completing':
+        return 'Complete Challenge';
+      case '/createchallenge':
+        return 'Create Challenge';
+      case '/browsing':
+        return 'Browse';
+      default:
+        return 'Nocena';
+    }
+  };
+
   return (
     <>
       <Head>
@@ -220,7 +249,11 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
       {isRouteChanging && <LoadingIndicator />}
 
-      {shouldUseAppLayout ? (
+      {shouldUseSpecialLayout ? (
+        <SpecialPageLayout showHeader={currentPathname !== '/completing'}>
+          <Component {...pageProps} />
+        </SpecialPageLayout>
+      ) : shouldUseAppLayout ? (
         <AppLayout handleLogout={logout}>
           <Component {...pageProps} />
         </AppLayout>
