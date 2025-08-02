@@ -10,6 +10,7 @@ import VideoRecordingScreen from './components/VideoRecordingScreen';
 import VideoReviewScreen from './components/VideoReviewScreen';
 import SelfieScreen from './components/SelfieScreen';
 import VerificationScreen from './components/VerificationScreen';
+import ClaimingScreen from './components/ClaimingScreen';
 
 interface Challenge {
   title: string;
@@ -33,7 +34,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<
-    'intro' | 'recording' | 'review' | 'selfie' | 'verification' | 'success'
+    'intro' | 'recording' | 'review' | 'selfie' | 'verification' | 'claiming' | 'success'
   >('intro');
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
@@ -51,7 +52,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
           title: title as string,
           description: description as string,
           challengerName: 'Nocena GPT',
-          challengerProfile: '/images/ai.jpg',
+          challengerProfile: '/images/AI.jpg',
           reward: parseInt(reward as string),
           color: 'nocenaPink',
           type: 'AI',
@@ -85,7 +86,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
           title: title as string,
           description: description as string,
           challengerName: 'Nocena',
-          challengerProfile: '/images/ai.jpg',
+          challengerProfile: '/images/AI.jpg',
           reward: parseInt(reward as string),
           color: 'nocenaPink',
           type: 'AI',
@@ -123,6 +124,10 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
       case 'verification':
         // Go back to selfie
         setCurrentStep('selfie');
+        break;
+      case 'claiming':
+        // Go back to verification
+        setCurrentStep('verification');
         break;
       case 'success':
         // Go back to home or wherever appropriate
@@ -214,8 +219,21 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     setCurrentStep('verification');
   };
 
-  const handleVerificationComplete = (result: any) => {
-    setVerificationResult(result);
+  // FIXED: This now navigates to claiming instead of success
+  const handleVerificationComplete = (result: {
+    verificationResult: any;
+    challenge: Challenge;
+    videoBlob: Blob;
+    photoBlob: Blob;
+  }) => {
+    console.log('✅ Verification completed, proceeding to claiming:', result);
+    setVerificationResult(result.verificationResult);
+    setCurrentStep('claiming');
+  };
+
+  // NEW: Handle claiming completion
+  const handleClaimingComplete = (result: any) => {
+    console.log('🎉 Claiming completed:', result);
     setCurrentStep('success');
   };
 
@@ -235,13 +253,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Step 2: Video Recording
   if (currentStep === 'recording') {
-    return (
-      <VideoRecordingScreen
-        challenge={challenge}
-        onVideoRecorded={handleVideoRecorded} // This now expects (blob, duration)
-        onBack={handleStepBack}
-      />
-    );
+    return <VideoRecordingScreen challenge={challenge} onVideoRecorded={handleVideoRecorded} onBack={handleStepBack} />;
   }
 
   // Step 3: Video Review
@@ -273,6 +285,35 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         onVerificationComplete={handleVerificationComplete}
         onBack={handleStepBack}
       />
+    );
+  }
+
+  // Step 6: Claiming Screen - NEW
+  if (currentStep === 'claiming' && videoBlob && photoBlob && verificationResult) {
+    return (
+      <ClaimingScreen
+        challenge={challenge}
+        videoBlob={videoBlob}
+        photoBlob={photoBlob}
+        verificationResult={verificationResult}
+        onClaimComplete={handleClaimingComplete}
+        onBack={handleStepBack}
+      />
+    );
+  }
+
+  // Step 7: Success Screen
+  if (currentStep === 'success') {
+    return (
+      <div className="flex flex-col items-center justify-center text-white h-full px-6">
+        <div className="w-20 h-20 bg-nocenaPurple rounded-full flex items-center justify-center mb-6">
+          <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-nocenaPurple mb-3">Challenge Complete!</h2>
+        <p className="text-lg mb-1">+{challenge.reward} Nocenix earned</p>
+        <p className="text-sm text-gray-400 mb-8">Tokens have been added to your wallet</p>
+        <PrimaryButton onClick={handleComplete} text="Continue" className="w-full" />
+      </div>
     );
   }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/router';
 import type { MapOptions } from 'maplibre-gl';
 import { ChallengeData, LocationData } from '../../lib/map/types';
 import UserLocationMarker from './components/UserLocationMarker';
@@ -7,7 +8,19 @@ import MapControls from './components/MapControls';
 import LoadingOverlay from './components/LoadingOverlay';
 import { fetchNearbyChallenge, getMapStyleURL, getUserLocation, loadMapLibreCSS } from '../../lib/map/mapService';
 
+// Define the interface for our custom event
+interface BrowsingNavigationDetail {
+  challengeId: string;
+  userId: string;
+}
+
+interface BrowsingNavigationEvent extends CustomEvent {
+  detail: BrowsingNavigationDetail;
+}
+
 const MapView = () => {
+  const router = useRouter();
+
   // Refs
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -208,6 +221,66 @@ const MapView = () => {
       }
     };
   }, [selectedPin]);
+
+  // FIXED: Better navigation handling for browsing page with proper typing
+  useEffect(() => {
+    const handleBrowsingNavigation = async (event: Event) => {
+      // Type assertion to our custom event interface
+      const customEvent = event as BrowsingNavigationEvent;
+      const { challengeId, userId } = customEvent.detail;
+
+      console.log('🎬 Navigating to browsing:', { challengeId, userId });
+
+      try {
+        // Use Next.js router with proper error handling
+        await router.push({
+          pathname: '/browsing',
+          query: { challengeId, userId },
+        });
+        console.log('✅ Navigation to browsing successful');
+      } catch (error) {
+        console.error('❌ Navigation error:', error);
+        // Fallback to direct URL navigation if router fails
+        window.location.href = `/browsing?challengeId=${challengeId}&userId=${userId}`;
+      }
+    };
+
+    // Also expose router globally for popup component usage
+    if (typeof window !== 'undefined') {
+      (window as any).__NEXT_ROUTER__ = router;
+    }
+
+    window.addEventListener('navigateToBrowsing', handleBrowsingNavigation);
+
+    return () => {
+      window.removeEventListener('navigateToBrowsing', handleBrowsingNavigation);
+      // Clean up global router reference
+      if (typeof window !== 'undefined') {
+        delete (window as any).__NEXT_ROUTER__;
+      }
+    };
+  }, [router]);
+
+  // ADDED: Handle page visibility to pause/resume map when navigating away
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (mapInstanceRef.current) {
+        if (document.hidden) {
+          // Pause map rendering when page is hidden
+          mapInstanceRef.current.stop();
+        } else {
+          // Resume map rendering when page becomes visible
+          mapInstanceRef.current.start();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   return (
     <div

@@ -3836,3 +3836,71 @@ export const getLeaderboard = async (
     throw error;
   }
 };
+
+/**
+ * Fetches all active public challenges with completion data
+ * @returns Array of public challenges with completion information
+ */
+export const fetchAllPublicChallengesWithCompletions = async (): Promise<any[]> => {
+  const query = `
+    query {
+      queryPublicChallenge(filter: { isActive: true }) {
+        id
+        title
+        description
+        reward
+        location {
+          longitude
+          latitude
+        }
+        creator {
+          id
+          username
+          profilePicture
+        }
+        participantCount
+        maxParticipants
+        createdAt
+        completions {
+          id
+          completionDate
+          user {
+            id
+            username
+            profilePicture
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(DGRAPH_ENDPOINT, { query }, { headers: { 'Content-Type': 'application/json' } });
+
+    if (response.data.errors) {
+      console.error('Dgraph query error:', response.data.errors);
+      throw new Error('Error querying public challenges with completions');
+    }
+
+    const challenges = response.data.data?.queryPublicChallenge || [];
+
+    // Process challenges to add completion data
+    return challenges.map((challenge: any) => ({
+      ...challenge,
+      completionCount: challenge.completions?.length || 0,
+      recentCompletions:
+        challenge.completions
+          ?.sort((a: any, b: any) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime())
+          ?.slice(0, 5) // Get most recent 5 completions
+          ?.map((completion: any) => ({
+            userId: completion.user.id,
+            username: completion.user.username,
+            profilePicture: completion.user.profilePicture,
+            completedAt: completion.completionDate,
+          })) || [],
+    }));
+  } catch (error) {
+    console.error('Error fetching public challenges with completions:', error);
+    throw error;
+  }
+};

@@ -7,6 +7,19 @@ export interface ChallengeData {
   title: string;
   description: string;
   reward: number;
+  // Existing additional data for UI
+  creatorName?: string;
+  creatorAvatar?: string;
+  participantCount?: number;
+  maxParticipants?: number;
+  // NEW: Add completion data fields
+  completionCount?: number;
+  recentCompletions?: {
+    userId: string;
+    username: string;
+    profilePicture: string;
+    completedAt: string;
+  }[];
 }
 
 export interface LocationData {

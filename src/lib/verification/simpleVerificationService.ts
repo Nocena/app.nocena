@@ -31,13 +31,6 @@ export class SimpleVerificationService {
       message: 'Waiting to start...',
     },
     {
-      id: 'human-video-check',
-      name: 'Human Detection in Video',
-      status: 'pending',
-      progress: 0,
-      message: 'Waiting for basic check...',
-    },
-    {
       id: 'human-selfie-check',
       name: 'Human Detection in Selfie',
       status: 'pending',

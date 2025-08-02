@@ -4,8 +4,34 @@ import withPWA from 'next-pwa';
 
 const pwaConfig = withPWA({
   dest: 'public',
-  disable: true, // Add this to disable PWA
-  register: false, // Add this to disable service worker registration
+  disable: process.env.NODE_ENV === 'development', // Only disable in development
+  register: true, // Enable service worker registration
+  skipWaiting: true,
+  sw: 'sw.js', // Your custom service worker
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'google-fonts-cache',
+        expiration: {
+          maxEntries: 10,
+          maxAgeSeconds: 60 * 60 * 24 * 365, // 365 days
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/gateway\.pinata\.cloud\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'pinata-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+        },
+      },
+    },
+  ],
 });
 
 /** @type {NextConfig} */
@@ -18,11 +44,8 @@ const nextConfig: NextConfig = {
       'cloudflare-ipfs.com',
       'dweb.link',
       'gateway.ipfs.io',
-      // We can't include blob: or data: URLs in domains or remotePatterns
     ],
-    // Allow unoptimized images for dynamic content
     unoptimized: true,
-    // Allow SVG images from dynamic sources
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
