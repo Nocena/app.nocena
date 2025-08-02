@@ -4,11 +4,12 @@ import Back from '../icons/back';
 import VideoBackground from './BackgroundVideo';
 
 interface SpecialPageLayoutProps {
-  title: string;
+  title?: string; // Make title optional since we're not using it
   children: React.ReactNode;
+  showHeader?: boolean; // Optional prop to show/hide the header with back button
 }
 
-const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ title, children }) => {
+const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ children, showHeader = true }) => {
   const router = useRouter();
 
   const handleBack = () => {
@@ -20,35 +21,39 @@ const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ title, children }
       {/* Add the video background first */}
       <VideoBackground videoSrc="/AppBG.mp4" />
 
-      {/* Special Page Header with Back Button */}
-      <div
-        className="fixed top-0 left-0 right-0 z-[9990] bg-black/20 backdrop-blur-sm border-b border-white/10"
-        style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          height: 'calc(env(safe-area-inset-top) + 64px)',
-        }}
-      >
-        <div className="flex items-center p-4 h-16">
-          <div
-            className="rounded-full bg-[#212121] bg-opacity-50 backdrop-blur-md p-2 cursor-pointer flex items-center justify-center"
-            onClick={handleBack}
-          >
-            <Back width="24" height="24" color="white" />
+      {/* Special Page Header with Back Button ONLY - Conditionally rendered */}
+      {showHeader && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[9990]"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            height: 'calc(env(safe-area-inset-top) + 64px)',
+          }}
+        >
+          <div className="flex items-center p-4 h-16">
+            <div
+              className="rounded-full bg-[#212121] bg-opacity-50 backdrop-blur-md p-2 cursor-pointer flex items-center justify-center"
+              onClick={handleBack}
+            >
+              <Back width="24" height="24" color="white" />
+            </div>
+            {/* Removed the title text completely */}
           </div>
-          <h1 className="text-xl font-medium ml-4">{title}</h1>
         </div>
-      </div>
+      )}
 
-      {/* Main Content - Proper height accounting for header and safe areas */}
+      {/* Main Content - Adjust margin based on whether header is shown */}
       <main
         className="flex-1 relative z-10 overflow-y-auto"
         style={{
-          marginTop: 'calc(env(safe-area-inset-top) + 64px)',
-          minHeight: 'calc(100vh - env(safe-area-inset-top) - 64px)',
+          marginTop: showHeader ? 'calc(env(safe-area-inset-top) + 64px)' : 'env(safe-area-inset-top)',
+          minHeight: showHeader
+            ? 'calc(100vh - env(safe-area-inset-top) - 64px)'
+            : 'calc(100vh - env(safe-area-inset-top))',
           paddingBottom: 'max(env(safe-area-inset-bottom), 20px)', // Ensure bottom padding
         }}
       >
-        <div className="h-full w-full p-4 pb-8">{children}</div>
+        <div className={`h-full w-full ${showHeader ? 'p-4 pb-8' : ''}`}>{children}</div>
       </main>
     </div>
   );

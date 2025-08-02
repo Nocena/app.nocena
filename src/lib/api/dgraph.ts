@@ -68,7 +68,7 @@ export const registerUser = async (
   // REMOVED: The validation that was blocking registration without push subscriptions
   // Push subscriptions are now optional - we'll store empty string if not provided
   const finalPushSubscription = pushSubscription || '';
-  
+
   console.log('🔧 REGISTER: Final push subscription value:', finalPushSubscription ? 'PROVIDED' : 'EMPTY');
 
   // Validate that all Lens data is provided
@@ -265,8 +265,12 @@ export const registerUser = async (
       });
     }
 
-    console.log('🔧 REGISTER: Successfully registered user:', userData.id, userData.username, 
-      `(notifications: ${userData.pushSubscription ? 'enabled' : 'disabled'})`);
+    console.log(
+      '🔧 REGISTER: Successfully registered user:',
+      userData.id,
+      userData.username,
+      `(notifications: ${userData.pushSubscription ? 'enabled' : 'disabled'})`,
+    );
     return userData;
   } catch (error) {
     console.error('🔧 REGISTER: Error during user registration:', error);

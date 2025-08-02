@@ -438,6 +438,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   console.log('Current path:', currentPathname);
   console.log('showBottomNavbar:', showBottomNavbar);
+  console.log('isSpecialPage:', isSpecialPage);
 
   return (
     <div className="app-container min-h-screen w-full text-white flex flex-col relative">
@@ -458,7 +459,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           }}
         >
           {/* Back button styled like the profile button */}
-          <button onClick={handleBack} className="focus:outline-none pointer-events-auto" aria-label="Back">
+          <button
+            onClick={handleBack}
+            className="focus:outline-none pointer-events-auto z-[9999]"
+            aria-label="Back"
+            style={{ zIndex: 9999 }} // Ensure it's on top
+          >
             <ThematicContainer
               color="nocenaBlue"
               glassmorphic={true}
