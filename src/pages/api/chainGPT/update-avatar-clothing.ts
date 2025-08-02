@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     clothingPrompt += clothingDescriptions.join(', ');
     clothingPrompt += '. CRITICAL: PRESERVE the exact character from the previous generation: ';
-    
+
     // Add specific characteristics from the previous avatar if provided
     if (avatarCharacteristics) {
       if (avatarCharacteristics.hairStyle) {
@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         clothingPrompt += `same body proportions: ${avatarCharacteristics.bodyType}, `;
       }
     }
-    
+
     clothingPrompt += 'MAINTAIN exact same character identity, same hair, same face, same proportions, same pose. ';
     clothingPrompt += 'ONLY change the clothing items. ';
     clothingPrompt += 'SAME exact style: low-poly 3D rendered avatar in Nocena universe style, ';

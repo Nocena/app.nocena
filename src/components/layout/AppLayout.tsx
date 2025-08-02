@@ -240,7 +240,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       '/search': 3,
       '/profile': 4,
       '/completing': 5,
-      '/createchallenge': 7, // Special index for create challenge page
+      '/createchallenge': 7,
     };
 
     // Handle profile pages with IDs - WITH SAFETY CHECKS
@@ -264,7 +264,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
   // Safe checks for special page determination
   const isUserProfile = currentPathname.startsWith('/profile/') && currentQuery.walletAddress !== user?.wallet;
-  const isSpecialPage = currentPathname === '/completing' || currentPathname === '/createchallenge';
+  const isSpecialPage =
+    currentPathname === '/completing' || currentPathname === '/createchallenge' || currentPathname === '/browsing';
 
   // Memoized navigation handler to prevent unnecessary rerenders
   const handleNavClick = useCallback(
@@ -290,6 +291,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         5: '/completing',
         6: '/profile',
         7: '/createchallenge',
+        8: '/browsing',
       };
 
       // Determine the target route
@@ -424,6 +426,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const usePageManager =
     !currentPathname.startsWith('/completing') &&
     !currentPathname.startsWith('/createchallenge') &&
+    !currentPathname.startsWith('/browsing') &&
     children === undefined;
 
   if (isBrowser) {

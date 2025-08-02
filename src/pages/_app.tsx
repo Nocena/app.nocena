@@ -140,7 +140,8 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     return null;
   };
 
-  const noLayoutPages = ['/login', '/register'];
+  // UPDATED: Add browsing, completing, and createchallenge to noLayoutPages
+  const noLayoutPages = ['/login', '/register', '/browsing', '/completing', '/createchallenge'];
   const isAdminPage = currentPathname.startsWith('/admin/') || currentPathname === '/test-admin';
   const shouldUseAppLayout = !noLayoutPages.includes(currentPathname) && !isAdminPage;
 

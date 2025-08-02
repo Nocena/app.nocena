@@ -1,4 +1,4 @@
-// pages/home/index.tsx - WITH LATEST COMPLETION DISPLAY
+// pages/home/index.tsx - WITH DEVELOPMENT CLAIMING BUTTON
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,6 +74,61 @@ function hasCompletedChallenge(user: any, challengeType: ChallengeType): boolean
   return hasCompletedMonthly(user);
 }
 
+// Mock data generator for development testing
+const createMockVideoBlob = (): Blob => {
+  // Create a simple mock video blob (1x1 pixel black video)
+  const canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 480;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Mock Video', canvas.width / 2, canvas.height / 2);
+  }
+
+  return new Promise<Blob>((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else resolve(new Blob(['mock video'], { type: 'video/mp4' }));
+      },
+      'image/jpeg',
+      0.8,
+    );
+  }) as any;
+};
+
+const createMockPhotoBlob = (): Blob => {
+  // Create a simple mock photo blob
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Mock Selfie', canvas.width / 2, canvas.height / 2);
+  }
+
+  return new Promise<Blob>((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else resolve(new Blob(['mock photo'], { type: 'image/jpeg' }));
+      },
+      'image/jpeg',
+      0.8,
+    );
+  }) as any;
+};
+
 const HomeView = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -88,6 +143,9 @@ const HomeView = () => {
   // Latest completion state
   const [latestCompletion, setLatestCompletion] = useState<any>(null);
   const [isLoadingLatestCompletion, setIsLoadingLatestCompletion] = useState(false);
+
+  // Development mode check
+  const isDevelopmentMode = process.env.NODE_ENV === 'development';
 
   // Debug user completion strings
   useEffect(() => {
@@ -242,6 +300,86 @@ const HomeView = () => {
     }
   };
 
+  // Development function to test claiming screen
+  const handleTestClaiming = async () => {
+    if (!user || !currentChallenge) {
+      alert('Need user and challenge data to test claiming');
+      return;
+    }
+
+    try {
+      console.log('🧪 Testing claiming screen with mock data...');
+
+      // Create mock blobs
+      const mockVideoBlob = createMockVideoBlob();
+      const mockPhotoBlob = createMockPhotoBlob();
+
+      // Create mock verification result
+      const mockVerificationResult = {
+        passed: true,
+        overallConfidence: 0.95,
+        details: 'Mock verification completed successfully for testing',
+        steps: [
+          {
+            id: 'file-check',
+            name: 'File Validation',
+            status: 'completed',
+            progress: 100,
+            message: 'Mock files validated successfully',
+            confidence: 0.98,
+          },
+          {
+            id: 'face-match',
+            name: 'Face Matching',
+            status: 'completed',
+            progress: 100,
+            message: 'Mock face match completed',
+            confidence: 0.92,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+
+      // Navigate to claiming screen with mock data
+      // You'll need to create a route for this or handle it in your existing routing
+      // For now, storing in sessionStorage to pass data
+      const claimingData = {
+        challenge: {
+          title: currentChallenge.title,
+          description: currentChallenge.description,
+          challengerName: 'AI Assistant',
+          challengerProfile: '/images/ai.png',
+          reward: reward,
+          color: 'nocenaPink',
+          type: 'AI' as const,
+          frequency: selectedTab,
+          challengeId: currentChallenge.id,
+          creatorId: 'ai-system',
+        },
+        videoBlob: await mockVideoBlob,
+        photoBlob: await mockPhotoBlob,
+        verificationResult: mockVerificationResult,
+        isDevelopmentMode: true,
+      };
+
+      // Store in sessionStorage for the claiming screen to pick up
+      sessionStorage.setItem(
+        'dev-claiming-data',
+        JSON.stringify({
+          ...claimingData,
+          // Note: Can't store blobs in sessionStorage, so we'll recreate them
+          mockBlobsNeeded: true,
+        }),
+      );
+
+      // Navigate to claiming test route
+      router.push('/test-claiming');
+    } catch (error) {
+      console.error('Error setting up claiming test:', error);
+      alert('Failed to set up claiming test. Check console for details.');
+    }
+  };
+
   // Show loading state while auth is being checked
   if (loading) {
     return (
@@ -254,6 +392,26 @@ const HomeView = () => {
   return (
     <div className="text-white p-4 min-h-screen mt-20">
       <div className="max-w-4xl mx-auto">
+        {/* Development Mode Controls */}
+        {isDevelopmentMode && user && currentChallenge && (
+          <div className="mb-6 px-4 py-3 bg-yellow-900/20 border border-yellow-700/50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-yellow-400 font-medium">🛠️ Development Mode</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-yellow-300">
+                Test the claiming screen with current challenge: "{currentChallenge.title}"
+              </p>
+              <button
+                onClick={handleTestClaiming}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                🧪 Test Claiming Screen
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Challenge Type Tabs */}
         <ChallengeHeader selectedTab={selectedTab} onTabChange={setSelectedTab} />
 

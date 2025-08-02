@@ -2,10 +2,10 @@
 import { ChallengeData, LocationData } from './types';
 import axios from 'axios';
 
-// Function to fetch public challenges from Dgraph
+// Function to fetch public challenges from Dgraph - UPDATED to include completions
 export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<ChallengeData[]> => {
   try {
-    // Query Dgraph directly
+    // Query Dgraph directly - UPDATED to include completions
     const query = `
       query {
         queryPublicChallenge(filter: { isActive: true }) {
@@ -25,6 +25,15 @@ export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<
           participantCount
           maxParticipants
           createdAt
+          completions {
+            id
+            completionDate
+            user {
+              id
+              username
+              profilePicture
+            }
+          }
         }
       }
     `;
@@ -59,11 +68,24 @@ export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<
       title: challenge.title,
       description: challenge.description,
       reward: challenge.reward,
+      color: '#2353FF', // Default color for consistency
       // Additional data for UI
       creatorName: challenge.creator.username,
       creatorAvatar: challenge.creator.profilePicture,
       participantCount: challenge.participantCount,
       maxParticipants: challenge.maxParticipants,
+      // NEW: Add completion data
+      completionCount: challenge.completions?.length || 0,
+      recentCompletions:
+        challenge.completions
+          ?.sort((a: any, b: any) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime())
+          ?.slice(0, 5) // Get most recent 5 completions
+          ?.map((completion: any) => ({
+            userId: completion.user.id,
+            username: completion.user.username,
+            profilePicture: completion.user.profilePicture,
+            completedAt: completion.completionDate,
+          })) || [],
     }));
   } catch (error) {
     console.error('Error fetching public challenges:', error);

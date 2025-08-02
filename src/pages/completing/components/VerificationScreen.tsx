@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
-import { completeChallengeWorkflow, CompletionData } from '../../../lib/completing/challengeCompletionService';
 import { SimpleVerificationService } from '../../../lib/verification/simpleVerificationService';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -33,7 +32,12 @@ interface VerificationScreenProps {
   challenge: Challenge;
   videoBlob: Blob;
   photoBlob: Blob;
-  onVerificationComplete: (result: any) => void;
+  onVerificationComplete: (result: {
+    verificationResult: any;
+    challenge: Challenge;
+    videoBlob: Blob;
+    photoBlob: Blob;
+  }) => void;
   onBack: () => void;
 }
 
@@ -44,17 +48,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   onVerificationComplete,
   onBack,
 }) => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
-  const [verificationStage, setVerificationStage] = useState<
-    'ready' | 'verifying' | 'complete' | 'claiming' | 'success' | 'failed'
-  >('ready');
+  const [verificationStage, setVerificationStage] = useState<'ready' | 'verifying' | 'complete' | 'failed'>('ready');
   const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([]);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [currentStepMessage, setCurrentStepMessage] = useState('Ready to verify submission');
-  const [challengeDescription, setChallengeDescription] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   // Development mode configuration
@@ -212,14 +213,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           confidence: 0,
         },
         {
-          id: 'human-detection',
-          name: 'Human Detection',
-          status: 'pending',
-          progress: 0,
-          message: 'Detecting human presence in video...',
-          confidence: 0,
-        },
-        {
           id: 'face-match',
           name: 'Face Matching',
           status: 'pending',
@@ -267,9 +260,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           case 'file-check':
             step.message = 'Video and photo files are valid and high quality';
             break;
-          case 'human-detection':
-            step.message = 'Human detected in video with clear visibility';
-            break;
           case 'face-match':
             step.message = 'Face successfully matched between video and selfie';
             break;
@@ -315,59 +305,13 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     }
   };
 
-  const handleClaimTokens = async () => {
-    if (!challengeDescription.trim()) {
-      setErrorMessage('Please add a description of your challenge completion.');
-      return;
-    }
-
-    if (!user?.id) {
-      setErrorMessage('User not authenticated. Please log in and try again.');
-      return;
-    }
-
-    setVerificationStage('claiming');
-    setErrorMessage('');
-
-    try {
-      const completionData: CompletionData = {
-        video: videoBlob,
-        photo: photoBlob,
-        verificationResult,
-        description: challengeDescription,
-        challenge: {
-          title: challenge.title,
-          description: challenge.description,
-          reward: challenge.reward,
-          type: challenge.type,
-          frequency: challenge.frequency,
-          challengeId: challenge.challengeId,
-          creatorId: challenge.creatorId,
-        },
-      };
-
-      const result = await completeChallengeWorkflow(user.id, completionData, updateUser);
-
-      if (result.success) {
-        setVerificationStage('success');
-
-        onVerificationComplete({
-          ...completionData,
-          completionId: result.completionId,
-          tokensEarned: challenge.reward,
-        });
-
-        setTimeout(() => {
-          window.location.href = '/home';
-        }, 3000);
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error claiming tokens:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to claim tokens. Please try again.');
-      setVerificationStage('complete');
-    }
+  const handleProceedToClaiming = () => {
+    onVerificationComplete({
+      verificationResult,
+      challenge,
+      videoBlob,
+      photoBlob,
+    });
   };
 
   const getStageInfo = () => {
@@ -393,23 +337,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           subtitle: 'Ready to claim your reward',
           color: 'nocenaPurple',
         };
-      case 'claiming':
-        return {
-          title: 'Processing...',
-          subtitle: 'Uploading to IPFS and claiming tokens',
-          color: 'nocenaPink',
-        };
-      case 'success':
-        return {
-          title: 'Success!',
-          subtitle: `+${challenge.reward} Nocenix claimed`,
-          color: 'nocenaPurple',
-        };
       case 'failed':
         return {
-          title: 'Failed',
-          subtitle: 'Verification unsuccessful',
-          color: 'red',
+          title: 'Analysis Incomplete',
+          subtitle: 'Neural network requires clearer input data',
+          color: 'blue',
         };
       default:
         return {
@@ -657,123 +589,116 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     <Image src="/nocenix.ico" alt="Nocenix" width={24} height={24} />
                     <span className="text-sm text-gray-300">NOCENIX</span>
                   </div>
+                  <p className="text-xs text-gray-400">Ready to be claimed</p>
                 </div>
               </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Describe your completion:</label>
-              <textarea
-                value={challengeDescription}
-                onChange={(e) => setChallengeDescription(e.target.value)}
-                placeholder="Tell us about your experience..."
-                rows={3}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-nocenaPink transition-colors resize-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {verificationStage === 'claiming' && (
-          <div className="text-center">
-            <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-800/20 rounded-2xl p-8">
-              <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Processing Claim</h3>
-              <p className="text-sm text-gray-300">Uploading to IPFS and executing blockchain transaction...</p>
-            </div>
-          </div>
-        )}
-
-        {verificationStage === 'success' && (
-          <div className="text-center">
-            <div className="bg-gradient-to-r from-green-900/20 to-purple-900/20 border border-green-800/20 rounded-2xl p-8">
-              <div className="w-16 h-16 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-4">
-                <Image src="/nocenix.ico" alt="Success" width={32} height={32} />
-              </div>
-              <h3 className="text-xl font-bold text-nocenaPurple mb-2">Tokens Claimed!</h3>
-              <p className="text-lg mb-1">+{challenge.reward} Nocenix</p>
-              <p className="text-sm text-gray-300">Returning to home...</p>
             </div>
           </div>
         )}
 
         {verificationStage === 'failed' && (
           <div>
-            <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-800/20 rounded-2xl p-6 mb-4">
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <div className="bg-gradient-to-br from-slate-900/40 to-blue-900/20 border border-slate-700/50 rounded-2xl p-6 mb-4 backdrop-blur-sm">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 relative overflow-hidden border border-blue-400/30">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10 animate-pulse" />
+                  <svg
+                    className="w-8 h-8 text-blue-400 relative z-10"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-red-400 mb-2">Verification Failed</h3>
-                <p className="text-sm text-gray-300 mb-4">{currentStepMessage}</p>
+                <h3 className="text-lg font-medium text-slate-200 mb-2">Analysis Incomplete</h3>
+                <p className="text-sm text-slate-400">Neural network requires clearer input data</p>
               </div>
 
-              {verificationSteps.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-red-300 mb-2">Issues Found:</h4>
-                  {verificationSteps
-                    .filter((s) => s.status === 'failed')
-                    .map((step) => (
-                      <div key={step.id} className="bg-red-900/20 border border-red-800/30 rounded-lg p-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0 mt-0.5">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
+              {verificationSteps.length > 0 && verificationSteps.some((s) => s.status === 'failed') && (
+                <div className="mb-4">
+                  <div className="space-y-2">
+                    {verificationSteps
+                      .filter((s) => s.status === 'failed')
+                      .map((step, index) => {
+                        const getFuturisticMessage = (stepId: string) => {
+                          switch (stepId) {
+                            case 'file-check':
+                              return 'Enhance recording conditions';
+                            case 'face-match':
+                              return 'Ensure facial features are clearly captured';
+                            case 'activity-check':
+                              return `Demonstrate clear "${challenge.title}" sequence`;
+                            case 'ai-challenge-check':
+                              return `Show distinct "${challenge.title}" behavior`;
+                            default:
+                              return 'Optimize input parameters';
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={step.id}
+                            className="bg-slate-800/30 border border-slate-600/30 rounded-lg p-3 backdrop-blur-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0" />
+                              <p className="text-sm text-slate-300">{getFuturisticMessage(step.id)}</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h5 className="text-sm font-medium text-red-300 mb-1">{step.name}</h5>
-                            <p className="text-xs text-gray-300 leading-relaxed">{step.message}</p>
-                            {step.confidence !== undefined && (
-                              <p className="text-xs text-red-400 mt-1">
-                                Confidence: {Math.round(step.confidence * 100)}%
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 
-              {verificationResult && (
-                <div className="mt-4 bg-black/30 rounded-lg p-3">
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">Overall Analysis:</h4>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-gray-400">Overall Confidence:</span>
-                      <span className="text-red-400 ml-2 font-medium">
-                        {Math.round(verificationResult.overallConfidence * 100)}%
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Required:</span>
-                      <span className="text-white ml-2">≥70%</span>
+              <div className="bg-gradient-to-r from-slate-800/40 to-blue-900/20 border border-slate-600/40 rounded-xl p-4 backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 border border-blue-400/30">
+                    <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-slate-200 mb-2">Optimization Protocol</h4>
+                    <div className="text-xs text-slate-400 space-y-1">
+                      <div>• Improve lighting conditions</div>
+                      <div>• Keep face clearly visible</div>
+                      <div>• Show deliberate challenge motions</div>
+                      <div>• Record for 4+ seconds</div>
                     </div>
                   </div>
-                  {verificationResult.details && (
-                    <p className="text-xs text-gray-300 mt-2 leading-relaxed">{verificationResult.details}</p>
-                  )}
                 </div>
-              )}
+              </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-4">
-              <h4 className="text-sm font-medium text-blue-300 mb-2">💡 Tips for Better Results:</h4>
-              <ul className="text-xs text-gray-300 space-y-1">
-                <li>• Ensure good lighting for both video and selfie</li>
-                <li>• Keep your face clearly visible in the selfie</li>
-                <li>• Record the full challenge activity in the video</li>
-                <li>• Make sure video is at least 3 seconds long</li>
-                <li>• Avoid blurry or dark footage</li>
-              </ul>
+            <div className="bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-700/30 rounded-xl p-3 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center border border-purple-400/30">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-purple-300">Reinitialize Scan Sequence</h4>
+                  <p className="text-xs text-slate-400">Neural pathways recalibrated</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -785,20 +710,14 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         )}
 
         {verificationStage === 'complete' && (
-          <PrimaryButton
-            onClick={handleClaimTokens}
-            text="Claim Tokens"
-            className="flex-1"
-            disabled={!challengeDescription.trim()}
-            isActive={true}
-          />
+          <PrimaryButton onClick={handleProceedToClaiming} text="Proceed to Claim" className="flex-1" isActive={true} />
         )}
 
         {verificationStage === 'failed' && (
           <PrimaryButton onClick={startVerification} text="Retry Verification" className="flex-1" isActive={true} />
         )}
 
-        {(verificationStage === 'verifying' || verificationStage === 'claiming') && (
+        {verificationStage === 'verifying' && (
           <PrimaryButton text="Processing..." className="flex-1" disabled={true} isActive={false} />
         )}
       </div>
