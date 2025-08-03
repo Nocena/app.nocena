@@ -1,3 +1,5 @@
+// Updated MapControls.tsx with zoom in/out buttons
+
 import React from 'react';
 import { useRouter } from 'next/router';
 import { LocationData } from '../../../lib/map/types';
@@ -6,10 +8,19 @@ interface MapControlsProps {
   mapLoaded: boolean;
   locatingUser: boolean;
   onRecenter: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
   userLocation?: LocationData | null;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ mapLoaded, locatingUser, onRecenter, userLocation }) => {
+const MapControls: React.FC<MapControlsProps> = ({
+  mapLoaded,
+  locatingUser,
+  onRecenter,
+  onZoomIn,
+  onZoomOut,
+  userLocation,
+}) => {
   const router = useRouter();
 
   const handleCreateChallenge = () => {
@@ -41,6 +52,59 @@ const MapControls: React.FC<MapControlsProps> = ({ mapLoaded, locatingUser, onRe
 
   return (
     <div className="absolute bottom-24 right-4 flex flex-col space-y-2 z-10">
+      {/* Zoom In Button */}
+      <button
+        onClick={onZoomIn}
+        disabled={!mapLoaded}
+        className="w-14 h-14 rounded-full bg-white text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label="Zoom in"
+        style={{
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#666"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+          <line x1="11" y1="8" x2="11" y2="14" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+      </button>
+
+      {/* Zoom Out Button */}
+      <button
+        onClick={onZoomOut}
+        disabled={!mapLoaded}
+        className="w-14 h-14 rounded-full bg-white text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label="Zoom out"
+        style={{
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#666"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+      </button>
+
       {/* Recenter button - White with gradient arrow */}
       <button
         onClick={onRecenter}

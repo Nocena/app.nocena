@@ -7,6 +7,7 @@ interface TrailerSectionProps {
   generatedAvatar?: string | null;
   onAvatarUpdated?: (newAvatarUrl: string) => void;
   userID?: string; // Add userID prop for generation
+  enableAvatarFeature?: boolean; // New toggle prop - defaults to false (coming soon)
 }
 
 interface ClothingUploadBoxProps {
@@ -62,6 +63,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
   generatedAvatar,
   onAvatarUpdated,
   userID = 'current-user',
+  enableAvatarFeature = false, // Default to false (coming soon mode)
 }) => {
   // State for avatar generation
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
@@ -120,7 +122,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
           width: 512,
           height: 768,
           enhance: '2x',
-          useTemplate: true, // Use the public/avatar.png template
+          useTemplate: true, // Use the public/nft/avatar.png template
         }),
       });
 
@@ -316,6 +318,20 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
     checkProgress();
   };
 
+  // COMING SOON VIEW - Minimal version
+  if (!enableAvatarFeature) {
+    return (
+      <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 rounded-3xl overflow-hidden p-6">
+        <div className="text-center py-8">
+          <h2 className="text-white text-xl font-bold mb-3">User Avatar</h2>
+          <p className="text-gray-400 text-base mb-2">Feature Coming Soon</p>
+          <p className="text-gray-500 text-sm">Avatar generation will be available soon</p>
+        </div>
+      </div>
+    );
+  }
+
+  // FULL FEATURE VIEW (when enableAvatarFeature is true)
   return (
     <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 rounded-3xl overflow-hidden">
       {/* Header */}
@@ -474,7 +490,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
               <p className="text-gray-400 text-sm mb-4">Based on Nocena Avatar Template:</p>
               <div className="w-32 h-40 mx-auto rounded-xl overflow-hidden border-2 border-purple-400/30 bg-gradient-to-br from-purple-600/20 to-blue-600/20">
                 <img
-                  src="/avatar.png"
+                  src="/nft/avatar.png"
                   alt="Avatar Template"
                   className="w-full h-full object-cover"
                   onError={(e) => {

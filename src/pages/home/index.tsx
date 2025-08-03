@@ -1,4 +1,4 @@
-// pages/home/index.tsx - WITH DEVELOPMENT CLAIMING BUTTON
+// pages/home/index.tsx - WITH DISCOVER BUTTON
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +16,7 @@ import ChallengeForm from './components/ChallengeForm';
 import CompletionFeed from './components/CompletionFeed';
 import CompletionItem from './components/CompletionItem';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import PrimaryButton from '../../components/ui/PrimaryButton';
 
 type ChallengeType = 'daily' | 'weekly' | 'monthly';
 
@@ -300,6 +301,19 @@ const HomeView = () => {
     }
   };
 
+  // Handle discover button click - navigate to browsing with all completions
+  const handleDiscoverClick = () => {
+    if (!user) {
+      alert('Please login to discover challenges!');
+      router.push('/login');
+      return;
+    }
+
+    // Navigate to browsing page without specific challenge/user filters
+    // This will show all completions across the app
+    router.push('/browsing');
+  };
+
   // Development function to test claiming screen
   const handleTestClaiming = async () => {
     if (!user || !currentChallenge) {
@@ -424,6 +438,10 @@ const HomeView = () => {
         ) : (
           /* Main Content */
           <>
+            {/* Discover Button */}
+            <div className="mt-6 flex justify-center mb-8">
+              <PrimaryButton onClick={handleDiscoverClick} isActive={true} text="Discover" />
+            </div>
             {/* Always show the challenge form - it will display completion state if completed */}
             <ChallengeForm
               challenge={currentChallenge}
