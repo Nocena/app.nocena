@@ -75,7 +75,7 @@ async function getProfilePictureAsBase64(profilePicture: string, compress: boole
 // Helper function to get the default avatar template with size optimization
 async function getDefaultAvatarTemplate(): Promise<string | null> {
   try {
-    const avatarPath = path.join(process.cwd(), 'public', 'avatar.png');
+    const avatarPath = path.join(process.cwd(), 'public', 'nft/avatar.png');
 
     // Check if the avatar template exists
     if (fs.existsSync(avatarPath)) {
@@ -93,7 +93,7 @@ async function getDefaultAvatarTemplate(): Promise<string | null> {
       const base64 = imageBuffer.toString('base64');
       return `data:image/png;base64,${base64}`;
     } else {
-      console.warn('Default avatar template not found at public/avatar.png');
+      console.warn('Default avatar template not found at public/nft/avatar.png');
       return null;
     }
   } catch (error) {

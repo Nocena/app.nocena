@@ -128,15 +128,7 @@ const ChallengePopup = ({ challenge, onComplete, currentUserId }: ChallengePopup
         <!-- Completed State -->
         <div class="w-full mb-6 text-center">
           <div class="bg-green-600 text-white px-6 py-3 rounded-full text-base font-medium mb-4">
-            ✅ Challenge Complete
-          </div>
-          <div class="flex justify-center">
-            <div class="relative px-4 py-1 border border-green-600 text-white rounded-full inline-flex items-center space-x-1" 
-                 style="background: linear-gradient(to bottom, #10b981, #059669);">
-              <span class="text-lg font-semibold">+${challenge.reward}</span>
-              <img src="/nocenix.ico" alt="Nocenix" class="w-6 h-6" />
-              <span class="text-sm">earned</span>
-            </div>
+            Challenge Complete
           </div>
         </div>
         `

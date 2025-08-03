@@ -613,7 +613,7 @@ const OtherProfileView: React.FC = () => {
             {/* Three Section Menu using ThematicContainer */}
             <div className="mb-6 flex space-x-3 w-full">
               {[
-                { key: 'trailer', label: 'Trailer' },
+                { key: 'trailer', label: 'Avatar' },
                 { key: 'calendar', label: 'Calendar' },
                 { key: 'achievements', label: 'Stats' },
               ].map(({ key, label }) => (

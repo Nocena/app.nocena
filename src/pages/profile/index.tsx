@@ -561,7 +561,7 @@ const ProfileView: React.FC = () => {
           {/* Three Section Menu using ThematicContainer */}
           <div className="flex justify-center mb-6 space-x-4">
             {[
-              { key: 'trailer', label: 'Trailer' },
+              { key: 'trailer', label: 'Avatar' },
               { key: 'calendar', label: 'Calendar' },
               { key: 'achievements', label: 'Stats' },
             ].map(({ key, label }) => (
@@ -588,31 +588,6 @@ const ProfileView: React.FC = () => {
                   generatedAvatar={generatedAvatar}
                   onAvatarUpdated={handleAvatarUpdated}
                 />
-
-                {/* Avatar Generation Button */}
-                <div className="px-2">
-                  <PrimaryButton
-                    onClick={handleGenerateAvatar}
-                    disabled={avatarStage !== 'idle'}
-                    className="w-full"
-                    text="Generate Nocena Avatar"
-                  />
-                  {avatarStage === 'generating' ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Starting Generation...</span>
-                    </div>
-                  ) : avatarStage === 'waiting' ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Generating Avatar...</span>
-                    </div>
-                  ) : avatarStage === 'completed' ? (
-                    'Generate New Avatar'
-                  ) : (
-                    'Generate Nocena Avatar'
-                  )}
-                </div>
               </div>
             )}
 

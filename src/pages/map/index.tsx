@@ -35,6 +35,28 @@ const MapView = () => {
   const [challenges, setChallenges] = useState<ChallengeData[]>([]);
   const [initialLocationSet, setInitialLocationSet] = useState(false);
 
+  // Handle zoom in button click
+  const handleZoomIn = () => {
+    if (!mapInstanceRef.current) return;
+
+    const currentZoom = mapInstanceRef.current.getZoom();
+    mapInstanceRef.current.zoomTo(currentZoom + 1, {
+      duration: 300,
+      essential: true,
+    });
+  };
+
+  // Handle zoom out button click
+  const handleZoomOut = () => {
+    if (!mapInstanceRef.current) return;
+
+    const currentZoom = mapInstanceRef.current.getZoom();
+    mapInstanceRef.current.zoomTo(currentZoom - 1, {
+      duration: 300,
+      essential: true,
+    });
+  };
+
   // Force full viewport height for map container
   useEffect(() => {
     const setMapHeight = () => {
@@ -335,6 +357,8 @@ const MapView = () => {
         mapLoaded={mapLoaded}
         locatingUser={locatingUser}
         onRecenter={handleRecenterMap}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
         userLocation={userLocation}
       />
 

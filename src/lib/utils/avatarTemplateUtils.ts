@@ -2,7 +2,7 @@
 
 /**
  * Utility functions for handling avatar template integration
- * Used to ensure consistent avatar generation using the public/avatar.png template
+ * Used to ensure consistent avatar generation using the public/nft/avatar.png template
  */
 
 export interface AvatarGenerationConfig {
@@ -20,7 +20,7 @@ export interface AvatarGenerationConfig {
 
 export const DEFAULT_AVATAR_CONFIG: AvatarGenerationConfig = {
   useTemplate: true,
-  templatePath: '/avatar.png',
+  templatePath: '/nft/avatar.png',
   enhanceWithProfile: true,
   styleKeywords: [
     'stylized 3D',
@@ -83,7 +83,7 @@ export function generateTemplateBasedPrompt(
 /**
  * Validates if the avatar template exists and is accessible
  */
-export async function validateAvatarTemplate(templatePath: string = '/avatar.png'): Promise<boolean> {
+export async function validateAvatarTemplate(templatePath: string = '/nft/avatar.png'): Promise<boolean> {
   try {
     const response = await fetch(templatePath, { method: 'HEAD' });
     return response.ok;
@@ -204,7 +204,7 @@ export function createAvatarError(code: string, message: string, details?: any):
 
   switch (code) {
     case 'TEMPLATE_NOT_FOUND':
-      suggestions.push('Ensure public/avatar.png exists in your project');
+      suggestions.push('Ensure public/nft/avatar.png exists in your project');
       suggestions.push('Check file permissions and accessibility');
       break;
     case 'PROFILE_PICTURE_INVALID':
