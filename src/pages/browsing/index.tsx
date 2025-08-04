@@ -54,7 +54,7 @@ const BrowsingPage: React.FC = () => {
   useEffect(() => {
     // Find the initial completion to show based on userId
     if (completions.length > 0 && userId) {
-      const initialIndex = completions.findIndex(comp => comp.user.id === userId);
+      const initialIndex = completions.findIndex((comp) => comp.user.id === userId);
       if (initialIndex !== -1) {
         setCurrentIndex(initialIndex);
         scrollToIndex(initialIndex, false);
@@ -66,34 +66,9 @@ const BrowsingPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Different queries based on whether we're showing specific challenge or all completions
-      const query = challengeId ? `
-        query GetSpecificChallengeCompletions {
-          queryChallengeCompletion(filter: { 
-            and: [
-              { has: publicChallenge },
-              { publicChallenge: { id: { eq: "${challengeId}" } } }
-            ]
-          }) {
-            id
-            user {
-              id
-              username
-              profilePicture
-            }
-            completionDate
-            media
-            challengeType
-            publicChallenge {
-              id
-              title
-              description
-              reward
-            }
-          }
-        }
-      ` : `
-        query GetAllChallengeCompletions {
+      // Use the same query for both cases since we'll filter client-side
+      const query = `
+        query GetChallengeCompletions {
           queryChallengeCompletion {
             id
             user {
@@ -127,6 +102,9 @@ const BrowsingPage: React.FC = () => {
         }
       `;
 
+      // No variables needed since we're doing client-side filtering
+      const variables = {};
+
       const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
         method: 'POST',
         headers: {
@@ -137,6 +115,7 @@ const BrowsingPage: React.FC = () => {
         },
         body: JSON.stringify({
           query,
+          variables,
         }),
       });
 
@@ -146,7 +125,15 @@ const BrowsingPage: React.FC = () => {
         throw new Error(data.errors[0]?.message || 'Failed to fetch completions');
       }
 
-      const allCompletions = data.data.queryChallengeCompletion || [];
+      let allCompletions = data.data.queryChallengeCompletion || [];
+
+      // If we have a specific challengeId, filter the results client-side
+      // since the GraphQL filter might not be working as expected
+      if (challengeId && allCompletions.length > 0) {
+        allCompletions = allCompletions.filter((completion: any) => 
+          completion.publicChallenge && completion.publicChallenge.id === challengeId
+        );
+      }
 
       if (allCompletions.length === 0) {
         throw new Error(challengeId ? 'No completions found for this challenge' : 'No completions found');
@@ -189,13 +176,11 @@ const BrowsingPage: React.FC = () => {
             videoUrl,
             selfieUrl,
           };
-        })
+        }),
       );
 
       // Sort by completion date (most recent first)
-      processedCompletions.sort((a, b) => 
-        new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()
-      );
+      processedCompletions.sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime());
 
       setCompletions(processedCompletions);
     } catch (err) {
@@ -217,35 +202,38 @@ const BrowsingPage: React.FC = () => {
   }, []);
 
   const pauseAllVideos = useCallback(() => {
-    Object.values(videoRefs.current).forEach(video => {
+    Object.values(videoRefs.current).forEach((video) => {
       if (video) {
         video.pause();
       }
     });
   }, []);
 
-  const playCurrentVideo = useCallback((index: number) => {
-    const completion = completions[index];
-    if (completion && completion.id) {
-      const video = videoRefs.current[completion.id];
-      if (video) {
-        video.muted = false;
-        video.play().catch(err => {
-          console.log('Video play failed:', err);
-        });
+  const playCurrentVideo = useCallback(
+    (index: number) => {
+      const completion = completions[index];
+      if (completion && completion.id) {
+        const video = videoRefs.current[completion.id];
+        if (video) {
+          video.muted = false;
+          video.play().catch((err) => {
+            console.log('Video play failed:', err);
+          });
+        }
       }
-    }
-  }, [completions]);
+    },
+    [completions],
+  );
 
   const handleVideoClick = useCallback((completionId: string) => {
     const video = videoRefs.current[completionId];
     if (video) {
       if (video.paused) {
-        video.play().catch(err => console.log('Play failed:', err));
+        video.play().catch((err) => console.log('Play failed:', err));
       } else {
         video.pause();
       }
-      
+
       // Update the play button visibility manually
       const playButton = document.getElementById(`play-button-${completionId}`);
       if (playButton) {
@@ -263,7 +251,7 @@ const BrowsingPage: React.FC = () => {
     const scrollTop = containerRef.current.scrollTop;
     const itemHeight = window.innerHeight;
     const newIndex = Math.round(scrollTop / itemHeight);
-    
+
     if (newIndex !== currentIndex && newIndex >= 0 && newIndex < completions.length) {
       pauseAllVideos();
       setCurrentIndex(newIndex);
@@ -274,12 +262,12 @@ const BrowsingPage: React.FC = () => {
     if (!containerRef.current || isScrolling) return;
 
     setIsScrolling(true);
-    
+
     const scrollTop = containerRef.current.scrollTop;
     const itemHeight = window.innerHeight;
     const nearestIndex = Math.round(scrollTop / itemHeight);
     const clampedIndex = Math.max(0, Math.min(nearestIndex, completions.length - 1));
-    
+
     if (clampedIndex !== currentIndex) {
       pauseAllVideos();
       setCurrentIndex(clampedIndex);
@@ -383,12 +371,12 @@ const BrowsingPage: React.FC = () => {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
       {/* Scrollable container */}
-      <div 
+      <div
         ref={containerRef}
         className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
-        style={{ 
+        style={{
           scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          msOverflowStyle: 'none',
         }}
       >
         {completions.map((completion, index) => {
@@ -404,7 +392,7 @@ const BrowsingPage: React.FC = () => {
                       ref={(el) => {
                         if (el) {
                           videoRefs.current[completion.id] = el;
-                          
+
                           // Add event listeners for play/pause to update button visibility
                           const updatePlayButton = () => {
                             const playButton = document.getElementById(`play-button-${completion.id}`);
@@ -412,7 +400,7 @@ const BrowsingPage: React.FC = () => {
                               playButton.style.display = el.paused ? 'flex' : 'none';
                             }
                           };
-                          
+
                           el.addEventListener('play', updatePlayButton);
                           el.addEventListener('pause', updatePlayButton);
                           el.addEventListener('loadeddata', updatePlayButton);
@@ -427,9 +415,9 @@ const BrowsingPage: React.FC = () => {
                       poster={completion.selfieUrl || undefined}
                       onClick={() => handleVideoClick(completion.id)}
                     />
-                    
+
                     {/* Play button overlay - initially hidden, shown when paused */}
-                    <div 
+                    <div
                       id={`play-button-${completion.id}`}
                       className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
                       style={{ display: 'none' }}
@@ -454,11 +442,7 @@ const BrowsingPage: React.FC = () => {
               {/* Corner selfie */}
               {completion.selfieUrl && (
                 <div className="absolute top-4 right-4 w-48 h-48 rounded-xl overflow-hidden border-2 border-white shadow-lg z-30">
-                  <img
-                    src={completion.selfieUrl}
-                    alt="Selfie"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={completion.selfieUrl} alt="Selfie" className="w-full h-full object-cover" />
                 </div>
               )}
 
@@ -473,7 +457,12 @@ const BrowsingPage: React.FC = () => {
                   />
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -481,7 +470,12 @@ const BrowsingPage: React.FC = () => {
                 {/* Like button */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-8 h-8 text-white drop-shadow-lg"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -498,7 +492,12 @@ const BrowsingPage: React.FC = () => {
                 {/* Comment button */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-8 h-8 text-white drop-shadow-lg"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -515,7 +514,12 @@ const BrowsingPage: React.FC = () => {
                 {/* Share button */}
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-8 h-8 text-white drop-shadow-lg"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -537,8 +541,10 @@ const BrowsingPage: React.FC = () => {
               </div>
 
               {/* Bottom overlay with user info and challenge details */}
-              <div className="absolute bottom-0 left-0 right-16 z-30 p-4 pb-8" 
-                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
+              <div
+                className="absolute bottom-0 left-0 right-16 z-30 p-4 pb-8"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
+              >
                 {/* User info */}
                 <div className="mb-3">
                   <div className="flex items-center space-x-2 mb-2">
@@ -557,15 +563,13 @@ const BrowsingPage: React.FC = () => {
 
                 {/* User's completion description */}
                 <div className="flex items-center space-x-2">
-                  <span className="text-white/90 text-sm drop-shadow-lg">
-                    "Completed the challenge!"
-                  </span>
+                  <span className="text-white/90 text-sm drop-shadow-lg">"Completed the challenge!"</span>
                 </div>
 
                 {/* Progress indicator */}
                 <div className="flex items-center space-x-1 mt-3">
                   {completions.map((_, i) => (
-                    <div 
+                    <div
                       key={i}
                       className={`h-1 rounded-full transition-all duration-300 ${
                         i === currentIndex ? 'bg-white w-8' : 'bg-white/50 w-1'
@@ -576,8 +580,10 @@ const BrowsingPage: React.FC = () => {
               </div>
 
               {/* Top safe area for status bar */}
-              <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/50 to-transparent z-20"
-                   style={{ paddingTop: 'env(safe-area-inset-top)' }} />
+              <div
+                className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/50 to-transparent z-20"
+                style={{ paddingTop: 'env(safe-area-inset-top)' }}
+              />
             </div>
           );
         })}
