@@ -4,10 +4,13 @@ import withPWA from 'next-pwa';
 
 const pwaConfig = withPWA({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development', // Only disable in development
-  register: true, // Enable service worker registration
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
   skipWaiting: true,
-  sw: 'sw.js', // Your custom service worker
+  clientsClaim: true, // Take control immediately
+  sw: 'src/sw.js',
+  // Add proper cache cleanup
+  cleanupOutdatedCaches: true,
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -16,7 +19,7 @@ const pwaConfig = withPWA({
         cacheName: 'google-fonts-cache',
         expiration: {
           maxEntries: 10,
-          maxAgeSeconds: 60 * 60 * 24 * 365, // 365 days
+          maxAgeSeconds: 60 * 60 * 24 * 365,
         },
       },
     },
@@ -27,7 +30,7 @@ const pwaConfig = withPWA({
         cacheName: 'pinata-cache',
         expiration: {
           maxEntries: 50,
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          maxAgeSeconds: 60 * 60 * 24 * 30,
         },
       },
     },
@@ -71,6 +74,34 @@ const nextConfig: NextConfig = {
   },
   headers: async () => {
     return [
+      // Service Worker specific cache control headers
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      // Workbox files should also not be cached
+      {
+        source: '/workbox-:hash.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [

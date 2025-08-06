@@ -8,6 +8,7 @@ build/
 # Public assets
 public/
 public/sw.js
+src/sw.js
 public/workbox-*.js
 
 # Configuration files
