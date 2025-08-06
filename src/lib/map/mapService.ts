@@ -58,7 +58,7 @@ export const fetchNearbyChallenge = async (userLocation: LocationData): Promise<
         challenge.location.longitude,
       );
 
-      return distance <= 1000; // 10km radius
+      return distance <= 1000; // 1000km radius
     });
 
     // Transform Dgraph challenge data to match our ChallengeData type

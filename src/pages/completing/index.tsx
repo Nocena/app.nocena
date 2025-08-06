@@ -253,7 +253,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   if (isLoading || !challenge) {
     return (
-      <div className="flex flex-col items-center justify-center text-white h-full">
+      <div className="h-screen bg-black flex flex-col items-center justify-center text-white px-6">
         <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mb-6" />
         <div className="text-3xl font-bold animate-pulse mb-2">LOADING CHALLENGE...</div>
         <div className="text-lg text-nocenaPink animate-bounce">Preparing your mission</div>
@@ -322,27 +322,45 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     );
   }
 
-  // Step 7: Success Screen
+  // Step 7: Success Screen - FIXED
   if (currentStep === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center text-white h-full px-6">
-        <div className="w-20 h-20 bg-nocenaPurple rounded-full flex items-center justify-center mb-6">
-          <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
+      <div className="h-screen bg-black flex flex-col items-center justify-center text-white px-6">
+        <div
+          className="flex flex-col items-center justify-center flex-1"
+          style={{
+            paddingTop: 'calc(env(safe-area-inset-top) + 2rem)',
+            paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)',
+          }}
+        >
+          <div className="w-20 h-20 bg-nocenaPurple rounded-full flex items-center justify-center mb-6">
+            <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
+          </div>
+          <h2 className="text-2xl font-bold text-nocenaPurple mb-3">Challenge Complete!</h2>
+          <p className="text-lg mb-1">+{challenge.reward} Nocenix earned</p>
+          <p className="text-sm text-gray-400 mb-8">Tokens have been added to your wallet</p>
+          <PrimaryButton onClick={handleComplete} text="Continue" className="w-full max-w-sm" />
         </div>
-        <h2 className="text-2xl font-bold text-nocenaPurple mb-3">Challenge Complete!</h2>
-        <p className="text-lg mb-1">+{challenge.reward} Nocenix earned</p>
-        <p className="text-sm text-gray-400 mb-8">Tokens have been added to your wallet</p>
-        <PrimaryButton onClick={handleComplete} text="Continue" className="w-full" />
       </div>
     );
   }
 
-  // Step 1: Challenge Intro - FIXED VERSION
+  // Step 1: Challenge Intro - FIXED VERSION WITH PROPER SCROLLING
   const typeInfo = getChallengeTypeInfo(challenge.type);
 
   return (
-    <div className="fixed inset-0 bg-black text-white z-50">
-      {/* Back Button for Intro Screen */}
+    <div
+      className="h-screen bg-black text-white flex flex-col"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      }}
+    >
+      {/* Back Button - Fixed Position */}
       <div
         className="absolute left-4 z-20"
         style={{
@@ -364,15 +382,16 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         </button>
       </div>
 
+      {/* Main Content - Scrollable */}
       <div
-        className="text-white h-full flex flex-col px-6"
+        className="flex-1 flex flex-col px-6 overflow-y-auto"
         style={{
-          paddingTop: 'calc(env(safe-area-inset-top) + 20px)',
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+          paddingTop: 'calc(env(safe-area-inset-top) + 80px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)',
         }}
       >
         {/* Challenge Type Badge */}
-        <div className="flex justify-center mb-6 mt-8">
+        <div className="flex justify-center mb-6">
           <ThematicContainer asButton={false} color={challenge.color as any} className="px-6 py-2" rounded="xl">
             <span className="text-sm font-medium tracking-wider uppercase">{typeInfo.badge}</span>
           </ThematicContainer>
@@ -384,13 +403,13 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         </div>
 
         {/* Main Challenge Card - Flexible height */}
-        <div className="flex-1 flex flex-col mb-6">
+        <div className="flex-1 mb-6">
           <ThematicContainer
             asButton={false}
             glassmorphic={true}
             color={challenge.color as any}
             rounded="xl"
-            className="flex-1 px-6 py-6 relative overflow-hidden"
+            className="h-full px-6 py-6 relative overflow-hidden"
           >
             {/* Content */}
             <div className="relative z-10 h-full flex flex-col">
@@ -426,7 +445,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
               </div>
 
               {/* Verification Process - Futuristic */}
-              <div className="bg-black/30 rounded-xl p-5 border border-gray-700/50">
+              <div className="bg-black/30 rounded-xl p-5 border border-gray-700/50 flex-1 flex flex-col justify-center">
                 <div className="text-center text-base font-medium mb-4 text-gray-300 tracking-wider uppercase">
                   Verification Protocol
                 </div>
@@ -458,8 +477,8 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
           </ThematicContainer>
         </div>
 
-        {/* Action Button - Fixed positioning */}
-        <div className="mt-auto">
+        {/* Action Button - Always visible at bottom */}
+        <div className="flex-shrink-0 mt-6">
           <PrimaryButton className="w-full" onClick={handleStartChallenge} text={typeInfo.action} />
         </div>
       </div>
