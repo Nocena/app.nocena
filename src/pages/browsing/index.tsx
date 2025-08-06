@@ -130,8 +130,8 @@ const BrowsingPage: React.FC = () => {
       // If we have a specific challengeId, filter the results client-side
       // since the GraphQL filter might not be working as expected
       if (challengeId && allCompletions.length > 0) {
-        allCompletions = allCompletions.filter((completion: any) => 
-          completion.publicChallenge && completion.publicChallenge.id === challengeId
+        allCompletions = allCompletions.filter(
+          (completion: any) => completion.publicChallenge && completion.publicChallenge.id === challengeId,
         );
       }
 

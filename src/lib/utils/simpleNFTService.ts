@@ -43,17 +43,17 @@ interface TokenBonuses {
 export class SimpleNFTService {
   // Simple drop rates
   private dropRates: DropRates = {
-    ai: 0.15,      // 15% for AI challenges
-    private: 0.25,  // 25% for private challenges  
-    public: 0.35   // 35% for public challenges
+    ai: 0.15, // 15% for AI challenges
+    private: 0.25, // 25% for private challenges
+    public: 0.35, // 35% for public challenges
   };
 
   // Rarity distribution
   private rarityRates: RarityRates = {
-    common: 0.70,    // 70% - 10% token bonus
-    rare: 0.20,      // 20% - 15% token bonus
-    epic: 0.08,      // 8% - 25% token bonus  
-    legendary: 0.02  // 2% - 50% token bonus
+    common: 0.7, // 70% - 10% token bonus
+    rare: 0.2, // 20% - 15% token bonus
+    epic: 0.08, // 8% - 25% token bonus
+    legendary: 0.02, // 2% - 50% token bonus
   };
 
   // Token bonuses by rarity
@@ -61,7 +61,7 @@ export class SimpleNFTService {
     common: 10,
     rare: 15,
     epic: 25,
-    legendary: 50
+    legendary: 50,
   };
 
   /**
@@ -120,7 +120,7 @@ export class SimpleNFTService {
   private async generateNFTImage(itemType: string, rarity: keyof RarityRates): Promise<NFTData> {
     // Use your existing clothing template system
     const template = this.getClothingTemplate(itemType, rarity);
-    
+
     // Call your existing ChainGPT avatar API but for clothing generation
     const response = await fetch('/api/chainGPT/generate-clothing-nft', {
       method: 'POST',
@@ -133,8 +133,8 @@ export class SimpleNFTService {
         width: 512,
         height: 512,
         useTemplate: true,
-        templatePath: `/nft/${itemType}.png` // Use your existing templates
-      })
+        templatePath: `/nft/${itemType}.png`, // Use your existing templates
+      }),
     });
 
     if (!response.ok) {
@@ -142,7 +142,7 @@ export class SimpleNFTService {
     }
 
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error('NFT image generation failed');
     }
@@ -155,7 +155,7 @@ export class SimpleNFTService {
       itemType,
       rarity,
       tokenBonus: this.tokenBonuses[rarity],
-      generationPrompt: template.prompt
+      generationPrompt: template.prompt,
     };
   }
 
@@ -164,17 +164,17 @@ export class SimpleNFTService {
    */
   private getClothingTemplate(itemType: string, rarity: keyof RarityRates): { prompt: string } {
     const baseTemplates: Record<string, string> = {
-      cap: "stylized 3D cap, futuristic design, clean surfaces, Nocena universe style",
-      hoodie: "stylized 3D hoodie, cyberpunk aesthetic, clean surfaces, Nocena universe style", 
-      pants: "stylized 3D pants, futuristic design, clean surfaces, Nocena universe style",
-      shoes: "stylized 3D shoes, high-tech design, clean surfaces, Nocena universe style"
+      cap: 'stylized 3D cap, futuristic design, clean surfaces, Nocena universe style',
+      hoodie: 'stylized 3D hoodie, cyberpunk aesthetic, clean surfaces, Nocena universe style',
+      pants: 'stylized 3D pants, futuristic design, clean surfaces, Nocena universe style',
+      shoes: 'stylized 3D shoes, high-tech design, clean surfaces, Nocena universe style',
     };
 
     const rarityEffects: Record<keyof RarityRates, string> = {
-      common: "simple clean design, basic materials",
-      rare: "subtle glow effects, enhanced details",
-      epic: "mystical aura, intricate patterns, particle effects",
-      legendary: "divine radiance, otherworldly design, heavy particle effects"
+      common: 'simple clean design, basic materials',
+      rare: 'subtle glow effects, enhanced details',
+      epic: 'mystical aura, intricate patterns, particle effects',
+      legendary: 'divine radiance, otherworldly design, heavy particle effects',
     };
 
     const prompt = `${baseTemplates[itemType]}, ${rarityEffects[rarity]}, 
@@ -189,14 +189,14 @@ export class SimpleNFTService {
       common: ['Basic', 'Simple', 'Standard'],
       rare: ['Enhanced', 'Superior', 'Advanced'],
       epic: ['Mystic', 'Epic', 'Powerful'],
-      legendary: ['Legendary', 'Divine', 'Mythic']
+      legendary: ['Legendary', 'Divine', 'Mythic'],
     };
 
     const itemNames: Record<string, string> = {
       cap: 'Cap',
       hoodie: 'Hoodie',
-      pants: 'Pants', 
-      shoes: 'Shoes'
+      pants: 'Pants',
+      shoes: 'Shoes',
     };
 
     const prefix = prefixes[rarity][Math.floor(Math.random() * prefixes[rarity].length)];
@@ -213,7 +213,7 @@ export class SimpleNFTService {
    */
   private async saveNFTToDatabase(nftData: NFTData, params: NFTGenerationParams): Promise<string> {
     const nftId = `nft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const mutation = `
       mutation CreateNFT(
         $id: String!,
@@ -260,18 +260,18 @@ export class SimpleNFTService {
       imageCID: nftData.imageCID,
       generatedAt: new Date().toISOString(),
       generationPrompt: nftData.generationPrompt,
-      userId: params.userId
+      userId: params.userId,
     };
 
     const response = await axios.post(
       DGRAPH_ENDPOINT,
       {
         query: mutation,
-        variables
+        variables,
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (response.data.errors) {
@@ -302,11 +302,11 @@ export class SimpleNFTService {
       DGRAPH_ENDPOINT,
       {
         query: mutation,
-        variables: { completionId, nftId }
+        variables: { completionId, nftId },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (response.data.errors) {
@@ -321,7 +321,7 @@ export class SimpleNFTService {
     try {
       // First unequip any currently equipped NFT
       await this.unequipCurrentNFT(userId);
-      
+
       // Then equip the new one
       const mutation = `
         mutation EquipNFT($userId: String!, $nftId: String!) {
@@ -348,20 +348,20 @@ export class SimpleNFTService {
         DGRAPH_ENDPOINT,
         {
           query: mutation,
-          variables: { userId, nftId }
+          variables: { userId, nftId },
         },
         {
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       if (response.data.errors) {
         throw new Error(`GraphQL Error: ${response.data.errors[0].message}`);
       }
-      
+
       // Update user's total token bonus
       await this.updateUserTokenBonus(userId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to equip NFT:', error);
@@ -387,11 +387,11 @@ export class SimpleNFTService {
       DGRAPH_ENDPOINT,
       {
         query: mutation,
-        variables: { userId }
+        variables: { userId },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (response.data.errors) {
@@ -415,11 +415,11 @@ export class SimpleNFTService {
       DGRAPH_ENDPOINT,
       {
         query,
-        variables: { userId }
+        variables: { userId },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (queryResponse.data.errors) {
@@ -446,11 +446,11 @@ export class SimpleNFTService {
       DGRAPH_ENDPOINT,
       {
         query: mutation,
-        variables: { userId, bonus }
+        variables: { userId, bonus },
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
 
     if (mutationResponse.data.errors) {

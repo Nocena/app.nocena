@@ -61,9 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       DGRAPH_ENDPOINT,
       {
         query: getChallengeQuery,
-        variables: { challengeId }
+        variables: { challengeId },
       },
-      { headers }
+      { headers },
     );
 
     if (challengeResponse.data.errors) {
@@ -84,10 +84,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 3. Roll for rarity when user completes the challenge
     const rarityRates: RarityRates = {
-      common: 0.70,    // 70%
-      rare: 0.20,      // 20%
-      epic: 0.08,      // 8%
-      legendary: 0.02  // 2%
+      common: 0.7, // 70%
+      rare: 0.2, // 20%
+      epic: 0.08, // 8%
+      legendary: 0.02, // 2%
     };
 
     const roll = Math.random();
@@ -109,21 +109,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       common: 10,
       rare: 15,
       epic: 25,
-      legendary: 50
+      legendary: 50,
     };
 
     const nameOptions: NameOptions = {
       common: ['Basic', 'Simple', 'Standard'],
       rare: ['Enhanced', 'Superior', 'Advanced'],
       epic: ['Mystic', 'Epic', 'Powerful'],
-      legendary: ['Legendary', 'Divine', 'Mythic']
+      legendary: ['Legendary', 'Divine', 'Mythic'],
     };
 
     const itemNames: Record<string, string> = {
       cap: 'Cap',
       hoodie: 'Hoodie',
       pants: 'Pants',
-      shoes: 'Shoes'
+      shoes: 'Shoes',
     };
 
     const prefix = nameOptions[rarity][Math.floor(Math.random() * nameOptions[rarity].length)];
@@ -132,7 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 5. Generate the NFT image using your existing avatar generation system
     console.log(`🎨 Generating ${rarity} ${itemType} NFT image...`);
-    
+
     const nftImageResponse = await fetch('/api/nft/generate-random', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,8 +141,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         itemType,
         rarity,
         challengeId,
-        challengeType
-      })
+        challengeType,
+      }),
     });
 
     if (!nftImageResponse.ok) {
@@ -157,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 6. Save NFT to database
     const nftId = `nft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const createNFTMutation = `
       mutation CreateNFT(
         $id: String!,
@@ -208,16 +208,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       imageCID: nftImageData.imageCID || '',
       generatedAt: new Date().toISOString(),
       generationPrompt: `Generated ${rarity} ${itemType} for challenge completion`,
-      userId: userId
+      userId: userId,
     };
 
     const nftResponse = await axios.post(
       DGRAPH_ENDPOINT,
       {
         query: createNFTMutation,
-        variables: nftVariables
+        variables: nftVariables,
       },
-      { headers }
+      { headers },
     );
 
     if (nftResponse.data.errors) {
@@ -243,18 +243,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         rarity: rarity,
         tokenBonus: tokenBonuses[rarity],
         imageUrl: createdNFT.imageUrl,
-        description: description
+        description: description,
       },
       message: `🎉 Congratulations! You earned a ${rarity} ${itemType}!`,
-      bonusMessage: `This NFT grants you +${tokenBonuses[rarity]}% token bonus!`
+      bonusMessage: `This NFT grants you +${tokenBonuses[rarity]}% token bonus!`,
     });
-
   } catch (error) {
     console.error('NFT generation from challenge error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to generate NFT reward',
-      details: errorMessage 
+      details: errorMessage,
     });
   }
 }
@@ -276,29 +275,33 @@ export async function generateSpecificNFT(req: NextApiRequest, res: NextApiRespo
     // Build generation prompt based on item type and rarity
     const prompts: Record<string, Record<string, string>> = {
       cap: {
-        common: "stylized 3D cap, clean design, simple materials, futuristic style, Nocena universe aesthetic",
-        rare: "stylized 3D cap, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic",
-        epic: "stylized 3D cap, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic",
-        legendary: "stylized 3D cap, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic"
+        common: 'stylized 3D cap, clean design, simple materials, futuristic style, Nocena universe aesthetic',
+        rare: 'stylized 3D cap, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic',
+        epic: 'stylized 3D cap, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D cap, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic',
       },
       hoodie: {
-        common: "stylized 3D hoodie, clean design, simple materials, cyberpunk aesthetic, Nocena universe style",
-        rare: "stylized 3D hoodie, enhanced details, subtle glow, premium materials, cyberpunk aesthetic, Nocena universe style",
-        epic: "stylized 3D hoodie, mystical aura, intricate patterns, glowing effects, cyberpunk aesthetic, Nocena universe style",
-        legendary: "stylized 3D hoodie, divine radiance, otherworldly design, heavy particle effects, legendary aura, cyberpunk aesthetic, Nocena universe style"
+        common: 'stylized 3D hoodie, clean design, simple materials, cyberpunk aesthetic, Nocena universe style',
+        rare: 'stylized 3D hoodie, enhanced details, subtle glow, premium materials, cyberpunk aesthetic, Nocena universe style',
+        epic: 'stylized 3D hoodie, mystical aura, intricate patterns, glowing effects, cyberpunk aesthetic, Nocena universe style',
+        legendary:
+          'stylized 3D hoodie, divine radiance, otherworldly design, heavy particle effects, legendary aura, cyberpunk aesthetic, Nocena universe style',
       },
       pants: {
-        common: "stylized 3D pants, clean design, simple materials, futuristic style, Nocena universe aesthetic",
-        rare: "stylized 3D pants, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic",
-        epic: "stylized 3D pants, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic",
-        legendary: "stylized 3D pants, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic"
+        common: 'stylized 3D pants, clean design, simple materials, futuristic style, Nocena universe aesthetic',
+        rare: 'stylized 3D pants, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic',
+        epic: 'stylized 3D pants, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D pants, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic',
       },
       shoes: {
-        common: "stylized 3D shoes, clean design, simple materials, high-tech style, Nocena universe aesthetic",
-        rare: "stylized 3D shoes, enhanced details, subtle glow, premium materials, high-tech style, Nocena universe aesthetic",
-        epic: "stylized 3D shoes, mystical aura, intricate patterns, glowing effects, high-tech style, Nocena universe aesthetic",
-        legendary: "stylized 3D shoes, divine radiance, otherworldly design, heavy particle effects, legendary aura, high-tech style, Nocena universe aesthetic"
-      }
+        common: 'stylized 3D shoes, clean design, simple materials, high-tech style, Nocena universe aesthetic',
+        rare: 'stylized 3D shoes, enhanced details, subtle glow, premium materials, high-tech style, Nocena universe aesthetic',
+        epic: 'stylized 3D shoes, mystical aura, intricate patterns, glowing effects, high-tech style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D shoes, divine radiance, otherworldly design, heavy particle effects, legendary aura, high-tech style, Nocena universe aesthetic',
+      },
     };
 
     const basePrompt = prompts[itemType][rarity];
@@ -309,7 +312,7 @@ export async function generateSpecificNFT(req: NextApiRequest, res: NextApiRespo
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.CHAINGPT_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         userID: `nft_${itemType}_${rarity}_${Date.now()}`,
@@ -319,8 +322,8 @@ export async function generateSpecificNFT(req: NextApiRequest, res: NextApiRespo
         height: 512,
         enhance: '2x',
         useTemplate: true,
-        templatePath: `/nft/${itemType}.png`
-      })
+        templatePath: `/nft/${itemType}.png`,
+      }),
     });
 
     if (!chainGPTResponse.ok) {
@@ -338,15 +341,14 @@ export async function generateSpecificNFT(req: NextApiRequest, res: NextApiRespo
       collectionId: chainGPTData.collectionId,
       imageUrl: chainGPTData.imageUrl,
       imageCID: chainGPTData.imageCID,
-      message: `${rarity} ${itemType} generation started`
+      message: `${rarity} ${itemType} generation started`,
     });
-
   } catch (error) {
     console.error('Specific NFT generation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to generate specific NFT',
-      details: errorMessage 
+      details: errorMessage,
     });
   }
 }

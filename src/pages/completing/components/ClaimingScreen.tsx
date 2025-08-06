@@ -62,7 +62,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
     };
 
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       URL.revokeObjectURL(vUrl);
       URL.revokeObjectURL(pUrl);
@@ -153,7 +153,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
   const stageInfo = getStageInfo();
 
   return (
-    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col">
+    <div className="h-screen bg-black text-white flex flex-col">
       {/* Navigation Buttons */}
       <div
         className="flex justify-between items-center px-4 z-50 flex-shrink-0"
@@ -326,9 +326,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
       </div>
 
       {/* Fixed Action Buttons at Bottom */}
-      <div 
+      <div
         className="flex-shrink-0 px-6 py-4 bg-black/50 backdrop-blur-sm border-t border-gray-800"
-        style={{ 
+        style={{
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
         }}
       >

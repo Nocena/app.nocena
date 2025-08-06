@@ -72,10 +72,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 2. Randomly pick rarity
     const rarityRates: RarityRates = {
-      common: 0.70,    // 70%
-      rare: 0.20,      // 20%
-      epic: 0.08,      // 8%
-      legendary: 0.02  // 2%
+      common: 0.7, // 70%
+      rare: 0.2, // 20%
+      epic: 0.08, // 8%
+      legendary: 0.02, // 2%
     };
 
     const roll = Math.random();
@@ -93,29 +93,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 3. Build generation prompt based on item type and rarity
     const prompts: Prompts = {
       cap: {
-        common: "stylized 3D cap, clean design, simple materials, futuristic style, Nocena universe aesthetic",
-        rare: "stylized 3D cap, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic",
-        epic: "stylized 3D cap, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic",
-        legendary: "stylized 3D cap, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic"
+        common: 'stylized 3D cap, clean design, simple materials, futuristic style, Nocena universe aesthetic',
+        rare: 'stylized 3D cap, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic',
+        epic: 'stylized 3D cap, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D cap, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic',
       },
       hoodie: {
-        common: "stylized 3D hoodie, clean design, simple materials, cyberpunk aesthetic, Nocena universe style",
-        rare: "stylized 3D hoodie, enhanced details, subtle glow, premium materials, cyberpunk aesthetic, Nocena universe style",
-        epic: "stylized 3D hoodie, mystical aura, intricate patterns, glowing effects, cyberpunk aesthetic, Nocena universe style",
-        legendary: "stylized 3D hoodie, divine radiance, otherworldly design, heavy particle effects, legendary aura, cyberpunk aesthetic, Nocena universe style"
+        common: 'stylized 3D hoodie, clean design, simple materials, cyberpunk aesthetic, Nocena universe style',
+        rare: 'stylized 3D hoodie, enhanced details, subtle glow, premium materials, cyberpunk aesthetic, Nocena universe style',
+        epic: 'stylized 3D hoodie, mystical aura, intricate patterns, glowing effects, cyberpunk aesthetic, Nocena universe style',
+        legendary:
+          'stylized 3D hoodie, divine radiance, otherworldly design, heavy particle effects, legendary aura, cyberpunk aesthetic, Nocena universe style',
       },
       pants: {
-        common: "stylized 3D pants, clean design, simple materials, futuristic style, Nocena universe aesthetic",
-        rare: "stylized 3D pants, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic",
-        epic: "stylized 3D pants, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic",
-        legendary: "stylized 3D pants, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic"
+        common: 'stylized 3D pants, clean design, simple materials, futuristic style, Nocena universe aesthetic',
+        rare: 'stylized 3D pants, enhanced details, subtle glow, premium materials, futuristic style, Nocena universe aesthetic',
+        epic: 'stylized 3D pants, mystical aura, intricate patterns, glowing effects, futuristic style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D pants, divine radiance, otherworldly design, heavy particle effects, legendary aura, futuristic style, Nocena universe aesthetic',
       },
       shoes: {
-        common: "stylized 3D shoes, clean design, simple materials, high-tech style, Nocena universe aesthetic",
-        rare: "stylized 3D shoes, enhanced details, subtle glow, premium materials, high-tech style, Nocena universe aesthetic",
-        epic: "stylized 3D shoes, mystical aura, intricate patterns, glowing effects, high-tech style, Nocena universe aesthetic",
-        legendary: "stylized 3D shoes, divine radiance, otherworldly design, heavy particle effects, legendary aura, high-tech style, Nocena universe aesthetic"
-      }
+        common: 'stylized 3D shoes, clean design, simple materials, high-tech style, Nocena universe aesthetic',
+        rare: 'stylized 3D shoes, enhanced details, subtle glow, premium materials, high-tech style, Nocena universe aesthetic',
+        epic: 'stylized 3D shoes, mystical aura, intricate patterns, glowing effects, high-tech style, Nocena universe aesthetic',
+        legendary:
+          'stylized 3D shoes, divine radiance, otherworldly design, heavy particle effects, legendary aura, high-tech style, Nocena universe aesthetic',
+      },
     };
 
     const basePrompt = prompts[itemType][rarity];
@@ -135,15 +139,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           'smooth surfaces',
           'gaming asset style',
           'isolated background',
-          'professional lighting'
+          'professional lighting',
         ],
         qualitySettings: {
           width: 512,
           height: 512,
           enhance: '2x' as const,
-          model: 'velogen'
-        }
-      }
+          model: 'velogen',
+        },
+      },
     );
 
     // 5. Call ChainGPT API (similar to your avatar generation)
@@ -158,9 +162,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${chainGPTApiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(generationParams)
+      body: JSON.stringify(generationParams),
     });
 
     if (!chainGPTResponse.ok) {
@@ -178,21 +182,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       common: 10,
       rare: 15,
       epic: 25,
-      legendary: 50
+      legendary: 50,
     };
 
     const nameOptions: NameOptions = {
       common: ['Basic', 'Simple', 'Standard'],
       rare: ['Enhanced', 'Superior', 'Advanced'],
       epic: ['Mystic', 'Epic', 'Powerful'],
-      legendary: ['Legendary', 'Divine', 'Mythic']
+      legendary: ['Legendary', 'Divine', 'Mythic'],
     };
 
     const itemNames: ItemNames = {
       cap: 'Cap',
       hoodie: 'Hoodie',
       pants: 'Pants',
-      shoes: 'Shoes'
+      shoes: 'Shoes',
     };
 
     const prefix = nameOptions[rarity][Math.floor(Math.random() * nameOptions[rarity].length)];
@@ -207,7 +211,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tokenBonus: tokenBonuses[rarity],
       generationPrompt: fullPrompt,
       userId: userId,
-      challengeType: challengeType || 'unknown'
+      challengeType: challengeType || 'unknown',
     };
 
     // 7. Return the generation data (you'll poll for completion like with avatars)
@@ -215,15 +219,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       collectionId: chainGPTData.collectionId,
       nftData: nftData,
-      message: `${rarity} ${itemType} NFT generation started`
+      message: `${rarity} ${itemType} NFT generation started`,
     });
-
   } catch (error) {
     console.error('NFT generation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'NFT generation failed',
-      details: errorMessage
+      details: errorMessage,
     });
   }
 }
@@ -252,8 +255,8 @@ export async function checkNFTGenerationProgress(req: NextApiRequest, res: NextA
     // Use your existing progress check logic (same as avatar)
     const response = await fetch(`${chainGPTApiBase}/avatar/progress/${collectionId}`, {
       headers: {
-        'Authorization': `Bearer ${chainGPTApiKey}`,
-      }
+        Authorization: `Bearer ${chainGPTApiKey}`,
+      },
     });
 
     if (!response.ok) {
@@ -264,15 +267,14 @@ export async function checkNFTGenerationProgress(req: NextApiRequest, res: NextA
 
     res.status(200).json({
       success: true,
-      progress: data
+      progress: data,
     });
-
   } catch (error) {
     console.error('Progress check error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to check progress',
-      details: errorMessage 
+      details: errorMessage,
     });
   }
 }
