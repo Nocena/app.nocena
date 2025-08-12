@@ -12,6 +12,8 @@ import LoginPage from './login';
 import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
+import UpdateNotification from '../components/PWA/UpdateNotification';
+import CacheDebugger from '../components/PWA/CacheDebugger'; // Add this import
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -190,6 +192,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <Component {...pageProps} />
         )}
         {renderPWAPrompt()}
+        <UpdateNotification />
       </>
     );
   }
@@ -214,6 +217,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
         {renderPWAPrompt()}
+        <UpdateNotification />
       </>
     );
   }
@@ -262,6 +266,8 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       )}
 
       {renderPWAPrompt()}
+      <UpdateNotification />
+      <CacheDebugger />
     </>
   );
 }

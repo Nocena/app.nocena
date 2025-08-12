@@ -49,17 +49,206 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
   const [hasCustomBackHandler, setHasCustomBackHandler] = useState(false);
   const [isRouterReady, setIsRouterReady] = useState(false);
 
+  // Navigation history for better back navigation
+  const navigationHistory = useRef<string[]>([]);
+  const previousPath = useRef<string>('');
+
   // Safe pathname access with fallback
   const currentPathname = router?.pathname || '';
   const currentQuery = router?.query || {};
 
+  // Function to stop all active camera streams
+  const stopAllCameraStreams = useCallback(() => {
+    // Check if any component has registered camera protection
+    const isCameraProtected = () => {
+      if (typeof window !== 'undefined') {
+        const registry = (window as any).cameraProtectionRegistry as Set<string>;
+        return registry && registry.size > 0;
+      }
+      return false;
+    };
+  
+    // If camera is protected, don't stop streams
+    if (isCameraProtected()) {
+      console.log('🛡️ [AppLayout] Camera stop blocked - protection active');
+      return;
+    }
+  
+    // Check if we're currently on a camera page - if so, be more careful
+    const cameraPages = ['/browsing', '/completing'];
+    const isOnCameraPage = cameraPages.some((page) => currentPathname.startsWith(page));
+  
+    if (isOnCameraPage) {
+      console.log('🎥 [AppLayout] On camera page - checking if camera cleanup is safe');
+      // Only dispatch event, let components decide if they should stop
+      if (isBrowser) {
+        window.dispatchEvent(new CustomEvent('stopAllCameraStreams'));
+      }
+      return;
+    }
+  
+    console.log('🎥 [AppLayout] Stopping all active camera streams...');
+  
+    // Method 1: Try to get all active MediaStreamTracks
+    if (isBrowser && navigator.mediaDevices) {
+      try {
+        // Dispatch a global event that components can listen to for cleanup
+        window.dispatchEvent(new CustomEvent('stopAllCameraStreams'));
+        console.log('🎥 [AppLayout] Dispatched stopAllCameraStreams event');
+      } catch (error) {
+        console.error('Error dispatching camera cleanup event:', error);
+      }
+    }
+  
+    // Method 2: Try to access getUserMedia streams through global tracking
+    // This is a backup method for any streams that might not be cleaned up
+    if (isBrowser && (window as any).activeCameraStreams) {
+      const streams = (window as any).activeCameraStreams as MediaStream[];
+      streams.forEach((stream: MediaStream, index: number) => {
+        console.log(`🎥 [AppLayout] Stopping globally tracked stream ${index}`);
+        stream.getTracks().forEach((track: MediaStreamTrack) => {
+          track.stop();
+          console.log(`🎥 [AppLayout] Stopped track: ${track.kind} - ${track.label}`);
+        });
+      });
+      // Clear the global array
+      (window as any).activeCameraStreams = [];
+    }
+  }, [currentPathname]);
+
+  // Track navigation history and handle camera cleanup
+  useEffect(() => {
+    if (!currentPathname || !isRouterReady) return;
+
+    console.log(`🧭 [AppLayout] Navigation: ${previousPath.current} → ${currentPathname}`);
+
+    // Handle camera cleanup when leaving browsing or camera-related pages
+    const cameraPages = ['/browsing', '/completing'];
+    const wasOnCameraPage = cameraPages.some((page) => previousPath.current.startsWith(page));
+    const isOnCameraPage = cameraPages.some((page) => currentPathname.startsWith(page));
+
+    if (wasOnCameraPage && !isOnCameraPage) {
+      console.log('🎥 [AppLayout] Leaving camera page, stopping all streams');
+      stopAllCameraStreams();
+    }
+
+    // Update navigation history
+    if (previousPath.current && previousPath.current !== currentPathname) {
+      navigationHistory.current.push(previousPath.current);
+      // Keep only last 10 entries to prevent memory leak
+      if (navigationHistory.current.length > 10) {
+        navigationHistory.current = navigationHistory.current.slice(-10);
+      }
+    }
+
+    previousPath.current = currentPathname;
+  }, [currentPathname, isRouterReady, stopAllCameraStreams]);
+
+  // Enhanced page visibility handling with camera cleanup
+  useEffect(() => {
+    if (!isBrowser) return;
+
+    const handleVisibilityChange = () => {
+      const newVisibility = document.visibilityState === 'visible';
+      logPerf(`App visibility changed to: ${newVisibility ? 'visible' : 'hidden'}`);
+      setAppIsVisible(newVisibility);
+    
+      // Stop camera streams when app goes to background - BUT CHECK PROTECTION
+      if (!newVisibility) {
+        console.log('🎥 [AppLayout] App hidden, checking camera protection...');
+        
+        // Check if camera is protected
+        const isCameraProtected = () => {
+          if (typeof window !== 'undefined') {
+            const registry = (window as any).cameraProtectionRegistry as Set<string>;
+            return registry && registry.size > 0;
+          }
+          return false;
+        };
+    
+        if (isCameraProtected()) {
+          console.log('🛡️ [AppLayout] App hidden but camera is protected - keeping streams alive');
+          return;
+        }
+    
+        // When app goes to background, stop cameras for battery/privacy
+        if (isBrowser) {
+          window.dispatchEvent(new CustomEvent('stopAllCameraStreams'));
+          // Force stop all streams since app is backgrounded (but only if not protected)
+          if ((window as any).activeCameraStreams) {
+            const streams = (window as any).activeCameraStreams as MediaStream[];
+            streams.forEach((stream: MediaStream) => {
+              stream.getTracks().forEach((track: MediaStreamTrack) => {
+                track.stop();
+              });
+            });
+            (window as any).activeCameraStreams = [];
+          }
+        }
+      }
+    };
+    
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      console.log('🎥 [AppLayout] Page unloading, stopping camera streams');
+      stopAllCameraStreams();
+    };
+
+    const handlePageHide = () => {
+      console.log('🎥 [AppLayout] Page hide event, stopping camera streams');
+      stopAllCameraStreams();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+
+    // Also listen for our custom events
+    const handleBackgroundEvent = () => {
+      logPerf(`App went to background`);
+      setAppIsVisible(false);
+      stopAllCameraStreams();
+    };
+
+    const handleForegroundEvent = () => {
+      logPerf(`App came to foreground`);
+      setAppIsVisible(true);
+      // Refresh notification count when app comes to foreground
+      if (user?.id) {
+        fetchUnreadNotificationsCount(user.id)
+          .then((count) => setUnreadCount(count))
+          .catch((error) => console.error('Failed to refresh notifications', error));
+      }
+    };
+
+    window.addEventListener('nocena_app_background', handleBackgroundEvent);
+    window.addEventListener('nocena_app_foreground', handleForegroundEvent);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('nocena_app_background', handleBackgroundEvent);
+      window.removeEventListener('nocena_app_foreground', handleForegroundEvent);
+
+      // Final cleanup
+      stopAllCameraStreams();
+    };
+  }, [user?.id, stopAllCameraStreams]);
+
   // Track when component first mounts
   useEffect(() => {
     logPerf(`AppLayout mounted at ${new Date().toLocaleTimeString()}`);
+
+    // Initialize global camera stream tracking
+    if (isBrowser && !(window as any).activeCameraStreams) {
+      (window as any).activeCameraStreams = [];
+    }
+
     return () => {
       logPerf(`AppLayout unmounted at ${new Date().toLocaleTimeString()}`);
+      stopAllCameraStreams();
     };
-  }, []);
+  }, [stopAllCameraStreams]);
 
   // Track router readiness
   useEffect(() => {
@@ -165,45 +354,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     };
   }, [user?.id, appIsVisible]);
 
-  // App visibility handler to optimize performance
-  useEffect(() => {
-    if (!isBrowser) return;
-
-    const handleVisibilityChange = () => {
-      const newVisibility = document.visibilityState === 'visible';
-      logPerf(`App visibility changed to: ${newVisibility ? 'visible' : 'hidden'}`);
-      setAppIsVisible(newVisibility);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Also listen for our custom events
-    const handleBackgroundEvent = () => {
-      logPerf(`App went to background`);
-      setAppIsVisible(false);
-    };
-
-    const handleForegroundEvent = () => {
-      logPerf(`App came to foreground`);
-      setAppIsVisible(true);
-      // Refresh notification count when app comes to foreground
-      if (user?.id) {
-        fetchUnreadNotificationsCount(user.id)
-          .then((count) => setUnreadCount(count))
-          .catch((error) => console.error('Failed to refresh notifications', error));
-      }
-    };
-
-    window.addEventListener('nocena_app_background', handleBackgroundEvent);
-    window.addEventListener('nocena_app_foreground', handleForegroundEvent);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('nocena_app_background', handleBackgroundEvent);
-      window.removeEventListener('nocena_app_foreground', handleForegroundEvent);
-    };
-  }, [user?.id]);
-
   // NEW: Listen for navigation messages from service worker
   useEffect(() => {
     // Listen for navigation messages from service worker
@@ -279,9 +429,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       logPerf(`Navigation clicked: index ${index}`);
       const navigationStart = performance.now();
 
-      // Update the current tab index immediately for UI feedback
-      setCurrentIndex(index);
-
+      // Stop camera streams before navigation (except when going to camera pages)
+      const cameraPages = ['/browsing', '/completing'];
       const routeMapping: Record<number, string> = {
         0: '/home',
         1: '/map',
@@ -294,8 +443,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         8: '/browsing',
       };
 
-      // Determine the target route
-      const route = index === 6 && user?.wallet ? `/profile/${user.id}` : routeMapping[index] || '/home';
+      const targetRoute = index === 6 && user?.wallet ? `/profile/${user.id}` : routeMapping[index] || '/home';
+      const isGoingToCameraPage = cameraPages.some((page) => targetRoute.startsWith(page));
+
+      if (!isGoingToCameraPage) {
+        console.log('🎥 [AppLayout] Navigating away from current page, stopping camera streams');
+        stopAllCameraStreams();
+      }
+
+      // Update the current tab index immediately for UI feedback
+      setCurrentIndex(index);
 
       // Update visibility state immediately before navigation
       // This helps make the page load appear faster
@@ -320,7 +477,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       // Perform route push first for faster response
       // Add shallow routing to prevent full page reload
       try {
-        await router.push(route, undefined, { shallow: true });
+        await router.push(targetRoute, undefined, { shallow: true });
       } catch (error) {
         console.error('Navigation failed:', error);
         return;
@@ -358,7 +515,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
 
       logPerf(`Navigation completed in ${(performance.now() - navigationStart).toFixed(2)}ms`);
     },
-    [router?.push, user?.id, user?.wallet],
+    [router?.push, user?.id, user?.wallet, stopAllCameraStreams],
   );
 
   const handleMenuToggle = useCallback(() => {
@@ -369,12 +526,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     setIsMenuOpen(false);
   }, []);
 
-  // Handle going back from special pages
+  // Enhanced back handler with better navigation logic
   const handleBack = useCallback(() => {
     if (!router?.back) {
       console.error('Router not available for back navigation');
       return;
     }
+
+    // Stop camera streams when going back
+    console.log('🎥 [AppLayout] Going back, stopping camera streams');
+    stopAllCameraStreams();
 
     if (hasCustomBackHandler) {
       // Dispatch custom back event for pages that need it
@@ -382,13 +543,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         window.dispatchEvent(new CustomEvent('nocena_custom_back'));
       }
     } else {
+      // For browsing page, try to go back to the referring page in navigation history
+      if (currentPathname === '/browsing' && navigationHistory.current.length > 0) {
+        // Get the last page from history that's not the current page
+        const lastPage = navigationHistory.current[navigationHistory.current.length - 1];
+        if (lastPage && lastPage !== currentPathname) {
+          console.log(`🧭 [AppLayout] Going back to: ${lastPage}`);
+          router.push(lastPage);
+          return;
+        }
+      }
+
       // Use default router.back() for normal pages
       router.back();
     }
-  }, [router?.back, hasCustomBackHandler]);
+  }, [router, hasCustomBackHandler, currentPathname, stopAllCameraStreams]);
 
   // Create a proper logout handler that ensures full page reload
   const handleAppLogout = useCallback(() => {
+    // Stop all camera streams before logout
+    stopAllCameraStreams();
+
     // First close the menu
     setIsMenuOpen(false);
 
@@ -410,7 +585,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     if (isBrowser) {
       window.location.href = '/login';
     }
-  }, [handleLogout]);
+  }, [handleLogout, stopAllCameraStreams]);
 
   // Early return if router is not ready
   if (!isRouterReady) {
