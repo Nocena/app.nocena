@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Back from '../icons/back';
 import VideoBackground from './BackgroundVideo';
@@ -12,9 +12,91 @@ interface SpecialPageLayoutProps {
 const SpecialPageLayout: React.FC<SpecialPageLayoutProps> = ({ children, showHeader = true }) => {
   const router = useRouter();
 
-  const handleBack = () => {
-    router.back();
-  };
+  // Function to stop all camera streams
+  const stopAllCameraStreams = useCallback(() => {
+    console.log('🎥 [SpecialPageLayout] Stopping all camera streams...');
+
+    // Dispatch global camera stop event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('stopAllCameraStreams'));
+    }
+
+    // Also handle globally tracked streams
+    if (typeof window !== 'undefined' && (window as any).activeCameraStreams) {
+      const streams = (window as any).activeCameraStreams as MediaStream[];
+      streams.forEach((stream: MediaStream, index: number) => {
+        console.log(`🎥 [SpecialPageLayout] Stopping globally tracked stream ${index}`);
+        stream.getTracks().forEach((track: MediaStreamTrack) => {
+          track.stop();
+          console.log(`🎥 [SpecialPageLayout] Stopped track: ${track.kind} - ${track.label}`);
+        });
+      });
+      // Clear the global array
+      (window as any).activeCameraStreams = [];
+    }
+  }, []);
+
+  // Handle back navigation with camera cleanup
+  const handleBack = useCallback(() => {
+    console.log('🎥 [SpecialPageLayout] Back button clicked, stopping camera streams');
+    stopAllCameraStreams();
+
+    // Small delay to ensure cleanup completes before navigation
+    setTimeout(() => {
+      router.back();
+    }, 100);
+  }, [router, stopAllCameraStreams]);
+
+  // Handle page visibility and cleanup
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('🎥 [SpecialPageLayout] Page hidden, stopping camera streams');
+        stopAllCameraStreams();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      console.log('🎥 [SpecialPageLayout] Page unloading, stopping camera streams');
+      stopAllCameraStreams();
+    };
+
+    const handlePageHide = () => {
+      console.log('🎥 [SpecialPageLayout] Page hide event, stopping camera streams');
+      stopAllCameraStreams();
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+
+      // Final cleanup when component unmounts
+      console.log('🎥 [SpecialPageLayout] Component unmounting, final camera cleanup');
+      stopAllCameraStreams();
+    };
+  }, [stopAllCameraStreams]);
+
+  // Handle router events for navigation cleanup
+  useEffect(() => {
+    const handleRouteChangeStart = (url: string) => {
+      console.log(`🎥 [SpecialPageLayout] Route changing to ${url}, stopping camera streams`);
+      stopAllCameraStreams();
+    };
+
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+      stopAllCameraStreams();
+    };
+  }, [router.events, stopAllCameraStreams]);
 
   return (
     <div className="app-container min-h-screen w-full text-white flex flex-col relative">

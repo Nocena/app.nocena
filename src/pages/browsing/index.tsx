@@ -1,6 +1,8 @@
-// pages/browsing.tsx
+// pages/browsing/index.tsx - Minimal camera cleanup additions
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '../../../src/contexts/AuthContext'; // Add this import
+import InteractionSidebar from './components/InteractionSidebar';
 
 interface ChallengeCompletion {
   id: string;
@@ -33,10 +35,36 @@ interface ChallengeCompletion {
   };
   videoUrl?: string;
   selfieUrl?: string;
+  // Local state for likes (will be replaced with DB data later)
+  localLikes?: number;
+  localIsLiked?: boolean;
+  // Database fields for likes
+  totalLikes?: number;
+  isLiked?: boolean;
+  recentLikes?: Array<{
+    id: string;
+    username: string;
+    profilePicture: string;
+  }>;
+  // Database fields for reactions
+  totalReactions?: number;
+  recentReactions?: Array<{
+    id: string;
+    reactionType: string;
+    emoji: string;
+    selfieUrl?: string;
+    user: {
+      id: string;
+      username: string;
+      profilePicture: string;
+    };
+    createdAt: string;
+  }>;
 }
 
 const BrowsingPage: React.FC = () => {
   const router = useRouter();
+  const { user } = useAuth(); // Get current user from auth context
   const { challengeId, userId } = router.query;
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,7 +77,7 @@ const BrowsingPage: React.FC = () => {
   useEffect(() => {
     // Always fetch completions, with or without challengeId
     fetchChallengeCompletions();
-  }, []); // Remove challengeId dependency since we handle it inside the function
+  }, [challengeId]); // Add challengeId back since we might need to refetch when it changes
 
   useEffect(() => {
     // Find the initial completion to show based on userId
@@ -66,74 +94,17 @@ const BrowsingPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Use the same query for both cases since we'll filter client-side
-      const query = `
-        query GetChallengeCompletions {
-          queryChallengeCompletion {
-            id
-            user {
-              id
-              username
-              profilePicture
-            }
-            completionDate
-            media
-            challengeType
-            publicChallenge {
-              id
-              title
-              description
-              reward
-            }
-            aiChallenge {
-              id
-              title
-              description
-              reward
-              frequency
-            }
-            privateChallenge {
-              id
-              title
-              description
-              reward
-            }
-          }
-        }
-      `;
+      // Import the enhanced function from dgraph.ts
+      const { fetchChallengeCompletionsWithLikesAndReactions } = await import('../../../src/lib/api/dgraph');
 
-      // No variables needed since we're doing client-side filtering
-      const variables = {};
+      // Get current user ID for like status
+      const currentUserId = user?.id; // Use actual user ID from auth context
 
-      const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
-            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY,
-          }),
-        },
-        body: JSON.stringify({
-          query,
-          variables,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.errors) {
-        throw new Error(data.errors[0]?.message || 'Failed to fetch completions');
-      }
-
-      let allCompletions = data.data.queryChallengeCompletion || [];
-
-      // If we have a specific challengeId, filter the results client-side
-      // since the GraphQL filter might not be working as expected
-      if (challengeId && allCompletions.length > 0) {
-        allCompletions = allCompletions.filter(
-          (completion: any) => completion.publicChallenge && completion.publicChallenge.id === challengeId,
-        );
-      }
+      // Fetch completions with like and reaction data
+      const allCompletions = await fetchChallengeCompletionsWithLikesAndReactions(
+        challengeId as string | undefined,
+        currentUserId,
+      );
 
       if (allCompletions.length === 0) {
         throw new Error(challengeId ? 'No completions found for this challenge' : 'No completions found');
@@ -175,6 +146,9 @@ const BrowsingPage: React.FC = () => {
             ...completion,
             videoUrl,
             selfieUrl,
+            // Use real database values for both likes and reactions
+            localLikes: completion.totalLikes || 0,
+            localIsLiked: completion.isLiked || false,
           };
         }),
       );
@@ -346,6 +320,218 @@ const BrowsingPage: React.FC = () => {
     };
   }, [router.events, pauseAllVideos]);
 
+  // Interaction handlers for the BeReal-style sidebar
+  const handleProfileClick = (completion: ChallengeCompletion) => {
+    router.push(`/profile/${completion.user.id}`);
+  };
+
+  const handleLikeClick = async (completion: ChallengeCompletion) => {
+    // Check if user is logged in
+    if (!user?.id) {
+      alert('Please log in to like posts');
+      return;
+    }
+
+    const currentUserId = user.id; // Use actual user ID
+
+    // Optimistic update for immediate UI feedback
+    const wasLiked = completion.localIsLiked || false;
+    const currentLikes = completion.localLikes || 0;
+
+    // Update UI immediately
+    setCompletions((prevCompletions) =>
+      prevCompletions.map((comp) => {
+        if (comp.id === completion.id) {
+          return {
+            ...comp,
+            localIsLiked: !wasLiked,
+            localLikes: wasLiked ? currentLikes - 1 : currentLikes + 1,
+          };
+        }
+        return comp;
+      }),
+    );
+
+    try {
+      // Make API call to persist the like
+      const response = await fetch('/api/likes/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          completionId: completion.id,
+          userId: currentUserId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle like');
+      }
+
+      console.log('Like toggled successfully:', data);
+
+      // Update with server response to ensure consistency
+      setCompletions((prevCompletions) =>
+        prevCompletions.map((comp) => {
+          if (comp.id === completion.id) {
+            return {
+              ...comp,
+              localIsLiked: data.isLiked,
+              localLikes: data.newLikeCount,
+            };
+          }
+          return comp;
+        }),
+      );
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+
+      // Revert optimistic update on error
+      setCompletions((prevCompletions) =>
+        prevCompletions.map((comp) => {
+          if (comp.id === completion.id) {
+            return {
+              ...comp,
+              localIsLiked: wasLiked,
+              localLikes: currentLikes,
+            };
+          }
+          return comp;
+        }),
+      );
+
+      // Show error message to user
+      alert('Failed to update like. Please try again.');
+    }
+  };
+
+  const handleRealMojiCapture = async (imageBlob: Blob, reactionType: string, completionId: string) => {
+    console.log('🎭 [RealMoji] Starting capture process:', {
+      reactionType,
+      completionId,
+      blobSize: imageBlob.size,
+      userId: user?.id,
+    });
+
+    if (!user?.id) {
+      alert('Please log in to create RealMoji reactions');
+      return;
+    }
+
+    try {
+      // Show loading state
+      console.log('🎭 [RealMoji] Uploading and creating reaction...');
+
+      // Create FormData for the API request
+      const formData = new FormData();
+      formData.append('image', imageBlob, `realmoji-${reactionType}-${Date.now()}.jpg`);
+      formData.append('userId', user.id);
+      formData.append('completionId', completionId);
+      formData.append('reactionType', reactionType);
+
+      // Make API call to create the RealMoji reaction
+      const response = await fetch('/api/reactions/create', {
+        method: 'POST',
+        body: formData, // Don't set Content-Type, let browser set it for FormData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+
+      console.log('🎭 [RealMoji] Reaction created successfully:', data);
+
+      // Get the emoji for the reaction type
+      const getEmojiForType = (type: string): string => {
+        const emojiMap: { [key: string]: string } = {
+          thumbsUp: '👍',
+          love: '😍',
+          shocked: '🤯',
+          curious: '🤔',
+          fire: '🔥',
+          sad: '😢',
+        };
+        return emojiMap[type] || '😊';
+      };
+
+      // Update the local state to show the new reaction immediately
+      setCompletions((prevCompletions) =>
+        prevCompletions.map((comp) => {
+          if (comp.id === completionId) {
+            const newReaction = {
+              id: data.reactionId,
+              reactionType: data.reactionType,
+              emoji: data.emoji || getEmojiForType(data.reactionType),
+              selfieUrl: data.selfieUrl,
+              user: {
+                id: user.id!,
+                username: user.username || 'You',
+                profilePicture: user.profilePicture || '/images/profile.png',
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            const updatedReactions = [newReaction, ...(comp.recentReactions || [])];
+
+            return {
+              ...comp,
+              totalReactions: (comp.totalReactions || 0) + 1,
+              recentReactions: updatedReactions,
+            };
+          }
+          return comp;
+        }),
+      );
+
+      // Show success message to user
+      const emojiLabel = getEmojiForType(reactionType);
+      console.log(`🎭 [RealMoji] Success! ${emojiLabel} RealMoji created`);
+
+      // Optional: You could add a toast notification here instead of alert
+      // showToast(`${emojiLabel} RealMoji created! 📸`);
+    } catch (error) {
+      console.error('🎭 [RealMoji] Failed to create RealMoji:', error);
+
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      if (errorMessage.includes('log in') || errorMessage.includes('authentication')) {
+        alert('Please log in to create RealMoji reactions');
+      } else if (errorMessage.includes('upload') || errorMessage.includes('IPFS')) {
+        alert('Failed to upload your RealMoji. Check your internet connection and try again.');
+      } else if (errorMessage.includes('Database') || errorMessage.includes('not found')) {
+        alert('There was an issue saving your RealMoji. Please try again.');
+      } else {
+        alert('Failed to save your RealMoji. Please try again.');
+      }
+    }
+  };
+
+  // Helper function to get emoji for reaction type
+  const getEmojiForType = (reactionType: string): string => {
+    const emojiMap: { [key: string]: string } = {
+      thumbsUp: '👍',
+      love: '😍',
+      shocked: '🤯',
+      curious: '🤔',
+      fire: '🔥',
+      sad: '😢',
+    };
+    return emojiMap[reactionType] || '😊';
+  };
+
+  // Don't render anything if user is not loaded yet
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -446,105 +632,76 @@ const BrowsingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* TikTok-style right sidebar */}
-              <div className="absolute right-3 bottom-24 flex flex-col items-center space-y-6 z-40">
-                {/* Profile picture */}
-                <div className="relative">
-                  <img
-                    src={completion.user.profilePicture || '/images/profile.png'}
-                    alt={completion.user.username}
-                    className="w-12 h-12 rounded-full border-2 border-white object-cover"
-                  />
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Like button */}
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-white drop-shadow-lg"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-white text-xs font-semibold drop-shadow-lg">
-                    {Math.floor(Math.random() * 50 + 10)}K
-                  </span>
-                </div>
-
-                {/* Comment button */}
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-white drop-shadow-lg"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-white text-xs font-semibold drop-shadow-lg">
-                    {Math.floor(Math.random() * 5000 + 100)}
-                  </span>
-                </div>
-
-                {/* Share button */}
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-white drop-shadow-lg"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-white text-xs font-semibold drop-shadow-lg">Share</span>
-                </div>
-
-                {/* Nocenix token display */}
-                <div className="flex flex-col items-center mt-4">
-                  <div className="w-10 h-10 rounded-full border-2 border-pink-500 bg-black/30 backdrop-blur-sm flex items-center justify-center">
-                    <img src="/nocenix.ico" alt="Nocenix" className="w-6 h-6" />
-                  </div>
-                  <span className="text-pink-500 text-xs font-bold drop-shadow-lg mt-1">+{challenge?.reward}</span>
-                </div>
-              </div>
+              {/* BeReal-Style Interaction Sidebar Component */}
+              <InteractionSidebar
+                user={completion.user}
+                challenge={challenge}
+                completionId={completion.id}
+                onProfileClick={() => handleProfileClick(completion)}
+                onLikeClick={() => handleLikeClick(completion)}
+                onRealMojiCapture={handleRealMojiCapture}
+                // Use real data from database
+                reactions={completion.recentReactions || []}
+                totalReactions={completion.totalReactions || 0}
+                totalLikes={completion.localLikes || 0}
+                isLiked={completion.localIsLiked || false}
+              />
 
               {/* Bottom overlay with user info and challenge details */}
               <div
                 className="absolute bottom-0 left-0 right-16 z-30 p-4 pb-8"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
               >
+                {/* RealMoji Reactions - positioned above user info */}
+                {completion.recentReactions && completion.recentReactions.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+                      {completion.recentReactions.slice(0, 8).map((reaction, index) => (
+                        <div key={reaction.id || index} className="flex-shrink-0 relative">
+                          {reaction.selfieUrl ? (
+                            // User's RealMoji selfie with emoji overlay - BeReal style
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                              <img
+                                src={reaction.selfieUrl}
+                                alt={`${reaction.user.username}'s ${reaction.reactionType} reaction`}
+                                className="w-full h-full object-cover"
+                                style={{
+                                  objectPosition: 'center 25%', // Focus even more on face area
+                                  transform: 'scale(2.2)', // Much more zoom to show just the face
+                                  transformOrigin: 'center',
+                                }}
+                              />
+                              {/* Emoji overlay in bottom right corner */}
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-gray-300 flex items-center justify-center shadow-sm">
+                                <span className="text-xs">{reaction.emoji}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            // Fallback: just emoji if no selfie
+                            <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center shadow-lg">
+                              <span className="text-lg">{reaction.emoji}</span>
+                            </div>
+                          )}
+
+                          {/* User indicator on hover/tap */}
+                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                            {reaction.user.username}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Show "+X more" if there are more than 8 reactions */}
+                      {completion.recentReactions.length > 8 && (
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center shadow-lg">
+                          <span className="text-xs text-white font-medium">
+                            +{completion.recentReactions.length - 8}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* User info */}
                 <div className="mb-3">
                   <div className="flex items-center space-x-2 mb-2">

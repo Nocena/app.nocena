@@ -3914,3 +3914,787 @@ export const fetchAllPublicChallengesWithCompletions = async (): Promise<any[]> 
     throw error;
   }
 };
+
+// Add these functions to your dgraph.ts file
+
+/**
+ * Toggle like on a challenge completion
+ * @param userId - ID of the user liking/unliking
+ * @param completionId - ID of the challenge completion
+ * @returns Promise<{ isLiked: boolean, newLikeCount: number }>
+ */
+export const toggleCompletionLike = async (
+  userId: string,
+  completionId: string,
+): Promise<{ isLiked: boolean; newLikeCount: number }> => {
+  console.log(`Toggling like: User ${userId} on completion ${completionId}`);
+
+  try {
+    // First, get the user data to include in the likes array
+    const getUserQuery = `
+      query GetUser($userId: String!) {
+        getUser(id: $userId) {
+          id
+          username
+          profilePicture
+        }
+      }
+    `;
+
+    const userResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: getUserQuery,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (userResponse.data.errors) {
+      console.error('Error fetching user:', userResponse.data.errors);
+      throw new Error('Failed to fetch user data');
+    }
+
+    const userData = userResponse.data.data.getUser;
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    // Now check current like status
+    const checkQuery = `
+      query CheckLikeStatus($completionId: String!, $userId: String!) {
+        getChallengeCompletion(id: $completionId) {
+          id
+          likesCount
+          likes(filter: { id: { eq: $userId } }) {
+            id
+          }
+          user {
+            id
+            username
+          }
+        }
+      }
+    `;
+
+    const checkResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: checkQuery,
+        variables: { completionId, userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (checkResponse.data.errors) {
+      console.error('Error checking like status:', checkResponse.data.errors);
+      throw new Error('Failed to check like status');
+    }
+
+    const completion = checkResponse.data.data.getChallengeCompletion;
+    if (!completion) {
+      throw new Error('Challenge completion not found');
+    }
+
+    const currentLikeCount = completion.likesCount || 0;
+    const isCurrentlyLiked = completion.likes && completion.likes.length > 0;
+    const newIsLiked = !isCurrentlyLiked;
+    const newLikeCount = isCurrentlyLiked ? currentLikeCount - 1 : currentLikeCount + 1;
+
+    // Create separate mutations for adding vs removing likes
+    let updateMutation: string;
+
+    if (newIsLiked) {
+      // Adding a like - include full user object
+      updateMutation = `
+        mutation AddLike($completionId: String!, $userData: UserRef!, $newLikeCount: Int!) {
+          updateChallengeCompletion(input: {
+            filter: { id: { eq: $completionId } },
+            set: { 
+              likes: [$userData],
+              likesCount: $newLikeCount
+            }
+          }) {
+            challengeCompletion {
+              id
+              likesCount
+              likes {
+                id
+              }
+            }
+          }
+        }
+      `;
+    } else {
+      // Removing a like - can use just ID reference
+      updateMutation = `
+        mutation RemoveLike($completionId: String!, $userId: String!, $newLikeCount: Int!) {
+          updateChallengeCompletion(input: {
+            filter: { id: { eq: $completionId } },
+            remove: { 
+              likes: [{ id: $userId }]
+            },
+            set: {
+              likesCount: $newLikeCount
+            }
+          }) {
+            challengeCompletion {
+              id
+              likesCount
+              likes {
+                id
+              }
+            }
+          }
+        }
+      `;
+    }
+
+    // Prepare variables based on operation type
+    const variables: any = { completionId, newLikeCount };
+    if (newIsLiked) {
+      variables.userData = {
+        id: userData.id,
+        username: userData.username,
+        profilePicture: userData.profilePicture,
+      };
+    } else {
+      variables.userId = userId;
+    }
+
+    const updateResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: updateMutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (updateResponse.data.errors) {
+      console.error('Error updating like:', updateResponse.data.errors);
+      throw new Error('Failed to update like');
+    }
+
+    // If this is a new like (not unliking), create a notification for the completion owner
+    if (newIsLiked && completion.user.id !== userId) {
+      try {
+        await createNotification(completion.user.id, userId, `liked your challenge completion`, 'like');
+      } catch (notificationError) {
+        console.error('Failed to create like notification:', notificationError);
+        // Don't throw error as the like operation succeeded
+      }
+    }
+
+    console.log(`Like toggled successfully: ${newIsLiked ? 'liked' : 'unliked'}, new count: ${newLikeCount}`);
+
+    return {
+      isLiked: newIsLiked,
+      newLikeCount: newLikeCount,
+    };
+  } catch (error) {
+    console.error('Error toggling completion like:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get like status and count for a completion
+ * @param completionId - ID of the challenge completion
+ * @param userId - ID of the user (optional, to check if they liked it)
+ * @returns Promise<{ likesCount: number, isLiked: boolean, recentLikes: Array }>
+ */
+export const getCompletionLikes = async (
+  completionId: string,
+  userId?: string,
+): Promise<{ likesCount: number; isLiked: boolean; recentLikes: Array<any> }> => {
+  console.log(`Getting likes for completion ${completionId}, user ${userId}`);
+
+  try {
+    // Build query based on whether we need to check user's like status
+    let userLikeFilter = '';
+    if (userId) {
+      userLikeFilter = `
+        userLike: likes(filter: { id: { eq: $userId } }) {
+          id
+        }
+      `;
+    }
+
+    const query = `
+      query GetCompletionLikes($completionId: String!${userId ? ', $userId: String!' : ''}) {
+        getChallengeCompletion(id: $completionId) {
+          id
+          likesCount
+          ${userLikeFilter}
+          likes(order: { desc: id }, first: 10) {
+            id
+            username
+            profilePicture
+          }
+        }
+      }
+    `;
+
+    const variables: any = { completionId };
+    if (userId) {
+      variables.userId = userId;
+    }
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error getting completion likes:', response.data.errors);
+      throw new Error('Failed to get completion likes');
+    }
+
+    const completion = response.data.data.getChallengeCompletion;
+    if (!completion) {
+      throw new Error('Challenge completion not found');
+    }
+
+    const likesCount = completion.likesCount || 0;
+    const isLiked = userId ? completion.userLike && completion.userLike.length > 0 : false;
+    const recentLikes = completion.likes || [];
+
+    return {
+      likesCount,
+      isLiked,
+      recentLikes,
+    };
+  } catch (error) {
+    console.error('Error getting completion likes:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch challenge completions with like data for browsing page
+ * @param challengeId - Optional challenge ID to filter by
+ * @param userId - Current user ID to check like status
+ * @returns Promise<Array<ChallengeCompletion>>
+ */
+export const fetchChallengeCompletionsWithLikes = async (challengeId?: string, userId?: string): Promise<any[]> => {
+  console.log('Fetching challenge completions with like data', { challengeId, userId });
+
+  try {
+    // Build filter for specific challenge if provided
+    let challengeFilter = '';
+    if (challengeId) {
+      challengeFilter = `filter: { 
+        or: [
+          { and: [{ has: publicChallenge }, { publicChallenge: { id: { eq: $challengeId } } }] },
+          { and: [{ has: privateChallenge }, { privateChallenge: { id: { eq: $challengeId } } }] },
+          { and: [{ has: aiChallenge }, { aiChallenge: { id: { eq: $challengeId } } }] }
+        ]
+      },`;
+    }
+
+    // Build user like check if userId provided
+    let userLikeField = '';
+    if (userId) {
+      userLikeField = `
+        userLike: likes(filter: { id: { eq: $userId } }) {
+          id
+        }
+      `;
+    }
+
+    const query = `
+      query GetChallengeCompletionsWithLikes${challengeId ? '($challengeId: String!)' : ''}${userId ? '($userId: String!)' : ''} {
+        queryChallengeCompletion(
+          ${challengeFilter}
+          order: { desc: completionDate }
+        ) {
+          id
+          user {
+            id
+            username
+            profilePicture
+          }
+          completionDate
+          media
+          challengeType
+          likesCount
+          ${userLikeField}
+          likes(first: 5, order: { desc: id }) {
+            id
+            username
+            profilePicture
+          }
+          publicChallenge {
+            id
+            title
+            description
+            reward
+          }
+          aiChallenge {
+            id
+            title
+            description
+            reward
+            frequency
+          }
+          privateChallenge {
+            id
+            title
+            description
+            reward
+          }
+        }
+      }
+    `;
+
+    const variables: any = {};
+    if (challengeId) variables.challengeId = challengeId;
+    if (userId) variables.userId = userId;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY,
+          }),
+        },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching completions with likes:', response.data.errors);
+      throw new Error('Failed to fetch completions with likes');
+    }
+
+    const completions = response.data.data.queryChallengeCompletion || [];
+
+    // Process each completion to format the data
+    return completions.map((completion: any) => ({
+      ...completion,
+      // Add convenience fields
+      totalLikes: completion.likesCount || 0,
+      isLiked: userId ? completion.userLike && completion.userLike.length > 0 : false,
+      recentLikes: completion.likes || [],
+    }));
+  } catch (error) {
+    console.error('Error fetching challenge completions with likes:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a RealMoji reaction for a challenge completion
+ * @param userId - ID of the user creating the reaction
+ * @param completionId - ID of the challenge completion being reacted to
+ * @param reactionType - Type of reaction (thumbsUp, love, shocked, etc.)
+ * @param selfieCID - IPFS CID of the captured selfie
+ * @returns Promise<string> - ID of the created reaction
+ */
+export const createRealMojiReaction = async (
+  userId: string,
+  completionId: string,
+  reactionType: string,
+  selfieCID: string,
+): Promise<string> => {
+  console.log(`Creating RealMoji reaction: ${reactionType} by user ${userId} on completion ${completionId}`);
+
+  try {
+    // For now, skip duplicate check and just create the reaction
+    // TODO: Add duplicate check once schema is properly set up
+
+    const reactionId = generateId();
+    const createdAt = new Date().toISOString();
+
+    console.log('Creating new reaction with ID:', reactionId);
+
+    const createMutation = `
+      mutation CreateReaction(
+        $id: String!,
+        $userId: String!,
+        $completionId: String!,
+        $reactionType: String!,
+        $selfieCID: String!,
+        $createdAt: DateTime!
+      ) {
+        addReaction(input: [{
+          id: $id,
+          user: { id: $userId },
+          completion: { id: $completionId },
+          reactionType: $reactionType,
+          selfieCID: $selfieCID,
+          createdAt: $createdAt
+        }]) {
+          reaction {
+            id
+            reactionType
+            selfieCID
+            user {
+              id
+              username
+              profilePicture
+            }
+          }
+        }
+      }
+    `;
+
+    const createResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: createMutation,
+        variables: {
+          id: reactionId,
+          userId,
+          completionId,
+          reactionType,
+          selfieCID,
+          createdAt,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (createResponse.data.errors) {
+      console.error('Error creating reaction:', createResponse.data.errors);
+      throw new Error(`Failed to create reaction: ${createResponse.data.errors[0].message}`);
+    }
+
+    // Get the completion owner to send notification
+    const completionQuery = `
+      query GetCompletion($completionId: String!) {
+        getChallengeCompletion(id: $completionId) {
+          user {
+            id
+            username
+          }
+        }
+      }
+    `;
+
+    const completionResponse = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: completionQuery,
+        variables: { completionId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    // Create notification for the completion owner (if not reacting to own post)
+    if (!completionResponse.data.errors && completionResponse.data.data.getChallengeCompletion) {
+      const completionOwner = completionResponse.data.data.getChallengeCompletion.user;
+      if (completionOwner.id !== userId) {
+        try {
+          await createNotification(
+            completionOwner.id,
+            userId,
+            `reacted with a ${reactionType} RealMoji to your challenge`,
+            'reaction',
+          );
+        } catch (notificationError) {
+          console.error('Failed to create reaction notification:', notificationError);
+          // Don't throw error as the reaction was successful
+        }
+      }
+    }
+
+    console.log(`RealMoji reaction created successfully: ${reactionId}`);
+    return reactionId;
+  } catch (error) {
+    console.error('Error creating RealMoji reaction:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all reactions for a challenge completion
+ * @param completionId - ID of the challenge completion
+ * @returns Promise<Array> - Array of reactions with user data
+ */
+export const getCompletionReactions = async (completionId: string): Promise<any[]> => {
+  console.log(`Getting reactions for completion ${completionId}`);
+
+  try {
+    const query = `
+      query GetCompletionReactions($completionId: String!) {
+        getChallengeCompletion(id: $completionId) {
+          id
+          reactions {
+            id
+            reactionType
+            selfieCID
+            createdAt
+            user {
+              id
+              username
+              profilePicture
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { completionId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error getting completion reactions:', response.data.errors);
+      throw new Error('Failed to get completion reactions');
+    }
+
+    const completion = response.data.data.getChallengeCompletion;
+    if (!completion) {
+      throw new Error('Challenge completion not found');
+    }
+
+    const reactions = completion.reactions || [];
+
+    // Process reactions to add convenience fields
+    return reactions.map((reaction: any) => ({
+      ...reaction,
+      emoji: getEmojiForReactionType(reaction.reactionType),
+      selfieUrl: reaction.selfieCID ? `https://gateway.pinata.cloud/ipfs/${reaction.selfieCID}` : null,
+    }));
+  } catch (error) {
+    console.error('Error getting completion reactions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload RealMoji selfie to IPFS via Pinata
+ * @param imageBlob - The captured selfie image
+ * @param reactionType - Type of reaction for filename
+ * @returns Promise<string> - IPFS CID of uploaded image
+ */
+export const uploadRealMojiToIPFS = async (imageBlob: Blob, reactionType: string): Promise<string> => {
+  console.log(`Uploading RealMoji selfie to IPFS: ${reactionType}, size: ${imageBlob.size} bytes`);
+
+  try {
+    const formData = new FormData();
+
+    // Create filename with timestamp and reaction type
+    const timestamp = Date.now();
+    const filename = `realmoji-${reactionType}-${timestamp}.jpg`;
+
+    formData.append('file', imageBlob, filename);
+
+    // Add metadata
+    const metadata = JSON.stringify({
+      name: filename,
+      description: `RealMoji ${reactionType} reaction selfie`,
+      attributes: [
+        { trait_type: 'Type', value: 'RealMoji' },
+        { trait_type: 'Reaction', value: reactionType },
+        { trait_type: 'Created', value: new Date().toISOString() },
+      ],
+    });
+    formData.append('pinataMetadata', metadata);
+
+    // Upload to Pinata
+    const response = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'pinata_api_key': process.env.PINATA_API_KEY!,
+        'pinata_secret_api_key': process.env.PINATA_SECRET_KEY!,
+      },
+    });
+
+    if (response.data.IpfsHash) {
+      console.log(`RealMoji uploaded successfully: ${response.data.IpfsHash}`);
+      return response.data.IpfsHash;
+    } else {
+      throw new Error('No IPFS hash returned from Pinata');
+    }
+  } catch (error) {
+    console.error('Error uploading RealMoji to IPFS:', error);
+    throw new Error('Failed to upload RealMoji selfie');
+  }
+};
+
+/**
+ * Helper function to get emoji for reaction type
+ * @param reactionType - The reaction type string
+ * @returns string - The corresponding emoji
+ */
+const getEmojiForReactionType = (reactionType: string): string => {
+  const emojiMap: { [key: string]: string } = {
+    thumbsUp: '👍',
+    love: '😍',
+    shocked: '🤯',
+    curious: '🤔',
+    fire: '🔥',
+    sad: '😢',
+  };
+  return emojiMap[reactionType] || '😊';
+};
+
+/**
+ * Enhanced fetch completions with reactions
+ * @param challengeId - Optional challenge ID to filter by
+ * @param userId - Current user ID to check like status
+ * @returns Promise<Array<ChallengeCompletion>>
+ */
+export const fetchChallengeCompletionsWithLikesAndReactions = async (
+  challengeId?: string,
+  userId?: string,
+): Promise<any[]> => {
+  console.log('Fetching challenge completions with likes and reactions', { challengeId, userId });
+
+  try {
+    // Build filter for specific challenge if provided
+    let challengeFilter = '';
+    if (challengeId) {
+      challengeFilter = `filter: { 
+        or: [
+          { and: [{ has: publicChallenge }, { publicChallenge: { id: { eq: $challengeId } } }] },
+          { and: [{ has: privateChallenge }, { privateChallenge: { id: { eq: $challengeId } } }] },
+          { and: [{ has: aiChallenge }, { aiChallenge: { id: { eq: $challengeId } } }] }
+        ]
+      },`;
+    }
+
+    // Build user like check if userId provided
+    let userLikeField = '';
+    if (userId) {
+      userLikeField = `
+        userLike: likes(filter: { id: { eq: $userId } }) {
+          id
+        }
+      `;
+    }
+
+    const query = `
+      query GetChallengeCompletionsWithLikesAndReactions${challengeId ? '($challengeId: String!)' : ''}${userId ? '($userId: String!)' : ''} {
+        queryChallengeCompletion(
+          ${challengeFilter}
+          order: { desc: completionDate }
+        ) {
+          id
+          user {
+            id
+            username
+            profilePicture
+          }
+          completionDate
+          media
+          challengeType
+          likesCount
+          ${userLikeField}
+          likes(first: 5, order: { desc: id }) {
+            id
+            username
+            profilePicture
+          }
+          reactions {
+            id
+            reactionType
+            selfieCID
+            createdAt
+            user {
+              id
+              username
+              profilePicture
+            }
+          }
+          publicChallenge {
+            id
+            title
+            description
+            reward
+          }
+          aiChallenge {
+            id
+            title
+            description
+            reward
+            frequency
+          }
+          privateChallenge {
+            id
+            title
+            description
+            reward
+          }
+        }
+      }
+    `;
+
+    const variables: any = {};
+    if (challengeId) variables.challengeId = challengeId;
+    if (userId) variables.userId = userId;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.NEXT_PUBLIC_DGRAPH_API_KEY && {
+            'X-Auth-Token': process.env.NEXT_PUBLIC_DGRAPH_API_KEY,
+          }),
+        },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching completions with likes and reactions:', response.data.errors);
+      throw new Error('Failed to fetch completions with likes and reactions');
+    }
+
+    const completions = response.data.data.queryChallengeCompletion || [];
+
+    // Process each completion to format the data
+    return completions.map((completion: any) => ({
+      ...completion,
+      // Add convenience fields for likes
+      totalLikes: completion.likesCount || 0,
+      isLiked: userId ? completion.userLike && completion.userLike.length > 0 : false,
+      recentLikes: completion.likes || [],
+      // Add convenience fields for reactions
+      totalReactions: completion.reactions?.length || 0,
+      recentReactions: (completion.reactions || []).map((reaction: any) => ({
+        ...reaction,
+        emoji: getEmojiForReactionType(reaction.reactionType),
+        selfieUrl: reaction.selfieCID ? `https://gateway.pinata.cloud/ipfs/${reaction.selfieCID}` : null,
+      })),
+    }));
+  } catch (error) {
+    console.error('Error fetching challenge completions with likes and reactions:', error);
+    throw error;
+  }
+};

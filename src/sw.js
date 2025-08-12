@@ -1,6 +1,6 @@
 // Self-contained Service Worker for Nocena App (no external dependencies)
 // Version for cache busting - UPDATE THIS ON EACH DEPLOY
-const CACHE_VERSION = 'v1.2.0';
+const CACHE_VERSION = 'v1.2.1';
 const CACHE_NAME = `nocena-cache-${CACHE_VERSION}`;
 
 console.log('SW: Loading Nocena Service Worker', CACHE_VERSION);
