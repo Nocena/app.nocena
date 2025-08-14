@@ -14,6 +14,7 @@ import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
 import UpdateNotification from '../components/PWA/UpdateNotification';
 import CacheDebugger from '../components/PWA/CacheDebugger'; // Add this import
+import SwUpdater from '../components/SwUpdater';
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -268,6 +269,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
       {renderPWAPrompt()}
       <UpdateNotification />
       <CacheDebugger />
+      <SwUpdater />
     </>
   );
 }

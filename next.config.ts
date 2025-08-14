@@ -1,14 +1,17 @@
 import type { NextConfig } from 'next';
 import type { Configuration } from 'webpack';
 import withPWA from 'next-pwa';
+import pkg from './package.json' assert { type: 'json' };
 
-const pwaConfig = withPWA({
+const GIT_SHA = process.env.GIT_SHA || 'dev';
+
+export default withPWA({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
   clientsClaim: true, // Take control immediately
-  sw: 'src/sw.js',
+  sw: 'src/sw.ts',
   // Add proper cache cleanup
   cleanupOutdatedCaches: true,
   runtimeCaching: [
@@ -35,10 +38,18 @@ const pwaConfig = withPWA({
       },
     },
   ],
+})({
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
+  },
 });
 
 /** @type {NextConfig} */
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: `${pkg.version}+${GIT_SHA}`,
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
   images: {
     domains: [
       'gateway.pinata.cloud',
@@ -69,6 +80,13 @@ const nextConfig: NextConfig = {
         },
       ],
     });
+
+    config.plugins?.push(
+      new (require('webpack').DefinePlugin)({
+        'self.APP_VERSION': JSON.stringify(process.env.NEXT_PUBLIC_APP_VERSION),
+      }),
+    );
+    return config;
 
     return config;
   },
@@ -136,5 +154,3 @@ const nextConfig: NextConfig = {
     ];
   },
 };
-
-export default pwaConfig(nextConfig);

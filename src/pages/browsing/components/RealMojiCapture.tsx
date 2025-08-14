@@ -23,28 +23,28 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  
+
   // Store selectedEmoji in a ref so it can't be lost during state updates
   const selectedEmojiRef = useRef<{
     emoji: string;
     type: string;
     label: string;
   } | null>(null);
-  
+
   // CRITICAL: Track camera initialization state to prevent restarts
   const cameraInitializedRef = useRef(false);
   const isInitializingCameraRef = useRef(false);
-  
+
   const [isCapturing, setIsCapturing] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
-  
+
   // Critical: Track if we're in the middle of capturing/processing
   const isActivelyCapturingRef = useRef(false);
   const hasSuccessfullyCompletedRef = useRef(false);
-  
+
   // Protection system
   const protectionIdRef = useRef<string | null>(null);
 
@@ -60,11 +60,11 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
   const registerProtection = useCallback(() => {
     if (typeof window !== 'undefined') {
       protectionIdRef.current = `realmoji-${Date.now()}`;
-      
+
       if (!(window as any).cameraProtectionRegistry) {
         (window as any).cameraProtectionRegistry = new Set();
       }
-      
+
       (window as any).cameraProtectionRegistry.add(protectionIdRef.current);
       console.log('🛡️ [RealMoji] Registered camera protection:', protectionIdRef.current);
     }
@@ -100,21 +100,21 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
     }
 
     console.log('🎥 [RealMoji] Stopping camera...');
-    
+
     // Reset camera state
     cameraInitializedRef.current = false;
     isInitializingCameraRef.current = false;
-    
+
     // Unregister protection
     unregisterProtection();
-    
+
     // Stop all tracks from the stored stream reference
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
         console.log(`🎥 [RealMoji] Stopping ${track.kind} track:`, track.label);
         track.stop();
       });
-      
+
       // Remove from global tracking
       if (typeof window !== 'undefined' && (window as any).activeCameraStreams) {
         const streams = (window as any).activeCameraStreams as MediaStream[];
@@ -124,7 +124,7 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
           console.log('🎥 [RealMoji] Removed camera stream from global tracking');
         }
       }
-      
+
       streamRef.current = null;
     }
 
@@ -163,13 +163,13 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
       // Check if component was unmounted or camera stopped during async operation
       if (!isInitializingCameraRef.current) {
         console.log('🎥 [RealMoji] Camera initialization cancelled');
-        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream.getTracks().forEach((track) => track.stop());
         return;
       }
 
       console.log('🎥 [RealMoji] MediaStream created:', {
         active: mediaStream.active,
-        tracks: mediaStream.getTracks().length
+        tracks: mediaStream.getTracks().length,
       });
 
       // Store stream in ref for cleanup
@@ -186,27 +186,27 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        
+
         // Wait for video to be ready
         await new Promise<void>((resolve, reject) => {
           const video = videoRef.current!;
-          
+
           const onLoadedData = () => {
             console.log('🎥 [RealMoji] Video loaded, dimensions:', {
               videoWidth: video.videoWidth,
               videoHeight: video.videoHeight,
-              readyState: video.readyState
+              readyState: video.readyState,
             });
             video.removeEventListener('loadeddata', onLoadedData);
             video.removeEventListener('error', onError);
-            
+
             // Mark as successfully initialized
             cameraInitializedRef.current = true;
             isInitializingCameraRef.current = false;
             setIsCameraLoading(false);
             resolve();
           };
-          
+
           const onError = (e: Event) => {
             console.error('🎥 [RealMoji] Video error:', e);
             video.removeEventListener('loadeddata', onLoadedData);
@@ -215,14 +215,14 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
             setIsCameraLoading(false);
             reject(new Error('Video failed to load'));
           };
-          
+
           video.addEventListener('loadeddata', onLoadedData);
           video.addEventListener('error', onError);
-          
+
           // Start playing
           video.play().catch(reject);
         });
-        
+
         console.log('🎥 [RealMoji] Video is ready and playing');
       }
     } catch (error) {
@@ -297,7 +297,7 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
         console.log('🛡️ [RealMoji] Global camera stop blocked - protection active');
         return;
       }
-      
+
       if (!isActivelyCapturingRef.current && !isProcessing) {
         console.log('🎥 [RealMoji] Received global camera stop event - stopping camera');
         stopCamera();
@@ -341,10 +341,10 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
     console.log('🎥 [RealMoji] Starting countdown...');
     setIsCapturing(true);
     isActivelyCapturingRef.current = true; // Mark as actively capturing
-    
+
     // Register protection when we start capturing
     registerProtection();
-    
+
     setCountdown(3);
 
     const timer = setInterval(() => {
@@ -365,10 +365,10 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
 
   const capturePhoto = useCallback(async () => {
     console.log('🎥 [RealMoji] capturePhoto called');
-    
+
     // Use the ref version of selectedEmoji
     const currentSelectedEmoji = selectedEmojiRef.current;
-    
+
     // Enhanced debugging
     const debugInfo = {
       videoRef: !!videoRef.current,
@@ -385,11 +385,11 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
       cameraInitialized: cameraInitializedRef.current,
       isInitializing: isInitializingCameraRef.current,
       isProtected: isCameraProtected(),
-      protectionId: protectionIdRef.current
+      protectionId: protectionIdRef.current,
     };
-    
+
     console.log('🎥 [RealMoji] Debug info:', debugInfo);
-    
+
     // Check using the ref version instead of prop
     if (!videoRef.current || !canvasRef.current || !currentSelectedEmoji || !streamRef.current) {
       console.error('🎥 [RealMoji] Missing required refs for capture');
@@ -397,7 +397,7 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
         video: !videoRef.current,
         canvas: !canvasRef.current,
         emoji: !currentSelectedEmoji,
-        stream: !streamRef.current
+        stream: !streamRef.current,
       });
       setIsCapturing(false);
       isActivelyCapturingRef.current = false;
@@ -420,7 +420,7 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
     if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
       console.error('🎥 [RealMoji] Video has no dimensions:', {
         width: videoRef.current.videoWidth,
-        height: videoRef.current.videoHeight
+        height: videoRef.current.videoHeight,
       });
       setIsCapturing(false);
       isActivelyCapturingRef.current = false;
@@ -474,13 +474,12 @@ const RealMojiCapture: React.FC<RealMojiCaptureProps> = ({
       // Call the capture handler using the ref emoji data
       console.log('🎥 [RealMoji] Calling onCapture with emoji type:', currentSelectedEmoji.type);
       await onCapture(blob, currentSelectedEmoji.type);
-      
+
       console.log('🎥 [RealMoji] Photo capture completed successfully');
 
       // Now it's safe to stop the camera and close
       stopCamera();
       onClose();
-      
     } catch (error) {
       console.error('🎥 [RealMoji] Error during photo capture:', error);
       // Reset states on error

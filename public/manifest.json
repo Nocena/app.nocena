@@ -9,6 +9,7 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
+  "x_appVersion": "%%APP_VERSION%%",
   "categories": ["social", "photo", "lifestyle"],
   "icons": [
     {
