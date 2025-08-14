@@ -4698,3 +4698,443 @@ export const fetchChallengeCompletionsWithLikesAndReactions = async (
     throw error;
   }
 };
+
+/**
+ * Creates an NFT item in the database
+ * @param nftData - NFT creation data
+ * @returns Promise<string> - ID of the created NFT
+ */
+export const createNFTItem = async (nftData: {
+  name: string;
+  description: string;
+  itemType: string; // 'cap' | 'hoodie' | 'pants' | 'shoes'
+  rarity: string; // 'common' | 'rare' | 'epic'
+  tokenBonus: number;
+  imageUrl: string;
+  imageCID?: string;
+  generationPrompt?: string;
+  ownerId: string;
+  tokenId?: string;
+  mintTransactionHash?: string;
+}): Promise<string> => {
+  console.log('Creating NFT item in database:', {
+    name: nftData.name,
+    itemType: nftData.itemType,
+    ownerId: nftData.ownerId,
+    imageUrl: nftData.imageUrl.substring(0, 50) + '...',
+  });
+
+  const nftId = uuidv4();
+  const now = new Date().toISOString();
+
+  // Extract CID from imageUrl if it's an IPFS URL
+  let imageCID = nftData.imageCID;
+  if (!imageCID && nftData.imageUrl.includes('ipfs')) {
+    const cidMatch = nftData.imageUrl.match(/\/ipfs\/([^\/]+)/);
+    if (cidMatch) {
+      imageCID = cidMatch[1];
+    }
+  }
+
+  const mutation = `
+    mutation CreateNFTItem(
+      $id: String!,
+      $name: String!,
+      $description: String!,
+      $itemType: String!,
+      $rarity: String!,
+      $tokenBonus: Int!,
+      $imageUrl: String!,
+      $imageCID: String,
+      $generatedAt: DateTime!,
+      $generationPrompt: String,
+      $ownerId: String!,
+      $tokenId: String,
+      $mintTransactionHash: String
+    ) {
+      addNFTItem(input: [{
+        id: $id,
+        name: $name,
+        description: $description,
+        itemType: $itemType,
+        rarity: $rarity,
+        tokenBonus: $tokenBonus,
+        imageUrl: $imageUrl,
+        imageCID: $imageCID,
+        generatedAt: $generatedAt,
+        generationPrompt: $generationPrompt,
+        owner: { id: $ownerId },
+        isEquipped: false,
+        tokenId: $tokenId,
+        mintTransactionHash: $mintTransactionHash
+      }]) {
+        nFTItem {
+          id
+          name
+          itemType
+          rarity
+          imageUrl
+          owner {
+            id
+            username
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          id: nftId,
+          name: nftData.name,
+          description: nftData.description,
+          itemType: nftData.itemType,
+          rarity: nftData.rarity,
+          tokenBonus: nftData.tokenBonus,
+          imageUrl: nftData.imageUrl,
+          imageCID: imageCID,
+          generatedAt: now,
+          generationPrompt: nftData.generationPrompt,
+          ownerId: nftData.ownerId,
+          tokenId: nftData.tokenId,
+          mintTransactionHash: nftData.mintTransactionHash,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error creating NFT item:', response.data.errors);
+      throw new Error(`Failed to create NFT item: ${response.data.errors[0].message}`);
+    }
+
+    const createdNFT = response.data.data.addNFTItem.nFTItem[0];
+    console.log('✅ NFT item created successfully:', {
+      id: createdNFT.id,
+      name: createdNFT.name,
+      owner: createdNFT.owner.username,
+    });
+
+    return nftId;
+  } catch (error) {
+    console.error('Error creating NFT item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a challenge completion with an NFT reward
+ * @param completionId - ID of the challenge completion
+ * @param nftId - ID of the NFT item
+ * @returns Promise<boolean> - Success status
+ */
+export const updateChallengeCompletionWithNFT = async (
+  completionId: string,
+  nftId: string,
+): Promise<boolean> => {
+  console.log('Updating challenge completion with NFT reward:', { completionId, nftId });
+
+  const mutation = `
+    mutation UpdateCompletionWithNFT($completionId: String!, $nftId: String!) {
+      updateChallengeCompletion(input: {
+        filter: { id: { eq: $completionId } },
+        set: {
+          nftReward: { id: $nftId }
+        }
+      }) {
+        challengeCompletion {
+          id
+          nftReward {
+            id
+            name
+            itemType
+            imageUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { completionId, nftId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error updating completion with NFT:', response.data.errors);
+      throw new Error(`Failed to update completion with NFT: ${response.data.errors[0].message}`);
+    }
+
+    const updatedCompletion = response.data.data.updateChallengeCompletion.challengeCompletion[0];
+    console.log('✅ Challenge completion updated with NFT:', {
+      completionId: updatedCompletion.id,
+      nftName: updatedCompletion.nftReward.name,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error updating challenge completion with NFT:', error);
+    return false;
+  }
+};
+
+/**
+ * Creates NFT item and associates it with challenge completion
+ * This is the main function to call when saving NFT rewards
+ */
+export const saveNFTRewardToDatabase = async (
+  completionId: string,
+  nftRewardData: {
+    collectionId: string;
+    templateType: string;
+    templateName: string;
+    imageUrl: string;
+    generationPrompt?: string;
+    ownerId: string;
+  },
+): Promise<{ success: boolean; nftId?: string; error?: string }> => {
+  console.log('🎁 Saving NFT reward to database:', {
+    completionId,
+    templateType: nftRewardData.templateType,
+    templateName: nftRewardData.templateName,
+    ownerId: nftRewardData.ownerId,
+  });
+
+  try {
+    // Map template type to rarity and token bonus
+    const getRarityAndBonus = (templateType: string) => {
+      switch (templateType) {
+        case 'cap':
+          return { rarity: 'common', tokenBonus: 5 };
+        case 'hoodie':
+          return { rarity: 'common', tokenBonus: 10 };
+        case 'pants':
+          return { rarity: 'rare', tokenBonus: 15 };
+        case 'shoes':
+          return { rarity: 'epic', tokenBonus: 20 };
+        default:
+          return { rarity: 'common', tokenBonus: 5 };
+      }
+    };
+
+    const { rarity, tokenBonus } = getRarityAndBonus(nftRewardData.templateType);
+
+    // Create the NFT item
+    const nftId = await createNFTItem({
+      name: nftRewardData.templateName,
+      description: `${nftRewardData.templateName} earned from challenge completion`,
+      itemType: nftRewardData.templateType,
+      rarity: rarity,
+      tokenBonus: tokenBonus,
+      imageUrl: nftRewardData.imageUrl,
+      generationPrompt: nftRewardData.generationPrompt,
+      ownerId: nftRewardData.ownerId,
+      // Use collectionId as tokenId for now
+      tokenId: nftRewardData.collectionId,
+    });
+
+    // Associate the NFT with the challenge completion
+    const updateSuccess = await updateChallengeCompletionWithNFT(completionId, nftId);
+
+    if (!updateSuccess) {
+      console.warn('⚠️ NFT created but failed to associate with completion');
+      // Don't throw error since the NFT was created successfully
+    }
+
+    console.log('🎉 NFT reward saved successfully to database:', {
+      nftId,
+      completionId,
+      associated: updateSuccess,
+    });
+
+    return {
+      success: true,
+      nftId,
+    };
+  } catch (error) {
+    console.error('❌ Error saving NFT reward to database:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user's NFT collection
+ * @param userId - User ID
+ * @returns Promise<Array> - Array of user's NFTs
+ */
+export const getUserNFTCollection = async (userId: string): Promise<any[]> => {
+  console.log('Fetching NFT collection for user:', userId);
+
+  const query = `
+    query GetUserNFTs($userId: String!) {
+      getUser(id: $userId) {
+        ownedNFTs {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedNFT {
+          id
+          name
+          itemType
+          imageUrl
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching user NFTs:', response.data.errors);
+      throw new Error('Failed to fetch user NFT collection');
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const nfts = userData.ownedNFTs || [];
+    console.log(`Found ${nfts.length} NFTs for user ${userId}`);
+
+    return nfts.map((nft: any) => ({
+      ...nft,
+      // Add convenience fields
+      isRare: nft.rarity === 'rare' || nft.rarity === 'epic',
+      displayUrl: nft.imageUrl || (nft.imageCID ? `https://gateway.pinata.cloud/ipfs/${nft.imageCID}` : null),
+    }));
+  } catch (error) {
+    console.error('Error fetching user NFT collection:', error);
+    throw error;
+  }
+};
+
+/**
+ * Equip an NFT for a user
+ * @param userId - User ID
+ * @param nftId - NFT ID to equip
+ * @returns Promise<boolean> - Success status
+ */
+export const equipNFT = async (userId: string, nftId: string): Promise<boolean> => {
+  console.log('Equipping NFT for user:', { userId, nftId });
+
+  try {
+    // First, unequip any currently equipped NFT
+    const unequipMutation = `
+      mutation UnequipCurrentNFT($userId: String!) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          remove: { equippedNFT: {} }
+        }) {
+          user {
+            id
+          }
+        }
+        updateNFTItem(input: {
+          filter: { owner: { id: { eq: $userId } }, isEquipped: true },
+          set: { isEquipped: false }
+        }) {
+          nFTItem {
+            id
+          }
+        }
+      }
+    `;
+
+    await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: unequipMutation,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    // Then equip the new NFT
+    const equipMutation = `
+      mutation EquipNFT($userId: String!, $nftId: String!) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          set: { equippedNFT: { id: $nftId } }
+        }) {
+          user {
+            id
+            equippedNFT {
+              id
+              name
+            }
+          }
+        }
+        updateNFTItem(input: {
+          filter: { id: { eq: $nftId } },
+          set: { isEquipped: true }
+        }) {
+          nFTItem {
+            id
+            isEquipped
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: equipMutation,
+        variables: { userId, nftId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error equipping NFT:', response.data.errors);
+      return false;
+    }
+
+    console.log('✅ NFT equipped successfully');
+    return true;
+  } catch (error) {
+    console.error('Error equipping NFT:', error);
+    return false;
+  }
+};

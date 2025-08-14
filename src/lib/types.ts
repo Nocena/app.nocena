@@ -1,5 +1,139 @@
-import { AuthenticatedSession, SessionClient } from '@lens-protocol/client';
 // src/lib/types.ts
+
+import { AuthenticatedSession, SessionClient } from '@lens-protocol/client';
+import type { ClothingTemplate } from './utils/clothingRewardUtils';
+
+/**
+ * Clothing NFT Reward Types - integrates with existing Challenge system
+ */
+export interface ClothingNFTReward {
+  id: string;
+  collectionId: string;
+  templateType: ClothingTemplate;
+  name: string;
+  description: string;
+  imageUrl: string;
+  rarity: 'common' | 'rare' | 'epic';
+  status: 'generating' | 'completed' | 'failed';
+  generatedAt: Date;
+  userID: string;
+  completionId: string;
+}
+
+/**
+ * NFT Generation Status Types
+ */
+export type NFTGenerationStatus = 'idle' | 'generating' | 'completed' | 'failed';
+
+/**
+ * Extends your existing Challenge types to include NFT rewards
+ * Uses your existing PublicChallenge and PrivateChallenge types
+ */
+export interface PublicChallengeWithNFTReward extends PublicChallenge {
+  nftReward?: ClothingNFTReward;
+}
+
+export interface PrivateChallengeWithNFTReward extends PrivateChallenge {
+  nftReward?: ClothingNFTReward;
+}
+
+export type ChallengeWithNFTReward = PublicChallengeWithNFTReward | PrivateChallengeWithNFTReward;
+
+/**
+ * NFT Reward Generation Result
+ */
+export interface NFTRewardGenerationResult {
+  success: boolean;
+  collectionId?: string;
+  templateType?: ClothingTemplate;
+  templateName?: string;
+  message: string;
+  error?: string;
+}
+
+/**
+ * NFT Progress Tracking
+ */
+export interface NFTProgressData {
+  collectionId: string;
+  status: NFTGenerationStatus;
+  progress: number; // 0-100
+  templateType?: ClothingTemplate;
+  templateName?: string;
+  imageUrl?: string;
+  error?: string;
+  estimatedTimeRemaining?: number;
+}
+
+/**
+ * Claiming Screen NFT State - works with existing Challenge flow
+ */
+export interface ClaimingScreenNFTState {
+  generationStatus: NFTGenerationStatus;
+  collectionId: string | null;
+  templateType: ClothingTemplate | null;
+  templateName: string | null;
+  imageUrl: string | null;
+  progress: number;
+  error: string | null;
+}
+
+/**
+ * User's NFT Collection (for profile display) - integrates with existing user system
+ */
+export interface UserNFTCollection {
+  userId: string;
+  clothingNFTs: ClothingNFTReward[];
+  totalCount: number;
+  lastUpdated: Date;
+}
+
+/**
+ * NFT Rarity Configuration
+ */
+export interface NFTRarityConfig {
+  rarity: 'common' | 'rare' | 'epic';
+  probability: number; // 0-1
+  bonusMultiplier: number;
+  glowColor: string;
+  borderColor: string;
+}
+
+/**
+ * Extended Challenge Completion Data with NFT - builds on existing ChallengeData
+ */
+export interface ExtendedCompletionData {
+  // Existing completion data
+  completionId: string;
+  tokensEarned: number;
+
+  // NFT reward data
+  nftReward?: {
+    collectionId: string;
+    templateType: ClothingTemplate;
+    templateName: string;
+    status: NFTGenerationStatus;
+    imageUrl?: string;
+  };
+}
+
+/**
+ * Claiming Process State - works with existing challenge completion workflow
+ */
+export interface ClaimingProcessState {
+  stage: 'ready' | 'claiming' | 'success' | 'failed';
+
+  // Token claiming (uses existing reward system)
+  tokensClaimed: boolean;
+  tokensAmount: number;
+
+  // NFT generation (new addition)
+  nftGeneration: ClaimingScreenNFTState;
+
+  // Overall status
+  error?: string;
+  completedAt?: Date;
+}
 
 export interface ChallengeData {
   id?: string;

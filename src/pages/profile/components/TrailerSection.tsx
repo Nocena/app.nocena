@@ -63,7 +63,7 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
   generatedAvatar,
   onAvatarUpdated,
   userID = 'current-user',
-  enableAvatarFeature = false, // Default to false (coming soon mode)
+  enableAvatarFeature = true, // Default to false (coming soon mode)
 }) => {
   // State for avatar generation
   const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
@@ -552,33 +552,6 @@ const TrailerSection: React.FC<TrailerSectionProps> = ({
                 </div>
               )}
             </button>
-
-            {/* Features List */}
-            <div className="mt-6 text-left max-w-sm mx-auto">
-              <p className="text-gray-400 text-sm font-medium mb-3">Avatar Features:</p>
-              <ul className="space-y-2 text-gray-500 text-xs">
-                <li className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-                  <span>Clean 3D rendered style with smooth surfaces</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                  <span>Profile picture features integration</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-pink-400 rounded-full"></div>
-                  <span>Stylized 3D design with modern cartoon aesthetics</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                  <span>Neon accent lighting and soft shadows</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-                  <span>Customizable with clothing items</span>
-                </li>
-              </ul>
-            </div>
           </div>
         )}
       </div>

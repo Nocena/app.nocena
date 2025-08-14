@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
-import { completeChallengeWorkflow, CompletionData } from '../../../lib/completing/challengeCompletionService';
+import { completeChallengeWorkflow, CompletionData, saveNFTRewardAfterCompletion } from '../../../lib/completing/challengeCompletionService';
+import { checkClothingNFTStatus } from '../../../lib/rewards/clothingNFTService';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Challenge {
@@ -30,6 +31,18 @@ interface ClaimingScreenProps {
   onCancel: () => void;
 }
 
+// NFT Generation States
+interface NFTState {
+  status: 'idle' | 'generating' | 'completed' | 'failed' | 'saved';
+  collectionId: string | null;
+  templateType: string | null;
+  templateName: string | null;
+  imageUrl: string | null;
+  progress: number;
+  error: string | null;
+  nftId?: string; // NEW: Track database NFT ID
+}
+
 const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
   challenge,
   videoBlob,
@@ -47,6 +60,83 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
+  // NFT State Management
+  const [nftState, setNftState] = useState<NFTState>({
+    status: 'idle',
+    collectionId: null,
+    templateType: null,
+    templateName: null,
+    imageUrl: null,
+    progress: 0,
+    error: null,
+  });
+
+  // NEW: Track completion ID for NFT saving
+  const [completionId, setCompletionId] = useState<string | null>(null);
+
+  // Start NFT generation immediately when component mounts
+  useEffect(() => {
+    const startNFTGeneration = async () => {
+      if (!user?.id) return;
+
+      console.log('🎁 Starting immediate NFT generation on ClaimingScreen mount...');
+      setNftState((prev) => ({ ...prev, status: 'generating', progress: 5 }));
+
+      try {
+        const { generateClothingReward } = await import('../../../lib/rewards/clothingNFTService');
+        const tempCompletionId = `temp_${Date.now()}_${user.id}`;
+        const nftResult = await generateClothingReward(user.id, tempCompletionId);
+
+        if (nftResult.success && nftResult.collectionId && nftResult.templateInfo) {
+          console.log('✅ NFT generation request successful:', {
+            collectionId: nftResult.collectionId,
+            templateType: nftResult.templateInfo.type,
+            templateName: nftResult.templateInfo.name,
+          });
+
+          setNftState({
+            status: 'generating',
+            collectionId: nftResult.collectionId,
+            templateType: nftResult.templateInfo.type,
+            templateName: nftResult.templateInfo.name,
+            imageUrl: null,
+            progress: 15,
+            error: null,
+          });
+
+          if ((nftResult as any).immediateResult && (nftResult as any).imageUrl) {
+            console.log('🎉 NFT completed immediately!');
+            setNftState({
+              status: 'completed',
+              collectionId: nftResult.collectionId,
+              templateType: nftResult.templateInfo.type,
+              templateName: nftResult.templateInfo.name,
+              imageUrl: (nftResult as any).imageUrl,
+              progress: 100,
+              error: null,
+            });
+          }
+        } else {
+          console.warn('⚠️ Immediate NFT generation failed:', nftResult.message);
+          setNftState((prev) => ({
+            ...prev,
+            status: 'failed',
+            error: nftResult.message || 'Failed to start NFT generation',
+          }));
+        }
+      } catch (error) {
+        console.error('❌ Immediate NFT generation error:', error);
+        setNftState((prev) => ({
+          ...prev,
+          status: 'failed',
+          error: 'Failed to start NFT generation',
+        }));
+      }
+    };
+
+    startNFTGeneration();
+  }, [user?.id]);
+
   useEffect(() => {
     const vUrl = URL.createObjectURL(videoBlob);
     const pUrl = URL.createObjectURL(photoBlob);
@@ -54,7 +144,6 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
     setVideoUrl(vUrl);
     setPhotoUrl(pUrl);
 
-    // Keyboard detection for mobile
     const handleResize = () => {
       const initialHeight = window.innerHeight;
       const currentHeight = window.innerHeight;
@@ -69,6 +158,91 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
       window.removeEventListener('resize', handleResize);
     };
   }, [videoBlob, photoBlob]);
+
+  // NFT Progress Polling
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+
+    if (nftState.collectionId && nftState.status === 'generating') {
+      console.log('🔄 Starting NFT progress polling for:', nftState.collectionId);
+
+      pollInterval = setInterval(async () => {
+        try {
+          const statusResult = await checkClothingNFTStatus(nftState.collectionId!);
+
+          if (statusResult.success) {
+            if (statusResult.isComplete && statusResult.imageUrl) {
+              console.log('✅ NFT generation completed:', statusResult.imageUrl);
+              setNftState((prev) => ({
+                ...prev,
+                status: 'completed',
+                imageUrl: statusResult.imageUrl!,
+                progress: 100,
+              }));
+
+              // NEW: If we have a completion ID, save the NFT to database immediately
+              if (completionId) {
+                console.log('🎁 Auto-saving completed NFT to database...');
+                await saveCompletedNFTToDatabase(statusResult.imageUrl!);
+              }
+            } else {
+              setNftState((prev) => ({
+                ...prev,
+                progress: Math.min(prev.progress + 5, 95),
+              }));
+            }
+          } else {
+            console.error('❌ NFT status check failed:', statusResult.error);
+          }
+        } catch (error) {
+          console.error('❌ NFT polling error:', error);
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [nftState.collectionId, nftState.status, completionId]);
+
+  // NEW: Function to save completed NFT to database
+  const saveCompletedNFTToDatabase = async (imageUrl: string) => {
+    if (!completionId || !user?.id || !nftState.collectionId || !nftState.templateType || !nftState.templateName) {
+      console.warn('⚠️ Missing data for NFT database save:', {
+        completionId,
+        userId: user?.id,
+        collectionId: nftState.collectionId,
+        templateType: nftState.templateType,
+        templateName: nftState.templateName,
+      });
+      return;
+    }
+
+    try {
+      const saveResult = await saveNFTRewardAfterCompletion(completionId, user.id, {
+        collectionId: nftState.collectionId,
+        templateType: nftState.templateType,
+        templateName: nftState.templateName,
+        imageUrl: imageUrl,
+        generationPrompt: `Generated ${nftState.templateType} for challenge completion`,
+      });
+
+      if (saveResult.success) {
+        console.log('✅ NFT saved to database after polling completion:', saveResult.nftId);
+        setNftState((prev) => ({
+          ...prev,
+          status: 'saved',
+          nftId: saveResult.nftId,
+        }));
+      } else {
+        console.error('❌ Failed to save NFT to database after polling:', saveResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Error saving NFT to database after polling:', error);
+    }
+  };
 
   const handleClaimTokens = async () => {
     if (!challengeDescription.trim()) {
@@ -101,20 +275,55 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         },
       };
 
-      const result = await completeChallengeWorkflow(user.id, completionData, updateUser);
+      // NEW: Prepare NFT data for completion service
+      const existingNFTData = nftState.collectionId ? {
+        collectionId: nftState.collectionId,
+        templateType: nftState.templateType!,
+        templateName: nftState.templateName!,
+        imageUrl: nftState.imageUrl || undefined,
+        generationPrompt: `Generated ${nftState.templateType} for challenge completion`,
+        status: nftState.status as 'generating' | 'completed' | 'failed',
+      } : undefined;
+
+      // UPDATED: Call the updated completion workflow with NFT data
+      const result = await completeChallengeWorkflow(user.id, completionData, updateUser, existingNFTData);
 
       if (result.success) {
+        console.log('✅ Challenge completion successful:', result);
+        
+        // Store completion ID for future NFT saves
+        if (result.completionId) {
+          setCompletionId(result.completionId);
+        }
+
+        // Update NFT state based on result
+        if (result.nftReward) {
+          setNftState((prev) => ({
+            ...prev,
+            status: result.nftReward!.status === 'saved' ? 'saved' : prev.status,
+            nftId: result.nftReward!.nftId || prev.nftId,
+          }));
+        }
+
         setClaimingStage('success');
 
         onClaimComplete({
           ...completionData,
           completionId: result.completionId,
           tokensEarned: challenge.reward,
+          nftReward: result.nftReward ? {
+            collectionId: result.nftReward.collectionId,
+            templateType: result.nftReward.templateType,
+            templateName: result.nftReward.templateName,
+            status: result.nftReward.status,
+            imageUrl: nftState.imageUrl,
+            nftId: result.nftReward.nftId,
+          } : undefined,
         });
 
         setTimeout(() => {
           window.location.href = '/home';
-        }, 3000);
+        }, 5000);
       } else {
         throw new Error(result.message);
       }
@@ -139,8 +348,8 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         };
       case 'success':
         return {
-          title: 'Tokens Claimed!',
-          subtitle: `+${challenge.reward} Nocenix earned`,
+          title: 'Rewards Claimed!',
+          subtitle: `+${challenge.reward} Nocenix earned${nftState.templateName ? ` + ${nftState.templateName}` : ''}`,
         };
       case 'failed':
         return {
@@ -228,6 +437,88 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                     <span className="text-lg text-gray-300">NOCENIX</span>
                   </div>
                   <p className="text-xs text-gray-400 mt-2">Ready to be claimed</p>
+
+                  {/* UPDATED: NFT Reward Preview - Show Real Status */}
+                  <div className="mt-3 pt-3 border-t border-gray-600/30">
+                    <p className="text-sm text-nocenaPink mb-1">Bonus Reward</p>
+
+                    {nftState.status === 'idle' && (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-nocenaPink border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-300">Starting NFT generation...</span>
+                      </div>
+                    )}
+
+                    {nftState.status === 'generating' && (
+                      <div>
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <div className="w-4 h-4 border-2 border-nocenaPink border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-sm text-gray-300">
+                            Generating {nftState.templateName || 'Clothing NFT'}...
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                          <div
+                            className="bg-nocenaPink h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${nftState.progress}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-400">{nftState.progress}% complete</p>
+                      </div>
+                    )}
+
+                    {(nftState.status === 'completed' || nftState.status === 'saved') && nftState.imageUrl && (
+                      <div>
+                        <div className="w-24 h-24 mx-auto mb-3 rounded-xl overflow-hidden border-2 border-nocenaPink">
+                          <img
+                            src={nftState.imageUrl}
+                            alt={nftState.templateName || 'Generated NFT'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <svg
+                            className="w-5 h-5 text-nocenaPink"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-sm text-gray-300">
+                            {nftState.templateName} {nftState.status === 'saved' ? 'Saved!' : 'Generated!'}
+                          </span>
+                        </div>
+                        {nftState.status === 'saved' && nftState.nftId && (
+                          <p className="text-xs text-green-400 mt-1">Saved to your collection</p>
+                        )}
+                      </div>
+                    )}
+
+                    {nftState.status === 'failed' && (
+                      <div className="flex items-center justify-center gap-2">
+                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.662-.833-2.464 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                        <span className="text-sm text-orange-300">NFT generation failed - tokens only</span>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-1">
+                      {nftState.status === 'generating' || nftState.status === 'idle'
+                        ? 'NFT will be saved with tokens'
+                        : nftState.status === 'completed'
+                          ? 'Ready to claim and save!'
+                          : nftState.status === 'saved'
+                            ? 'NFT saved to your collection'
+                            : 'Will retry during claim'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -254,7 +545,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
               </div>
             </div>
 
-            {/* Description Input - FIXED */}
+            {/* Description Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-300 mb-2">Describe your completion:</label>
               <textarea
@@ -282,6 +573,8 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                 <p>📁 Uploading media to IPFS...</p>
                 <p>⛓️ Executing blockchain transaction...</p>
                 <p>🎯 Updating your profile...</p>
+                {(nftState.status === 'completed' || nftState.status === 'saved') && <p>✅ Saving NFT to collection...</p>}
+                {nftState.status === 'generating' && <p>🎁 NFT still generating...</p>}
               </div>
               <p className="text-xs text-gray-400 mt-4">This may take a few moments</p>
             </div>
@@ -291,17 +584,69 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         {claimingStage === 'success' && (
           <div className="text-center py-12">
             <div className="bg-gradient-to-r from-green-900/20 to-purple-900/20 border border-green-800/20 rounded-2xl p-8">
+              {/* Token Success */}
               <div className="w-20 h-20 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-6">
                 <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
               </div>
               <h3 className="text-2xl font-bold text-nocenaPurple mb-3">Tokens Claimed!</h3>
-              <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex items-center justify-center gap-2 mb-6">
                 <span className="text-xl font-bold">+{challenge.reward}</span>
                 <Image src="/nocenix.ico" alt="Nocenix" width={24} height={24} />
                 <span className="text-lg text-gray-300">NOCENIX</span>
               </div>
-              <p className="text-sm text-gray-300 mb-2">Added to your wallet</p>
-              <p className="text-xs text-gray-400">Redirecting to home...</p>
+
+              {/* UPDATED: NFT Reward Section */}
+              {nftState.templateName && (
+                <div className="mt-6 pt-6 border-t border-gray-600/30">
+                  <h4 className="text-lg font-medium text-nocenaPink mb-4">Clothing NFT Reward</h4>
+
+                  {nftState.status === 'generating' && (
+                    <div className="bg-black/30 rounded-xl p-4">
+                      <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-sm text-gray-300 mb-2">Generating {nftState.templateName}...</p>
+                      <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                        <div
+                          className="bg-nocenaPink h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${nftState.progress}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-400">{nftState.progress}% complete</p>
+                      <p className="text-xs text-gray-400 mt-2">Will be saved automatically when ready</p>
+                    </div>
+                  )}
+
+                  {(nftState.status === 'completed' || nftState.status === 'saved') && nftState.imageUrl && (
+                    <div className="bg-black/30 rounded-xl p-4">
+                      <div className="w-32 h-32 mx-auto mb-4 rounded-xl overflow-hidden border-2 border-nocenaPink">
+                        <img
+                          src={nftState.imageUrl}
+                          alt={nftState.templateName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="text-lg font-medium text-nocenaPink mb-2">{nftState.templateName}</p>
+                      <p className="text-sm text-gray-300 mb-2">
+                        {nftState.status === 'saved' ? 'NFT Saved to Collection!' : 'NFT Generated Successfully!'}
+                      </p>
+                      {nftState.status === 'saved' && nftState.nftId && (
+                        <p className="text-xs text-green-400">Database ID: {nftState.nftId.substring(0, 8)}...</p>
+                      )}
+                      {nftState.status === 'completed' && (
+                        <p className="text-xs text-yellow-400">Saving to your collection...</p>
+                      )}
+                    </div>
+                  )}
+
+                  {nftState.status === 'failed' && (
+                    <div className="bg-red-900/20 border border-red-800/30 rounded-xl p-4">
+                      <p className="text-red-400 text-sm">NFT generation failed</p>
+                      <p className="text-xs text-gray-400 mt-1">Your tokens were still claimed successfully</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="text-sm text-gray-300 mt-6">Redirecting to home...</p>
             </div>
           </div>
         )}
@@ -335,7 +680,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         {claimingStage === 'ready' && (
           <PrimaryButton
             onClick={handleClaimTokens}
-            text="Claim Tokens"
+            text="Claim Tokens + NFT"
             className="w-full"
             disabled={!challengeDescription.trim()}
             isActive={!!challengeDescription.trim()}

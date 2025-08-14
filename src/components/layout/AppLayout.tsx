@@ -67,17 +67,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       }
       return false;
     };
-  
+
     // If camera is protected, don't stop streams
     if (isCameraProtected()) {
       console.log('🛡️ [AppLayout] Camera stop blocked - protection active');
       return;
     }
-  
+
     // Check if we're currently on a camera page - if so, be more careful
     const cameraPages = ['/browsing', '/completing'];
     const isOnCameraPage = cameraPages.some((page) => currentPathname.startsWith(page));
-  
+
     if (isOnCameraPage) {
       console.log('🎥 [AppLayout] On camera page - checking if camera cleanup is safe');
       // Only dispatch event, let components decide if they should stop
@@ -86,9 +86,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       }
       return;
     }
-  
+
     console.log('🎥 [AppLayout] Stopping all active camera streams...');
-  
+
     // Method 1: Try to get all active MediaStreamTracks
     if (isBrowser && navigator.mediaDevices) {
       try {
@@ -99,7 +99,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         console.error('Error dispatching camera cleanup event:', error);
       }
     }
-  
+
     // Method 2: Try to access getUserMedia streams through global tracking
     // This is a backup method for any streams that might not be cleaned up
     if (isBrowser && (window as any).activeCameraStreams) {
@@ -152,11 +152,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       const newVisibility = document.visibilityState === 'visible';
       logPerf(`App visibility changed to: ${newVisibility ? 'visible' : 'hidden'}`);
       setAppIsVisible(newVisibility);
-    
+
       // Stop camera streams when app goes to background - BUT CHECK PROTECTION
       if (!newVisibility) {
         console.log('🎥 [AppLayout] App hidden, checking camera protection...');
-        
+
         // Check if camera is protected
         const isCameraProtected = () => {
           if (typeof window !== 'undefined') {
@@ -165,12 +165,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
           }
           return false;
         };
-    
+
         if (isCameraProtected()) {
           console.log('🛡️ [AppLayout] App hidden but camera is protected - keeping streams alive');
           return;
         }
-    
+
         // When app goes to background, stop cameras for battery/privacy
         if (isBrowser) {
           window.dispatchEvent(new CustomEvent('stopAllCameraStreams'));
@@ -187,7 +187,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         }
       }
     };
-    
+
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       console.log('🎥 [AppLayout] Page unloading, stopping camera streams');
       stopAllCameraStreams();

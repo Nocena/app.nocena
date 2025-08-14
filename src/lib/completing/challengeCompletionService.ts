@@ -1,5 +1,5 @@
-// lib/completing/challengeCompletionService.ts - FIXED VERSION
-import { createChallengeCompletion, updateUserTokens, createNotification } from '../api/dgraph';
+// lib/completing/challengeCompletionService.ts - UPDATED VERSION WITH NFT DATABASE SAVING
+import { createChallengeCompletion, updateUserTokens, createNotification, saveNFTRewardToDatabase } from '../api/dgraph';
 import { directPinataUpload } from './directPinataUpload';
 
 export interface CompletionData {
@@ -30,21 +30,43 @@ export interface MediaMetadata {
   selfieFileName?: string;
 }
 
+export interface CompletionResult {
+  success: boolean;
+  message: string;
+  completionId?: string;
+  nftReward?: {
+    collectionId: string;
+    templateType: string;
+    templateName: string;
+    status: 'generating' | 'failed' | 'saved';
+    nftId?: string; // Added to track the database NFT ID
+  };
+}
+
 export async function completeChallengeWorkflow(
   userId: string,
   completionData: CompletionData,
   updateAuthUser?: (userData: any) => void,
-): Promise<{ success: boolean; message: string; completionId?: string }> {
+  // NEW: Add NFT data parameter if it was generated in ClaimingScreen
+  existingNFTData?: {
+    collectionId: string;
+    templateType: string;
+    templateName: string;
+    imageUrl?: string;
+    generationPrompt?: string;
+    status: 'generating' | 'completed' | 'failed';
+  },
+): Promise<CompletionResult> {
   try {
     const { video, photo, verificationResult, description, challenge } = completionData;
 
     console.log('Starting challenge completion workflow for user:', userId);
     console.log('Challenge type:', challenge.type, 'Challenge ID:', challenge.challengeId);
     console.log('Video blob size:', video.size, 'Photo blob size:', photo.size);
+    console.log('Existing NFT data:', existingNFTData);
 
-    // UPDATED: Use direct upload instead of going through your API
+    // Step 1: Upload media to IPFS
     const { videoCID, selfieCID } = await directPinataUpload.uploadChallengeMedia(video, photo, userId);
-
     console.log('Media uploaded successfully via direct upload:', { videoCID, selfieCID });
 
     const timestamp = Date.now();
@@ -60,6 +82,7 @@ export async function completeChallengeWorkflow(
       selfieFileName: `challenge_selfie_${userId}_${timestamp}.jpg`,
     };
 
+    // Step 2: Handle challenge validation and get challenge ID
     let challengeId: string;
     let challengeType: 'ai' | 'private' | 'public';
 
@@ -83,7 +106,7 @@ export async function completeChallengeWorkflow(
       throw new Error('Invalid challenge type');
     }
 
-    // Create the completion record
+    // Step 3: Create the completion record
     const completionId = await createChallengeCompletion(
       userId,
       challengeId,
@@ -91,10 +114,12 @@ export async function completeChallengeWorkflow(
       JSON.stringify(mediaMetadata),
     );
 
-    // Update user's tokens
+    console.log('✅ Challenge completion created with ID:', completionId);
+
+    // Step 4: Update user's tokens
     await updateUserTokens(userId, challenge.reward);
 
-    // Update the AuthContext if the callback is provided (for AI challenges)
+    // Step 5: Update the AuthContext if needed (for AI challenges)
     if (challenge.type === 'AI' && challenge.frequency && updateAuthUser) {
       const updatedCompletionStrings = calculateUpdatedCompletionStrings(
         challenge.frequency as 'daily' | 'weekly' | 'monthly',
@@ -103,18 +128,125 @@ export async function completeChallengeWorkflow(
       updateAuthUser(updatedCompletionStrings);
     }
 
+    // Step 6: Save NFT reward to database if it was successfully generated
+    let nftRewardResult: CompletionResult['nftReward'];
+    
+    if (existingNFTData && existingNFTData.status === 'completed' && existingNFTData.imageUrl) {
+      console.log('🎁 Saving completed NFT reward to database...');
+      
+      try {
+        const nftSaveResult = await saveNFTRewardToDatabase(completionId, {
+          collectionId: existingNFTData.collectionId,
+          templateType: existingNFTData.templateType,
+          templateName: existingNFTData.templateName,
+          imageUrl: existingNFTData.imageUrl,
+          generationPrompt: existingNFTData.generationPrompt,
+          ownerId: userId,
+        });
+
+        if (nftSaveResult.success) {
+          console.log('✅ NFT reward saved to database successfully:', nftSaveResult.nftId);
+          nftRewardResult = {
+            collectionId: existingNFTData.collectionId,
+            templateType: existingNFTData.templateType,
+            templateName: existingNFTData.templateName,
+            status: 'saved' as const,
+            nftId: nftSaveResult.nftId,
+          };
+        } else {
+          console.error('❌ Failed to save NFT to database:', nftSaveResult.error);
+          nftRewardResult = {
+            collectionId: existingNFTData.collectionId,
+            templateType: existingNFTData.templateType,
+            templateName: existingNFTData.templateName,
+            status: 'failed' as const,
+          };
+        }
+      } catch (error) {
+        console.error('❌ Error saving NFT reward to database:', error);
+        nftRewardResult = {
+          collectionId: existingNFTData.collectionId,
+          templateType: existingNFTData.templateType,
+          templateName: existingNFTData.templateName,
+          status: 'failed' as const,
+        };
+      }
+    } else if (existingNFTData && existingNFTData.status === 'generating') {
+      console.log('⏳ NFT still generating - will save later via polling mechanism');
+      nftRewardResult = {
+        collectionId: existingNFTData.collectionId,
+        templateType: existingNFTData.templateType,
+        templateName: existingNFTData.templateName,
+        status: 'generating' as const,
+      };
+    } else if (existingNFTData && existingNFTData.status === 'failed') {
+      console.log('❌ NFT generation failed - no database save needed');
+      nftRewardResult = {
+        collectionId: existingNFTData.collectionId,
+        templateType: existingNFTData.templateType,
+        templateName: existingNFTData.templateName,
+        status: 'failed' as const,
+      };
+    }
+
+    // Step 7: Handle post-completion actions
     await handlePostCompletionActions(userId, challengeId, challengeType, challenge, completionId);
+
+    // Step 8: Return success with NFT info
+    const baseMessage = `Challenge completed! +${challenge.reward} Nocenix earned`;
+    const nftMessage = nftRewardResult?.status === 'saved' 
+      ? ` + ${nftRewardResult.templateName} NFT` 
+      : nftRewardResult?.status === 'generating' 
+      ? ` (${nftRewardResult.templateName} NFT generating...)` 
+      : '';
 
     return {
       success: true,
-      message: `Challenge completed! +${challenge.reward} Nocenix earned`,
+      message: baseMessage + nftMessage,
       completionId,
+      nftReward: nftRewardResult,
     };
   } catch (error) {
     console.error('Challenge completion failed:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Challenge completion failed',
+    };
+  }
+}
+
+// NEW: Function to save NFT after completion (for polling mechanism)
+export async function saveNFTRewardAfterCompletion(
+  completionId: string,
+  userId: string,
+  nftData: {
+    collectionId: string;
+    templateType: string;
+    templateName: string;
+    imageUrl: string;
+    generationPrompt?: string;
+  },
+): Promise<{ success: boolean; nftId?: string; error?: string }> {
+  console.log('🎁 Saving NFT reward after completion for:', { completionId, userId });
+  
+  try {
+    const result = await saveNFTRewardToDatabase(completionId, {
+      ...nftData,
+      ownerId: userId,
+    });
+
+    if (result.success) {
+      console.log('✅ NFT reward saved after completion:', result.nftId);
+    } else {
+      console.error('❌ Failed to save NFT after completion:', result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('❌ Error in saveNFTRewardAfterCompletion:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -274,7 +406,6 @@ async function validatePublicChallenge(challengeId: string, userId: string): Pro
 
   console.log('Validating public challenge:', { challengeId, userId });
 
-  // Based on your schema, use String! type for the challenge ID
   const query = `
     query ValidatePublicChallenge($challengeId: String!) {
       queryPublicChallenge(filter: { id: { eq: $challengeId } }) {
@@ -296,7 +427,6 @@ async function validatePublicChallenge(challengeId: string, userId: string): Pro
     'Content-Type': 'application/json',
   };
 
-  // Add API key if available
   if (process.env.NEXT_PUBLIC_DGRAPH_API_KEY) {
     headers['X-Auth-Token'] = process.env.NEXT_PUBLIC_DGRAPH_API_KEY;
   }
@@ -312,11 +442,9 @@ async function validatePublicChallenge(challengeId: string, userId: string): Pro
 
   console.log('Public challenge validation response:', res.data);
 
-  // Check for GraphQL errors first
   if (res.data.errors && res.data.errors.length > 0) {
     console.error('GraphQL errors:', res.data.errors);
 
-    // Try with getPublicChallenge using String! type (not ID!)
     const alternativeQuery = `
       query GetPublicChallengeByID($challengeId: String!) {
         getPublicChallenge(id: $challengeId) {
@@ -347,11 +475,8 @@ async function validatePublicChallenge(challengeId: string, userId: string): Pro
 
     if (altRes.data.errors && altRes.data.errors.length > 0) {
       console.error('Alternative query also failed:', altRes.data.errors);
-
-      // Log the specific error for debugging
       const errorMessage = altRes.data.errors[0]?.message || 'Unknown error';
       console.error('Specific error:', errorMessage);
-
       throw new Error(`Database query failed: ${errorMessage}`);
     }
 
@@ -383,7 +508,6 @@ async function validateAndAutoJoinChallenge(
     throw new Error('This public challenge is no longer active');
   }
 
-  // Check if user is already a participant
   const participants = challenge.participants || [];
   const isParticipant = participants.some((p: any) => p.id === userId);
 
@@ -400,15 +524,12 @@ async function validateAndAutoJoinChallenge(
     return;
   }
 
-  // User is not a participant yet - auto-join them
   console.log('User is not a participant - auto-joining them to the challenge');
 
-  // Check if challenge is full
   if (challenge.participantCount >= challenge.maxParticipants) {
     throw new Error('This public challenge is already full and cannot accept more participants');
   }
 
-  // Auto-join the user to the challenge
   const axios = (await import('axios')).default;
   const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_API_KEY
     ? `${process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT}`
@@ -487,7 +608,6 @@ async function handlePostCompletionActions(
     }
   }
 
-  // For public challenges, you might want to notify other participants or the creator
   if (challengeType === 'public' && challenge.creatorId) {
     await createNotification(
       challenge.creatorId,
