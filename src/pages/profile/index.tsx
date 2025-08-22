@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { updateBio, updateProfilePicture, updateCoverPhoto } from '../../lib/api/dgraph';
+import { updateBio, updateProfilePicture, updateCoverPhoto, getUserAvatar } from '../../lib/api/dgraph';
 import { unpinFromPinata } from '../../lib/api/pinata';
 import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
@@ -10,7 +10,7 @@ import { getPageState, updatePageState } from '../../components/PageManager';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import FollowersPopup from './components/FollowersPopup';
-import TrailerSection from './components/TrailerSection';
+import AvatarSection from './components/AvatarSection'; // Changed from TrailerSection
 import StatsSection from './components/StatsSection';
 import CalendarSection from './components/CalendarSection';
 
@@ -24,7 +24,7 @@ const nocenix = '/nocenix.ico';
 
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
-  const { user, login } = useAuth();
+  const { user, login, updateUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,11 +37,8 @@ const ProfileView: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
 
-  // Avatar generation state
-  const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(null);
-  const [avatarStage, setAvatarStage] = useState<'idle' | 'generating' | 'waiting' | 'completed'>('idle');
-  const [avatarCollectionId, setAvatarCollectionId] = useState<string>('');
-  const [avatarError, setAvatarError] = useState<string>('');
+  // Avatar generation state - NEW
+  const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
 
   // Challenge data
   const [dailyChallenges, setDailyChallenges] = useState<boolean[]>(
@@ -69,8 +66,41 @@ const ProfileView: React.FC = () => {
       setCoverPhoto(user.coverPhoto || '/images/cover.jpg');
       setUsername(user.username);
       setBio(user.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!');
+
+      // NEW: Avatar data loading
+      setGeneratedAvatar(user.currentAvatar || null);
+
+      console.log('🎨 ProfileView: User avatar data loaded:', {
+        currentAvatar: user.currentAvatar,
+        baseAvatar: user.baseAvatar,
+        equippedItems: {
+          cap: user.equippedCap?.name || 'None',
+          hoodie: user.equippedHoodie?.name || 'None',
+          pants: user.equippedPants?.name || 'None',
+          shoes: user.equippedShoes?.name || 'None',
+        },
+      });
     }
   }, [user]);
+
+  // NEW: Load avatar data from database on component mount
+  useEffect(() => {
+    const loadUserAvatarData = async () => {
+      if (user?.id) {
+        try {
+          const avatarData = await getUserAvatar(user.id);
+          if (avatarData?.currentAvatar) {
+            setGeneratedAvatar(avatarData.currentAvatar);
+            console.log('🎨 Loaded avatar from database:', avatarData.currentAvatar);
+          }
+        } catch (error) {
+          console.error('Error loading avatar data:', error);
+        }
+      }
+    };
+
+    loadUserAvatarData();
+  }, [user?.id]);
 
   // Calculate stats for components
   const currentStreak = useMemo(() => {
@@ -93,48 +123,16 @@ const ProfileView: React.FC = () => {
     );
   }, [dailyChallenges, weeklyChallenges, monthlyChallenges]);
 
-  // Avatar generation handler
-  const handleGenerateAvatar = async () => {
-    setAvatarStage('generating');
-    setAvatarError('');
+  // NEW: Updated avatar handler
+  const handleAvatarUpdated = (newAvatarUrl: string) => {
+    console.log('🎉 Avatar updated in ProfileView:', newAvatarUrl);
+    setGeneratedAvatar(newAvatarUrl);
 
-    try {
-      const basePrompt =
-        'Low poly minimal cartoony avatar for a social app. Full body. Simplistic design. Virality. Futuristic challenge app. Exciting gradient background. Main colors #2353FF, #6024FB, #FF15C9. Glassmorphism, behance, pinterest.';
-      const fullPrompt = `${basePrompt} - loosely based on this profile picture, some reseblance but main focus on the avatar to be easily updatable with cloathing like shoes, pants, shirt and cap`;
-
-      const response = await fetch('/api/chainGPT/generate-avatar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: fullPrompt,
-          profilePicture: profilePic, // Send the profile picture
-          userID: user?.id,
-          model: 'velogen',
-          width: 512,
-          height: 768,
-          enhance: '2x',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAvatarCollectionId(data.collectionId);
-        setAvatarStage('waiting');
-
-        // Start polling for completion
-        pollAvatarProgress(data.collectionId);
-      } else {
-        setAvatarError(data.error || 'Failed to start avatar generation');
-        setAvatarStage('idle');
-      }
-    } catch (error) {
-      console.error('Avatar generation failed:', error);
-      setAvatarError('Failed to generate avatar. Please try again.');
-      setAvatarStage('idle');
+    // Update user context
+    if (user) {
+      const updatedUser = { ...user, currentAvatar: newAvatarUrl };
+      login(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
@@ -192,7 +190,7 @@ const ProfileView: React.FC = () => {
               body: JSON.stringify({
                 file: base64String,
                 fileName: `profile-${user.id}-${Date.now()}.webp`,
-                fileType: 'image', // ADD THIS REQUIRED FIELD
+                fileType: 'image',
               }),
             });
 
@@ -201,7 +199,7 @@ const ProfileView: React.FC = () => {
               throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
 
-            const { ipfsHash } = await response.json(); // API returns ipfsHash, not url
+            const { ipfsHash } = await response.json();
             const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
             setProfilePic(ipfsUrl);
@@ -284,7 +282,7 @@ const ProfileView: React.FC = () => {
               body: JSON.stringify({
                 file: base64String,
                 fileName: `cover-${user.id}-${Date.now()}.webp`,
-                fileType: 'image', // ADD THIS REQUIRED FIELD
+                fileType: 'image',
               }),
             });
 
@@ -293,7 +291,7 @@ const ProfileView: React.FC = () => {
               throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
 
-            const { ipfsHash } = await response.json(); // API returns ipfsHash, not url
+            const { ipfsHash } = await response.json();
             const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
             setCoverPhoto(ipfsUrl);
@@ -361,45 +359,6 @@ const ProfileView: React.FC = () => {
   const handleCancelEdit = () => {
     setBio(user?.bio || 'Creator building the future of social challenges 🚀\nJoin me on this journey!');
     setIsEditingBio(false);
-  };
-
-  const pollAvatarProgress = async (collectionId: string) => {
-    const checkProgress = async () => {
-      try {
-        const response = await fetch(`api/chainGPT/check-avatar-progress?collectionId=${collectionId}`);
-        const data = await response.json();
-
-        if (data.success && data.progress) {
-          const progress = data.progress;
-
-          // Check if generation is completed
-          if (progress.data && progress.data.generated && progress.data.images) {
-            // Avatar generation completed, set the image
-            const avatarImageUrl = progress.data.images[0]; // First generated image
-            setGeneratedAvatar(avatarImageUrl);
-            setAvatarStage('completed');
-          } else {
-            // Continue polling if not completed
-            setTimeout(checkProgress, 3000); // Check every 3 seconds
-          }
-        }
-      } catch (err) {
-        console.error('Error checking avatar progress:', err);
-        setAvatarError('Error checking progress');
-        setAvatarStage('idle');
-      }
-    };
-
-    checkProgress();
-  };
-
-  // Callback function for avatar
-  const handleAvatarUpdated = (newAvatarUrl: string) => {
-    console.log('🎉 Avatar updated in ProfileView:', newAvatarUrl);
-    setGeneratedAvatar(newAvatarUrl);
-
-    // Optional: Save to user profile/database
-    // await saveAvatarToProfile(user?.id, newAvatarUrl);
   };
 
   const getButtonColor = (section: string) => {
@@ -561,7 +520,7 @@ const ProfileView: React.FC = () => {
           {/* Three Section Menu using ThematicContainer */}
           <div className="flex justify-center mb-6 space-x-4">
             {[
-              { key: 'trailer', label: 'Avatar' },
+              { key: 'trailer', label: 'Avatar' }, // Changed label
               { key: 'calendar', label: 'Calendar' },
               { key: 'achievements', label: 'Stats' },
             ].map(({ key, label }) => (
@@ -583,10 +542,12 @@ const ProfileView: React.FC = () => {
           <div className="space-y-4">
             {activeSection === 'trailer' && (
               <div className="space-y-4">
-                <TrailerSection
+                <AvatarSection
                   profilePicture={profilePic}
                   generatedAvatar={generatedAvatar}
                   onAvatarUpdated={handleAvatarUpdated}
+                  userID={user?.id}
+                  enableAvatarFeature={true}
                 />
               </div>
             )}

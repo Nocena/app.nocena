@@ -1,5 +1,10 @@
 // lib/completing/challengeCompletionService.ts - UPDATED VERSION WITH NFT DATABASE SAVING
-import { createChallengeCompletion, updateUserTokens, createNotification, saveNFTRewardToDatabase } from '../api/dgraph';
+import {
+  createChallengeCompletion,
+  updateUserTokens,
+  createNotification,
+  saveNFTRewardToDatabase,
+} from '../api/dgraph';
 import { directPinataUpload } from './directPinataUpload';
 
 export interface CompletionData {
@@ -130,10 +135,10 @@ export async function completeChallengeWorkflow(
 
     // Step 6: Save NFT reward to database if it was successfully generated
     let nftRewardResult: CompletionResult['nftReward'];
-    
+
     if (existingNFTData && existingNFTData.status === 'completed' && existingNFTData.imageUrl) {
       console.log('🎁 Saving completed NFT reward to database...');
-      
+
       try {
         const nftSaveResult = await saveNFTRewardToDatabase(completionId, {
           collectionId: existingNFTData.collectionId,
@@ -194,11 +199,12 @@ export async function completeChallengeWorkflow(
 
     // Step 8: Return success with NFT info
     const baseMessage = `Challenge completed! +${challenge.reward} Nocenix earned`;
-    const nftMessage = nftRewardResult?.status === 'saved' 
-      ? ` + ${nftRewardResult.templateName} NFT` 
-      : nftRewardResult?.status === 'generating' 
-      ? ` (${nftRewardResult.templateName} NFT generating...)` 
-      : '';
+    const nftMessage =
+      nftRewardResult?.status === 'saved'
+        ? ` + ${nftRewardResult.templateName} NFT`
+        : nftRewardResult?.status === 'generating'
+          ? ` (${nftRewardResult.templateName} NFT generating...)`
+          : '';
 
     return {
       success: true,
@@ -228,7 +234,7 @@ export async function saveNFTRewardAfterCompletion(
   },
 ): Promise<{ success: boolean; nftId?: string; error?: string }> {
   console.log('🎁 Saving NFT reward after completion for:', { completionId, userId });
-  
+
   try {
     const result = await saveNFTRewardToDatabase(completionId, {
       ...nftData,

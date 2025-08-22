@@ -4,8 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
-import { completeChallengeWorkflow, CompletionData, saveNFTRewardAfterCompletion } from '../../../lib/completing/challengeCompletionService';
-import { checkClothingNFTStatus } from '../../../lib/rewards/clothingNFTService';
+import {
+  completeChallengeWorkflow,
+  CompletionData,
+  saveNFTRewardAfterCompletion,
+} from '../../../lib/completing/challengeCompletionService';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Challenge {
@@ -40,7 +43,7 @@ interface NFTState {
   imageUrl: string | null;
   progress: number;
   error: string | null;
-  nftId?: string; // NEW: Track database NFT ID
+  nftId?: string;
 }
 
 const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
@@ -71,65 +74,80 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
     error: null,
   });
 
-  // NEW: Track completion ID for NFT saving
+  // Track completion ID for NFT saving
   const [completionId, setCompletionId] = useState<string | null>(null);
 
-  // Start NFT generation immediately when component mounts
+  // FIXED: Direct API call for immediate NFT generation like avatar generation
   useEffect(() => {
     const startNFTGeneration = async () => {
       if (!user?.id) return;
 
       console.log('🎁 Starting immediate NFT generation on ClaimingScreen mount...');
-      setNftState((prev) => ({ ...prev, status: 'generating', progress: 5 }));
+      setNftState((prev) => ({ ...prev, status: 'generating', progress: 10 }));
 
       try {
-        const { generateClothingReward } = await import('../../../lib/rewards/clothingNFTService');
         const tempCompletionId = `temp_${Date.now()}_${user.id}`;
-        const nftResult = await generateClothingReward(user.id, tempCompletionId);
+        
+        // FIXED: Call the API directly like avatar generation
+        const response = await fetch('/api/chainGPT/generate-clothing-reward', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userID: user.id,
+            completionId: tempCompletionId,
+            templateType: undefined, // Let it select random
+            model: 'velogen',
+            width: 512,
+            height: 512,
+            steps: 2,
+            enhance: '2x',
+          }),
+        });
 
-        if (nftResult.success && nftResult.collectionId && nftResult.templateInfo) {
-          console.log('✅ NFT generation request successful:', {
-            collectionId: nftResult.collectionId,
-            templateType: nftResult.templateInfo.type,
-            templateName: nftResult.templateInfo.name,
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API returned ${response.status}: ${errorText}`);
+        }
+
+        const nftResult = await response.json();
+        console.log('✅ NFT API Response:', nftResult);
+
+        if (nftResult.success && nftResult.generation?.imageUrl) {
+          console.log('🎉 NFT generation completed immediately:', {
+            templateType: nftResult.clothingInfo?.type,
+            templateName: nftResult.clothingInfo?.name,
+            imageUrl: nftResult.generation.imageUrl,
           });
 
+          // Set the completed state immediately with the base64 image
           setNftState({
-            status: 'generating',
-            collectionId: nftResult.collectionId,
-            templateType: nftResult.templateInfo.type,
-            templateName: nftResult.templateInfo.name,
-            imageUrl: null,
-            progress: 15,
+            status: 'completed',
+            collectionId: nftResult.clothingInfo?.templateCID || 'generated',
+            templateType: nftResult.clothingInfo?.type,
+            templateName: nftResult.clothingInfo?.name,
+            imageUrl: nftResult.generation.imageUrl, // This is the base64 data URL
+            progress: 100,
             error: null,
           });
 
-          if ((nftResult as any).immediateResult && (nftResult as any).imageUrl) {
-            console.log('🎉 NFT completed immediately!');
-            setNftState({
-              status: 'completed',
-              collectionId: nftResult.collectionId,
-              templateType: nftResult.templateInfo.type,
-              templateName: nftResult.templateInfo.name,
-              imageUrl: (nftResult as any).imageUrl,
-              progress: 100,
-              error: null,
-            });
-          }
+          // Store the temp completion ID for later saving
+          setCompletionId(tempCompletionId);
         } else {
-          console.warn('⚠️ Immediate NFT generation failed:', nftResult.message);
+          console.warn('⚠️ NFT generation failed:', nftResult.error || nftResult.message);
           setNftState((prev) => ({
             ...prev,
             status: 'failed',
-            error: nftResult.message || 'Failed to start NFT generation',
+            error: nftResult.error || nftResult.message || 'Failed to generate NFT',
           }));
         }
       } catch (error) {
-        console.error('❌ Immediate NFT generation error:', error);
+        console.error('❌ NFT generation error:', error);
         setNftState((prev) => ({
           ...prev,
           status: 'failed',
-          error: 'Failed to start NFT generation',
+          error: 'Failed to generate NFT',
         }));
       }
     };
@@ -159,55 +177,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
     };
   }, [videoBlob, photoBlob]);
 
-  // NFT Progress Polling
-  useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
+  // REMOVED: Polling logic since we get immediate results
 
-    if (nftState.collectionId && nftState.status === 'generating') {
-      console.log('🔄 Starting NFT progress polling for:', nftState.collectionId);
-
-      pollInterval = setInterval(async () => {
-        try {
-          const statusResult = await checkClothingNFTStatus(nftState.collectionId!);
-
-          if (statusResult.success) {
-            if (statusResult.isComplete && statusResult.imageUrl) {
-              console.log('✅ NFT generation completed:', statusResult.imageUrl);
-              setNftState((prev) => ({
-                ...prev,
-                status: 'completed',
-                imageUrl: statusResult.imageUrl!,
-                progress: 100,
-              }));
-
-              // NEW: If we have a completion ID, save the NFT to database immediately
-              if (completionId) {
-                console.log('🎁 Auto-saving completed NFT to database...');
-                await saveCompletedNFTToDatabase(statusResult.imageUrl!);
-              }
-            } else {
-              setNftState((prev) => ({
-                ...prev,
-                progress: Math.min(prev.progress + 5, 95),
-              }));
-            }
-          } else {
-            console.error('❌ NFT status check failed:', statusResult.error);
-          }
-        } catch (error) {
-          console.error('❌ NFT polling error:', error);
-        }
-      }, 5000);
-    }
-
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-    };
-  }, [nftState.collectionId, nftState.status, completionId]);
-
-  // NEW: Function to save completed NFT to database
+  // Function to save completed NFT to database
   const saveCompletedNFTToDatabase = async (imageUrl: string) => {
     if (!completionId || !user?.id || !nftState.collectionId || !nftState.templateType || !nftState.templateName) {
       console.warn('⚠️ Missing data for NFT database save:', {
@@ -230,17 +202,17 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
       });
 
       if (saveResult.success) {
-        console.log('✅ NFT saved to database after polling completion:', saveResult.nftId);
+        console.log('✅ NFT saved to database:', saveResult.nftId);
         setNftState((prev) => ({
           ...prev,
           status: 'saved',
           nftId: saveResult.nftId,
         }));
       } else {
-        console.error('❌ Failed to save NFT to database after polling:', saveResult.error);
+        console.error('❌ Failed to save NFT to database:', saveResult.error);
       }
     } catch (error) {
-      console.error('❌ Error saving NFT to database after polling:', error);
+      console.error('❌ Error saving NFT to database:', error);
     }
   };
 
@@ -275,25 +247,33 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         },
       };
 
-      // NEW: Prepare NFT data for completion service
-      const existingNFTData = nftState.collectionId ? {
-        collectionId: nftState.collectionId,
-        templateType: nftState.templateType!,
-        templateName: nftState.templateName!,
-        imageUrl: nftState.imageUrl || undefined,
-        generationPrompt: `Generated ${nftState.templateType} for challenge completion`,
-        status: nftState.status as 'generating' | 'completed' | 'failed',
-      } : undefined;
+      // Prepare NFT data for completion service
+      const existingNFTData = nftState.collectionId
+        ? {
+            collectionId: nftState.collectionId,
+            templateType: nftState.templateType!,
+            templateName: nftState.templateName!,
+            imageUrl: nftState.imageUrl || undefined,
+            generationPrompt: `Generated ${nftState.templateType} for challenge completion`,
+            status: nftState.status as 'generating' | 'completed' | 'failed',
+          }
+        : undefined;
 
-      // UPDATED: Call the updated completion workflow with NFT data
+      // Call the completion workflow with NFT data
       const result = await completeChallengeWorkflow(user.id, completionData, updateUser, existingNFTData);
 
       if (result.success) {
         console.log('✅ Challenge completion successful:', result);
-        
+
         // Store completion ID for future NFT saves
         if (result.completionId) {
           setCompletionId(result.completionId);
+        }
+
+        // If NFT is completed and we have a completion ID, save it to database
+        if (nftState.status === 'completed' && nftState.imageUrl && result.completionId) {
+          console.log('🎁 Auto-saving completed NFT to database...');
+          await saveCompletedNFTToDatabase(nftState.imageUrl);
         }
 
         // Update NFT state based on result
@@ -311,14 +291,16 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
           ...completionData,
           completionId: result.completionId,
           tokensEarned: challenge.reward,
-          nftReward: result.nftReward ? {
-            collectionId: result.nftReward.collectionId,
-            templateType: result.nftReward.templateType,
-            templateName: result.nftReward.templateName,
-            status: result.nftReward.status,
-            imageUrl: nftState.imageUrl,
-            nftId: result.nftReward.nftId,
-          } : undefined,
+          nftReward: result.nftReward
+            ? {
+                collectionId: result.nftReward.collectionId,
+                templateType: result.nftReward.templateType,
+                templateName: result.nftReward.templateName,
+                status: result.nftReward.status,
+                imageUrl: nftState.imageUrl,
+                nftId: result.nftReward.nftId,
+              }
+            : undefined,
         });
 
         setTimeout(() => {
@@ -438,7 +420,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                   </div>
                   <p className="text-xs text-gray-400 mt-2">Ready to be claimed</p>
 
-                  {/* UPDATED: NFT Reward Preview - Show Real Status */}
+                  {/* FIXED: NFT Reward Preview - Show Real Status */}
                   <div className="mt-3 pt-3 border-t border-gray-600/30">
                     <p className="text-sm text-nocenaPink mb-1">Bonus Reward</p>
 
@@ -474,6 +456,16 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                             src={nftState.imageUrl}
                             alt={nftState.templateName || 'Generated NFT'}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Failed to load NFT image:', nftState.imageUrl);
+                              setNftState(prev => ({
+                                ...prev,
+                                error: 'Failed to display generated image'
+                              }));
+                            }}
+                            onLoad={() => {
+                              console.log('✅ NFT image loaded successfully');
+                            }}
                           />
                         </div>
                         <div className="flex items-center justify-center gap-2">
@@ -492,6 +484,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                         {nftState.status === 'saved' && nftState.nftId && (
                           <p className="text-xs text-green-400 mt-1">Saved to your collection</p>
                         )}
+                        {nftState.status === 'completed' && (
+                          <p className="text-xs text-green-400 mt-1">Ready to claim with tokens</p>
+                        )}
                       </div>
                     )}
 
@@ -506,6 +501,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                           />
                         </svg>
                         <span className="text-sm text-orange-300">NFT generation failed - tokens only</span>
+                        {nftState.error && (
+                          <p className="text-xs text-gray-400 mt-1">{nftState.error}</p>
+                        )}
                       </div>
                     )}
 
@@ -573,7 +571,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                 <p>📁 Uploading media to IPFS...</p>
                 <p>⛓️ Executing blockchain transaction...</p>
                 <p>🎯 Updating your profile...</p>
-                {(nftState.status === 'completed' || nftState.status === 'saved') && <p>✅ Saving NFT to collection...</p>}
+                {(nftState.status === 'completed' || nftState.status === 'saved') && (
+                  <p>✅ Saving NFT to collection...</p>
+                )}
                 {nftState.status === 'generating' && <p>🎁 NFT still generating...</p>}
               </div>
               <p className="text-xs text-gray-400 mt-4">This may take a few moments</p>
@@ -595,7 +595,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                 <span className="text-lg text-gray-300">NOCENIX</span>
               </div>
 
-              {/* UPDATED: NFT Reward Section */}
+              {/* NFT Reward Section */}
               {nftState.templateName && (
                 <div className="mt-6 pt-6 border-t border-gray-600/30">
                   <h4 className="text-lg font-medium text-nocenaPink mb-4">Clothing NFT Reward</h4>
@@ -622,6 +622,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                           src={nftState.imageUrl}
                           alt={nftState.templateName}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Failed to load success screen NFT image');
+                          }}
                         />
                       </div>
                       <p className="text-lg font-medium text-nocenaPink mb-2">{nftState.templateName}</p>
@@ -641,6 +644,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                     <div className="bg-red-900/20 border border-red-800/30 rounded-xl p-4">
                       <p className="text-red-400 text-sm">NFT generation failed</p>
                       <p className="text-xs text-gray-400 mt-1">Your tokens were still claimed successfully</p>
+                      {nftState.error && (
+                        <p className="text-xs text-gray-400 mt-1">{nftState.error}</p>
+                      )}
                     </div>
                   )}
                 </div>

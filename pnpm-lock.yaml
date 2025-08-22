@@ -12,8 +12,8 @@ importers:
         specifier: ^3.12.11
         version: 3.13.8(@types/react@19.1.8)(graphql@16.11.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@chaingpt/nft':
-        specifier: ^0.0.9
-        version: 0.0.9
+        specifier: ^0.1.1
+        version: 0.1.1
       '@filoz/synapse-sdk':
         specifier: ^0.16.1
         version: 0.16.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -874,8 +874,8 @@ packages:
       aptos:
         optional: true
 
-  '@chaingpt/nft@0.0.9':
-    resolution: {integrity: sha512-q1zfg4t+hUdSKr6fothPfv7OgcfJMa0E7Ng9TtijN+TNQBvwNClT/lioacKL2fumkraTVvreA/nHOrR+j618wQ==}
+  '@chaingpt/nft@0.1.1':
+    resolution: {integrity: sha512-De8hkH2+i2yWT59fj2QxRgxsyiFkbFQUSJssNizaQQ/jje8CDzOmuPiG4k3r5YFoH73A3/NT26S+KC2U6m5cSw==}
 
   '@coinbase/wallet-sdk@3.9.3':
     resolution: {integrity: sha512-N/A2DRIf0Y3PHc1XAMvbBUu4zisna6qAdqABMZwBMNEfWrXpAwx16pZGkYCLGE+Rvv1edbcB2LYDRnACNcmCiw==}
@@ -9871,7 +9871,7 @@ snapshots:
       - debug
       - utf-8-validate
 
-  '@chaingpt/nft@0.0.9':
+  '@chaingpt/nft@0.1.1':
     dependencies:
       axios: 1.10.0
     transitivePeerDependencies:

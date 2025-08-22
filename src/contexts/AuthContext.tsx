@@ -15,6 +15,17 @@ export interface User {
   earnedTokensWeek: number; // Maps to earnedTokensThisWeek in Dgraph
   earnedTokensMonth: number; // Maps to earnedTokensThisMonth in Dgraph
 
+  // Avatar fields - ADD THESE
+  currentAvatar?: string;
+  baseAvatar?: string;
+  avatarHistory?: Avatar[];
+
+  // Equipped NFT items - ADD THESE
+  equippedCap?: NFTItem | null;
+  equippedHoodie?: NFTItem | null;
+  equippedPants?: NFTItem | null;
+  equippedShoes?: NFTItem | null;
+
   // Personal Expression Fields (matching Dgraph schema)
   personalField1Type: string;
   personalField1Value: string;
@@ -153,6 +164,37 @@ export interface SimplifiedChallengeInfo {
   title: string;
   date: string;
   proofCID: string;
+}
+
+export interface NFTItem {
+  id: string;
+  name: string;
+  description: string;
+  itemType: string; // 'cap' | 'hoodie' | 'pants' | 'shoes'
+  rarity: string; // 'common' | 'rare' | 'epic'
+  tokenBonus: number;
+  imageUrl: string;
+  imageCID?: string;
+  generatedAt: string;
+  generationPrompt?: string;
+  isEquipped: boolean;
+  tokenId?: string;
+  mintTransactionHash?: string;
+}
+
+export interface Avatar {
+  id: string;
+  baseImageUrl: string;
+  generatedImageUrl: string;
+  baseImageCID?: string;
+  generatedImageCID?: string;
+  equippedCap?: NFTItem;
+  equippedHoodie?: NFTItem;
+  equippedPants?: NFTItem;
+  equippedShoes?: NFTItem;
+  generationPrompt?: string;
+  generatedAt: string;
+  isActive: boolean;
 }
 
 interface AuthContextType {

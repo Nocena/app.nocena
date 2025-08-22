@@ -12,7 +12,8 @@ import {
   type ClothingTemplate,
 } from '../utils/clothingRewardUtils';
 
-export interface ClothingNFTGenerationResult {
+// Define result interfaces locally to avoid conflicts
+interface ClothingNFTGenerationResult {
   success: boolean;
   collectionId?: string;
   templateInfo?: ClothingTemplateInfo;
@@ -20,7 +21,7 @@ export interface ClothingNFTGenerationResult {
   error?: ClothingNFTError;
 }
 
-export interface ClothingNFTStatusResult {
+interface ClothingNFTStatusResult {
   success: boolean;
   progress?: ClothingNFTProgress;
   isComplete: boolean;
@@ -31,7 +32,7 @@ export interface ClothingNFTStatusResult {
 /**
  * Main service for generating clothing NFT rewards
  */
-export class ClothingNFTService {
+class ClothingNFTService {
   private static instance: ClothingNFTService;
 
   public static getInstance(): ClothingNFTService {
@@ -240,31 +241,39 @@ export class ClothingNFTService {
 }
 
 // Export singleton instance
-export const clothingNFTService = ClothingNFTService.getInstance();
+const clothingNFTService = ClothingNFTService.getInstance();
+export { clothingNFTService };
 
 /**
- * Convenience function for quick clothing NFT generation
+ * EXPORTED FUNCTIONS - These are the functions your ClaimingScreen needs
  */
-export async function generateClothingReward(
+
+/**
+ * Generate a clothing NFT reward
+ */
+export const generateClothingReward = async (
   userId: string,
   completionId: string,
-): Promise<ClothingNFTGenerationResult> {
+): Promise<ClothingNFTGenerationResult> => {
   return clothingNFTService.generateClothingReward(userId, completionId);
-}
+};
 
 /**
- * Convenience function for checking NFT status
+ * Check clothing NFT status
  */
-export async function checkClothingNFTStatus(collectionId: string): Promise<ClothingNFTStatusResult> {
+export const checkClothingNFTStatus = async (collectionId: string): Promise<ClothingNFTStatusResult> => {
   return clothingNFTService.checkClothingNFTStatus(collectionId);
-}
+};
 
 /**
- * Convenience function for polling completion
+ * Poll for clothing NFT completion
  */
-export async function pollForClothingNFTCompletion(
+export const pollForClothingNFTCompletion = async (
   collectionId: string,
   onProgress?: (progress: ClothingNFTProgress) => void,
-): Promise<string | null> {
+): Promise<string | null> => {
   return clothingNFTService.pollForCompletion(collectionId, onProgress);
-}
+};
+
+// Export types for use in other files
+export type { ClothingNFTGenerationResult, ClothingNFTStatusResult };

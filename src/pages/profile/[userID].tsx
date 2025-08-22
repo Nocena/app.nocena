@@ -8,7 +8,7 @@ import { getPageState, updatePageState } from '../../components/PageManager';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
-import TrailerSection from './components/TrailerSection';
+import TrailerSection from './components/AvatarSection';
 import StatsSection from './components/StatsSection';
 import CalendarSection from './components/CalendarSection';
 
