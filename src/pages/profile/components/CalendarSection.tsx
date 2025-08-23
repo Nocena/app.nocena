@@ -212,7 +212,7 @@ const CalendarSection: React.FC<CalendarSectionProps> = ({ dailyChallenges, week
       <ThematicContainer
         asButton={false}
         glassmorphic={true}
-        color="nocenaBlue"
+        color="nocenaPurple"
         rounded="none"
         className="flex items-center justify-between p-4"
       >

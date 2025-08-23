@@ -5450,10 +5450,11 @@ export const equipNFT = async (userId: string, nftId: string): Promise<boolean> 
     return false;
   }
 };
+
 /**
- * Creates or updates a user's avatar - FIXED VERSION
+ * Creates or updates a user's avatar with cleanup of old avatars
  * @param avatarData - Avatar data
- * @returns Promise<{success: boolean, avatarId?: string, error?: string}>
+ * @returns Promise<{success: boolean, avatarId?: string, error?: string, cleanupResults?: any}>
  */
 export const saveUserAvatar = async (avatarData: {
   userId: string;
@@ -5466,8 +5467,8 @@ export const saveUserAvatar = async (avatarData: {
   equippedPantsId?: string;
   equippedShoesId?: string;
   generationPrompt?: string;
-}): Promise<{ success: boolean; avatarId?: string; error?: string }> => {
-  console.log('🎨 Saving user avatar:', {
+}): Promise<{ success: boolean; avatarId?: string; error?: string; cleanupResults?: any }> => {
+  console.log('🎨 Saving user avatar with cleanup:', {
     userId: avatarData.userId,
     hasGeneratedImage: !!avatarData.generatedImageUrl,
     equippedItems: {
@@ -5482,7 +5483,17 @@ export const saveUserAvatar = async (avatarData: {
   const now = new Date().toISOString();
 
   try {
-    // First, deactivate any existing avatar
+    // STEP 1: Clean up old avatars BEFORE creating new one
+    console.log('🧹 Step 1: Cleaning up old avatars...');
+    const cleanupResults = await cleanupOldAvatars(avatarData.userId);
+    
+    if (!cleanupResults.success) {
+      console.warn('⚠️ Cleanup failed, but continuing with save:', cleanupResults.error);
+    } else {
+      console.log(`✅ Cleanup complete: ${cleanupResults.deletedCount} records, ${cleanupResults.cleanedFiles?.length} files`);
+    }
+
+    // STEP 2: Deactivate any remaining active avatars (just in case)
     const deactivateQuery = `
       mutation DeactivateOldAvatars($userId: String!) {
         updateAvatar(input: {
@@ -5505,6 +5516,9 @@ export const saveUserAvatar = async (avatarData: {
       },
     );
 
+    // STEP 3: Create the new avatar
+    console.log('🎨 Step 2: Creating new avatar record...');
+    
     // Build the input object dynamically based on what's provided
     const input: any = {
       id: avatarId,
@@ -5538,7 +5552,6 @@ export const saveUserAvatar = async (avatarData: {
       input.equippedShoes = { id: avatarData.equippedShoesId };
     }
 
-    // Create a simple mutation that accepts the full input object
     const createMutation = `
       mutation CreateAvatar($input: [AddAvatarInput!]!) {
         addAvatar(input: $input) {
@@ -5578,7 +5591,9 @@ export const saveUserAvatar = async (avatarData: {
       user: createdAvatar.user.username,
     });
 
-    // Update user's current avatar reference
+    // STEP 4: Update user's current avatar reference
+    console.log('🎨 Step 3: Updating user current avatar reference...');
+    
     const updateUserMutation = `
       mutation UpdateUserAvatar($userId: String!, $avatarUrl: String!) {
         updateUser(input: {
@@ -5610,8 +5625,13 @@ export const saveUserAvatar = async (avatarData: {
     );
 
     console.log('✅ User currentAvatar updated successfully');
-    console.log('✅ Avatar saved successfully:', avatarId);
-    return { success: true, avatarId };
+    console.log('🎉 Avatar saved successfully with cleanup:', avatarId);
+    
+    return { 
+      success: true, 
+      avatarId,
+      cleanupResults 
+    };
   } catch (error) {
     console.error('❌ Error saving avatar:', error);
     return {
@@ -5899,3 +5919,350 @@ export const updateUserEquippedItems = async (
     return false;
   }
 };
+
+/**
+ * Delete old avatar records and clean up IPFS files - FIXED VERSION
+ * @param userId - User ID
+ * @returns Promise<{success: boolean, deletedCount?: number, cleanedFiles?: string[]}>
+ */
+export const cleanupOldAvatars = async (userId: string): Promise<{
+  success: boolean;
+  deletedCount?: number;
+  cleanedFiles?: string[];
+  error?: string;
+}> => {
+  console.log('🧹 Starting cleanup of old avatars for user:', userId);
+
+  try {
+    // First, get all avatars for this user by querying through the User entity
+    // This avoids the AvatarFilter issue
+    const getOldAvatarsQuery = `
+      query GetOldAvatars($userId: String!) {
+        getUser(id: $userId) {
+          avatarHistory(filter: { isActive: false }) {
+            id
+            generatedImageCID
+            baseImageCID
+            generatedImageUrl
+            baseImageUrl
+            generatedAt
+            isActive
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: getOldAvatarsQuery,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching old avatars:', response.data.errors);
+      throw new Error(`Failed to fetch old avatars: ${response.data.errors[0].message}`);
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      console.log('🧹 User not found, nothing to clean up');
+      return { success: true, deletedCount: 0, cleanedFiles: [] };
+    }
+
+    const oldAvatars = userData.avatarHistory || [];
+    console.log(`🧹 Found ${oldAvatars.length} old avatars to clean up`);
+
+    if (oldAvatars.length === 0) {
+      return { success: true, deletedCount: 0, cleanedFiles: [] };
+    }
+
+    // Extract CIDs for Pinata cleanup
+    const cidsToDelete: string[] = [];
+    const avatarIds: string[] = [];
+
+    oldAvatars.forEach((avatar: any) => {
+      avatarIds.push(avatar.id);
+      
+      // Add generated image CID if it exists
+      if (avatar.generatedImageCID) {
+        cidsToDelete.push(avatar.generatedImageCID);
+      }
+      
+      // Extract CID from URL if CID field is not available
+      if (!avatar.generatedImageCID && avatar.generatedImageUrl?.includes('ipfs')) {
+        const cidMatch = avatar.generatedImageUrl.match(/\/ipfs\/([^\/\?]+)/);
+        if (cidMatch) {
+          cidsToDelete.push(cidMatch[1]);
+        }
+      }
+    });
+
+    console.log(`🧹 Will delete ${avatarIds.length} avatar records and ${cidsToDelete.length} IPFS files`);
+
+    // Delete from Pinata first (so we don't lose reference if Dgraph fails)
+    const cleanedFiles: string[] = [];
+    if (cidsToDelete.length > 0 && process.env.PINATA_JWT) {
+      console.log('🧹 Cleaning up IPFS files from Pinata...');
+      
+      for (const cid of cidsToDelete) {
+        try {
+          await deletePinataFile(cid);
+          cleanedFiles.push(cid);
+          console.log(`🗑️ Deleted IPFS file: ${cid}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to delete IPFS file ${cid}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
+    }
+
+    // Delete avatar records from Dgraph using the correct mutation
+    if (avatarIds.length > 0) {
+      const deleteAvatarsQuery = `
+        mutation DeleteOldAvatars($avatarIds: [String!]!) {
+          deleteAvatar(filter: { id: $avatarIds }) {
+            numUids
+          }
+        }
+      `;
+
+      const deleteResponse = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query: deleteAvatarsQuery,
+          variables: { avatarIds },
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      if (deleteResponse.data.errors) {
+        console.error('Error deleting avatar records:', deleteResponse.data.errors);
+        throw new Error(`Failed to delete avatar records: ${deleteResponse.data.errors[0].message}`);
+      }
+
+      const deletedCount = deleteResponse.data.data.deleteAvatar.numUids;
+      console.log(`🗑️ Deleted ${deletedCount} avatar records from database`);
+
+      return {
+        success: true,
+        deletedCount,
+        cleanedFiles,
+      };
+    }
+
+    return { success: true, deletedCount: 0, cleanedFiles };
+
+  } catch (error) {
+    console.error('🧹 Error during avatar cleanup:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown cleanup error',
+    };
+  }
+};
+
+/**
+ * Delete a file from Pinata IPFS
+ * @param cid - IPFS CID to delete
+ * @returns Promise<boolean>
+ */
+export const deletePinataFile = async (cid: string): Promise<boolean> => {
+  console.log(`🗑️ Deleting IPFS file from Pinata: ${cid}`);
+
+  if (!process.env.PINATA_JWT) {
+    console.warn('⚠️ PINATA_JWT not configured, skipping IPFS cleanup');
+    return false;
+  }
+
+  try {
+    const response = await axios.delete(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
+      headers: {
+        'Authorization': process.env.PINATA_JWT,
+      },
+    });
+
+    if (response.status === 200) {
+      console.log(`✅ Successfully deleted IPFS file: ${cid}`);
+      return true;
+    } else {
+      console.warn(`⚠️ Unexpected response when deleting ${cid}:`, response.status);
+      return false;
+    }
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.log(`📝 IPFS file ${cid} was already deleted or doesn't exist`);
+      return true; // Consider 404 as success since file is gone
+    }
+    
+    console.error(`❌ Error deleting IPFS file ${cid}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Get storage usage statistics for a user
+ * @param userId - User ID
+ * @returns Promise with storage stats
+ */
+export const getUserStorageStats = async (userId: string): Promise<{
+  totalAvatars: number;
+  activeAvatars: number;
+  inactiveAvatars: number;
+  estimatedStorageUsed: string;
+}> => {
+  console.log('📊 Getting storage stats for user:', userId);
+
+  try {
+    const query = `
+      query GetUserStorageStats($userId: String!) {
+        totalAvatars: queryAvatar(filter: { user: { id: { eq: $userId } } }) {
+          id
+          generatedImageUrl
+        }
+        activeAvatars: queryAvatar(filter: { 
+          user: { id: { eq: $userId } }, 
+          isActive: true 
+        }) {
+          id
+        }
+        inactiveAvatars: queryAvatar(filter: { 
+          user: { id: { eq: $userId } }, 
+          isActive: false 
+        }) {
+          id
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      throw new Error('Failed to get storage stats');
+    }
+
+    const data = response.data.data;
+    const totalCount = data.totalAvatars?.length || 0;
+    const activeCount = data.activeAvatars?.length || 0;
+    const inactiveCount = data.inactiveAvatars?.length || 0;
+
+    // Rough estimate: assume each avatar is ~500KB average
+    const estimatedMB = (totalCount * 0.5).toFixed(1);
+    const estimatedStorageUsed = `~${estimatedMB}MB`;
+
+    return {
+      totalAvatars: totalCount,
+      activeAvatars: activeCount,
+      inactiveAvatars: inactiveCount,
+      estimatedStorageUsed,
+    };
+  } catch (error) {
+    console.error('Error getting storage stats:', error);
+    return {
+      totalAvatars: 0,
+      activeAvatars: 0,
+      inactiveAvatars: 0,
+      estimatedStorageUsed: '0MB',
+    };
+  }
+};
+
+// Add this function to your dgraph API file (lib/api/dgraph.js or similar)
+
+export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) {
+  const query = `
+    query GetUserAvatarByImageUrl($userId: String!) {
+      queryUser(filter: { id: { eq: $userId } }) {
+        avatarHistory {
+          id
+          generationPrompt
+          generatedImageUrl
+          baseImageUrl
+          generatedAt
+          isActive
+          equippedCap {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedHoodie {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedPants {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedShoes {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      return null;
+    }
+
+    const user = response.data?.data?.queryUser?.[0];
+    if (user?.avatarHistory?.length > 0) {
+      // Filter in JavaScript to find the avatar with matching URL
+      const matchingAvatar = user.avatarHistory.find(
+        (avatar: any) => avatar.generatedImageUrl === imageUrl
+      );
+      return matchingAvatar || null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching avatar by URL:', error);
+    return null;
+  }
+}

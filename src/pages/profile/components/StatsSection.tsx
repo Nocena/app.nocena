@@ -17,7 +17,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({
   monthlyChallenges,
 }) => {
   return (
-    <ThematicContainer asButton={false} glassmorphic={true} color="nocenaPink" rounded="xl" className="p-6">
+    <ThematicContainer asButton={false} glassmorphic={true} color="nocenaBlue" rounded="xl" className="p-6">
       <h3 className="text-lg font-bold mb-4">Statistics</h3>
 
       <div className="grid grid-cols-2 gap-4 mb-6">

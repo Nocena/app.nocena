@@ -21,7 +21,7 @@ type Err = {
 
 // Use ChainGPT's official example template to avoid Pinata gateway limits
 const JPG_TEMPLATE_URL =
-  'https://jade-elaborate-emu-349.mypinata.cloud/ipfs/bafkreig6w46bku74mwtfea5wnvidw5fkv3lvvltpt7ntchvzyn6gtpdqom?pinataGatewayToken=XQTlgcFp9rPCXpkx3GkP5M28RfBWRUUwaUwF2H_SCyA3TiFZvm-ssBVMLgIRVz9G';
+  'https://jade-elaborate-emu-349.mypinata.cloud/ipfs/bafkreidlqrkzhi7r2pm75fnul5fi5cnprrz6tnuq5nftdemvmb4nbarxlu?pinataGatewayToken=XQTlgcFp9rPCXpkx3GkP5M28RfBWRUUwaUwF2H_SCyA3TiFZvm-ssBVMLgIRVz9G';
 
 // Enhanced prompt building with better customization
 function buildPrompt(customPrompt: string, profileUrl?: string) {
@@ -30,6 +30,16 @@ function buildPrompt(customPrompt: string, profileUrl?: string) {
     'Keep the same pose and outfit style as the reference template',
     'Maintain 3D stylized art style consistent with Nocena universe',
     'Ensure the character fits within futuristic/cyberpunk aesthetic',
+  ];
+
+  const faceConstraints = [
+    'detailed human face with clear facial features',
+    'visible eyes, nose, and mouth',
+    'well-defined facial structure',
+    'expressive facial features that match the character style',
+    'face must be clearly visible and detailed',
+    'no blank or missing facial features',
+    'human-like face with proper proportions'
   ];
 
   // Clean and validate custom prompt
@@ -42,6 +52,7 @@ function buildPrompt(customPrompt: string, profileUrl?: string) {
   const promptParts: string[] = [
     cleanedPrompt || 'Create a stylized 3D avatar for the Nocena universe',
     ...baseConstraints,
+    ...faceConstraints,
   ];
 
   if (profileUrl) {
