@@ -11,6 +11,8 @@ import VideoReviewScreen from './components/VideoReviewScreen';
 import SelfieScreen from './components/SelfieScreen';
 import VerificationScreen from './components/VerificationScreen';
 import ClaimingScreen from './components/ClaimingScreen';
+import { BackgroundTaskProvider, useBackgroundTasks } from '../../contexts/BackgroundTaskContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Challenge {
   title: string;
@@ -29,8 +31,19 @@ interface CompletingViewProps {
   onBack?: () => void;
 }
 
-const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
+// Background task IDs for tracking
+interface BackgroundTasks {
+  videoAnalysisId?: string;
+  nftGenerationId?: string;
+  verificationPrepId?: string;
+  faceMatchingId?: string;
+}
+
+const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const router = useRouter();
+  const backgroundTasks = useBackgroundTasks();
+  const { user } = useAuth(); // Get user for NFT generation
+  
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<
@@ -40,6 +53,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [backgroundTaskIds, setBackgroundTaskIds] = useState<BackgroundTasks>({});
 
   useEffect(() => {
     const { type, frequency, title, description, reward, challengeId, creatorId } = router.query;
@@ -98,11 +112,39 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     }
   }, [router.query]);
 
+  // Clean up background tasks when component unmounts or user navigates away
+  useEffect(() => {
+    return () => {
+      console.log('🧹 Cleaning up background tasks on unmount');
+      Object.values(backgroundTaskIds).forEach(taskId => {
+        if (taskId) {
+          console.log('🚫 Cancelling task:', taskId);
+          backgroundTasks.cancelTask(taskId);
+        }
+      });
+    };
+  }, [backgroundTaskIds, backgroundTasks]);
+
+  // Debug: Log background task status changes
+  useEffect(() => {
+    console.log('📊 Background task IDs updated:', backgroundTaskIds);
+    
+    // Log status of each task
+    Object.entries(backgroundTaskIds).forEach(([key, taskId]) => {
+      if (taskId) {
+        const task = backgroundTasks.getTask(taskId);
+        if (task) {
+          console.log(`📋 ${key}: ${task.status} (${task.progress}%)`, task.result ? 'HAS RESULT' : 'NO RESULT');
+        }
+      }
+    });
+  }, [backgroundTaskIds, backgroundTasks]);
+
   // Custom back handler for different steps
   const handleStepBack = () => {
     switch (currentStep) {
       case 'intro':
-        // Go back to previous page (home, map, etc.)
+        backgroundTasks.clearAllTasks();
         if (onBack) {
           onBack();
         } else {
@@ -110,27 +152,21 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         }
         break;
       case 'recording':
-        // Go back to intro
         setCurrentStep('intro');
         break;
       case 'review':
-        // Go back to recording
         setCurrentStep('recording');
         break;
       case 'selfie':
-        // Go back to review
         setCurrentStep('review');
         break;
       case 'verification':
-        // Go back to selfie
         setCurrentStep('selfie');
         break;
       case 'claiming':
-        // Go back to verification
         setCurrentStep('verification');
         break;
       case 'success':
-        // Go back to home or wherever appropriate
         router.push('/home');
         break;
       default:
@@ -144,7 +180,9 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Cancel handler - always exits the entire completing flow
   const handleCancel = () => {
-    // Always go back to the initial page (home, map, etc.) regardless of current step
+    console.log('🚫 Cancelling all background tasks');
+    backgroundTasks.clearAllTasks();
+    
     if (onBack) {
       onBack();
     } else {
@@ -154,16 +192,13 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Communicate the custom back handler to AppLayout
   useEffect(() => {
-    // Create a custom event to tell AppLayout to use our back handler
     const handleCustomBack = (event: CustomEvent) => {
       event.preventDefault();
       handleStepBack();
     };
 
-    // Listen for the custom back event
     window.addEventListener('nocena_custom_back', handleCustomBack as EventListener);
 
-    // Dispatch event to tell AppLayout we want custom back handling
     window.dispatchEvent(
       new CustomEvent('nocena_register_custom_back', {
         detail: { hasCustomBack: true },
@@ -172,7 +207,6 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
     return () => {
       window.removeEventListener('nocena_custom_back', handleCustomBack as EventListener);
-      // Tell AppLayout we no longer need custom back handling
       window.dispatchEvent(
         new CustomEvent('nocena_register_custom_back', {
           detail: { hasCustomBack: false },
@@ -209,27 +243,138 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
   };
 
   const handleVideoRecorded = (blob: Blob, duration: number) => {
+    console.log('📹 Video recorded:', blob.size, 'bytes,', duration, 'seconds');
+    
     setVideoBlob(blob);
     setVideoDuration(duration);
+    
+    // 🚀 START BACKGROUND PROCESSING IMMEDIATELY
+    if (challenge && user?.id) {
+      console.log('🔄 Starting background tasks after video recording...');
+      console.log('👤 User ID:', user.id);
+      console.log('🎬 Challenge:', challenge.title);
+      
+      try {
+        // Start video analysis immediately
+        console.log('📹 Starting video analysis...');
+        const videoAnalysisId = backgroundTasks.startVideoAnalysis(blob, challenge);
+        console.log('✅ Video analysis started with ID:', videoAnalysisId);
+        
+        // Start NFT generation with proper user ID
+        console.log('🎨 Starting NFT generation...');
+        const nftGenerationId = backgroundTasks.startNFTGeneration(user.id);
+        console.log('✅ NFT generation started with ID:', nftGenerationId);
+        
+        // Update state with task IDs
+        setBackgroundTaskIds(prev => {
+          const newIds = {
+            ...prev,
+            videoAnalysisId,
+            nftGenerationId,
+          };
+          console.log('📊 Updated background task IDs:', newIds);
+          return newIds;
+        });
+        
+        console.log('🎯 Background processing initiated successfully!');
+        
+      } catch (error) {
+        console.error('❌ Error starting background tasks:', error);
+      }
+    } else {
+      console.warn('⚠️ Cannot start background tasks - missing requirements:', {
+        hasChallenge: !!challenge,
+        hasUser: !!user?.id,
+        userId: user?.id,
+      });
+    }
+    
     setCurrentStep('review');
   };
 
   const handleApproveVideo = () => {
+    console.log('✅ Video approved, starting verification prep...');
+    
+    // 🚀 START VERIFICATION PREP - Since video is approved, start verification prep
+    if (videoBlob && challenge) {
+      console.log('🔍 Starting verification prep after video approval...');
+      
+      try {
+        const verificationPrepId = backgroundTasks.startVerificationPrep(videoBlob, challenge);
+        console.log('✅ Verification prep started with ID:', verificationPrepId);
+        
+        setBackgroundTaskIds(prev => {
+          const newIds = {
+            ...prev,
+            verificationPrepId,
+          };
+          console.log('📊 Updated background task IDs after approval:', newIds);
+          return newIds;
+        });
+      } catch (error) {
+        console.error('❌ Error starting verification prep:', error);
+      }
+    } else {
+      console.warn('⚠️ Cannot start verification prep - missing video or challenge');
+    }
+    
     setCurrentStep('selfie');
   };
 
   const handleRetakeVideo = () => {
+    console.log('🔄 Retaking video, cancelling background tasks...');
+    
+    // Cancel any running background tasks for the old video
+    if (backgroundTaskIds.videoAnalysisId) {
+      console.log('🚫 Cancelling video analysis:', backgroundTaskIds.videoAnalysisId);
+      backgroundTasks.cancelTask(backgroundTaskIds.videoAnalysisId);
+    }
+    if (backgroundTaskIds.nftGenerationId) {
+      console.log('🚫 Cancelling NFT generation:', backgroundTaskIds.nftGenerationId);
+      backgroundTasks.cancelTask(backgroundTaskIds.nftGenerationId);
+    }
+    if (backgroundTaskIds.verificationPrepId) {
+      console.log('🚫 Cancelling verification prep:', backgroundTaskIds.verificationPrepId);
+      backgroundTasks.cancelTask(backgroundTaskIds.verificationPrepId);
+    }
+    
+    setBackgroundTaskIds({});
     setVideoBlob(null);
     setVideoDuration(0);
     setCurrentStep('recording');
   };
 
   const handleSelfieCompleted = (blob: Blob) => {
+    console.log('🤳 Selfie completed:', blob.size, 'bytes');
+    
     setPhotoBlob(blob);
+    
+    // 🚀 START FACE MATCHING - Now we have both video and selfie
+    if (videoBlob) {
+      console.log('👥 Starting face matching after selfie...');
+      
+      try {
+        const faceMatchingId = backgroundTasks.startFaceMatching(videoBlob, blob);
+        console.log('✅ Face matching started with ID:', faceMatchingId);
+        
+        setBackgroundTaskIds(prev => {
+          const newIds = {
+            ...prev,
+            faceMatchingId,
+          };
+          console.log('📊 Updated background task IDs after selfie:', newIds);
+          return newIds;
+        });
+      } catch (error) {
+        console.error('❌ Error starting face matching:', error);
+      }
+    } else {
+      console.warn('⚠️ Cannot start face matching - missing video blob');
+    }
+    
     setCurrentStep('verification');
   };
 
-  // FIXED: This now navigates to claiming instead of success
   const handleVerificationComplete = (result: {
     verificationResult: any;
     challenge: Challenge;
@@ -241,14 +386,15 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     setCurrentStep('claiming');
   };
 
-  // NEW: Handle claiming completion
   const handleClaimingComplete = (result: any) => {
     console.log('🎉 Claiming completed:', result);
     setCurrentStep('success');
   };
 
   const handleComplete = () => {
-    router.push('/home'); // Or wherever you want to redirect after completion
+    console.log('🏁 Challenge completion flow finished');
+    backgroundTasks.clearAllTasks();
+    router.push('/home');
   };
 
   if (isLoading || !challenge) {
@@ -263,7 +409,13 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Step 2: Video Recording
   if (currentStep === 'recording') {
-    return <VideoRecordingScreen challenge={challenge} onVideoRecorded={handleVideoRecorded} onBack={handleStepBack} />;
+    return (
+      <VideoRecordingScreen 
+        challenge={challenge} 
+        onVideoRecorded={handleVideoRecorded} 
+        onBack={handleStepBack} 
+      />
+    );
   }
 
   // Step 3: Video Review
@@ -277,6 +429,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         onRetakeVideo={handleRetakeVideo}
         onBack={handleStepBack}
         onCancel={handleCancel}
+        backgroundTaskIds={backgroundTaskIds}
       />
     );
   }
@@ -303,11 +456,12 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         onVerificationComplete={handleVerificationComplete}
         onBack={handleStepBack}
         onCancel={handleCancel}
+        backgroundTaskIds={backgroundTaskIds}
       />
     );
   }
 
-  // Step 6: Claiming Screen - NEW
+  // Step 6: Claiming Screen
   if (currentStep === 'claiming' && videoBlob && photoBlob && verificationResult) {
     return (
       <ClaimingScreen
@@ -318,11 +472,12 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         onClaimComplete={handleClaimingComplete}
         onBack={handleStepBack}
         onCancel={handleCancel}
+        backgroundTaskIds={backgroundTaskIds}
       />
     );
   }
 
-  // Step 7: Success Screen - FIXED
+  // Step 7: Success Screen
   if (currentStep === 'success') {
     return (
       <div className="h-screen bg-black flex flex-col items-center justify-center text-white px-6">
@@ -345,7 +500,7 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
     );
   }
 
-  // Step 1: Challenge Intro - FIXED VERSION WITH PROPER SCROLLING
+  // Step 1: Challenge Intro with Background Task Status
   const typeInfo = getChallengeTypeInfo(challenge.type);
 
   return (
@@ -483,6 +638,15 @@ const CompletingView: React.FC<CompletingViewProps> = ({ onBack }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Main wrapper component with BackgroundTaskProvider
+const CompletingView: React.FC<CompletingViewProps> = (props) => {
+  return (
+    <BackgroundTaskProvider>
+      <CompletingViewContent {...props} />
+    </BackgroundTaskProvider>
   );
 };
 
