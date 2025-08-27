@@ -916,6 +916,143 @@ export const getUserFromDgraph = async (walletAddress: string) => {
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
+        
+        # Avatar fields
+        currentAvatar
+        baseAvatar
+        avatarHistory {
+          id
+          baseImageUrl
+          generatedImageUrl
+          baseImageCID
+          generatedImageCID
+          generationPrompt
+          generatedAt
+          isActive
+          equippedCap {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedHoodie {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedPants {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedShoes {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+        }
+        
+        # Equipped NFT items
+        equippedCap {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedHoodie {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedPants {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedShoes {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        
         followers {
           id
         }
@@ -997,6 +1134,7 @@ export const getUserFromDgraph = async (walletAddress: string) => {
       userData.participatingPublicChallenges = userData.participatingPublicChallenges || [];
 
       // Ensure token fields have defaults for existing users
+      userData.earnedTokens = userData.earnedTokens || 0;
       userData.earnedTokensToday = userData.earnedTokensToday || 0;
       userData.earnedTokensThisWeek = userData.earnedTokensThisWeek || 0;
       userData.earnedTokensThisMonth = userData.earnedTokensThisMonth || 0;
@@ -1013,17 +1151,31 @@ export const getUserFromDgraph = async (walletAddress: string) => {
       userData.personalField3Metadata = userData.personalField3Metadata || '';
 
       // Ensure Lens fields have defaults for existing users
-      userData.lensHandle = userData.lensHandle || '';
-      userData.lensAccountId = userData.lensAccountId || '';
-      userData.lensTransactionHash = userData.lensTransactionHash || '';
-      userData.lensMetadataUri = userData.lensMetadataUri || '';
+      userData.lensHandle = userData.lensHandle || null;
+      userData.lensAccountId = userData.lensAccountId || null;
+      userData.lensTransactionHash = userData.lensTransactionHash || null;
+      userData.lensMetadataUri = userData.lensMetadataUri || null;
 
       // Ensure media fields have defaults
       userData.coverPhoto = userData.coverPhoto || '/images/cover.jpg';
       userData.trailerVideo = userData.trailerVideo || '/trailer.mp4';
 
       // Ensure push subscription has default
-      userData.pushSubscription = userData.pushSubscription || '';
+      userData.pushSubscription = userData.pushSubscription || null;
+
+      // Initialize Avatar and NFT fields
+      userData.currentAvatar = userData.currentAvatar || null;
+      userData.baseAvatar = userData.baseAvatar || null;
+      userData.avatarHistory = userData.avatarHistory || [];
+      userData.equippedCap = userData.equippedCap || null;
+      userData.equippedHoodie = userData.equippedHoodie || null;
+      userData.equippedPants = userData.equippedPants || null;
+      userData.equippedShoes = userData.equippedShoes || null;
+
+      // Ensure challenge strings have defaults
+      userData.dailyChallenge = userData.dailyChallenge || '0'.repeat(365);
+      userData.weeklyChallenge = userData.weeklyChallenge || '0'.repeat(52);
+      userData.monthlyChallenge = userData.monthlyChallenge || '0'.repeat(12);
 
       // Format completed challenges to match your interface
       userData.completedChallenges =
@@ -1060,6 +1212,13 @@ export const getUserFromDgraph = async (walletAddress: string) => {
           userData.personalField1Type ||
           userData.personalField2Type ||
           userData.personalField3Type
+        ),
+        hasAvatar: !!(userData.currentAvatar || userData.baseAvatar),
+        hasEquippedItems: !!(
+          userData.equippedCap ||
+          userData.equippedHoodie ||
+          userData.equippedPants ||
+          userData.equippedShoes
         ),
         tokenData: {
           total: userData.earnedTokens,
@@ -1127,6 +1286,142 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         dailyChallenge
         weeklyChallenge
         monthlyChallenge
+        
+        # Avatar fields
+        currentAvatar
+        baseAvatar
+        avatarHistory {
+          id
+          baseImageUrl
+          generatedImageUrl
+          baseImageCID
+          generatedImageCID
+          generationPrompt
+          generatedAt
+          isActive
+          equippedCap {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedHoodie {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedPants {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+          equippedShoes {
+            id
+            name
+            description
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+            imageCID
+            generatedAt
+            generationPrompt
+            isEquipped
+            tokenId
+            mintTransactionHash
+          }
+        }
+        
+        # Equipped NFT items
+        equippedCap {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedHoodie {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedPants {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedShoes {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          generationPrompt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
         
         # Relationships
         followers {
@@ -1218,10 +1513,10 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.personalField3Metadata = userData.personalField3Metadata || '';
 
       // Ensure Lens fields have defaults for existing users
-      userData.lensHandle = userData.lensHandle || '';
-      userData.lensAccountId = userData.lensAccountId || '';
-      userData.lensTransactionHash = userData.lensTransactionHash || '';
-      userData.lensMetadataUri = userData.lensMetadataUri || '';
+      userData.lensHandle = userData.lensHandle || null;
+      userData.lensAccountId = userData.lensAccountId || null;
+      userData.lensTransactionHash = userData.lensTransactionHash || null;
+      userData.lensMetadataUri = userData.lensMetadataUri || null;
 
       // Ensure invite fields have defaults
       userData.invitedById = userData.invitedById || '';
@@ -1233,7 +1528,16 @@ export const getUserByIdFromDgraph = async (userId: string) => {
       userData.bio = userData.bio || '';
 
       // Ensure push subscription has default
-      userData.pushSubscription = userData.pushSubscription || '';
+      userData.pushSubscription = userData.pushSubscription || null;
+
+      // Initialize Avatar and NFT fields
+      userData.currentAvatar = userData.currentAvatar || null;
+      userData.baseAvatar = userData.baseAvatar || null;
+      userData.avatarHistory = userData.avatarHistory || [];
+      userData.equippedCap = userData.equippedCap || null;
+      userData.equippedHoodie = userData.equippedHoodie || null;
+      userData.equippedPants = userData.equippedPants || null;
+      userData.equippedShoes = userData.equippedShoes || null;
 
       // Ensure challenge strings have defaults (very important!)
       userData.dailyChallenge = userData.dailyChallenge || '0'.repeat(365);
@@ -1267,7 +1571,18 @@ export const getUserByIdFromDgraph = async (userId: string) => {
         }) || [];
 
       console.log('=== Final processed user data ===');
-      console.log('Processed userData:', userData);
+      console.log('Processed userData:', {
+        id: userData.id,
+        username: userData.username,
+        hasAvatar: !!(userData.currentAvatar || userData.baseAvatar),
+        avatarHistoryCount: userData.avatarHistory?.length || 0,
+        hasEquippedItems: !!(
+          userData.equippedCap ||
+          userData.equippedHoodie ||
+          userData.equippedPants ||
+          userData.equippedShoes
+        ),
+      });
     } else {
       console.log('=== No user found ===');
       console.log('queryUser returned:', response.data?.data?.queryUser);
@@ -4698,3 +5013,1259 @@ export const fetchChallengeCompletionsWithLikesAndReactions = async (
     throw error;
   }
 };
+
+/**
+ * Creates an NFT item in the database
+ * @param nftData - NFT creation data
+ * @returns Promise<string> - ID of the created NFT
+ */
+export const createNFTItem = async (nftData: {
+  name: string;
+  description: string;
+  itemType: string; // 'cap' | 'hoodie' | 'pants' | 'shoes'
+  rarity: string; // 'common' | 'rare' | 'epic'
+  tokenBonus: number;
+  imageUrl: string;
+  imageCID?: string;
+  generationPrompt?: string;
+  ownerId: string;
+  tokenId?: string;
+  mintTransactionHash?: string;
+}): Promise<string> => {
+  console.log('Creating NFT item in database:', {
+    name: nftData.name,
+    itemType: nftData.itemType,
+    ownerId: nftData.ownerId,
+    imageUrl: nftData.imageUrl.substring(0, 50) + '...',
+  });
+
+  const nftId = uuidv4();
+  const now = new Date().toISOString();
+
+  // Extract CID from imageUrl if it's an IPFS URL
+  let imageCID = nftData.imageCID;
+  if (!imageCID && nftData.imageUrl.includes('ipfs')) {
+    const cidMatch = nftData.imageUrl.match(/\/ipfs\/([^\/]+)/);
+    if (cidMatch) {
+      imageCID = cidMatch[1];
+    }
+  }
+
+  const mutation = `
+    mutation CreateNFTItem(
+      $id: String!,
+      $name: String!,
+      $description: String!,
+      $itemType: String!,
+      $rarity: String!,
+      $tokenBonus: Int!,
+      $imageUrl: String!,
+      $imageCID: String,
+      $generatedAt: DateTime!,
+      $generationPrompt: String,
+      $ownerId: String!,
+      $tokenId: String,
+      $mintTransactionHash: String
+    ) {
+      addNFTItem(input: [{
+        id: $id,
+        name: $name,
+        description: $description,
+        itemType: $itemType,
+        rarity: $rarity,
+        tokenBonus: $tokenBonus,
+        imageUrl: $imageUrl,
+        imageCID: $imageCID,
+        generatedAt: $generatedAt,
+        generationPrompt: $generationPrompt,
+        owner: { id: $ownerId },
+        isEquipped: false,
+        tokenId: $tokenId,
+        mintTransactionHash: $mintTransactionHash
+      }]) {
+        nFTItem {
+          id
+          name
+          itemType
+          rarity
+          imageUrl
+          owner {
+            id
+            username
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          id: nftId,
+          name: nftData.name,
+          description: nftData.description,
+          itemType: nftData.itemType,
+          rarity: nftData.rarity,
+          tokenBonus: nftData.tokenBonus,
+          imageUrl: nftData.imageUrl,
+          imageCID: imageCID,
+          generatedAt: now,
+          generationPrompt: nftData.generationPrompt,
+          ownerId: nftData.ownerId,
+          tokenId: nftData.tokenId,
+          mintTransactionHash: nftData.mintTransactionHash,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error creating NFT item:', response.data.errors);
+      throw new Error(`Failed to create NFT item: ${response.data.errors[0].message}`);
+    }
+
+    const createdNFT = response.data.data.addNFTItem.nFTItem[0];
+    console.log('✅ NFT item created successfully:', {
+      id: createdNFT.id,
+      name: createdNFT.name,
+      owner: createdNFT.owner.username,
+    });
+
+    return nftId;
+  } catch (error) {
+    console.error('Error creating NFT item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a challenge completion with an NFT reward
+ * @param completionId - ID of the challenge completion
+ * @param nftId - ID of the NFT item
+ * @returns Promise<boolean> - Success status
+ */
+export const updateChallengeCompletionWithNFT = async (completionId: string, nftId: string): Promise<boolean> => {
+  console.log('Updating challenge completion with NFT reward:', { completionId, nftId });
+
+  const mutation = `
+    mutation UpdateCompletionWithNFT($completionId: String!, $nftId: String!) {
+      updateChallengeCompletion(input: {
+        filter: { id: { eq: $completionId } },
+        set: {
+          nftReward: { id: $nftId }
+        }
+      }) {
+        challengeCompletion {
+          id
+          nftReward {
+            id
+            name
+            itemType
+            imageUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: { completionId, nftId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error updating completion with NFT:', response.data.errors);
+      throw new Error(`Failed to update completion with NFT: ${response.data.errors[0].message}`);
+    }
+
+    const updatedCompletion = response.data.data.updateChallengeCompletion.challengeCompletion[0];
+    console.log('✅ Challenge completion updated with NFT:', {
+      completionId: updatedCompletion.id,
+      nftName: updatedCompletion.nftReward.name,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error updating challenge completion with NFT:', error);
+    return false;
+  }
+};
+
+/**
+ * Creates NFT item and associates it with challenge completion
+ * This is the main function to call when saving NFT rewards
+ */
+export const saveNFTRewardToDatabase = async (
+  completionId: string,
+  nftRewardData: {
+    collectionId: string;
+    templateType: string;
+    templateName: string;
+    imageUrl: string;
+    generationPrompt?: string;
+    ownerId: string;
+  },
+): Promise<{ success: boolean; nftId?: string; error?: string }> => {
+  console.log('🎁 Saving NFT reward to database:', {
+    completionId,
+    templateType: nftRewardData.templateType,
+    templateName: nftRewardData.templateName,
+    ownerId: nftRewardData.ownerId,
+  });
+
+  try {
+    // Map template type to rarity and token bonus
+    const getRarityAndBonus = (templateType: string) => {
+      switch (templateType) {
+        case 'cap':
+          return { rarity: 'common', tokenBonus: 5 };
+        case 'hoodie':
+          return { rarity: 'common', tokenBonus: 10 };
+        case 'pants':
+          return { rarity: 'rare', tokenBonus: 15 };
+        case 'shoes':
+          return { rarity: 'epic', tokenBonus: 20 };
+        default:
+          return { rarity: 'common', tokenBonus: 5 };
+      }
+    };
+
+    const { rarity, tokenBonus } = getRarityAndBonus(nftRewardData.templateType);
+
+    // Create the NFT item
+    const nftId = await createNFTItem({
+      name: nftRewardData.templateName,
+      description: `${nftRewardData.templateName} earned from challenge completion`,
+      itemType: nftRewardData.templateType,
+      rarity: rarity,
+      tokenBonus: tokenBonus,
+      imageUrl: nftRewardData.imageUrl,
+      generationPrompt: nftRewardData.generationPrompt,
+      ownerId: nftRewardData.ownerId,
+      // Use collectionId as tokenId for now
+      tokenId: nftRewardData.collectionId,
+    });
+
+    // Associate the NFT with the challenge completion
+    const updateSuccess = await updateChallengeCompletionWithNFT(completionId, nftId);
+
+    if (!updateSuccess) {
+      console.warn('⚠️ NFT created but failed to associate with completion');
+      // Don't throw error since the NFT was created successfully
+    }
+
+    console.log('🎉 NFT reward saved successfully to database:', {
+      nftId,
+      completionId,
+      associated: updateSuccess,
+    });
+
+    return {
+      success: true,
+      nftId,
+    };
+  } catch (error) {
+    console.error('❌ Error saving NFT reward to database:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user's NFT collection
+ * @param userId - User ID
+ * @returns Promise<Array> - Array of user's NFTs
+ */
+export const getUserNFTCollection = async (userId: string): Promise<any[]> => {
+  console.log('Fetching NFT collection for user:', userId);
+
+  const query = `
+    query GetUserNFTs($userId: String!) {
+      getUser(id: $userId) {
+        ownedNFTs {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+        equippedNFT {
+          id
+          name
+          itemType
+          imageUrl
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching user NFTs:', response.data.errors);
+      throw new Error('Failed to fetch user NFT collection');
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      throw new Error('User not found');
+    }
+
+    const nfts = userData.ownedNFTs || [];
+    console.log(`Found ${nfts.length} NFTs for user ${userId}`);
+
+    return nfts.map((nft: any) => ({
+      ...nft,
+      // Add convenience fields
+      isRare: nft.rarity === 'rare' || nft.rarity === 'epic',
+      displayUrl: nft.imageUrl || (nft.imageCID ? `https://gateway.pinata.cloud/ipfs/${nft.imageCID}` : null),
+    }));
+  } catch (error) {
+    console.error('Error fetching user NFT collection:', error);
+    throw error;
+  }
+};
+
+/**
+ * Equip an NFT for a user
+ * @param userId - User ID
+ * @param nftId - NFT ID to equip
+ * @returns Promise<boolean> - Success status
+ */
+export const equipNFT = async (userId: string, nftId: string): Promise<boolean> => {
+  console.log('Equipping NFT for user:', { userId, nftId });
+
+  try {
+    // First, unequip any currently equipped NFT
+    const unequipMutation = `
+      mutation UnequipCurrentNFT($userId: String!) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          remove: { equippedNFT: {} }
+        }) {
+          user {
+            id
+          }
+        }
+        updateNFTItem(input: {
+          filter: { owner: { id: { eq: $userId } }, isEquipped: true },
+          set: { isEquipped: false }
+        }) {
+          nFTItem {
+            id
+          }
+        }
+      }
+    `;
+
+    await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: unequipMutation,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    // Then equip the new NFT
+    const equipMutation = `
+      mutation EquipNFT($userId: String!, $nftId: String!) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          set: { equippedNFT: { id: $nftId } }
+        }) {
+          user {
+            id
+            equippedNFT {
+              id
+              name
+            }
+          }
+        }
+        updateNFTItem(input: {
+          filter: { id: { eq: $nftId } },
+          set: { isEquipped: true }
+        }) {
+          nFTItem {
+            id
+            isEquipped
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: equipMutation,
+        variables: { userId, nftId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error equipping NFT:', response.data.errors);
+      return false;
+    }
+
+    console.log('✅ NFT equipped successfully');
+    return true;
+  } catch (error) {
+    console.error('Error equipping NFT:', error);
+    return false;
+  }
+};
+
+/**
+ * Creates or updates a user's avatar with cleanup of old avatars
+ * @param avatarData - Avatar data
+ * @returns Promise<{success: boolean, avatarId?: string, error?: string, cleanupResults?: any}>
+ */
+export const saveUserAvatar = async (avatarData: {
+  userId: string;
+  baseImageUrl: string;
+  generatedImageUrl: string;
+  baseImageCID?: string;
+  generatedImageCID?: string;
+  equippedCapId?: string;
+  equippedHoodieId?: string;
+  equippedPantsId?: string;
+  equippedShoesId?: string;
+  generationPrompt?: string;
+}): Promise<{ success: boolean; avatarId?: string; error?: string; cleanupResults?: any }> => {
+  console.log('🎨 Saving user avatar with cleanup:', {
+    userId: avatarData.userId,
+    hasGeneratedImage: !!avatarData.generatedImageUrl,
+    equippedItems: {
+      cap: !!avatarData.equippedCapId,
+      hoodie: !!avatarData.equippedHoodieId,
+      pants: !!avatarData.equippedPantsId,
+      shoes: !!avatarData.equippedShoesId,
+    },
+  });
+
+  const avatarId = uuidv4();
+  const now = new Date().toISOString();
+
+  try {
+    // STEP 1: Clean up old avatars BEFORE creating new one
+    console.log('🧹 Step 1: Cleaning up old avatars...');
+    const cleanupResults = await cleanupOldAvatars(avatarData.userId);
+
+    if (!cleanupResults.success) {
+      console.warn('⚠️ Cleanup failed, but continuing with save:', cleanupResults.error);
+    } else {
+      console.log(
+        `✅ Cleanup complete: ${cleanupResults.deletedCount} records, ${cleanupResults.cleanedFiles?.length} files`,
+      );
+    }
+
+    // STEP 2: Deactivate any remaining active avatars (just in case)
+    const deactivateQuery = `
+      mutation DeactivateOldAvatars($userId: String!) {
+        updateAvatar(input: {
+          filter: { user: { id: { eq: $userId } }, isActive: true },
+          set: { isActive: false }
+        }) {
+          numUids
+        }
+      }
+    `;
+
+    await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: deactivateQuery,
+        variables: { userId: avatarData.userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    // STEP 3: Create the new avatar
+    console.log('🎨 Step 2: Creating new avatar record...');
+
+    // Build the input object dynamically based on what's provided
+    const input: any = {
+      id: avatarId,
+      user: { id: avatarData.userId },
+      baseImageUrl: avatarData.baseImageUrl,
+      generatedImageUrl: avatarData.generatedImageUrl,
+      generatedAt: now,
+      isActive: true,
+    };
+
+    // Only add optional fields if they exist
+    if (avatarData.baseImageCID) {
+      input.baseImageCID = avatarData.baseImageCID;
+    }
+    if (avatarData.generatedImageCID) {
+      input.generatedImageCID = avatarData.generatedImageCID;
+    }
+    if (avatarData.generationPrompt) {
+      input.generationPrompt = avatarData.generationPrompt;
+    }
+    if (avatarData.equippedCapId) {
+      input.equippedCap = { id: avatarData.equippedCapId };
+    }
+    if (avatarData.equippedHoodieId) {
+      input.equippedHoodie = { id: avatarData.equippedHoodieId };
+    }
+    if (avatarData.equippedPantsId) {
+      input.equippedPants = { id: avatarData.equippedPantsId };
+    }
+    if (avatarData.equippedShoesId) {
+      input.equippedShoes = { id: avatarData.equippedShoesId };
+    }
+
+    const createMutation = `
+      mutation CreateAvatar($input: [AddAvatarInput!]!) {
+        addAvatar(input: $input) {
+          avatar {
+            id
+            generatedImageUrl
+            user {
+              id
+              username
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: createMutation,
+        variables: {
+          input: [input],
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error creating avatar:', response.data.errors);
+      throw new Error(`Failed to create avatar: ${response.data.errors[0].message}`);
+    }
+
+    const createdAvatar = response.data.data.addAvatar.avatar[0];
+    console.log('✅ Avatar created successfully:', {
+      id: createdAvatar.id,
+      user: createdAvatar.user.username,
+    });
+
+    // STEP 4: Update user's current avatar reference
+    console.log('🎨 Step 3: Updating user current avatar reference...');
+
+    const updateUserMutation = `
+      mutation UpdateUserAvatar($userId: String!, $avatarUrl: String!) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          set: { 
+            currentAvatar: $avatarUrl
+          }
+        }) {
+          user {
+            id
+            currentAvatar
+          }
+        }
+      }
+    `;
+
+    await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: updateUserMutation,
+        variables: {
+          userId: avatarData.userId,
+          avatarUrl: avatarData.generatedImageUrl,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    console.log('✅ User currentAvatar updated successfully');
+    console.log('🎉 Avatar saved successfully with cleanup:', avatarId);
+
+    return {
+      success: true,
+      avatarId,
+      cleanupResults,
+    };
+  } catch (error) {
+    console.error('❌ Error saving avatar:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+/**
+ * Get user's current avatar and equipped items
+ * @param userId - User ID
+ * @returns Promise<Avatar | null>
+ */
+export const getUserAvatar = async (userId: string): Promise<any | null> => {
+  console.log('🎨 Fetching user avatar:', userId);
+
+  const query = `
+    query GetUserAvatar($userId: String!) {
+      getUser(id: $userId) {
+        currentAvatar
+        baseAvatar
+        avatarHistory(filter: { isActive: true }, first: 1) {
+          id
+          baseImageUrl
+          generatedImageUrl
+          baseImageCID
+          generatedImageCID
+          generatedAt
+          generationPrompt
+          isActive
+          equippedCap {
+            id
+            name
+            imageUrl
+            itemType
+          }
+          equippedHoodie {
+            id
+            name
+            imageUrl
+            itemType
+          }
+          equippedPants {
+            id
+            name
+            imageUrl
+            itemType
+          }
+          equippedShoes {
+            id
+            name
+            imageUrl
+            itemType
+          }
+        }
+        equippedCap {
+          id
+          name
+          imageUrl
+          itemType
+        }
+        equippedHoodie {
+          id
+          name
+          imageUrl
+          itemType
+        }
+        equippedPants {
+          id
+          name
+          imageUrl
+          itemType
+        }
+        equippedShoes {
+          id
+          name
+          imageUrl
+          itemType
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching user avatar:', response.data.errors);
+      throw new Error('Failed to fetch user avatar');
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      return null;
+    }
+
+    const currentAvatarRecord = userData.avatarHistory?.[0];
+
+    return {
+      currentAvatar: userData.currentAvatar,
+      baseAvatar: userData.baseAvatar,
+      avatarRecord: currentAvatarRecord,
+      equippedItems: {
+        cap: userData.equippedCap,
+        hoodie: userData.equippedHoodie,
+        pants: userData.equippedPants,
+        shoes: userData.equippedShoes,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching user avatar:', error);
+    return null;
+  }
+};
+
+/**
+ * Get user's owned NFT items by type
+ * @param userId - User ID
+ * @param itemType - Optional item type filter
+ * @returns Promise<Array> - Array of user's NFT items
+ */
+export const getUserNFTsByType = async (userId: string, itemType?: string): Promise<any[]> => {
+  console.log('🎨 Fetching user NFTs by type:', { userId, itemType });
+
+  const query = `
+    query GetUserNFTsByType($userId: String!${itemType ? ', $itemType: String!' : ''}) {
+      getUser(id: $userId) {
+        ownedNFTs${itemType ? '(filter: { itemType: { eq: $itemType } })' : ''} {
+          id
+          name
+          description
+          itemType
+          rarity
+          tokenBonus
+          imageUrl
+          imageCID
+          generatedAt
+          isEquipped
+          tokenId
+          mintTransactionHash
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: itemType ? { userId, itemType } : { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching user NFTs by type:', response.data.errors);
+      throw new Error('Failed to fetch user NFTs by type');
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      return [];
+    }
+
+    return userData.ownedNFTs || [];
+  } catch (error) {
+    console.error('Error fetching user NFTs by type:', error);
+    return [];
+  }
+};
+
+/**
+ * Update user's equipped items
+ * @param userId - User ID
+ * @param equippedItems - Object with equipped item IDs
+ * @returns Promise<boolean> - Success status
+ */
+export const updateUserEquippedItems = async (
+  userId: string,
+  equippedItems: {
+    capId?: string | null;
+    hoodieId?: string | null;
+    pantsId?: string | null;
+    shoesId?: string | null;
+  },
+): Promise<boolean> => {
+  console.log('🎨 Updating user equipped items:', { userId, equippedItems });
+
+  try {
+    // Build the mutation dynamically based on provided items
+    let setClause = '';
+    const variables: any = { userId };
+
+    if (equippedItems.capId !== undefined) {
+      if (equippedItems.capId) {
+        setClause += 'equippedCap: { id: $capId },';
+        variables.capId = equippedItems.capId;
+      } else {
+        setClause += 'equippedCap: null,';
+      }
+    }
+
+    if (equippedItems.hoodieId !== undefined) {
+      if (equippedItems.hoodieId) {
+        setClause += 'equippedHoodie: { id: $hoodieId },';
+        variables.hoodieId = equippedItems.hoodieId;
+      } else {
+        setClause += 'equippedHoodie: null,';
+      }
+    }
+
+    if (equippedItems.pantsId !== undefined) {
+      if (equippedItems.pantsId) {
+        setClause += 'equippedPants: { id: $pantsId },';
+        variables.pantsId = equippedItems.pantsId;
+      } else {
+        setClause += 'equippedPants: null,';
+      }
+    }
+
+    if (equippedItems.shoesId !== undefined) {
+      if (equippedItems.shoesId) {
+        setClause += 'equippedShoes: { id: $shoesId },';
+        variables.shoesId = equippedItems.shoesId;
+      } else {
+        setClause += 'equippedShoes: null,';
+      }
+    }
+
+    // Remove trailing comma
+    setClause = setClause.slice(0, -1);
+
+    const mutation = `
+      mutation UpdateUserEquippedItems($userId: String!${variables.capId ? ', $capId: String!' : ''}${variables.hoodieId ? ', $hoodieId: String!' : ''}${variables.pantsId ? ', $pantsId: String!' : ''}${variables.shoesId ? ', $shoesId: String!' : ''}) {
+        updateUser(input: {
+          filter: { id: { eq: $userId } },
+          set: {
+            ${setClause}
+          }
+        }) {
+          user {
+            id
+            equippedCap { id }
+            equippedHoodie { id }
+            equippedPants { id }
+            equippedShoes { id }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error updating equipped items:', response.data.errors);
+      return false;
+    }
+
+    console.log('✅ Equipped items updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error updating equipped items:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete old avatar records and clean up IPFS files - FIXED VERSION
+ * @param userId - User ID
+ * @returns Promise<{success: boolean, deletedCount?: number, cleanedFiles?: string[]}>
+ */
+export const cleanupOldAvatars = async (
+  userId: string,
+): Promise<{
+  success: boolean;
+  deletedCount?: number;
+  cleanedFiles?: string[];
+  error?: string;
+}> => {
+  console.log('🧹 Starting cleanup of old avatars for user:', userId);
+
+  try {
+    // First, get all avatars for this user by querying through the User entity
+    // This avoids the AvatarFilter issue
+    const getOldAvatarsQuery = `
+      query GetOldAvatars($userId: String!) {
+        getUser(id: $userId) {
+          avatarHistory(filter: { isActive: false }) {
+            id
+            generatedImageCID
+            baseImageCID
+            generatedImageUrl
+            baseImageUrl
+            generatedAt
+            isActive
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: getOldAvatarsQuery,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('Error fetching old avatars:', response.data.errors);
+      throw new Error(`Failed to fetch old avatars: ${response.data.errors[0].message}`);
+    }
+
+    const userData = response.data.data.getUser;
+    if (!userData) {
+      console.log('🧹 User not found, nothing to clean up');
+      return { success: true, deletedCount: 0, cleanedFiles: [] };
+    }
+
+    const oldAvatars = userData.avatarHistory || [];
+    console.log(`🧹 Found ${oldAvatars.length} old avatars to clean up`);
+
+    if (oldAvatars.length === 0) {
+      return { success: true, deletedCount: 0, cleanedFiles: [] };
+    }
+
+    // Extract CIDs for Pinata cleanup
+    const cidsToDelete: string[] = [];
+    const avatarIds: string[] = [];
+
+    oldAvatars.forEach((avatar: any) => {
+      avatarIds.push(avatar.id);
+
+      // Add generated image CID if it exists
+      if (avatar.generatedImageCID) {
+        cidsToDelete.push(avatar.generatedImageCID);
+      }
+
+      // Extract CID from URL if CID field is not available
+      if (!avatar.generatedImageCID && avatar.generatedImageUrl?.includes('ipfs')) {
+        const cidMatch = avatar.generatedImageUrl.match(/\/ipfs\/([^\/\?]+)/);
+        if (cidMatch) {
+          cidsToDelete.push(cidMatch[1]);
+        }
+      }
+    });
+
+    console.log(`🧹 Will delete ${avatarIds.length} avatar records and ${cidsToDelete.length} IPFS files`);
+
+    // Delete from Pinata first (so we don't lose reference if Dgraph fails)
+    const cleanedFiles: string[] = [];
+    if (cidsToDelete.length > 0 && process.env.PINATA_JWT) {
+      console.log('🧹 Cleaning up IPFS files from Pinata...');
+
+      for (const cid of cidsToDelete) {
+        try {
+          await deletePinataFile(cid);
+          cleanedFiles.push(cid);
+          console.log(`🗑️ Deleted IPFS file: ${cid}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to delete IPFS file ${cid}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
+    }
+
+    // Delete avatar records from Dgraph using the correct mutation
+    if (avatarIds.length > 0) {
+      const deleteAvatarsQuery = `
+        mutation DeleteOldAvatars($avatarIds: [String!]!) {
+          deleteAvatar(filter: { id: $avatarIds }) {
+            numUids
+          }
+        }
+      `;
+
+      const deleteResponse = await axios.post(
+        DGRAPH_ENDPOINT,
+        {
+          query: deleteAvatarsQuery,
+          variables: { avatarIds },
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      if (deleteResponse.data.errors) {
+        console.error('Error deleting avatar records:', deleteResponse.data.errors);
+        throw new Error(`Failed to delete avatar records: ${deleteResponse.data.errors[0].message}`);
+      }
+
+      const deletedCount = deleteResponse.data.data.deleteAvatar.numUids;
+      console.log(`🗑️ Deleted ${deletedCount} avatar records from database`);
+
+      return {
+        success: true,
+        deletedCount,
+        cleanedFiles,
+      };
+    }
+
+    return { success: true, deletedCount: 0, cleanedFiles };
+  } catch (error) {
+    console.error('🧹 Error during avatar cleanup:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown cleanup error',
+    };
+  }
+};
+
+/**
+ * Delete a file from Pinata IPFS
+ * @param cid - IPFS CID to delete
+ * @returns Promise<boolean>
+ */
+export const deletePinataFile = async (cid: string): Promise<boolean> => {
+  console.log(`🗑️ Deleting IPFS file from Pinata: ${cid}`);
+
+  if (!process.env.PINATA_JWT) {
+    console.warn('⚠️ PINATA_JWT not configured, skipping IPFS cleanup');
+    return false;
+  }
+
+  try {
+    const response = await axios.delete(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
+      headers: {
+        Authorization: process.env.PINATA_JWT,
+      },
+    });
+
+    if (response.status === 200) {
+      console.log(`✅ Successfully deleted IPFS file: ${cid}`);
+      return true;
+    } else {
+      console.warn(`⚠️ Unexpected response when deleting ${cid}:`, response.status);
+      return false;
+    }
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.log(`📝 IPFS file ${cid} was already deleted or doesn't exist`);
+      return true; // Consider 404 as success since file is gone
+    }
+
+    console.error(`❌ Error deleting IPFS file ${cid}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Get storage usage statistics for a user
+ * @param userId - User ID
+ * @returns Promise with storage stats
+ */
+export const getUserStorageStats = async (
+  userId: string,
+): Promise<{
+  totalAvatars: number;
+  activeAvatars: number;
+  inactiveAvatars: number;
+  estimatedStorageUsed: string;
+}> => {
+  console.log('📊 Getting storage stats for user:', userId);
+
+  try {
+    const query = `
+      query GetUserStorageStats($userId: String!) {
+        totalAvatars: queryAvatar(filter: { user: { id: { eq: $userId } } }) {
+          id
+          generatedImageUrl
+        }
+        activeAvatars: queryAvatar(filter: { 
+          user: { id: { eq: $userId } }, 
+          isActive: true 
+        }) {
+          id
+        }
+        inactiveAvatars: queryAvatar(filter: { 
+          user: { id: { eq: $userId } }, 
+          isActive: false 
+        }) {
+          id
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (response.data.errors) {
+      throw new Error('Failed to get storage stats');
+    }
+
+    const data = response.data.data;
+    const totalCount = data.totalAvatars?.length || 0;
+    const activeCount = data.activeAvatars?.length || 0;
+    const inactiveCount = data.inactiveAvatars?.length || 0;
+
+    // Rough estimate: assume each avatar is ~500KB average
+    const estimatedMB = (totalCount * 0.5).toFixed(1);
+    const estimatedStorageUsed = `~${estimatedMB}MB`;
+
+    return {
+      totalAvatars: totalCount,
+      activeAvatars: activeCount,
+      inactiveAvatars: inactiveCount,
+      estimatedStorageUsed,
+    };
+  } catch (error) {
+    console.error('Error getting storage stats:', error);
+    return {
+      totalAvatars: 0,
+      activeAvatars: 0,
+      inactiveAvatars: 0,
+      estimatedStorageUsed: '0MB',
+    };
+  }
+};
+
+// Add this function to your dgraph API file (lib/api/dgraph.js or similar)
+
+export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) {
+  const query = `
+    query GetUserAvatarByImageUrl($userId: String!) {
+      queryUser(filter: { id: { eq: $userId } }) {
+        avatarHistory {
+          id
+          generationPrompt
+          generatedImageUrl
+          baseImageUrl
+          generatedAt
+          isActive
+          equippedCap {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedHoodie {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedPants {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+          equippedShoes {
+            id
+            name
+            itemType
+            rarity
+            tokenBonus
+            imageUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { userId },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      return null;
+    }
+
+    const user = response.data?.data?.queryUser?.[0];
+    if (user?.avatarHistory?.length > 0) {
+      // Filter in JavaScript to find the avatar with matching URL
+      const matchingAvatar = user.avatarHistory.find((avatar: any) => avatar.generatedImageUrl === imageUrl);
+      return matchingAvatar || null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching avatar by URL:', error);
+    return null;
+  }
+}

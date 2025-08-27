@@ -330,21 +330,6 @@ const SearchView = () => {
           >
             <span className={`text-2xl font-bold ${style.textColor}`}>{item.rank}</span>
           </ThematicContainer>
-
-          {/* Follow Button for non-current users */}
-          {!isCurrentUser && (
-            <div className="mt-2">
-              <PrimaryButton
-                text={isPending ? '⏳' : '+ Follow'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFollow(item.userId);
-                }}
-                className="px-3 py-1 text-xs"
-                disabled={isPending}
-              />
-            </div>
-          )}
         </div>
       );
     },
@@ -406,19 +391,6 @@ const SearchView = () => {
                 </div>
               </div>
             </div>
-
-            {/* Follow Button */}
-            {!isCurrentUser && (
-              <PrimaryButton
-                text={isPending ? '⏳' : 'Follow'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFollow(item.userId);
-                }}
-                className="px-4 py-2 text-sm"
-                disabled={isPending}
-              />
-            )}
           </div>
         </ThematicContainer>
       );

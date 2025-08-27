@@ -294,7 +294,7 @@ export const dailyChallenges: Challenge[] = [
     frequency: ChallengeFrequency.DAILY,
   },
   {
-    title: "Busy Spot",
+    title: 'Busy Spot',
     description: 'Show the busiest spot in the city.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
@@ -319,14 +319,13 @@ export const dailyChallenges: Challenge[] = [
   },
   {
     title: 'Interesting Architecture',
-    description:
-      'Find a building with unique or cool architecture.',
+    description: 'Find a building with unique or cool architecture.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
   },
   {
     title: 'Cool Shadow',
-    description: "Find an interesting or artistic shadow.",
+    description: 'Find an interesting or artistic shadow.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
   },
@@ -338,14 +337,13 @@ export const dailyChallenges: Challenge[] = [
   },
   {
     title: 'Favorite Place',
-    description:
-      'Show your favorite place in your city and tell us why you love it.',
+    description: 'Show your favorite place in your city and tell us why you love it.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
   },
   {
     title: 'Water Feature',
-    description: "Find a fountain, pond, or other interesting water feature or body of water.",
+    description: 'Find a fountain, pond, or other interesting water feature or body of water.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
   },
@@ -359,8 +357,7 @@ export const dailyChallenges: Challenge[] = [
   // 👟 Style & Personal Items
   {
     title: 'Eccentric Socks',
-    description:
-      'Wear some fun or unusual socks today.',
+    description: 'Wear some fun or unusual socks today.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
   },

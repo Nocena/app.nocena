@@ -14,6 +14,7 @@ import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
 import UpdateNotification from '../components/PWA/UpdateNotification';
 import CacheDebugger from '../components/PWA/CacheDebugger'; // Add this import
+import { BackgroundTaskProvider, useBackgroundTasks } from '../contexts/BackgroundTaskContext';
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -276,7 +277,9 @@ function MyApp(props: AppProps) {
   return (
     <ThirdwebProvider>
       <AuthProvider>
-        <MyAppContent {...props} />
+        <BackgroundTaskProvider>
+          <MyAppContent {...props} />
+        </BackgroundTaskProvider>
       </AuthProvider>
     </ThirdwebProvider>
   );

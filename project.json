@@ -18,5 +18,5 @@
     ],
     "demo_url": "app.nocena.com",
     "video_url": "https://youtu.be/xBzzq82ShW8",
-    "technologies": ["React", "Next.js", "Flow", "FilCDN", "Pinata", "Filecoin", "Dgraph", "Lens Protocol", "ThirdWeb", "Tesor Flow", "ChatGPT", "Vapid", "Typescript", "TailwindCSS", "Node.js", "ngrok"]
+    "technologies": ["React", "Next.js", "Flow", "FilCDN", "Pinata", "Filecoin", "Dgraph", "Lens Protocol", "ThirdWeb", "Tensor Flow", "ChatGPT", "Vapid", "Typescript", "TailwindCSS", "Node.js", "ngrok"]
   }
