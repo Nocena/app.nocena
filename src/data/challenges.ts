@@ -516,5 +516,5 @@ export const dailyChallenges: Challenge[] = [
     description: 'Make a small decision today based on a coin flip.',
     category: ChallengeCategory.AI,
     frequency: ChallengeFrequency.DAILY,
-  },
+  }
 ];
