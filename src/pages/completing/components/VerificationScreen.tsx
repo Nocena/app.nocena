@@ -206,7 +206,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   // Check background task progress
   const getBackgroundProgress = () => {
     const tasks = [];
-    
+
     if (backgroundTaskIds.videoAnalysisId) {
       const task = backgroundTasks.getTask(backgroundTaskIds.videoAnalysisId);
       if (task) {
@@ -218,7 +218,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         });
       }
     }
-    
+
     if (backgroundTaskIds.verificationPrepId) {
       const task = backgroundTasks.getTask(backgroundTaskIds.verificationPrepId);
       if (task) {
@@ -230,7 +230,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         });
       }
     }
-    
+
     if (backgroundTaskIds.faceMatchingId) {
       const task = backgroundTasks.getTask(backgroundTaskIds.faceMatchingId);
       if (task) {
@@ -250,10 +250,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   const startOptimizedVerification = async () => {
     setVerificationStage('verifying');
     setErrorMessage('');
-    
+
     const backgroundResults = getBackgroundTaskResults();
     console.log('🔄 Background task results:', backgroundResults);
-    
+
     try {
       // Create optimized steps based on background results
       const optimizedSteps: VerificationStep[] = [
@@ -262,7 +262,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           name: 'File Validation',
           status: backgroundResults.videoAnalysis ? 'completed' : 'running',
           progress: backgroundResults.videoAnalysis ? 100 : 0,
-          message: backgroundResults.videoAnalysis 
+          message: backgroundResults.videoAnalysis
             ? 'Video quality verified from background analysis'
             : 'Checking video and photo files...',
           confidence: backgroundResults.videoAnalysis?.quality === 'high' ? 0.95 : 0,
@@ -272,7 +272,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           name: 'Face Matching',
           status: backgroundResults.faceMatching ? 'completed' : 'running',
           progress: backgroundResults.faceMatching ? 100 : 0,
-          message: backgroundResults.faceMatching 
+          message: backgroundResults.faceMatching
             ? `Face match confirmed (${Math.round(backgroundResults.faceMatching.confidence * 100)}% confidence)`
             : 'Comparing faces between video and selfie...',
           confidence: backgroundResults.faceMatching?.confidence || 0,
@@ -282,7 +282,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           name: 'Activity Analysis',
           status: backgroundResults.verificationPrep ? 'completed' : 'running',
           progress: backgroundResults.verificationPrep ? 100 : 0,
-          message: backgroundResults.verificationPrep 
+          message: backgroundResults.verificationPrep
             ? `Challenge activity verified (${Math.round(backgroundResults.verificationPrep.activityConfidence * 100)}% confidence)`
             : 'Analyzing challenge completion...',
           confidence: backgroundResults.verificationPrep?.activityConfidence || 0,
@@ -302,7 +302,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       // Process remaining steps quickly
       for (let i = 0; i < optimizedSteps.length; i++) {
         const step = optimizedSteps[i];
-        
+
         if (step.status === 'completed') {
           // Skip already completed background tasks
           continue;
@@ -314,7 +314,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
         // Much faster processing since most work is done in background
         const processingTime = step.id === 'final-review' ? 1500 : 800;
-        
+
         for (let progress = 0; progress <= 100; progress += 33) {
           step.progress = progress;
           setVerificationSteps([...optimizedSteps]);
@@ -323,7 +323,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
         step.status = 'completed';
         step.progress = 100;
-        
+
         // Set confidence based on background results or simulate
         if (!step.confidence) {
           step.confidence = 0.85 + Math.random() * 0.14;
@@ -331,17 +331,17 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
         switch (step.id) {
           case 'file-check':
-            step.message = backgroundResults.videoAnalysis 
+            step.message = backgroundResults.videoAnalysis
               ? 'Video quality excellent from background analysis'
               : 'Video and photo files are valid and high quality';
             break;
           case 'face-match':
-            step.message = backgroundResults.faceMatching 
+            step.message = backgroundResults.faceMatching
               ? `Face successfully matched (${Math.round(step.confidence * 100)}% confidence)`
               : 'Face successfully matched between video and selfie';
             break;
           case 'activity-check':
-            step.message = backgroundResults.verificationPrep 
+            step.message = backgroundResults.verificationPrep
               ? `Challenge completion verified (${Math.round(step.confidence * 100)}% confidence)`
               : 'Challenge activity detected and verified as authentic';
             break;
@@ -355,14 +355,16 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       }
 
       // Calculate overall confidence from all steps
-      const overallConfidence = optimizedSteps.reduce((sum, step) => sum + (step.confidence || 0), 0) / optimizedSteps.length;
+      const overallConfidence =
+        optimizedSteps.reduce((sum, step) => sum + (step.confidence || 0), 0) / optimizedSteps.length;
 
       const optimizedResult = {
         passed: true,
         overallConfidence,
-        details: backgroundResults.videoAnalysis && backgroundResults.faceMatching && backgroundResults.verificationPrep
-          ? 'Verification completed using optimized background processing with high confidence.'
-          : 'All verification checks completed successfully with good confidence.',
+        details:
+          backgroundResults.videoAnalysis && backgroundResults.faceMatching && backgroundResults.verificationPrep
+            ? 'Verification completed using optimized background processing with high confidence.'
+            : 'All verification checks completed successfully with good confidence.',
         steps: optimizedSteps,
         timestamp: new Date().toISOString(),
         backgroundOptimized: true,
@@ -372,7 +374,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
       setVerificationResult(optimizedResult);
       setVerificationStage('complete');
       setCurrentStepMessage('All verification checks passed!');
-      
     } catch (error) {
       console.error('Optimized verification error:', error);
       setVerificationStage('failed');
@@ -537,8 +538,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   // 🚀 MAIN VERIFICATION FUNCTION - Choose optimized or fallback
   const startVerification = async () => {
     const backgroundResults = getBackgroundTaskResults();
-    const hasBackgroundResults = backgroundResults.videoAnalysis || backgroundResults.faceMatching || backgroundResults.verificationPrep;
-    
+    const hasBackgroundResults =
+      backgroundResults.videoAnalysis || backgroundResults.faceMatching || backgroundResults.verificationPrep;
+
     if (hasBackgroundResults) {
       console.log('🚀 Using optimized verification with background results');
       await startOptimizedVerification();
@@ -560,8 +562,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   const getStageInfo = () => {
     const backgroundResults = getBackgroundTaskResults();
-    const hasBackgroundResults = backgroundResults.videoAnalysis || backgroundResults.faceMatching || backgroundResults.verificationPrep;
-    
+    const hasBackgroundResults =
+      backgroundResults.videoAnalysis || backgroundResults.faceMatching || backgroundResults.verificationPrep;
+
     let subtitle = '';
     if (hasBackgroundResults) {
       subtitle = 'Background processing complete - fast verification ready';
@@ -730,21 +733,15 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                         <span className="text-xs text-gray-400 w-8">{task.progress}%</span>
                       </>
                     )}
-                    {task.status === 'completed' && (
-                      <span className="text-green-400 text-sm">✓ Ready</span>
-                    )}
-                    {task.status === 'queued' && (
-                      <span className="text-gray-400 text-sm">⏳</span>
-                    )}
-                    {task.status === 'failed' && (
-                      <span className="text-red-400 text-sm">✗</span>
-                    )}
+                    {task.status === 'completed' && <span className="text-green-400 text-sm">✓ Ready</span>}
+                    {task.status === 'queued' && <span className="text-gray-400 text-sm">⏳</span>}
+                    {task.status === 'failed' && <span className="text-red-400 text-sm">✗</span>}
                   </div>
                 </div>
               ))}
             </div>
             <p className="text-xs text-gray-400 mt-2 opacity-75">
-              {backgroundProgress.filter(t => t.status === 'completed').length > 0
+              {backgroundProgress.filter((t) => t.status === 'completed').length > 0
                 ? 'Background processing complete - verification will be much faster!'
                 : 'Processing continues in background - you can start verification anytime'}
             </p>
@@ -820,9 +817,9 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     />
                   </svg>
                 </div>
-                
+
                 {/* Show different messages based on background status */}
-                {backgroundProgress.filter(t => t.status === 'completed').length > 0 ? (
+                {backgroundProgress.filter((t) => t.status === 'completed').length > 0 ? (
                   <>
                     <h3 className="text-lg font-medium mb-2">⚡ Fast-Track Verification Ready</h3>
                     <p className="text-sm text-green-300 mb-4">
@@ -841,7 +838,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     </p>
                   </>
                 )}
-                
+
                 {(!isDevelopmentEnvironment || !useMockVerification) && (
                   <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 mb-4">
                     <div className="flex items-start gap-2">
@@ -859,12 +856,13 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                         />
                       </svg>
                       <p className="text-xs text-blue-300 leading-relaxed">
-                        {backgroundProgress.filter(t => t.status === 'completed').length > 0 ? (
+                        {backgroundProgress.filter((t) => t.status === 'completed').length > 0 ? (
                           <strong>Background processing complete:</strong>
                         ) : (
                           <strong>First-time setup:</strong>
-                        )} Initial verification may take an extra few seconds while face
-                        recognition models are downloaded and initialized.
+                        )}{' '}
+                        Initial verification may take an extra few seconds while face recognition models are downloaded
+                        and initialized.
                       </p>
                     </div>
                   </div>
@@ -889,8 +887,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <h3 className="text-lg font-medium text-nocenaPink">
-                    {verificationResult?.backgroundOptimized ? '⚡ Fast-Track Analysis' :
-                     isDevelopmentEnvironment && useMockVerification ? 'Mock Analysis Active' : 'Neural Analysis Active'}
+                    {verificationResult?.backgroundOptimized
+                      ? '⚡ Fast-Track Analysis'
+                      : isDevelopmentEnvironment && useMockVerification
+                        ? 'Mock Analysis Active'
+                        : 'Neural Analysis Active'}
                   </h3>
                 </div>
 
@@ -947,14 +948,20 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium text-nocenaPurple mb-2">
-                    {verificationResult?.backgroundOptimized ? '⚡ Fast Verification Complete!' : 'Verification Complete!'}
+                    {verificationResult?.backgroundOptimized
+                      ? '⚡ Fast Verification Complete!'
+                      : 'Verification Complete!'}
                   </h3>
                   <p className="text-sm text-gray-300 mb-4">
-                    {verificationResult?.backgroundOptimized ? 'Optimized background processing' :
-                     isDevelopmentEnvironment && useMockVerification ? 'Mock analysis' : 'AI analysis'} passed with{' '}
-                    {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
+                    {verificationResult?.backgroundOptimized
+                      ? 'Optimized background processing'
+                      : isDevelopmentEnvironment && useMockVerification
+                        ? 'Mock analysis'
+                        : 'AI analysis'}{' '}
+                    passed with {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}%
+                    confidence
                   </p>
-                  
+
                   {verificationResult?.backgroundOptimized && (
                     <div className="bg-green-900/30 rounded-lg p-2 mb-4">
                       <p className="text-xs text-green-300">

@@ -1,15 +1,11 @@
+// contexts/BackgroundTaskContext.tsx - FIXED VERSION
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 // Background Task Types
-export type TaskType = 
-  | 'video-analysis' 
-  | 'nft-generation' 
-  | 'verification-prep' 
-  | 'face-matching'
-  | 'blockchain-prep';
+export type TaskType = 'video-analysis' | 'nft-generation' | 'verification-prep' | 'face-matching' | 'blockchain-prep';
 
 export type TaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
@@ -26,6 +22,8 @@ export interface BackgroundTask {
   createdAt: number;
   startedAt?: number;
   completedAt?: number;
+  // NEW: Add persistent flag to prevent cancellation
+  persistent?: boolean;
 }
 
 interface BackgroundTaskState {
@@ -34,8 +32,8 @@ interface BackgroundTaskState {
   overallProgress: number;
 }
 
-type TaskAction = 
-  | { type: 'QUEUE_TASK'; payload: Omit<BackgroundTask, 'id' | 'createdAt'> }
+type TaskAction =
+  | { type: 'QUEUE_TASK'; payload: Omit<BackgroundTask, 'id' | 'createdAt'> & { id: string } }
   | { type: 'START_TASK'; payload: { id: string } }
   | { type: 'UPDATE_PROGRESS'; payload: { id: string; progress: number } }
   | { type: 'COMPLETE_TASK'; payload: { id: string; result: any } }
@@ -54,10 +52,10 @@ interface BackgroundTaskContextType {
   getTaskProgress: (id: string) => number;
   cancelTask: (id: string) => void;
   clearAllTasks: () => void;
-  
+
   // Convenience methods for specific tasks
   startVideoAnalysis: (videoBlob: Blob, challenge: any) => string;
-  startNFTGeneration: (userId: string, completionId?: string) => string;
+  startNFTGeneration: (userId: string, completionId?: string, persistent?: boolean) => string;
   startVerificationPrep: (videoBlob: Blob, challenge: any) => string;
   startFaceMatching: (videoBlob: Blob, photoBlob: Blob) => string;
 }
@@ -73,24 +71,26 @@ const initialState: BackgroundTaskState = {
 function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): BackgroundTaskState {
   switch (action.type) {
     case 'QUEUE_TASK': {
-      const id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const task: BackgroundTask = {
         ...action.payload,
-        id,
         createdAt: Date.now(),
       };
-      
+
+      console.log('🟩 [Queue] Task queued:', task.id.slice(-8), task.type, task.persistent ? '(PERSISTENT)' : '');
+
       return {
         ...state,
-        tasks: { ...state.tasks, [id]: task },
+        tasks: { ...state.tasks, [task.id]: task },
         isProcessing: true,
       };
     }
-    
+
     case 'START_TASK': {
       const task = state.tasks[action.payload.id];
       if (!task) return state;
-      
+
+      console.log('🟪 [Start] Task started:', action.payload.id.slice(-8));
+
       return {
         ...state,
         tasks: {
@@ -103,11 +103,11 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
         },
       };
     }
-    
+
     case 'UPDATE_PROGRESS': {
       const task = state.tasks[action.payload.id];
       if (!task) return state;
-      
+
       return {
         ...state,
         tasks: {
@@ -119,11 +119,13 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
         },
       };
     }
-    
+
     case 'COMPLETE_TASK': {
       const task = state.tasks[action.payload.id];
       if (!task) return state;
-      
+
+      console.log('✅ [Complete] Task completed:', action.payload.id.slice(-8), task.type);
+
       const updatedTasks = {
         ...state.tasks,
         [action.payload.id]: {
@@ -134,13 +136,13 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
           completedAt: Date.now(),
         },
       };
-      
+
       // Calculate overall progress
       const taskList = Object.values(updatedTasks);
-      const completedTasks = taskList.filter(t => t.status === 'completed').length;
+      const completedTasks = taskList.filter((t) => t.status === 'completed').length;
       const overallProgress = taskList.length > 0 ? (completedTasks / taskList.length) * 100 : 0;
-      const isProcessing = taskList.some(t => t.status === 'running' || t.status === 'queued');
-      
+      const isProcessing = taskList.some((t) => t.status === 'running' || t.status === 'queued');
+
       return {
         ...state,
         tasks: updatedTasks,
@@ -148,11 +150,13 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
         isProcessing,
       };
     }
-    
+
     case 'FAIL_TASK': {
       const task = state.tasks[action.payload.id];
       if (!task) return state;
-      
+
+      console.log('❌ [Fail] Task failed:', action.payload.id.slice(-8), action.payload.error);
+
       return {
         ...state,
         tasks: {
@@ -166,11 +170,19 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
         },
       };
     }
-    
+
     case 'CANCEL_TASK': {
       const task = state.tasks[action.payload.id];
       if (!task) return state;
-      
+
+      // Don't cancel persistent tasks
+      if (task.persistent) {
+        console.log('🔒 [Cancel Blocked] Task is persistent:', action.payload.id.slice(-8), task.type);
+        return state;
+      }
+
+      console.log('🚫 [Cancel] Task cancelled:', action.payload.id.slice(-8), task.type);
+
       return {
         ...state,
         tasks: {
@@ -182,11 +194,25 @@ function backgroundTaskReducer(state: BackgroundTaskState, action: TaskAction): 
         },
       };
     }
-    
+
     case 'CLEAR_TASKS': {
-      return initialState;
+      // Only clear non-persistent tasks
+      const persistentTasks: { [key: string]: BackgroundTask } = {};
+      Object.entries(state.tasks).forEach(([id, task]) => {
+        if (task.persistent && (task.status === 'running' || task.status === 'queued')) {
+          persistentTasks[id] = task;
+        }
+      });
+
+      console.log('🗑️ [Clear] Clearing tasks, keeping', Object.keys(persistentTasks).length, 'persistent tasks');
+
+      return {
+        ...state,
+        tasks: persistentTasks,
+        isProcessing: Object.keys(persistentTasks).length > 0,
+      };
     }
-    
+
     default:
       return state;
   }
@@ -204,56 +230,92 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
   const [state, dispatch] = useReducer(backgroundTaskReducer, initialState);
   const { user } = useAuth();
   const taskProcessorRef = useRef<{ [key: string]: AbortController }>({});
-  
+
+  // MINIMAL LOGGING: Only log active tasks summary
+  useEffect(() => {
+    const activeTasks = Object.values(state.tasks).filter((t) => t.status === 'queued' || t.status === 'running');
+
+    if (activeTasks.length > 0) {
+      const summary = activeTasks.map((t) => `${t.id.slice(-8)}:${t.type}(${t.status})`).join(', ');
+      console.log('📊 [Active Tasks]', summary);
+    }
+  }, [state.isProcessing]);
+
+  useEffect(() => {
+    // Process all queued tasks
+    Object.values(state.tasks).forEach(task => {
+      if (task.status === 'queued' && !taskProcessorRef.current[task.id]) {
+        // Only process if not already processing
+        processTask(task.id);
+      }
+    });
+  }, [state.tasks]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Cancel all running tasks
-      Object.values(taskProcessorRef.current).forEach(controller => {
+      Object.values(taskProcessorRef.current).forEach((controller) => {
         controller.abort();
       });
     };
   }, []);
-  
+
   // Queue a new background task
   const queueTask = useCallback((taskData: Omit<BackgroundTask, 'id' | 'createdAt'>): string => {
-    dispatch({ type: 'QUEUE_TASK', payload: taskData });
-    
-    // Get the task ID (we need to generate it the same way)
     const id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Start processing the task immediately if dependencies are met
-    setTimeout(() => processTask(id), 100);
-    
+
+    dispatch({
+      type: 'QUEUE_TASK',
+      payload: {
+        ...taskData,
+        id,
+      },
+    });
+
     return id;
   }, []);
-  
-  // Process individual tasks
+
+  // Process individual tasks - FIXED to handle race conditions
   const processTask = async (taskId: string) => {
+    // CRITICAL FIX: Wait for state to update before processing
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     const task = state.tasks[taskId];
-    if (!task || task.status !== 'queued') return;
-    
-    // Check if dependencies are completed
-    const dependenciesCompleted = task.dependencies.every(depId => {
+    if (!task) {
+      console.log('🟪 [Process] Task not found:', taskId.slice(-8));
+
+      // RETRY: Try again after state updates (max 3 retries)
+      const retryCount = (processTask as any).retryCount || 0;
+      if (retryCount < 3) {
+        console.log('🟪 [Process] Retrying in 500ms, attempt:', retryCount + 1);
+        (processTask as any).retryCount = retryCount + 1;
+        setTimeout(() => processTask(taskId), 500);
+      }
+      return;
+    }
+
+    if (task.status !== 'queued') return;
+
+    // Check dependencies
+    const dependenciesCompleted = task.dependencies.every((depId) => {
       const depTask = state.tasks[depId];
       return depTask && depTask.status === 'completed';
     });
-    
+
     if (!dependenciesCompleted) {
-      // Retry after a delay
       setTimeout(() => processTask(taskId), 1000);
       return;
     }
-    
+
     // Create abort controller for this task
     const abortController = new AbortController();
     taskProcessorRef.current[taskId] = abortController;
-    
+
     dispatch({ type: 'START_TASK', payload: { id: taskId } });
-    
+
     try {
       let result: any;
-      
+
       switch (task.type) {
         case 'video-analysis':
           result = await processVideoAnalysis(task.data, taskId, abortController.signal);
@@ -273,7 +335,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
         default:
           throw new Error(`Unknown task type: ${task.type}`);
       }
-      
+
       if (!abortController.signal.aborted) {
         dispatch({ type: 'COMPLETE_TASK', payload: { id: taskId, result } });
       }
@@ -283,34 +345,32 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
       }
     } finally {
       delete taskProcessorRef.current[taskId];
+      delete (processTask as any).retryCount;
     }
   };
-  
+
   // Background task processors
   const updateProgress = (taskId: string, progress: number) => {
     dispatch({ type: 'UPDATE_PROGRESS', payload: { id: taskId, progress } });
   };
-  
+
   const processVideoAnalysis = async (data: any, taskId: string, signal: AbortSignal) => {
     const { videoBlob, challenge } = data;
-    
+
     updateProgress(taskId, 10);
-    
-    // Simulate video quality analysis
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     if (signal.aborted) throw new Error('Cancelled');
+
     updateProgress(taskId, 40);
-    
-    // Simulate video compression/optimization
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     if (signal.aborted) throw new Error('Cancelled');
+
     updateProgress(taskId, 70);
-    
-    // Simulate activity detection prep
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     if (signal.aborted) throw new Error('Cancelled');
+
     updateProgress(taskId, 100);
-    
+
     return {
       quality: 'high',
       duration: 8.5,
@@ -318,21 +378,23 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
       compressionReady: true,
     };
   };
-  
+
+  // FIXED NFT Generation Process
   const processNFTGeneration = async (data: any, taskId: string, signal: AbortSignal) => {
     const { userId, completionId } = data;
-    
+
+    console.log('🎁 [NFT] Starting generation for user:', userId);
     updateProgress(taskId, 5);
-    
+
     try {
-      // Call the actual NFT generation API
+      // FIXED: Use the correct API endpoint path
       const response = await fetch('/api/chainGPT/generate-clothing-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userID: userId,
           completionId: completionId || `bg_${Date.now()}_${userId}`,
-          templateType: undefined, // Let it select random
+          templateType: undefined,
           model: 'velogen',
           width: 512,
           height: 512,
@@ -341,155 +403,227 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
         }),
         signal,
       });
-      
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 50);
-      
+
       if (!response.ok) {
-        throw new Error(`NFT generation failed: ${response.status}`);
+        // Try alternative endpoint if the first one fails
+        console.log('🔄 [NFT] Primary endpoint failed, trying fallback...');
+        const fallbackResponse = await fetch('/api/generate-clothing-nft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            completionId: completionId || `bg_${Date.now()}_${userId}`,
+          }),
+          signal,
+        });
+
+        if (!fallbackResponse.ok) {
+          throw new Error(`NFT generation failed: ${response.status} / ${fallbackResponse.status}`);
+        }
+
+        const fallbackResult = await fallbackResponse.json();
+        updateProgress(taskId, 90);
+
+        if (!fallbackResult.success) {
+          throw new Error(fallbackResult.error || 'NFT generation failed');
+        }
+
+        updateProgress(taskId, 100);
+
+        return {
+          success: true,
+          collectionId: fallbackResult.collectionId || 'generated',
+          templateType: fallbackResult.templateType || 'clothing',
+          templateName: fallbackResult.templateName || 'Generated Item',
+          imageUrl: fallbackResult.imageUrl,
+          completionId: completionId,
+          generatedViaFallback: true,
+        };
       }
-      
+
       const result = await response.json();
       updateProgress(taskId, 90);
-      
+
       if (!result.success || !result.generation?.imageUrl) {
         throw new Error(result.error || 'NFT generation failed');
       }
-      
+
       updateProgress(taskId, 100);
-      
-      return {
+
+      const finalResult = {
         success: true,
         collectionId: result.clothingInfo?.templateCID || 'generated',
-        templateType: result.clothingInfo?.type,
-        templateName: result.clothingInfo?.name,
+        templateType: result.clothingInfo?.type || 'clothing',
+        templateName: result.clothingInfo?.name || 'Generated Item',
         imageUrl: result.generation.imageUrl,
         completionId: completionId,
       };
+
+      console.log('🎁 [NFT] Generation completed:', finalResult.templateName);
+      return finalResult;
     } catch (error: any) {
       if (signal.aborted) throw error;
+      console.error('🔴 [NFT] Generation error:', error.message);
       throw new Error(`NFT generation failed: ${error.message}`);
     }
   };
-  
+
   const processVerificationPrep = async (data: any, taskId: string, signal: AbortSignal) => {
-    const { videoBlob, challenge } = data;
-    
     updateProgress(taskId, 20);
-    
-    // Simulate verification preparation
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     if (signal.aborted) throw new Error('Cancelled');
+
     updateProgress(taskId, 60);
-    
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     if (signal.aborted) throw new Error('Cancelled');
+
     updateProgress(taskId, 100);
-    
+
     return {
       verificationReady: true,
       activityConfidence: 0.92,
       qualityScore: 0.88,
     };
   };
-  
+
   const processFaceMatching = async (data: any, taskId: string, signal: AbortSignal) => {
-    const { videoBlob, photoBlob } = data;
-    
     updateProgress(taskId, 30);
-    
-    // Simulate face matching
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     if (signal.aborted) throw new Error('Cancelled');
     updateProgress(taskId, 100);
-    
+
     return {
       faceMatch: true,
       confidence: 0.94,
       identityVerified: true,
     };
   };
-  
+
   const processBlockchainPrep = async (data: any, taskId: string, signal: AbortSignal) => {
     updateProgress(taskId, 50);
-    
-    // Simulate blockchain preparation
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     if (signal.aborted) throw new Error('Cancelled');
     updateProgress(taskId, 100);
-    
+
     return {
       transactionReady: true,
       gasEstimate: 0.002,
     };
   };
-  
+
   // Convenience methods
-  const startVideoAnalysis = useCallback((videoBlob: Blob, challenge: any): string => {
-    return queueTask({
-      type: 'video-analysis',
-      status: 'queued',
-      progress: 0,
-      data: { videoBlob, challenge },
-      dependencies: [],
-      priority: 'high',
-    });
-  }, [queueTask]);
-  
-  const startNFTGeneration = useCallback((userId: string, completionId?: string): string => {
-    return queueTask({
-      type: 'nft-generation',
-      status: 'queued',
-      progress: 0,
-      data: { userId, completionId },
-      dependencies: [],
-      priority: 'medium',
-    });
-  }, [queueTask]);
-  
-  const startVerificationPrep = useCallback((videoBlob: Blob, challenge: any): string => {
-    return queueTask({
-      type: 'verification-prep',
-      status: 'queued',
-      progress: 0,
-      data: { videoBlob, challenge },
-      dependencies: [],
-      priority: 'high',
-    });
-  }, [queueTask]);
-  
-  const startFaceMatching = useCallback((videoBlob: Blob, photoBlob: Blob): string => {
-    return queueTask({
-      type: 'face-matching',
-      status: 'queued',
-      progress: 0,
-      data: { videoBlob, photoBlob },
-      dependencies: [],
-      priority: 'high',
-    });
-  }, [queueTask]);
-  
-  // Helper methods
-  const getTask = useCallback((id: string) => state.tasks[id], [state.tasks]);
-  const getTasksByType = useCallback((type: TaskType) => 
-    Object.values(state.tasks).filter(task => task.type === type), [state.tasks]);
+  const startVideoAnalysis = useCallback(
+    (videoBlob: Blob, challenge: any): string => {
+      console.log('🚀 Starting video analysis...');
+      return queueTask({
+        type: 'video-analysis',
+        status: 'queued',
+        progress: 0,
+        data: { videoBlob, challenge },
+        dependencies: [],
+        priority: 'high',
+      });
+    },
+    [queueTask],
+  );
+
+  // UPDATED: NFT Generation with persistence option
+  const startNFTGeneration = useCallback(
+    (userId: string, completionId?: string, persistent: boolean = true): string => {
+      console.log('🚀 Starting NFT generation for user:', userId, persistent ? '(PERSISTENT)' : '');
+      return queueTask({
+        type: 'nft-generation',
+        status: 'queued',
+        progress: 0,
+        data: { userId, completionId },
+        dependencies: [],
+        priority: 'medium',
+        persistent: persistent, // Make NFT generation persistent by default
+      });
+    },
+    [queueTask],
+  );
+
+  const startVerificationPrep = useCallback(
+    (videoBlob: Blob, challenge: any): string => {
+      console.log('🚀 Starting verification prep...');
+      return queueTask({
+        type: 'verification-prep',
+        status: 'queued',
+        progress: 0,
+        data: { videoBlob, challenge },
+        dependencies: [],
+        priority: 'high',
+      });
+    },
+    [queueTask],
+  );
+
+  const startFaceMatching = useCallback(
+    (videoBlob: Blob, photoBlob: Blob): string => {
+      console.log('🚀 Starting face matching...');
+      return queueTask({
+        type: 'face-matching',
+        status: 'queued',
+        progress: 0,
+        data: { videoBlob, photoBlob },
+        dependencies: [],
+        priority: 'high',
+      });
+    },
+    [queueTask],
+  );
+
+  // Helper methods - MINIMAL LOGGING
+  const getTask = useCallback(
+    (id: string) => {
+      return state.tasks[id];
+    },
+    [state.tasks],
+  );
+
+  const getTasksByType = useCallback(
+    (type: TaskType) => Object.values(state.tasks).filter((task) => task.type === type),
+    [state.tasks],
+  );
+
   const isTaskCompleted = useCallback((id: string) => state.tasks[id]?.status === 'completed', [state.tasks]);
   const isTaskRunning = useCallback((id: string) => state.tasks[id]?.status === 'running', [state.tasks]);
   const getTaskProgress = useCallback((id: string) => state.tasks[id]?.progress || 0, [state.tasks]);
+
   const cancelTask = useCallback((id: string) => {
+    const task = state.tasks[id];
+    if (task?.persistent) {
+      console.log('🔒 [Cancel Blocked] Cannot cancel persistent task:', id.slice(-8), task.type);
+      return;
+    }
+
     const controller = taskProcessorRef.current[id];
     if (controller) {
       controller.abort();
       delete taskProcessorRef.current[id];
     }
     dispatch({ type: 'CANCEL_TASK', payload: { id } });
-  }, []);
+  }, [state.tasks]);
+
   const clearAllTasks = useCallback(() => {
-    Object.values(taskProcessorRef.current).forEach(controller => controller.abort());
-    taskProcessorRef.current = {};
+    // Only abort non-persistent tasks
+    Object.entries(state.tasks).forEach(([id, task]) => {
+      if (!task.persistent) {
+        const controller = taskProcessorRef.current[id];
+        if (controller) {
+          controller.abort();
+          delete taskProcessorRef.current[id];
+        }
+      }
+    });
+    
     dispatch({ type: 'CLEAR_TASKS' });
-  }, []);
-  
+  }, [state.tasks]);
+
   const value: BackgroundTaskContextType = {
     state,
     queueTask,
@@ -505,12 +639,8 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
     startVerificationPrep,
     startFaceMatching,
   };
-  
-  return (
-    <BackgroundTaskContext.Provider value={value}>
-      {children}
-    </BackgroundTaskContext.Provider>
-  );
+
+  return <BackgroundTaskContext.Provider value={value}>{children}</BackgroundTaskContext.Provider>;
 };
 
 // Hook to use the context

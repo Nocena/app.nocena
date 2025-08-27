@@ -5486,11 +5486,13 @@ export const saveUserAvatar = async (avatarData: {
     // STEP 1: Clean up old avatars BEFORE creating new one
     console.log('🧹 Step 1: Cleaning up old avatars...');
     const cleanupResults = await cleanupOldAvatars(avatarData.userId);
-    
+
     if (!cleanupResults.success) {
       console.warn('⚠️ Cleanup failed, but continuing with save:', cleanupResults.error);
     } else {
-      console.log(`✅ Cleanup complete: ${cleanupResults.deletedCount} records, ${cleanupResults.cleanedFiles?.length} files`);
+      console.log(
+        `✅ Cleanup complete: ${cleanupResults.deletedCount} records, ${cleanupResults.cleanedFiles?.length} files`,
+      );
     }
 
     // STEP 2: Deactivate any remaining active avatars (just in case)
@@ -5518,7 +5520,7 @@ export const saveUserAvatar = async (avatarData: {
 
     // STEP 3: Create the new avatar
     console.log('🎨 Step 2: Creating new avatar record...');
-    
+
     // Build the input object dynamically based on what's provided
     const input: any = {
       id: avatarId,
@@ -5593,7 +5595,7 @@ export const saveUserAvatar = async (avatarData: {
 
     // STEP 4: Update user's current avatar reference
     console.log('🎨 Step 3: Updating user current avatar reference...');
-    
+
     const updateUserMutation = `
       mutation UpdateUserAvatar($userId: String!, $avatarUrl: String!) {
         updateUser(input: {
@@ -5626,11 +5628,11 @@ export const saveUserAvatar = async (avatarData: {
 
     console.log('✅ User currentAvatar updated successfully');
     console.log('🎉 Avatar saved successfully with cleanup:', avatarId);
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       avatarId,
-      cleanupResults 
+      cleanupResults,
     };
   } catch (error) {
     console.error('❌ Error saving avatar:', error);
@@ -5925,7 +5927,9 @@ export const updateUserEquippedItems = async (
  * @param userId - User ID
  * @returns Promise<{success: boolean, deletedCount?: number, cleanedFiles?: string[]}>
  */
-export const cleanupOldAvatars = async (userId: string): Promise<{
+export const cleanupOldAvatars = async (
+  userId: string,
+): Promise<{
   success: boolean;
   deletedCount?: number;
   cleanedFiles?: string[];
@@ -5987,12 +5991,12 @@ export const cleanupOldAvatars = async (userId: string): Promise<{
 
     oldAvatars.forEach((avatar: any) => {
       avatarIds.push(avatar.id);
-      
+
       // Add generated image CID if it exists
       if (avatar.generatedImageCID) {
         cidsToDelete.push(avatar.generatedImageCID);
       }
-      
+
       // Extract CID from URL if CID field is not available
       if (!avatar.generatedImageCID && avatar.generatedImageUrl?.includes('ipfs')) {
         const cidMatch = avatar.generatedImageUrl.match(/\/ipfs\/([^\/\?]+)/);
@@ -6008,7 +6012,7 @@ export const cleanupOldAvatars = async (userId: string): Promise<{
     const cleanedFiles: string[] = [];
     if (cidsToDelete.length > 0 && process.env.PINATA_JWT) {
       console.log('🧹 Cleaning up IPFS files from Pinata...');
-      
+
       for (const cid of cidsToDelete) {
         try {
           await deletePinataFile(cid);
@@ -6058,7 +6062,6 @@ export const cleanupOldAvatars = async (userId: string): Promise<{
     }
 
     return { success: true, deletedCount: 0, cleanedFiles };
-
   } catch (error) {
     console.error('🧹 Error during avatar cleanup:', error);
     return {
@@ -6084,7 +6087,7 @@ export const deletePinataFile = async (cid: string): Promise<boolean> => {
   try {
     const response = await axios.delete(`https://api.pinata.cloud/pinning/unpin/${cid}`, {
       headers: {
-        'Authorization': process.env.PINATA_JWT,
+        Authorization: process.env.PINATA_JWT,
       },
     });
 
@@ -6100,7 +6103,7 @@ export const deletePinataFile = async (cid: string): Promise<boolean> => {
       console.log(`📝 IPFS file ${cid} was already deleted or doesn't exist`);
       return true; // Consider 404 as success since file is gone
     }
-    
+
     console.error(`❌ Error deleting IPFS file ${cid}:`, error.response?.data || error.message);
     throw error;
   }
@@ -6111,7 +6114,9 @@ export const deletePinataFile = async (cid: string): Promise<boolean> => {
  * @param userId - User ID
  * @returns Promise with storage stats
  */
-export const getUserStorageStats = async (userId: string): Promise<{
+export const getUserStorageStats = async (
+  userId: string,
+): Promise<{
   totalAvatars: number;
   activeAvatars: number;
   inactiveAvatars: number;
@@ -6237,7 +6242,7 @@ export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) 
       DGRAPH_ENDPOINT,
       {
         query,
-        variables: { userId }
+        variables: { userId },
       },
       {
         headers: {
@@ -6254,9 +6259,7 @@ export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) 
     const user = response.data?.data?.queryUser?.[0];
     if (user?.avatarHistory?.length > 0) {
       // Filter in JavaScript to find the avatar with matching URL
-      const matchingAvatar = user.avatarHistory.find(
-        (avatar: any) => avatar.generatedImageUrl === imageUrl
-      );
+      const matchingAvatar = user.avatarHistory.find((avatar: any) => avatar.generatedImageUrl === imageUrl);
       return matchingAvatar || null;
     }
 

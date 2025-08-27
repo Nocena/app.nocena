@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import PrimaryButton from '../../components/ui/PrimaryButton';
@@ -43,7 +43,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const router = useRouter();
   const backgroundTasks = useBackgroundTasks();
   const { user } = useAuth(); // Get user for NFT generation
-  
+
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState<
@@ -54,6 +54,9 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [backgroundTaskIds, setBackgroundTaskIds] = useState<BackgroundTasks>({});
+
+  const backgroundTasksRef = useRef(backgroundTasks);
+  backgroundTasksRef.current = backgroundTasks;
 
   useEffect(() => {
     const { type, frequency, title, description, reward, challengeId, creatorId } = router.query;
@@ -112,33 +115,47 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     }
   }, [router.query]);
 
-  // Clean up background tasks when component unmounts or user navigates away
   useEffect(() => {
     return () => {
       console.log('🧹 Cleaning up background tasks on unmount');
-      Object.values(backgroundTaskIds).forEach(taskId => {
+      Object.values(backgroundTaskIds).forEach((taskId) => {
         if (taskId) {
           console.log('🚫 Cancelling task:', taskId);
-          backgroundTasks.cancelTask(taskId);
+          backgroundTasksRef.current.cancelTask(taskId);
         }
       });
     };
-  }, [backgroundTaskIds, backgroundTasks]);
+  }, [backgroundTaskIds]); // Remove backgroundTasks from dependency array
 
   // Debug: Log background task status changes
   useEffect(() => {
     console.log('📊 Background task IDs updated:', backgroundTaskIds);
-    
-    // Log status of each task
-    Object.entries(backgroundTaskIds).forEach(([key, taskId]) => {
+
+    // Only log if we have task IDs - prevent constant polling
+    const taskEntries = Object.entries(backgroundTaskIds);
+    if (taskEntries.length === 0) return;
+
+    // Log status of each task ONCE, don't call getTask in a loop
+    const statusSnapshot: string[] = [];
+    taskEntries.forEach(([key, taskId]) => {
       if (taskId) {
         const task = backgroundTasks.getTask(taskId);
         if (task) {
-          console.log(`📋 ${key}: ${task.status} (${task.progress}%)`, task.result ? 'HAS RESULT' : 'NO RESULT');
+          statusSnapshot.push(
+            `📋 ${key}: ${task.status} (${task.progress}%) ${task.result ? 'HAS RESULT' : 'NO RESULT'}`,
+          );
+        } else {
+          statusSnapshot.push(`📋 ${key}: NOT FOUND`);
         }
       }
     });
-  }, [backgroundTaskIds, backgroundTasks]);
+
+    if (statusSnapshot.length > 0) {
+      console.log('📋 Task Status Snapshot:', statusSnapshot.join(' | '));
+    }
+
+    // Don't add backgroundTasks to the dependency array to prevent infinite loops
+  }, [backgroundTaskIds]); // REMOVED backgroundTasks from dependency array
 
   // Custom back handler for different steps
   const handleStepBack = () => {
@@ -182,7 +199,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const handleCancel = () => {
     console.log('🚫 Cancelling all background tasks');
     backgroundTasks.clearAllTasks();
-    
+
     if (onBack) {
       onBack();
     } else {
@@ -244,29 +261,29 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   const handleVideoRecorded = (blob: Blob, duration: number) => {
     console.log('📹 Video recorded:', blob.size, 'bytes,', duration, 'seconds');
-    
+
     setVideoBlob(blob);
     setVideoDuration(duration);
-    
+
     // 🚀 START BACKGROUND PROCESSING IMMEDIATELY
     if (challenge && user?.id) {
       console.log('🔄 Starting background tasks after video recording...');
       console.log('👤 User ID:', user.id);
       console.log('🎬 Challenge:', challenge.title);
-      
+
       try {
         // Start video analysis immediately
         console.log('📹 Starting video analysis...');
         const videoAnalysisId = backgroundTasks.startVideoAnalysis(blob, challenge);
         console.log('✅ Video analysis started with ID:', videoAnalysisId);
-        
+
         // Start NFT generation with proper user ID
         console.log('🎨 Starting NFT generation...');
         const nftGenerationId = backgroundTasks.startNFTGeneration(user.id);
         console.log('✅ NFT generation started with ID:', nftGenerationId);
-        
+
         // Update state with task IDs
-        setBackgroundTaskIds(prev => {
+        setBackgroundTaskIds((prev) => {
           const newIds = {
             ...prev,
             videoAnalysisId,
@@ -275,9 +292,8 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
           console.log('📊 Updated background task IDs:', newIds);
           return newIds;
         });
-        
+
         console.log('🎯 Background processing initiated successfully!');
-        
       } catch (error) {
         console.error('❌ Error starting background tasks:', error);
       }
@@ -288,22 +304,22 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
         userId: user?.id,
       });
     }
-    
+
     setCurrentStep('review');
   };
 
   const handleApproveVideo = () => {
     console.log('✅ Video approved, starting verification prep...');
-    
+
     // 🚀 START VERIFICATION PREP - Since video is approved, start verification prep
     if (videoBlob && challenge) {
       console.log('🔍 Starting verification prep after video approval...');
-      
+
       try {
         const verificationPrepId = backgroundTasks.startVerificationPrep(videoBlob, challenge);
         console.log('✅ Verification prep started with ID:', verificationPrepId);
-        
-        setBackgroundTaskIds(prev => {
+
+        setBackgroundTaskIds((prev) => {
           const newIds = {
             ...prev,
             verificationPrepId,
@@ -317,13 +333,13 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     } else {
       console.warn('⚠️ Cannot start verification prep - missing video or challenge');
     }
-    
+
     setCurrentStep('selfie');
   };
 
   const handleRetakeVideo = () => {
     console.log('🔄 Retaking video, cancelling background tasks...');
-    
+
     // Cancel any running background tasks for the old video
     if (backgroundTaskIds.videoAnalysisId) {
       console.log('🚫 Cancelling video analysis:', backgroundTaskIds.videoAnalysisId);
@@ -337,7 +353,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
       console.log('🚫 Cancelling verification prep:', backgroundTaskIds.verificationPrepId);
       backgroundTasks.cancelTask(backgroundTaskIds.verificationPrepId);
     }
-    
+
     setBackgroundTaskIds({});
     setVideoBlob(null);
     setVideoDuration(0);
@@ -346,18 +362,18 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   const handleSelfieCompleted = (blob: Blob) => {
     console.log('🤳 Selfie completed:', blob.size, 'bytes');
-    
+
     setPhotoBlob(blob);
-    
+
     // 🚀 START FACE MATCHING - Now we have both video and selfie
     if (videoBlob) {
       console.log('👥 Starting face matching after selfie...');
-      
+
       try {
         const faceMatchingId = backgroundTasks.startFaceMatching(videoBlob, blob);
         console.log('✅ Face matching started with ID:', faceMatchingId);
-        
-        setBackgroundTaskIds(prev => {
+
+        setBackgroundTaskIds((prev) => {
           const newIds = {
             ...prev,
             faceMatchingId,
@@ -371,7 +387,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     } else {
       console.warn('⚠️ Cannot start face matching - missing video blob');
     }
-    
+
     setCurrentStep('verification');
   };
 
@@ -409,13 +425,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Step 2: Video Recording
   if (currentStep === 'recording') {
-    return (
-      <VideoRecordingScreen 
-        challenge={challenge} 
-        onVideoRecorded={handleVideoRecorded} 
-        onBack={handleStepBack} 
-      />
-    );
+    return <VideoRecordingScreen challenge={challenge} onVideoRecorded={handleVideoRecorded} onBack={handleStepBack} />;
   }
 
   // Step 3: Video Review
@@ -641,13 +651,8 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   );
 };
 
-// Main wrapper component with BackgroundTaskProvider
 const CompletingView: React.FC<CompletingViewProps> = (props) => {
-  return (
-    <BackgroundTaskProvider>
-      <CompletingViewContent {...props} />
-    </BackgroundTaskProvider>
-  );
+  return <CompletingViewContent {...props} />;
 };
 
 export default CompletingView;

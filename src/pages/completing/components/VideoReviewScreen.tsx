@@ -46,6 +46,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
   const backgroundTasks = useBackgroundTasks();
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+  const [thumbnailGenerated, setThumbnailGenerated] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -72,6 +73,8 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     video.crossOrigin = 'anonymous';
 
     const extractFrame = () => {
+      if (thumbnailGenerated) return; // Prevent multiple generations
+
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 640;
@@ -82,9 +85,10 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(
             (blob) => {
-              if (blob) {
+              if (blob && !thumbnailGenerated) {
                 const thumbUrl = URL.createObjectURL(blob);
                 setThumbnailUrl(thumbUrl);
+                setThumbnailGenerated(true);
                 console.log('Thumbnail generated successfully');
               }
             },
@@ -116,9 +120,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
     video.oncanplay = () => {
       console.log('Video can play for thumbnail');
-      if (!thumbnailUrl) {
-        extractFrame();
-      }
+      extractFrame();
     };
 
     video.onerror = (e) => {
@@ -135,10 +137,10 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     return `${duration.toFixed(1)}s`;
   };
 
-  // Get background task status for display
+  // Get background task status for display - FIXED to prevent constant polling
   const getBackgroundTaskStatus = () => {
     const tasks = [];
-    
+
     if (backgroundTaskIds.videoAnalysisId) {
       const task = backgroundTasks.getTask(backgroundTaskIds.videoAnalysisId);
       if (task) {
@@ -150,7 +152,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         });
       }
     }
-    
+
     if (backgroundTaskIds.nftGenerationId) {
       const task = backgroundTasks.getTask(backgroundTaskIds.nftGenerationId);
       if (task) {
@@ -162,11 +164,18 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         });
       }
     }
-    
+
     return tasks;
   };
 
-  const backgroundTaskStatus = getBackgroundTaskStatus();
+  // FIXED: Get status once and memoize it, don't call in render loop
+  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<any[]>([]);
+
+  // Update status when task IDs change, but don't spam
+  useEffect(() => {
+    const newStatus = getBackgroundTaskStatus();
+    setBackgroundTaskStatus(newStatus);
+  }, [backgroundTaskIds.videoAnalysisId, backgroundTaskIds.nftGenerationId]);
 
   return (
     <div className="fixed inset-0 bg-black text-white z-50">
@@ -224,7 +233,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
             </div>
           </div>
 
-          {/* Video Player */}
+          {/* Video Player - FIXED to prevent event loops */}
           <div className="mb-6 flex justify-center">
             <div className="relative rounded-2xl overflow-hidden bg-black w-64 h-80 shadow-2xl">
               <video
@@ -237,46 +246,22 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                 }}
                 onLoadedData={() => {
                   console.log('Main video loaded data');
-                  if (!thumbnailUrl && videoRef.current) {
+                  // FIXED: Only seek if we haven't generated thumbnail yet
+                  if (!thumbnailGenerated && videoRef.current) {
                     const video = videoRef.current;
                     video.currentTime = 0.05;
                   }
                 }}
                 onSeeked={() => {
                   console.log('Main video seeked');
-                  if (!thumbnailUrl && videoRef.current) {
-                    try {
-                      const video = videoRef.current;
-                      const canvas = document.createElement('canvas');
-                      canvas.width = video.videoWidth || 640;
-                      canvas.height = video.videoHeight || 480;
-
-                      const ctx = canvas.getContext('2d');
-                      if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        canvas.toBlob(
-                          (blob) => {
-                            if (blob) {
-                              const thumbUrl = URL.createObjectURL(blob);
-                              setThumbnailUrl(thumbUrl);
-                              console.log('Thumbnail generated from main video');
-                            }
-                          },
-                          'image/jpeg',
-                          0.9,
-                        );
-                      }
-                    } catch (error) {
-                      console.error('Error generating thumbnail from main video:', error);
-                    }
+                  // FIXED: Only generate thumbnail once from main video
+                  if (!thumbnailGenerated && videoRef.current) {
+                    generateThumbnailFromMainVideo();
                   }
                 }}
                 onCanPlay={() => {
                   console.log('Main video can play');
-                  if (!thumbnailUrl && videoRef.current && videoRef.current.videoWidth > 0) {
-                    const video = videoRef.current;
-                    video.currentTime = 0.05;
-                  }
+                  // FIXED: Removed currentTime setting that caused infinite loop
                 }}
                 preload="metadata"
                 playsInline
@@ -325,15 +310,9 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                           <span className="text-xs text-gray-400 w-8">{task.progress}%</span>
                         </>
                       )}
-                      {task.status === 'completed' && (
-                        <span className="text-green-400 text-sm">✓</span>
-                      )}
-                      {task.status === 'queued' && (
-                        <span className="text-gray-400 text-sm">⏳</span>
-                      )}
-                      {task.status === 'failed' && (
-                        <span className="text-red-400 text-sm">✗</span>
-                      )}
+                      {task.status === 'completed' && <span className="text-green-400 text-sm">✓</span>}
+                      {task.status === 'queued' && <span className="text-gray-400 text-sm">⏳</span>}
+                      {task.status === 'failed' && <span className="text-red-400 text-sm">✗</span>}
                     </div>
                   </div>
                 ))}
@@ -407,6 +386,37 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
       </div>
     </div>
   );
+
+  // Helper function to generate thumbnail from main video (called only once)
+  function generateThumbnailFromMainVideo() {
+    if (!videoRef.current || thumbnailGenerated) return;
+
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx && video.videoWidth > 0 && video.videoHeight > 0) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob && !thumbnailGenerated) {
+              const thumbUrl = URL.createObjectURL(blob);
+              setThumbnailUrl(thumbUrl);
+              setThumbnailGenerated(true);
+              console.log('Thumbnail generated from main video');
+            }
+          },
+          'image/jpeg',
+          0.9,
+        );
+      }
+    } catch (error) {
+      console.error('Error generating thumbnail from main video:', error);
+    }
+  }
 };
 
 export default VideoReviewScreen;

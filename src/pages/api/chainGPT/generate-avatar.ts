@@ -39,7 +39,7 @@ function buildPrompt(customPrompt: string, profileUrl?: string) {
     'expressive facial features that match the character style',
     'face must be clearly visible and detailed',
     'no blank or missing facial features',
-    'human-like face with proper proportions'
+    'human-like face with proper proportions',
   ];
 
   // Clean and validate custom prompt

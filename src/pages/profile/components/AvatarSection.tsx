@@ -113,13 +113,13 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
 
   const loadCurrentAvatarPrompt = async () => {
     if (!user?.id || !generatedAvatar) return;
-    
+
     try {
       const { getUserAvatarByImageUrl } = await import('../../../lib/api/dgraph');
-      
+
       // Get the avatar record that matches the currently displayed avatar URL
       const avatarData = await getUserAvatarByImageUrl(user.id, generatedAvatar);
-      
+
       if (avatarData?.generationPrompt) {
         console.log('🎨 Loading prompt from current avatar:', avatarData.generationPrompt);
         setCustomPrompt(avatarData.generationPrompt);
@@ -134,7 +134,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
   const loadEquippedItems = async () => {
     // Load currently equipped items from user data
     if (!user) return;
-  
+
     setSelectedNFTs({
       cap: (user as any).equippedCap || null,
       hoodie: (user as any).equippedHoodie || null,
@@ -147,7 +147,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
       try {
         const { getUserAvatar } = await import('../../../lib/api/dgraph');
         const avatarData = await getUserAvatar(user.id);
-        
+
         if (avatarData?.avatarRecord?.generationPrompt) {
           console.log('🎨 Loading fallback prompt from user avatar:', avatarData.avatarRecord.generationPrompt);
           setCustomPrompt(avatarData.avatarRecord.generationPrompt);
@@ -287,35 +287,35 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
       console.error('No avatar to save or user not authenticated');
       return;
     }
-  
+
     setIsSaving(true);
     try {
       console.log('🎨 Saving avatar to database...');
-  
+
       // Import the saveUserAvatar function
       const { saveUserAvatar } = await import('../../../lib/api/dgraph');
-  
+
       // Extract CIDs from URLs if they exist
       let baseImageCID: string | undefined;
       let generatedImageCID: string | undefined;
-  
+
       // Extract IPFS CID from generated avatar URL
       if (generatedAvatar.includes('ipfs')) {
-        const cidMatch = generatedAvatar.match(/\/ipfs\/([^\/\?]+)/);
+        const cidMatch = generatedAvatar.match(/\/ipfs\/([^/?]+)/);
         if (cidMatch) {
           generatedImageCID = cidMatch[1];
         }
       }
-  
+
       // Extract base image CID if profile picture is IPFS URL
-      let baseImageUrl = typeof profilePicture === 'string' ? profilePicture : profilePicture.src;
+      const baseImageUrl = typeof profilePicture === 'string' ? profilePicture : profilePicture.src;
       if (baseImageUrl.includes('ipfs')) {
-        const baseCidMatch = baseImageUrl.match(/\/ipfs\/([^\/\?]+)/);
+        const baseCidMatch = baseImageUrl.match(/\/ipfs\/([^/?]+)/);
         if (baseCidMatch) {
           baseImageCID = baseCidMatch[1];
         }
       }
-  
+
       // Prepare avatar data
       const avatarData = {
         userId: user.id,
@@ -329,7 +329,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
         equippedShoesId: selectedNFTs.shoes?.id,
         generationPrompt: customPrompt,
       };
-  
+
       console.log('🎨 Avatar data to save:', {
         userId: avatarData.userId,
         hasGeneratedImage: !!avatarData.generatedImageUrl,
@@ -339,15 +339,15 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
           hoodie: !!avatarData.equippedHoodieId,
           pants: !!avatarData.equippedPantsId,
           shoes: !!avatarData.equippedShoesId,
-        }
+        },
       });
-  
+
       // Save to database
       const result = await saveUserAvatar(avatarData);
-  
+
       if (result.success) {
         console.log('✅ Avatar saved successfully to database!', result.avatarId);
-        
+
         // Update the user context to reflect the new avatar
         if (updateUser) {
           updateUser({
@@ -358,7 +358,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
             equippedShoes: selectedNFTs.shoes,
           } as any);
         }
-  
+
         alert('Avatar saved successfully!');
       } else {
         console.error('❌ Failed to save avatar:', result.error);
@@ -404,7 +404,15 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
         </svg>
       ),
       shoes: (
-        <svg className="w-5 h-5" stroke="currentColor" fill="none" viewBox="0 0 32 32" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="w-5 h-5"
+          stroke="currentColor"
+          fill="none"
+          viewBox="0 0 32 32"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M3,8v17h26v-4.5c0-2-1.5-3.7-3.5-4l-5.6-0.7C16,15.4,13,12,13,8v0H3z"></path>
           <line x1="3" y1="22" x2="29" y2="22"></line>
           <circle cx="8" cy="15" r="2"></circle>
@@ -457,7 +465,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                   alt="Your Nocena Avatar"
                   className="w-48 h-60 mx-auto rounded-xl shadow-lg border border-white/20 object-cover"
                 />
-                
+
                 {/* Update indicator */}
                 {isUpdatingAvatar && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
@@ -471,7 +479,12 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
             ) : (
               <div className="w-48 h-60 mx-auto mb-4 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-xl border-2 border-dashed border-purple-400/30 flex items-center justify-center">
                 <div className="text-center">
-                  <svg className="w-16 h-16 text-purple-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-16 h-16 text-purple-300 mx-auto mb-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -501,11 +514,12 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                         className={`
                           aspect-square p-3 rounded-xl cursor-pointer transition-all duration-200 relative
                           border-2 backdrop-blur-sm
-                          ${isActive 
-                            ? 'bg-pink-500/30 border-pink-400/60 shadow-lg shadow-pink-500/20' 
-                            : selected 
-                              ? 'bg-blue-500/20 border-blue-400/40 hover:bg-blue-500/30' 
-                              : 'bg-purple-600/20 border-purple-400/30 hover:bg-purple-600/30'
+                          ${
+                            isActive
+                              ? 'bg-pink-500/30 border-pink-400/60 shadow-lg shadow-pink-500/20'
+                              : selected
+                                ? 'bg-blue-500/20 border-blue-400/40 hover:bg-blue-500/30'
+                                : 'bg-purple-600/20 border-purple-400/30 hover:bg-purple-600/30'
                           }
                         `}
                         onClick={() => setActiveClothingType(isActive ? null : type)}
@@ -553,9 +567,10 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                     <div
                       className={`
                         aspect-square p-2 rounded-lg cursor-pointer transition-all backdrop-blur-sm border
-                        ${!selectedNFTs[activeClothingType] 
-                          ? 'bg-purple-500/30 border-purple-400/60' 
-                          : 'bg-gray-600/20 border-gray-500/30 hover:bg-gray-600/30'
+                        ${
+                          !selectedNFTs[activeClothingType]
+                            ? 'bg-purple-500/30 border-purple-400/60'
+                            : 'bg-gray-600/20 border-gray-500/30 hover:bg-gray-600/30'
                         }
                       `}
                       onClick={() => handleNFTSelect(activeClothingType, null)}
@@ -576,9 +591,10 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                             key={nft.id}
                             className={`
                               aspect-square p-1 rounded-lg cursor-pointer transition-all backdrop-blur-sm border overflow-hidden
-                              ${selectedNFTs[activeClothingType]?.id === nft.id 
-                                ? 'bg-pink-500/30 border-pink-400/60 shadow-lg shadow-pink-500/20' 
-                                : 'bg-blue-600/20 border-blue-400/30 hover:bg-blue-600/30'
+                              ${
+                                selectedNFTs[activeClothingType]?.id === nft.id
+                                  ? 'bg-pink-500/30 border-pink-400/60 shadow-lg shadow-pink-500/20'
+                                  : 'bg-blue-600/20 border-blue-400/30 hover:bg-blue-600/30'
                               }
                             `}
                             onClick={() => handleNFTSelect(activeClothingType, nft)}
@@ -613,7 +629,8 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                     <div className="mt-3 p-3 bg-purple-600/20 backdrop-blur-sm border border-purple-400/30 rounded-lg">
                       <p className="text-white text-sm font-medium">{selectedNFTs[activeClothingType]!.name}</p>
                       <p className="text-gray-400 text-xs">
-                        {selectedNFTs[activeClothingType]!.rarity} • +{selectedNFTs[activeClothingType]!.tokenBonus} tokens
+                        {selectedNFTs[activeClothingType]!.rarity} • +{selectedNFTs[activeClothingType]!.tokenBonus}{' '}
+                        tokens
                       </p>
                     </div>
                   )}
@@ -673,7 +690,9 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
               <div className="flex items-center justify-center py-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-purple-300 text-sm">{generatedAvatar ? 'Regenerating...' : 'Generating avatar...'}</span>
+                  <span className="text-purple-300 text-sm">
+                    {generatedAvatar ? 'Regenerating...' : 'Generating avatar...'}
+                  </span>
                 </div>
               </div>
             )}
