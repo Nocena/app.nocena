@@ -284,45 +284,6 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
             </div>
           </div>
 
-          {/* Background Processing Status */}
-          {backgroundTaskStatus.length > 0 && (
-            <div className="mb-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/20 rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-nocenaPink rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-nocenaPink">Background Processing</span>
-              </div>
-              <div className="space-y-2">
-                {backgroundTaskStatus.map((task, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{task.icon}</span>
-                      <span className="text-sm text-gray-300">{task.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {task.status === 'running' && (
-                        <>
-                          <div className="w-16 bg-gray-700 rounded-full h-1">
-                            <div
-                              className="bg-nocenaPink h-1 rounded-full transition-all duration-300"
-                              style={{ width: `${task.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs text-gray-400 w-8">{task.progress}%</span>
-                        </>
-                      )}
-                      {task.status === 'completed' && <span className="text-green-400 text-sm">✓</span>}
-                      {task.status === 'queued' && <span className="text-gray-400 text-sm">⏳</span>}
-                      {task.status === 'failed' && <span className="text-red-400 text-sm">✗</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400 mt-2 opacity-75">
-                Processing continues while you review • No need to wait
-              </p>
-            </div>
-          )}
-
           {/* Status Message */}
           <div
             className={`rounded-2xl p-5 mb-6 ${
