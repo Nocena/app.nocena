@@ -102,7 +102,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   useEffect(() => {
     if (backgroundTaskIds.verificationId) {
       console.log('[Verification Screen] Monitoring background verification:', backgroundTaskIds.verificationId);
-      
+
       const monitorTask = () => {
         const task = backgroundTasks.getTask(backgroundTaskIds.verificationId!);
         if (!task) return;
@@ -126,7 +126,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
             timestamp: new Date().toISOString(),
           });
           setCurrentStepMessage('Background verification completed successfully!');
-          
+
           // Set final completed steps
           const completedSteps = mapBackgroundProgressToSteps(100);
           setVerificationSteps(completedSteps);
@@ -165,7 +165,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         name: 'Face Detection',
         status: progress >= 60 ? 'completed' : progress >= 20 ? 'running' : 'pending',
         progress: progress >= 20 ? Math.min((progress - 20) * 2.5, 100) : 0, // Scale 20-60 to 0-100
-        message: progress >= 60 ? 'Face detected and validated' : progress >= 20 ? 'Analyzing facial features...' : 'Waiting for file check...',
+        message:
+          progress >= 60
+            ? 'Face detected and validated'
+            : progress >= 20
+              ? 'Analyzing facial features...'
+              : 'Waiting for file check...',
         confidence: progress >= 60 ? 0.92 : undefined,
       },
       {
@@ -173,7 +178,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
         name: 'AI Challenge Verification',
         status: progress >= 100 ? 'completed' : progress >= 60 ? 'running' : 'pending',
         progress: progress >= 60 ? Math.min((progress - 60) * 2.5, 100) : 0, // Scale 60-100 to 0-100
-        message: progress >= 100 ? 'Challenge completion verified' : progress >= 60 ? 'Analyzing challenge performance...' : 'Waiting for face detection...',
+        message:
+          progress >= 100
+            ? 'Challenge completion verified'
+            : progress >= 60
+              ? 'Analyzing challenge performance...'
+              : 'Waiting for face detection...',
         confidence: progress >= 100 ? 0.88 : undefined,
       },
     ];
@@ -414,7 +424,8 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   const getStageInfo = () => {
     const backgroundStatus = getBackgroundTaskStatus();
-    const hasBackgroundVerification = backgroundTaskIds.verificationId && backgroundStatus.verification.status !== 'pending';
+    const hasBackgroundVerification =
+      backgroundTaskIds.verificationId && backgroundStatus.verification.status !== 'pending';
     const modelsLoaded = backgroundStatus.modelPreload.status === 'completed';
 
     let subtitle = '';
@@ -569,19 +580,19 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           )}
 
           {/* Background Task Status Indicator */}
-          {(backgroundStatus.verification.status !== 'pending' || backgroundStatus.modelPreload.status === 'completed') && (
+          {(backgroundStatus.verification.status !== 'pending' ||
+            backgroundStatus.modelPreload.status === 'completed') && (
             <div className="mt-4 px-4 py-3 bg-green-900/20 border border-green-700/50 rounded-xl">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-sm text-green-400 font-medium">Background Processing Active</span>
               </div>
               <div className="text-xs text-green-300">
-                {backgroundStatus.verification.status !== 'pending' ? 
-                  `Verification: ${backgroundStatus.verification.progress}% complete` :
-                  backgroundStatus.modelPreload.status === 'completed' ? 
-                  'Models preloaded - faster verification available' :
-                  'Background optimization ready'
-                }
+                {backgroundStatus.verification.status !== 'pending'
+                  ? `Verification: ${backgroundStatus.verification.progress}% complete`
+                  : backgroundStatus.modelPreload.status === 'completed'
+                    ? 'Models preloaded - faster verification available'
+                    : 'Background optimization ready'}
               </div>
             </div>
           )}
@@ -655,7 +666,12 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 <div className="w-16 h-16 bg-nocenaPink/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   {backgroundStatus.verification.status !== 'pending' ? (
                     <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
                     </svg>
                   ) : (
                     <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -670,20 +686,22 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
 
                 <h3 className="text-lg font-medium mb-2">
-                  {backgroundStatus.verification.status !== 'pending' ? 'Background Analysis Ready' : 
-                   isDevelopmentEnvironment && useMockVerification ? 'Mock AI Analysis Ready' : 
-                   backgroundStatus.modelPreload.status === 'completed' ? 'Optimized AI Analysis Ready' :
-                   'AI Analysis Ready'}
+                  {backgroundStatus.verification.status !== 'pending'
+                    ? 'Background Analysis Ready'
+                    : isDevelopmentEnvironment && useMockVerification
+                      ? 'Mock AI Analysis Ready'
+                      : backgroundStatus.modelPreload.status === 'completed'
+                        ? 'Optimized AI Analysis Ready'
+                        : 'AI Analysis Ready'}
                 </h3>
                 <p className="text-sm text-gray-300 mb-4">
-                  {backgroundStatus.verification.status !== 'pending' ? 
-                    'Verification already running in background - instant results available' :
-                    isDevelopmentEnvironment && useMockVerification ?
-                    'Mock verification will simulate AI analysis for testing' :
-                    backgroundStatus.modelPreload.status === 'completed' ? 
-                    'Models preloaded for faster verification' :
-                    'Our AI will verify your challenge completion using advanced computer vision'
-                  }
+                  {backgroundStatus.verification.status !== 'pending'
+                    ? 'Verification already running in background - instant results available'
+                    : isDevelopmentEnvironment && useMockVerification
+                      ? 'Mock verification will simulate AI analysis for testing'
+                      : backgroundStatus.modelPreload.status === 'completed'
+                        ? 'Models preloaded for faster verification'
+                        : 'Our AI will verify your challenge completion using advanced computer vision'}
                 </p>
 
                 <div className="grid grid-cols-2 gap-4 text-xs mt-4">
@@ -706,9 +724,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 border-4 border-nocenaPink border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <h3 className="text-lg font-medium text-nocenaPink">
-                    {backgroundVerificationUsed ? 'Background Analysis Active' :
-                     isDevelopmentEnvironment && useMockVerification ? 'Mock Analysis Active' :
-                     'Neural Analysis Active'}
+                    {backgroundVerificationUsed
+                      ? 'Background Analysis Active'
+                      : isDevelopmentEnvironment && useMockVerification
+                        ? 'Mock Analysis Active'
+                        : 'Neural Analysis Active'}
                   </h3>
                 </div>
 
@@ -768,8 +788,8 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     {backgroundVerificationUsed ? 'Background Verification Complete!' : 'Verification Complete!'}
                   </h3>
                   <p className="text-sm text-gray-300 mb-4">
-                    {isDevelopmentEnvironment && useMockVerification ? 'Mock analysis' : 'AI analysis'} passed with {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}%
-                    confidence
+                    {isDevelopmentEnvironment && useMockVerification ? 'Mock analysis' : 'AI analysis'} passed with{' '}
+                    {verificationResult ? Math.round(verificationResult.overallConfidence * 100) : 95}% confidence
                   </p>
 
                   <div className="bg-black/30 rounded-xl p-4 mb-4">
@@ -827,116 +847,118 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
 
                 {/* AI Analysis Results */}
-                {verificationResult && (() => {
-                  // Look for AI challenge check result in verification result
-                  let aiResult = null;
-                  
-                  // Check if we have steps with AI challenge result
-                  if (verificationResult.steps) {
-                    const aiStep = verificationResult.steps.find((s: any) => s.id === 'ai-challenge-check');
-                    if (aiStep && aiStep.result) {
-                      aiResult = aiStep.result;
+                {verificationResult &&
+                  (() => {
+                    // Look for AI challenge check result in verification result
+                    let aiResult = null;
+
+                    // Check if we have steps with AI challenge result
+                    if (verificationResult.steps) {
+                      const aiStep = verificationResult.steps.find((s: any) => s.id === 'ai-challenge-check');
+                      if (aiStep && aiStep.result) {
+                        aiResult = aiStep.result;
+                      }
                     }
-                  }
-                  
-                  // Also check direct result structure from console logs
-                  if (!aiResult && verificationResult.score !== undefined) {
-                    aiResult = verificationResult;
-                  }
-                  
-                  if (aiResult && aiResult.explanation) {
-                    // Parse ratings from explanation - looking for pattern like "Creativity: 0/10, Authenticity: 2/10, Effort: 1/10"
-                    const creativityMatch = aiResult.explanation.match(/[Cc]reativity:\s*(\d+)\/10/);
-                    const authenticityMatch = aiResult.explanation.match(/[Aa]uthenticity:\s*(\d+)\/10/);
-                    const effortMatch = aiResult.explanation.match(/[Ee]ffort:\s*(\d+)\/10/);
-                    
-                    const creativity = creativityMatch ? parseInt(creativityMatch[1]) : 0;
-                    const authenticity = authenticityMatch ? parseInt(authenticityMatch[1]) : 0;
-                    const effort = effortMatch ? parseInt(effortMatch[1]) : 0;
-                    
-                    // Extract main explanation (before the ratings in parentheses)
-                    const mainExplanation = aiResult.explanation.split('(')[0].trim();
-                    
+
+                    // Also check direct result structure from console logs
+                    if (!aiResult && verificationResult.score !== undefined) {
+                      aiResult = verificationResult;
+                    }
+
+                    if (aiResult && aiResult.explanation) {
+                      // Parse ratings from explanation - looking for pattern like "Creativity: 0/10, Authenticity: 2/10, Effort: 1/10"
+                      const creativityMatch = aiResult.explanation.match(/[Cc]reativity:\s*(\d+)\/10/);
+                      const authenticityMatch = aiResult.explanation.match(/[Aa]uthenticity:\s*(\d+)\/10/);
+                      const effortMatch = aiResult.explanation.match(/[Ee]ffort:\s*(\d+)\/10/);
+
+                      const creativity = creativityMatch ? parseInt(creativityMatch[1]) : 0;
+                      const authenticity = authenticityMatch ? parseInt(authenticityMatch[1]) : 0;
+                      const effort = effortMatch ? parseInt(effortMatch[1]) : 0;
+
+                      // Extract main explanation (before the ratings in parentheses)
+                      const mainExplanation = aiResult.explanation.split('(')[0].trim();
+
+                      return (
+                        <div className="mb-6">
+                          <div className="bg-black/30 rounded-xl p-4 mb-4">
+                            <h4 className="text-lg font-bold text-orange-400 mb-3">PERFORMANCE ANALYSIS</h4>
+
+                            {/* Score Bars */}
+                            <div className="space-y-3 mb-4">
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-sm text-slate-300">CREATIVITY</span>
+                                  <span className="text-sm font-bold text-orange-400">{creativity}/10</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2">
+                                  <div
+                                    className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
+                                    style={{ width: `${creativity * 10}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-sm text-slate-300">AUTHENTICITY</span>
+                                  <span className="text-sm font-bold text-orange-400">{authenticity}/10</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2">
+                                  <div
+                                    className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
+                                    style={{ width: `${authenticity * 10}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-sm text-slate-300">EFFORT</span>
+                                  <span className="text-sm font-bold text-orange-400">{effort}/10</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2">
+                                  <div
+                                    className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
+                                    style={{ width: `${effort * 10}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Overall Score */}
+                            <div className="bg-red-900/20 border border-red-700/40 rounded-lg p-3 mb-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-slate-200">OVERALL SCORE</span>
+                                <span className="text-lg font-bold text-red-400">{aiResult.score || 0}/100</span>
+                              </div>
+                              <div className="text-xs text-red-300 mt-1">
+                                Confidence: {Math.round((aiResult.confidence || 0) * 100)}% • Frames:{' '}
+                                {aiResult.framesAnalyzed || 'N/A'}
+                              </div>
+                            </div>
+
+                            {/* AI Feedback */}
+                            <div className="bg-slate-800/40 rounded-lg p-3">
+                              <h5 className="text-xs font-bold text-slate-300 mb-2">NEURAL ANALYSIS:</h5>
+                              <p className="text-xs text-slate-400 leading-relaxed">{mainExplanation}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Fallback if no AI result found
                     return (
                       <div className="mb-6">
                         <div className="bg-black/30 rounded-xl p-4 mb-4">
-                          <h4 className="text-lg font-bold text-orange-400 mb-3">PERFORMANCE ANALYSIS</h4>
-                          
-                          {/* Score Bars */}
-                          <div className="space-y-3 mb-4">
-                            <div>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-slate-300">CREATIVITY</span>
-                                <span className="text-sm font-bold text-orange-400">{creativity}/10</span>
-                              </div>
-                              <div className="w-full bg-slate-700 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
-                                  style={{ width: `${creativity * 10}%` }}
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-slate-300">AUTHENTICITY</span>
-                                <span className="text-sm font-bold text-orange-400">{authenticity}/10</span>
-                              </div>
-                              <div className="w-full bg-slate-700 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
-                                  style={{ width: `${authenticity * 10}%` }}
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm text-slate-300">EFFORT</span>
-                                <span className="text-sm font-bold text-orange-400">{effort}/10</span>
-                              </div>
-                              <div className="w-full bg-slate-700 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-red-500 to-orange-500 h-2 rounded-full transition-all duration-1000"
-                                  style={{ width: `${effort * 10}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Overall Score */}
-                          <div className="bg-red-900/20 border border-red-700/40 rounded-lg p-3 mb-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium text-slate-200">OVERALL SCORE</span>
-                              <span className="text-lg font-bold text-red-400">{aiResult.score || 0}/100</span>
-                            </div>
-                            <div className="text-xs text-red-300 mt-1">
-                              Confidence: {Math.round((aiResult.confidence || 0) * 100)}% • Frames: {aiResult.framesAnalyzed || 'N/A'}
-                            </div>
-                          </div>
-
-                          {/* AI Feedback */}
-                          <div className="bg-slate-800/40 rounded-lg p-3">
-                            <h5 className="text-xs font-bold text-slate-300 mb-2">NEURAL ANALYSIS:</h5>
-                            <p className="text-xs text-slate-400 leading-relaxed">
-                              {mainExplanation}
-                            </p>
-                          </div>
+                          <h4 className="text-lg font-bold text-orange-400 mb-3">ANALYSIS UNAVAILABLE</h4>
+                          <p className="text-sm text-slate-400">
+                            Detailed AI analysis not available for this verification result.
+                          </p>
                         </div>
                       </div>
                     );
-                  }
-                  
-                  // Fallback if no AI result found
-                  return (
-                    <div className="mb-6">
-                      <div className="bg-black/30 rounded-xl p-4 mb-4">
-                        <h4 className="text-lg font-bold text-orange-400 mb-3">ANALYSIS UNAVAILABLE</h4>
-                        <p className="text-sm text-slate-400">Detailed AI analysis not available for this verification result.</p>
-                      </div>
-                    </div>
-                  );
-                })()}
+                  })()}
 
                 {/* Challenge-specific feedback */}
                 <div className="bg-gradient-to-r from-slate-800/40 to-red-900/20 border border-red-600/40 rounded-xl p-4 backdrop-blur-sm mb-4">
@@ -1018,10 +1040,10 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 }
               }}
               text={
-                backgroundTaskIds.verificationId && 
-                backgroundTasks.getTask(backgroundTaskIds.verificationId)?.status === 'running' 
-                  ? "Use Background Analysis" 
-                  : "Start Verification"
+                backgroundTaskIds.verificationId &&
+                backgroundTasks.getTask(backgroundTaskIds.verificationId)?.status === 'running'
+                  ? 'Use Background Analysis'
+                  : 'Start Verification'
               }
               className="flex-1"
               isActive={true}

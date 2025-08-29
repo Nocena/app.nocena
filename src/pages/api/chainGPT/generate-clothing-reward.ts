@@ -118,7 +118,7 @@ function buildClothingPrompt(
   const rarityEnhancements = {
     common: 'clean, well-crafted appearance',
     uncommon: 'subtle green accent details and refined finish',
-    rare: 'elegant blue highlights and enhanced material quality', 
+    rare: 'elegant blue highlights and enhanced material quality',
     epic: 'sophisticated purple accents with premium detailing',
     legendary: 'luxurious golden touches and masterful craftsmanship',
   };

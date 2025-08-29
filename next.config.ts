@@ -1,4 +1,4 @@
-import type { NextConfig } from 'next';
+import { NextConfig } from 'next';
 import type { Configuration } from 'webpack';
 import withPWA from 'next-pwa';
 

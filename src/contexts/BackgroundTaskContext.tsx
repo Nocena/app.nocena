@@ -56,7 +56,7 @@ interface BackgroundTaskContextType {
   // The 3 specific methods you need
   startNFTGeneration: (userId: string, challengeData?: any, persistent?: boolean) => string;
   startModelPreload: () => string;
-  startVerification: (args: {videoBlob: Blob, photoBlob: Blob, challenge: any, dependencies?: string[]}) => string;
+  startVerification: (args: { videoBlob: Blob; photoBlob: Blob; challenge: any; dependencies?: string[] }) => string;
 }
 
 // Initial state
@@ -242,7 +242,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
 
   useEffect(() => {
     // Process all queued tasks
-    Object.values(state.tasks).forEach(task => {
+    Object.values(state.tasks).forEach((task) => {
       if (task.status === 'queued' && !taskProcessorRef.current[task.id]) {
         // Only process if not already processing
         processTask(task.id);
@@ -385,7 +385,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: userId,
-            completionId: `bg_${Date.now()}_${userId}`
+            completionId: `bg_${Date.now()}_${userId}`,
           }),
           signal,
         });
@@ -452,19 +452,19 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
     try {
       // Import the TensorFlow detection helper
       const { preloadModels } = await import('../lib/verification/helpers/tensorflowHumanDetection');
-      
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 30);
 
       // Preload the models
       await preloadModels();
-      
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 80);
 
       // Small delay to ensure models are fully loaded
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 100);
 
@@ -486,16 +486,16 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
     const { videoBlob, photoBlob, challenge } = data;
 
     console.log('[Verification] Starting background verification...');
-    
+
     // Step weights for progress calculation (matching SimpleVerificationService)
     const stepWeights: Record<string, number> = {
       'basic-check': 20,
-      'human-selfie-check': 40,  // Adjusted since no human-video-check in your service
+      'human-selfie-check': 40, // Adjusted since no human-video-check in your service
       'ai-challenge-check': 40,
     };
-    
+
     let accumulated = 0;
-    
+
     const onProgress = (steps: any[]) => {
       let total = 0;
       for (const s of steps) {
@@ -507,22 +507,18 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
       accumulated = progress;
       updateProgress(taskId, Math.min(progress, 99)); // avoid claiming 100 before result set
     };
-    
+
     const service = new SimpleVerificationService(onProgress);
-    
+
     updateProgress(taskId, 1);
     if (signal.aborted) throw new Error('Cancelled');
-    
+
     try {
-      const result = await service.runFullVerification(
-        videoBlob,
-        photoBlob,
-        challenge?.description || ''
-      );
-      
+      const result = await service.runFullVerification(videoBlob, photoBlob, challenge?.description || '');
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 100);
-      
+
       console.log('[Verification] Background verification completed, passed:', result.passed);
       return result;
     } catch (error: any) {
@@ -598,20 +594,23 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
   const isTaskRunning = useCallback((id: string) => state.tasks[id]?.status === 'running', [state.tasks]);
   const getTaskProgress = useCallback((id: string) => state.tasks[id]?.progress || 0, [state.tasks]);
 
-  const cancelTask = useCallback((id: string) => {
-    const task = state.tasks[id];
-    if (task?.persistent) {
-      console.log('[Cancel Blocked] Cannot cancel persistent task:', id.slice(-8), task.type);
-      return;
-    }
+  const cancelTask = useCallback(
+    (id: string) => {
+      const task = state.tasks[id];
+      if (task?.persistent) {
+        console.log('[Cancel Blocked] Cannot cancel persistent task:', id.slice(-8), task.type);
+        return;
+      }
 
-    const controller = taskProcessorRef.current[id];
-    if (controller) {
-      controller.abort();
-      delete taskProcessorRef.current[id];
-    }
-    dispatch({ type: 'CANCEL_TASK', payload: { id } });
-  }, [state.tasks]);
+      const controller = taskProcessorRef.current[id];
+      if (controller) {
+        controller.abort();
+        delete taskProcessorRef.current[id];
+      }
+      dispatch({ type: 'CANCEL_TASK', payload: { id } });
+    },
+    [state.tasks],
+  );
 
   const clearAllTasks = useCallback(() => {
     // Only abort non-persistent tasks
@@ -624,7 +623,7 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
         }
       }
     });
-    
+
     dispatch({ type: 'CLEAR_TASKS' });
   }, [state.tasks]);
 

@@ -908,9 +908,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-4">
-                This may take a few moments
-              </p>
+              <p className="text-xs text-gray-400 mt-4">This may take a few moments</p>
             </div>
           </div>
         )}
@@ -922,9 +920,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
               <div className="w-20 h-20 bg-nocenaPurple rounded-full flex items-center justify-center mx-auto mb-6">
                 <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
               </div>
-              <h3 className="text-2xl font-bold text-nocenaPurple mb-3">
-                Tokens claimed
-              </h3>
+              <h3 className="text-2xl font-bold text-nocenaPurple mb-3">Tokens claimed</h3>
               <div className="flex items-center justify-center gap-2 mb-6">
                 <span className="text-xl font-bold">+{challenge.reward}</span>
                 <Image src="/nocenix.ico" alt="Nocenix" width={24} height={24} />
@@ -1089,12 +1085,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
         )}
 
         {claimingStage === 'claiming' && (
-          <PrimaryButton
-            text='Processing...'
-            className="w-full"
-            disabled={true}
-            isActive={false}
-          />
+          <PrimaryButton text="Processing..." className="w-full" disabled={true} isActive={false} />
         )}
 
         {claimingStage === 'failed' && (
