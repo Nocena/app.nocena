@@ -11,7 +11,7 @@ import VideoReviewScreen from './components/VideoReviewScreen';
 import SelfieScreen from './components/SelfieScreen';
 import VerificationScreen from './components/VerificationScreen';
 import ClaimingScreen from './components/ClaimingScreen';
-import { BackgroundTaskProvider, useBackgroundTasks } from '../../contexts/BackgroundTaskContext';
+import { useBackgroundTasks } from '../../contexts/BackgroundTaskContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Challenge {
@@ -31,18 +31,17 @@ interface CompletingViewProps {
   onBack?: () => void;
 }
 
-// Background task IDs for tracking
+// Background task IDs for tracking - UPDATED for new task types
 interface BackgroundTasks {
-  videoAnalysisId?: string;
   nftGenerationId?: string;
-  verificationPrepId?: string;
-  faceMatchingId?: string;
+  modelPreloadId?: string;
+  verificationId?: string;
 }
 
 const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const router = useRouter();
   const backgroundTasks = useBackgroundTasks();
-  const { user } = useAuth(); // Get user for NFT generation
+  const { user } = useAuth();
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +53,11 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [backgroundTaskIds, setBackgroundTaskIds] = useState<BackgroundTasks>({});
+
+  // Track progress for user feedback
+  const [nftProgress, setNftProgress] = useState(0);
+  const [modelProgress, setModelProgress] = useState(0);
+  const [verificationProgress, setVerificationProgress] = useState(0);
 
   const backgroundTasksRef = useRef(backgroundTasks);
   backgroundTasksRef.current = backgroundTasks;
@@ -115,47 +119,75 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     }
   }, [router.query]);
 
+  // Monitor all background task progress
+  useEffect(() => {
+    if (Object.keys(backgroundTaskIds).length === 0) return;
+
+    const checkProgress = () => {
+      // NFT Progress
+      if (backgroundTaskIds.nftGenerationId) {
+        const nftTask = backgroundTasks.getTask(backgroundTaskIds.nftGenerationId);
+        if (nftTask) {
+          setNftProgress(nftTask.progress);
+        }
+      }
+
+      // Model Progress
+      if (backgroundTaskIds.modelPreloadId) {
+        const modelTask = backgroundTasks.getTask(backgroundTaskIds.modelPreloadId);
+        if (modelTask) {
+          setModelProgress(modelTask.progress);
+        }
+      }
+
+      // Verification Progress
+      if (backgroundTaskIds.verificationId) {
+        const verifyTask = backgroundTasks.getTask(backgroundTaskIds.verificationId);
+        if (verifyTask) {
+          setVerificationProgress(verifyTask.progress);
+        }
+      }
+    };
+
+    const interval = setInterval(checkProgress, 1000);
+    return () => clearInterval(interval);
+  }, [backgroundTaskIds, backgroundTasks]);
+
   useEffect(() => {
     return () => {
-      console.log('🧹 Cleaning up background tasks on unmount');
+      console.log('Cleaning up background tasks on unmount');
       Object.values(backgroundTaskIds).forEach((taskId) => {
         if (taskId) {
-          console.log('🚫 Cancelling task:', taskId);
+          console.log('Cancelling task:', taskId);
           backgroundTasksRef.current.cancelTask(taskId);
         }
       });
     };
-  }, [backgroundTaskIds]); // Remove backgroundTasks from dependency array
+  }, [backgroundTaskIds]);
 
   // Debug: Log background task status changes
   useEffect(() => {
-    console.log('📊 Background task IDs updated:', backgroundTaskIds);
+    console.log('Background task IDs updated:', backgroundTaskIds);
 
-    // Only log if we have task IDs - prevent constant polling
     const taskEntries = Object.entries(backgroundTaskIds);
     if (taskEntries.length === 0) return;
 
-    // Log status of each task ONCE, don't call getTask in a loop
     const statusSnapshot: string[] = [];
     taskEntries.forEach(([key, taskId]) => {
       if (taskId) {
         const task = backgroundTasks.getTask(taskId);
         if (task) {
-          statusSnapshot.push(
-            `📋 ${key}: ${task.status} (${task.progress}%) ${task.result ? 'HAS RESULT' : 'NO RESULT'}`,
-          );
+          statusSnapshot.push(`${key}: ${task.status} (${task.progress}%)`);
         } else {
-          statusSnapshot.push(`📋 ${key}: NOT FOUND`);
+          statusSnapshot.push(`${key}: NOT FOUND`);
         }
       }
     });
 
     if (statusSnapshot.length > 0) {
-      console.log('📋 Task Status Snapshot:', statusSnapshot.join(' | '));
+      console.log('Task Status:', statusSnapshot.join(' | '));
     }
-
-    // Don't add backgroundTasks to the dependency array to prevent infinite loops
-  }, [backgroundTaskIds]); // REMOVED backgroundTasks from dependency array
+  }, [backgroundTaskIds]);
 
   // Custom back handler for different steps
   const handleStepBack = () => {
@@ -197,7 +229,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
 
   // Cancel handler - always exits the entire completing flow
   const handleCancel = () => {
-    console.log('🚫 Cancelling all background tasks');
+    console.log('Cancelling all background tasks');
     backgroundTasks.clearAllTasks();
 
     if (onBack) {
@@ -255,139 +287,99 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     }
   };
 
+  // UPDATED: Start NFT generation AND model preloading when challenge begins
   const handleStartChallenge = () => {
+    if (user?.id && challenge) {
+      console.log('Starting background tasks when challenge begins...');
+
+      try {
+        // 1. Start NFT generation (persistent)
+        const nftGenerationId = backgroundTasks.startNFTGeneration(user.id, challenge, true);
+        console.log('NFT generation started:', nftGenerationId);
+
+        // 2. Start model preloading (for face recognition)
+        const modelPreloadId = backgroundTasks.startModelPreload();
+        console.log('Model preload started:', modelPreloadId);
+
+        setBackgroundTaskIds({
+          nftGenerationId,
+          modelPreloadId,
+        });
+
+        console.log('Background tasks initiated successfully!');
+      } catch (error) {
+        console.error('Error starting background tasks:', error);
+      }
+    }
+
     setCurrentStep('recording');
   };
 
+  // UPDATED: Start verification analysis when video is recorded
   const handleVideoRecorded = (blob: Blob, duration: number) => {
-    console.log('📹 Video recorded:', blob.size, 'bytes,', duration, 'seconds');
+    console.log('Video recorded:', blob.size, 'bytes,', duration, 'seconds');
 
     setVideoBlob(blob);
     setVideoDuration(duration);
-
-    // 🚀 START BACKGROUND PROCESSING IMMEDIATELY
-    if (challenge && user?.id) {
-      console.log('🔄 Starting background tasks after video recording...');
-      console.log('👤 User ID:', user.id);
-      console.log('🎬 Challenge:', challenge.title);
-
-      try {
-        // Start video analysis immediately
-        console.log('📹 Starting video analysis...');
-        const videoAnalysisId = backgroundTasks.startVideoAnalysis(blob, challenge);
-        console.log('✅ Video analysis started with ID:', videoAnalysisId);
-
-        // Start NFT generation with proper user ID
-        console.log('🎨 Starting NFT generation...');
-        const nftGenerationId = backgroundTasks.startNFTGeneration(user.id);
-        console.log('✅ NFT generation started with ID:', nftGenerationId);
-
-        // Update state with task IDs
-        setBackgroundTaskIds((prev) => {
-          const newIds = {
-            ...prev,
-            videoAnalysisId,
-            nftGenerationId,
-          };
-          console.log('📊 Updated background task IDs:', newIds);
-          return newIds;
-        });
-
-        console.log('🎯 Background processing initiated successfully!');
-      } catch (error) {
-        console.error('❌ Error starting background tasks:', error);
-      }
-    } else {
-      console.warn('⚠️ Cannot start background tasks - missing requirements:', {
-        hasChallenge: !!challenge,
-        hasUser: !!user?.id,
-        userId: user?.id,
-      });
-    }
-
     setCurrentStep('review');
   };
 
+  // UPDATED: Start verification analysis when video is approved
   const handleApproveVideo = () => {
-    console.log('✅ Video approved, starting verification prep...');
+    console.log('Video approved, starting verification analysis...');
 
-    // 🚀 START VERIFICATION PREP - Since video is approved, start verification prep
     if (videoBlob && challenge) {
-      console.log('🔍 Starting verification prep after video approval...');
-
       try {
-        const verificationPrepId = backgroundTasks.startVerificationPrep(videoBlob, challenge);
-        console.log('✅ Verification prep started with ID:', verificationPrepId);
-
-        setBackgroundTaskIds((prev) => {
-          const newIds = {
-            ...prev,
-            verificationPrepId,
-          };
-          console.log('📊 Updated background task IDs after approval:', newIds);
-          return newIds;
+        // Start verification analysis in background with model dependency
+        const dependencies = backgroundTaskIds.modelPreloadId ? [backgroundTaskIds.modelPreloadId] : [];
+        
+        const verificationId = backgroundTasks.startVerification({
+          videoBlob,
+          photoBlob: new Blob(), // Placeholder - will be updated when selfie is taken
+          challenge,
+          dependencies,
         });
+
+        console.log('Verification analysis started:', verificationId);
+
+        setBackgroundTaskIds(prev => ({
+          ...prev,
+          verificationId,
+        }));
       } catch (error) {
-        console.error('❌ Error starting verification prep:', error);
+        console.error('Error starting verification analysis:', error);
       }
-    } else {
-      console.warn('⚠️ Cannot start verification prep - missing video or challenge');
     }
 
     setCurrentStep('selfie');
   };
 
   const handleRetakeVideo = () => {
-    console.log('🔄 Retaking video, cancelling background tasks...');
+    console.log('Retaking video, cancelling verification analysis...');
 
-    // Cancel any running background tasks for the old video
-    if (backgroundTaskIds.videoAnalysisId) {
-      console.log('🚫 Cancelling video analysis:', backgroundTaskIds.videoAnalysisId);
-      backgroundTasks.cancelTask(backgroundTaskIds.videoAnalysisId);
-    }
-    if (backgroundTaskIds.nftGenerationId) {
-      console.log('🚫 Cancelling NFT generation:', backgroundTaskIds.nftGenerationId);
-      backgroundTasks.cancelTask(backgroundTaskIds.nftGenerationId);
-    }
-    if (backgroundTaskIds.verificationPrepId) {
-      console.log('🚫 Cancelling verification prep:', backgroundTaskIds.verificationPrepId);
-      backgroundTasks.cancelTask(backgroundTaskIds.verificationPrepId);
+    // Cancel verification analysis but keep NFT and models
+    if (backgroundTaskIds.verificationId) {
+      backgroundTasks.cancelTask(backgroundTaskIds.verificationId);
     }
 
-    setBackgroundTaskIds({});
+    setBackgroundTaskIds(prev => ({
+      nftGenerationId: prev.nftGenerationId, // Keep NFT
+      modelPreloadId: prev.modelPreloadId,   // Keep models
+      // Remove verification
+    }));
+
     setVideoBlob(null);
     setVideoDuration(0);
     setCurrentStep('recording');
   };
 
+  // UPDATED: Update verification with actual selfie when completed
   const handleSelfieCompleted = (blob: Blob) => {
-    console.log('🤳 Selfie completed:', blob.size, 'bytes');
-
+    console.log('Selfie completed:', blob.size, 'bytes');
     setPhotoBlob(blob);
 
-    // 🚀 START FACE MATCHING - Now we have both video and selfie
-    if (videoBlob) {
-      console.log('👥 Starting face matching after selfie...');
-
-      try {
-        const faceMatchingId = backgroundTasks.startFaceMatching(videoBlob, blob);
-        console.log('✅ Face matching started with ID:', faceMatchingId);
-
-        setBackgroundTaskIds((prev) => {
-          const newIds = {
-            ...prev,
-            faceMatchingId,
-          };
-          console.log('📊 Updated background task IDs after selfie:', newIds);
-          return newIds;
-        });
-      } catch (error) {
-        console.error('❌ Error starting face matching:', error);
-      }
-    } else {
-      console.warn('⚠️ Cannot start face matching - missing video blob');
-    }
-
+    // If verification is already running, it will use placeholder
+    // The actual verification on the screen will use both blobs properly
     setCurrentStep('verification');
   };
 
@@ -397,18 +389,18 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     videoBlob: Blob;
     photoBlob: Blob;
   }) => {
-    console.log('✅ Verification completed, proceeding to claiming:', result);
+    console.log('Verification completed, proceeding to claiming:', result);
     setVerificationResult(result.verificationResult);
     setCurrentStep('claiming');
   };
 
   const handleClaimingComplete = (result: any) => {
-    console.log('🎉 Claiming completed:', result);
+    console.log('Claiming completed:', result);
     setCurrentStep('success');
   };
 
   const handleComplete = () => {
-    console.log('🏁 Challenge completion flow finished');
+    console.log('Challenge completion flow finished');
     backgroundTasks.clearAllTasks();
     router.push('/home');
   };
@@ -510,7 +502,7 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
     );
   }
 
-  // Step 1: Challenge Intro with Background Task Status
+  // Step 1: Challenge Intro with Background Task Progress
   const typeInfo = getChallengeTypeInfo(challenge.type);
 
   return (
