@@ -293,7 +293,7 @@ const LoginPage = () => {
   };
 
   return (
-    <AuthenticationLayout title="Welcome back" subtitle="Connect your identity to continue">
+    <AuthenticationLayout title="Welcome challenger" subtitle="It's time to lock in">
       <div className="w-full space-y-8">
         {/* Main Action Card */}
         <div className="bg-gray-800/50 rounded-[2rem] p-8 border border-gray-600">
@@ -301,9 +301,6 @@ const LoginPage = () => {
             <div className="text-center space-y-6">
               <div className="space-y-2">
                 <h3 className="text-white font-bold text-xl">Choose Your Profile</h3>
-                <p className="text-gray-300 text-sm">
-                  Your wallet is your identity. Connect to access your profile and challenges.
-                </p>
               </div>
 
               <div className="py-4">
@@ -424,34 +421,6 @@ const LoginPage = () => {
                 </>
               )}
             </p>
-          </div>
-
-          {/* Identity Benefits */}
-          <div className="bg-gray-800/30 rounded-xl p-6 border border-gray-700 space-y-4">
-            <h4 className="text-white font-semibold text-center">Your Digital Identity</h4>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-nocenaBlue rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-white text-sm font-medium">One Wallet, One Identity</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-nocenaPurple rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-white text-sm font-medium">Earn While You Play</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-nocenaPink rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-white text-sm font-medium">Cross-Platform Profile</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

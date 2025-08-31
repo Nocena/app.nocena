@@ -97,10 +97,7 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
     <div className="w-full space-y-6">
       <div className="bg-gray-800/50 rounded-[2rem] p-6 border border-gray-600">
         <div className="text-center space-y-4">
-          <h3 className="text-white font-semibold text-lg">Connect Your Wallet</h3>
-          <p className="text-gray-300 text-sm">
-            Connect your wallet to create your Nocena account. No passwords needed!
-          </p>
+          <h3 className="text-white font-semibold text-lg">Let's start the challenge</h3>
           <ConnectButton
             client={client}
             chain={chain}
@@ -155,39 +152,6 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
-        <h4 className="text-white font-semibold mb-2">Why Wallet Authentication?</h4>
-        <ul className="text-gray-300 text-sm space-y-1">
-          <li>• No passwords to remember or forget</li>
-          <li>• Your challenge rewards go directly to your wallet</li>
-          <li>• Enhanced security with blockchain technology</li>
-          <li>• Easy integration with DeFi and other Web3 apps</li>
-        </ul>
-      </div>
-
-      {/* Social Login Benefits for Crypto Users */}
-      <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
-        <h4 className="text-white font-semibold mb-2">Connect with Your Community</h4>
-        <div className="grid grid-cols-2 gap-2 text-gray-300 text-xs">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Discord Communities</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-            <span>Telegram Groups</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <span>X (Twitter) Crypto</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-nocenaPink rounded-full"></div>
-            <span>Social Verification</span>
-          </div>
         </div>
       </div>
     </div>

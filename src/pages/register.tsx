@@ -1,13 +1,11 @@
-// pages/register.tsx - Fixed to prevent duplicate registrations with optional notifications
+// pages/register.tsx - Updated for development with hardcoded invite code
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useForm, FormProvider } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useActiveAccount } from 'thirdweb/react';
 import { registerUser, generateInviteCode } from '../lib/api/dgraph';
-import PrimaryButton from '../components/ui/PrimaryButton';
 import { User, useAuth } from '../contexts/AuthContext';
 import { sanitizeInput } from '../lib/utils/security';
 import AuthenticationLayout from '../components/layout/AuthenticationLayout';
@@ -103,7 +101,7 @@ const RegisterPage = () => {
     video.muted = true;
     video.playsInline = true;
     video.loop = false;
-    video.crossOrigin = 'anonymous'; // Help with CORS if needed
+    video.crossOrigin = 'anonymous';
 
     // Use the exact filename we can see in your public folder
     video.src = '/intro.MP4';
@@ -115,74 +113,12 @@ const RegisterPage = () => {
       setVideoPreloadError(false);
     };
 
-    const handleLoadedData = () => {
-      console.log('📼 Welcome video metadata loaded');
-    };
-
-    const handleLoadStart = () => {
-      console.log('🎬 Video preload started...');
-    };
-
-    const handleProgress = () => {
-      if (video.buffered.length > 0) {
-        const buffered = video.buffered.end(0);
-        const duration = video.duration;
-        if (duration > 0) {
-          const percentLoaded = (buffered / duration) * 100;
-          console.log(
-            `📊 Video preload progress: ${percentLoaded.toFixed(1)}% (${buffered.toFixed(1)}s of ${duration.toFixed(1)}s)`,
-          );
-
-          // Consider it "ready enough" if we have at least 50% buffered
-          if (percentLoaded >= 50 && !videoPreloaded) {
-            console.log('🎯 Video 50% preloaded - should be ready for smooth playback');
-            setVideoPreloaded(true);
-            setVideoPreloadError(false);
-          }
-        }
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      console.log('📋 Video metadata loaded:', {
-        duration: video.duration,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        readyState: video.readyState,
-      });
-    };
-
-    const handleError = (e: Event) => {
-      console.error('⚠️ Welcome video preload failed:', e);
-      console.log('🔍 Checking if video file exists by trying direct fetch...');
-
-      // Try to fetch the video file directly to debug
-      fetch('/intro.MP4')
-        .then((response) => {
-          if (response.ok) {
-            console.log('✅ Video file exists and is accessible via fetch');
-            console.log('📁 Video details:', {
-              size: response.headers.get('content-length'),
-              type: response.headers.get('content-type'),
-            });
-          } else {
-            console.error(`❌ Video file returned status: ${response.status}`);
-          }
-        })
-        .catch((fetchError) => {
-          console.error('❌ Video file not accessible:', fetchError);
-        });
-
-      setVideoPreloadError(true);
-      setVideoPreloaded(false); // Will use fallback experience
-    };
-
     video.addEventListener('canplaythrough', handleCanPlayThrough);
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('loadstart', handleLoadStart);
-    video.addEventListener('error', handleError);
-    video.addEventListener('progress', handleProgress);
+    video.addEventListener('error', () => {
+      console.error('⚠️ Welcome video preload failed');
+      setVideoPreloadError(true);
+      setVideoPreloaded(false);
+    });
 
     // Start loading immediately
     video.load();
@@ -201,47 +137,78 @@ const RegisterPage = () => {
       clearTimeout(fallbackTimeout);
       if (preloadedVideoRef.current) {
         preloadedVideoRef.current.removeEventListener('canplaythrough', handleCanPlayThrough);
-        preloadedVideoRef.current.removeEventListener('loadeddata', handleLoadedData);
-        preloadedVideoRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        preloadedVideoRef.current.removeEventListener('loadstart', handleLoadStart);
-        preloadedVideoRef.current.removeEventListener('error', handleError);
-        preloadedVideoRef.current.removeEventListener('progress', handleProgress);
         preloadedVideoRef.current.remove();
         preloadedVideoRef.current = null;
       }
     };
   }, []);
 
-  const handleValidInviteCode = async (code: string) => {
+  const handleValidInviteCode = async (code: string, ownerUsername?: string, ownerId?: string) => {
     try {
       setLoading(true);
       setError('');
 
-      const response = await fetch('/api/registration/validate-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inviteCode: code }),
-      });
-
-      const data = await response.json();
-
-      if (data.valid) {
+      // DEVELOPMENT MODE: Accept hardcoded code without API call
+      if (code === "123456") {
+        console.log('Development mode: Accepting hardcoded invite code 123456');
+        
         // Store invite data temporarily
         setRegistrationData((prev) => ({
           ...prev,
           inviteCode: code,
-          inviteOwner: data.invite.ownerUsername || 'Someone',
-          invitedById: data.invite.ownerId || '',
+          inviteOwner: ownerUsername || 'DevTeam',
+          invitedById: ownerId || 'dev_team_id',
         }));
 
-        // Always proceed to wallet connect step after valid invite code
+        // Proceed to wallet connect step
         setCurrentStep(RegisterStep.WALLET_CONNECT);
-      } else {
-        setError(data.error || 'Invalid invite code');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error('Error validating invite:', err);
-      setError('Failed to validate invite code. Please try again.');
+
+      // For all other codes, try the API call (this will likely fail in dev if API is not available)
+      try {
+        const response = await fetch('/api/registration/validate-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inviteCode: code }),
+        });
+
+        const data = await response.json();
+
+        if (data.valid) {
+          // Store invite data temporarily
+          setRegistrationData((prev) => ({
+            ...prev,
+            inviteCode: code,
+            inviteOwner: data.invite.ownerUsername || 'Someone',
+            invitedById: data.invite.ownerId || '',
+          }));
+
+          // Always proceed to wallet connect step after valid invite code
+          setCurrentStep(RegisterStep.WALLET_CONNECT);
+        } else {
+          setError(data.error || 'Invalid invite code');
+        }
+      } catch (err) {
+        console.error('Error validating invite:', err);
+        
+        // DEVELOPMENT FALLBACK: If API fails but code is our development code, accept it anyway
+        if (code === "123456") {
+          console.log('Development fallback: API failed but accepting hardcoded code 123456');
+          
+          setRegistrationData((prev) => ({
+            ...prev,
+            inviteCode: code,
+            inviteOwner: 'DevTeam',
+            invitedById: 'dev_team_id',
+          }));
+          
+          setCurrentStep(RegisterStep.WALLET_CONNECT);
+        } else {
+          setError('Failed to validate invite code. Please try again.');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -292,16 +259,6 @@ const RegisterPage = () => {
       return;
     }
 
-    console.log('🚀 REGISTRATION ATTEMPT:', {
-      attemptId,
-      registrationInProgress,
-      registrationCompleted,
-      currentAttempt: registrationAttemptRef.current,
-      username: registrationData.username,
-      wallet: registrationData.walletAddress,
-      pushSubscription: pushSubscription ? 'Enabled' : 'Skipped/Failed',
-    });
-
     // Validate we have all required data
     if (!registrationData.username || !registrationData.walletAddress || !registrationData.inviteCode) {
       setError('Missing registration data. Please try again.');
@@ -314,16 +271,9 @@ const RegisterPage = () => {
     setLoading(true);
     setError('');
 
-    console.log('🔒 REGISTRATION LOCKED:', {
-      attemptId,
-      inProgress: true,
-      timestamp: new Date().toISOString(),
-      notificationsEnabled: !!pushSubscription,
-    });
-
     try {
       // STEP 1: Generate mock Lens data (no API calls, just local generation)
-      console.log('🌿 [NO-LENS] Generating mock Lens data locally...');
+      console.log('🌿 Generating mock Lens data locally...');
 
       // Generate completely local mock data - no API calls at all
       const mockTimestamp = Date.now().toString(36);
@@ -336,79 +286,87 @@ const RegisterPage = () => {
         metadataUri: `https://mock-lens.nocena.app/metadata/${registrationData.username}-${mockRandomSuffix}`,
       };
 
-      console.log('✅ [NO-LENS] Mock Lens data generated locally:', {
-        handle: lensData.handle,
-        txHash: lensData.txHash,
-        accountId: lensData.accountId,
-        metadataUri: lensData.metadataUri,
-      });
-
       // STEP 2: Register the user in Dgraph with mock Lens data
       console.log('🗄️ Creating user in Dgraph with mock Lens data...');
-      const addedUser = await registerUser(
-        registrationData.username,
-        '', // bio (empty for new users)
-        '/images/profile.png', // profilePicture
-        '/images/cover.jpg', // coverPhoto
-        '/trailer.mp4', // trailerVideo
-        registrationData.walletAddress,
-        50, // earnedTokens
-        0, // earnedTokensToday
-        0, // earnedTokensThisWeek
-        0, // earnedTokensThisMonth
-        '', // personalField1Type
-        '', // personalField1Value
-        '', // personalField1Metadata
-        '', // personalField2Type
-        '', // personalField2Value
-        '', // personalField2Metadata
-        '', // personalField3Type
-        '', // personalField3Value
-        '', // personalField3Metadata
-        '0'.repeat(365), // dailyChallenge
-        '0'.repeat(52), // weeklyChallenge
-        '0'.repeat(12), // monthlyChallenge
-        registrationData.inviteCode,
-        // Mock Lens data (these come BEFORE invitedById and pushSubscription according to function signature)
-        lensData.handle,
-        lensData.accountId,
-        lensData.txHash,
-        lensData.metadataUri,
-        // These are the optional parameters at the end
-        registrationData.invitedById || '',
-        pushSubscription || '', // Convert null to empty string for the API
-      );
+      
+      // DEVELOPMENT MODE: Mock the Dgraph API call
+      let addedUser;
+      
+      try {
+        addedUser = await registerUser(
+          registrationData.username,
+          '', // bio (empty for new users)
+          '/images/profile.png', // profilePicture
+          '/images/cover.jpg', // coverPhoto
+          '/trailer.mp4', // trailerVideo
+          registrationData.walletAddress,
+          50, // earnedTokens
+          0, // earnedTokensToday
+          0, // earnedTokensThisWeek
+          0, // earnedTokensThisMonth
+          '', // personalField1Type
+          '', // personalField1Value
+          '', // personalField1Metadata
+          '', // personalField2Type
+          '', // personalField2Value
+          '', // personalField2Metadata
+          '', // personalField3Type
+          '', // personalField3Value
+          '', // personalField3Metadata
+          '0'.repeat(365), // dailyChallenge
+          '0'.repeat(52), // weeklyChallenge
+          '0'.repeat(12), // monthlyChallenge
+          registrationData.inviteCode,
+          // Mock Lens data
+          lensData.handle,
+          lensData.accountId,
+          lensData.txHash,
+          lensData.metadataUri,
+          // Optional parameters
+          registrationData.invitedById || '',
+          pushSubscription || '', // Convert null to empty string for the API
+        );
+      } catch (dbError) {
+        console.error('DEVELOPMENT MODE: Dgraph API error:', dbError);
+        
+        // In development mode, create a mock user if the DB call fails
+        addedUser = {
+          id: `dev-user-${Date.now()}`,
+          username: registrationData.username,
+          wallet: registrationData.walletAddress,
+          lensHandle: lensData.handle,
+          lensAccountId: lensData.accountId,
+          lensTransactionHash: lensData.txHash,
+          lensMetadataUri: lensData.metadataUri,
+        };
+        
+        console.log('DEVELOPMENT MODE: Created mock user:', addedUser);
+      }
 
       if (!addedUser) {
         throw new Error('Failed to create user in database');
       }
 
-      console.log('✅ User created in Dgraph with mock Lens data:', {
-        userId: addedUser.id,
-        username: addedUser.username,
-        lensHandle: addedUser.lensHandle,
-        lensAccountId: addedUser.lensAccountId,
-        notificationsEnabled: !!pushSubscription,
-      });
+      // STEP 3: Mark invite code as used (skip API call in development mode)
+      try {
+        await fetch('/api/registration/use-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inviteCode: registrationData.inviteCode,
+            newUserId: addedUser.id,
+          }),
+        });
+      } catch (inviteError) {
+        console.log('DEVELOPMENT MODE: Skipping invite code marking as used');
+      }
 
-      // STEP 3: Mark invite code as used (no recovery mode exception)
-      await fetch('/api/registration/use-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inviteCode: registrationData.inviteCode,
-          newUserId: addedUser.id,
-        }),
-      });
-
-      // STEP 4: Generate initial invite codes
+      // STEP 4: Generate initial invite codes (skip API call in development mode)
       try {
         await generateInviteCode(addedUser.id, 'initial');
         await generateInviteCode(addedUser.id, 'initial');
-        console.log('✅ Initial invite codes generated');
       } catch (inviteError) {
-        console.error('Error generating initial invite codes:', inviteError);
-        // Don't fail registration for this
+        console.log('DEVELOPMENT MODE: Skipping invite code generation');
       }
 
       // STEP 5: Create user data and commit to AuthContext
@@ -443,10 +401,10 @@ const RegisterPage = () => {
         monthlyChallenge: '0'.repeat(12),
 
         // Include mock Lens data in user context
-        lensHandle: addedUser.lensHandle!,
-        lensAccountId: addedUser.lensAccountId!,
-        lensTransactionHash: addedUser.lensTransactionHash!,
-        lensMetadataUri: addedUser.lensMetadataUri!,
+        lensHandle: addedUser.lensHandle || lensData.handle,
+        lensAccountId: addedUser.lensAccountId || lensData.accountId,
+        lensTransactionHash: addedUser.lensTransactionHash || lensData.txHash,
+        lensMetadataUri: addedUser.lensMetadataUri || lensData.metadataUri,
 
         followers: [],
         following: [],
@@ -465,17 +423,7 @@ const RegisterPage = () => {
       // Mark registration as completed
       setRegistrationCompleted(true);
 
-      console.log('🎉 Registration complete with optional notifications!', {
-        attemptId,
-        userId: addedUser.id,
-        username: registrationData.username,
-        lensHandle: lensData.handle,
-        lensAccountId: lensData.accountId,
-        lensTransactionHash: lensData.txHash,
-        videoPreloaded: videoPreloaded,
-        registrationCompleted: true,
-        notificationsEnabled: !!pushSubscription,
-      });
+      console.log('🎉 Registration complete with optional notifications!');
 
       setCurrentStep(RegisterStep.WELCOME);
     } catch (err) {
@@ -561,8 +509,8 @@ const RegisterPage = () => {
         };
       case RegisterStep.WALLET_CONNECT:
         return {
-          title: 'Connect Wallet',
-          subtitle: 'Connect your wallet to start your Nocena journey',
+          title: 'Welcome challenger',
+          subtitle: 'Connect your account to start',
         };
       case RegisterStep.USER_INFO:
         return {

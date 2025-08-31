@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useActiveAccount, useDisconnect, useActiveWallet } from 'thirdweb/react';
 
