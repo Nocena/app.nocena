@@ -609,16 +609,24 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         {stage === 'ready' && (
           <button
             onClick={startCountdown}
-            className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-300 bg-black/20 backdrop-blur-sm"
             disabled={!cameraInitialized}
+            className={`relative w-20 h-20 rounded-full transition-all duration-300 ${
+              cameraInitialized 
+                ? 'border-2 border-white shadow-lg hover:scale-105' 
+                : 'border-2 border-gray-600 opacity-50'
+            }`}
+            aria-label="Start recording"
           >
             <div
-              className="absolute inset-2 rounded-full transition-opacity"
-              style={{
-                background: cameraInitialized ? '#FF15C9' : '#666',
-                opacity: cameraInitialized ? 1 : 0.7,
-              }}
+              className={`absolute inset-1 rounded-full transition-all duration-300 ${
+                cameraInitialized 
+                  ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' 
+                  : 'bg-gray-600'
+              }`}
             />
+            {cameraInitialized && (
+              <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
+            )}
             {!cameraInitialized && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -628,29 +636,29 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
         )}
 
         {stage === 'countdown' && (
-          <div className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-300 bg-black/20 backdrop-blur-sm">
-            <div className="absolute inset-2 bg-gray-600 rounded-full" />
+          <div className="relative w-20 h-20 rounded-full border-2 border-white opacity-50">
+            <div className="absolute inset-1 bg-gray-600 rounded-full" />
           </div>
         )}
 
         {stage === 'recording' && (
           <button
             onClick={stopRecording}
-            className="relative w-20 h-20 rounded-full border-4 border-white transition-all duration-500 ease-in-out bg-black/20 backdrop-blur-sm"
+            className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-500 ease-in-out shadow-lg hover:scale-105"
+            aria-label="Stop recording"
           >
+            <div className="absolute inset-1 bg-gradient-to-br from-nocenaPink to-nocenaPurple rounded-full" />
             <div
-              className="absolute inset-6 transition-all duration-500 ease-in-out rounded-sm"
-              style={{
-                background: '#FF15C9',
-              }}
+              className="absolute inset-6 transition-all duration-500 ease-in-out rounded-sm bg-white"
             />
+            <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
           </button>
         )}
 
         {stage === 'stopping' && (
-          <div className="relative w-20 h-20 rounded-full border-4 border-white bg-black/20 backdrop-blur-sm">
-            <div className="absolute inset-2 bg-gray-600 rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="relative w-20 h-20 rounded-full border-2 border-white opacity-50">
+            <div className="absolute inset-1 bg-gray-600 rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </div>
           </div>
         )}

@@ -8,6 +8,20 @@ module.exports = {
         nocenaBlue: '#2353FF',
         nocenaPurple: '#6024FB',
         nocenaPink: '#FF15C9',
+
+        // NFT Rarity Colors - designed for dark theme
+        rarityCommon: '#6B7280', // Neutral gray - subtle but visible
+        rarityUncommon: '#10B981', // Emerald green - fresh and noticeable
+        rarityRare: '#3B82F6', // Bright blue - matches your nocenaBlue family
+        rarityEpic: '#8B5CF6', // Vibrant purple - complements nocenaPurple
+        rarityLegendary: '#F59E0B', // Amber gold - warm contrast to your cool palette
+
+        // Alternative rarity variations for different contexts
+        rarityCommonDark: '#4B5563', // Darker gray for backgrounds
+        rarityUncommonDark: '#047857', // Darker green for backgrounds
+        rarityRareDark: '#1E40AF', // Darker blue for backgrounds
+        rarityEpicDark: '#6D28D9', // Darker purple for backgrounds
+        rarityLegendaryDark: '#D97706', // Darker gold for backgrounds
       },
       fontFamily: {
         sans: ['Montserrat', 'sans-serif'],
@@ -44,11 +58,20 @@ module.exports = {
         'nocena-blue-fade': 'linear-gradient(135deg, rgba(35, 83, 255, 0.8) 0%, rgba(0, 46, 211, 0.6) 100%)',
         'nocena-purple-fade': 'linear-gradient(135deg, rgba(96, 36, 251, 0.8) 0%, rgba(74, 31, 184, 0.6) 100%)',
         'nocena-pink-fade': 'linear-gradient(135deg, rgba(255, 21, 201, 0.8) 0%, rgba(224, 16, 182, 0.6) 100%)',
+
+        // NFT Rarity gradients for special effects
+        'rarity-common': 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
+        'rarity-uncommon': 'linear-gradient(135deg, #10B981 0%, #047857 100%)',
+        'rarity-rare': 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)',
+        'rarity-epic': 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+        'rarity-legendary': 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
       },
       animation: {
         'glitchPink': 'glitchPink 1s infinite',
         'glitchBlue': 'glitchBlue 1s infinite',
         'fade-in': 'fadeIn 0.5s ease-in',
+        'legendary-glow': 'legendaryGlow 2s ease-in-out infinite alternate',
+        'epic-pulse': 'epicPulse 1.5s ease-in-out infinite',
       },
       keyframes: {
         glitchPink: {
@@ -68,6 +91,14 @@ module.exports = {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        legendaryGlow: {
+          '0%': { boxShadow: '0 0 5px rgba(245, 158, 11, 0.5)' },
+          '100%': { boxShadow: '0 0 20px rgba(245, 158, 11, 0.8)' },
+        },
+        epicPulse: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.05)', opacity: '0.9' },
         },
       },
     },

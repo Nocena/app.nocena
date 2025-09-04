@@ -124,12 +124,8 @@ const nextConfig: NextConfig = {
               "frame-src 'self' blob: https://embedded-wallet.thirdweb.com https://pay.thirdweb.com; " +
               "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
               "font-src 'self' data:; " +
-              "connect-src 'self' https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https://embedded-wallet.thirdweb.com https://pay.thirdweb.com https://cdn.jsdelivr.net wss://relay.walletconnect.org https://relay.walletconnect.org https://rpc.walletconnect.org https://*.walletconnect.org https: http: wss:; " +
+              "connect-src 'self' https://api.nocena.com https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https://embedded-wallet.thirdweb.com https://pay.thirdweb.com https://cdn.jsdelivr.net wss://relay.walletconnect.org https://relay.walletconnect.org https://rpc.walletconnect.org https://*.walletconnect.org https: http: wss:; " +
               "media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;",
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
           },
         ],
       },

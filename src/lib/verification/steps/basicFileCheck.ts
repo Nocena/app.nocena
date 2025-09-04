@@ -6,11 +6,13 @@ export interface BasicFileCheckResult {
   details: string;
   videoValid: boolean;
   photoValid: boolean;
+  isPlaceholderPhoto?: boolean; // New field to track placeholder state
 }
 
 /**
  * STEP 1: Basic File Check
  * Validates that the video is a real video file and the selfie is a real image file
+ * Handles placeholder selfies gracefully for background verification optimization
  */
 export async function runBasicFileCheck(
   videoBlob: Blob,
@@ -27,6 +29,14 @@ export async function runBasicFileCheck(
     type: photoBlob.type,
   });
 
+  // Check if photoBlob is a placeholder (empty or very small)
+  const isPlaceholderPhoto = !photoBlob || photoBlob.size === 0 || photoBlob.type === '' || photoBlob.size < 100;
+
+  if (isPlaceholderPhoto) {
+    console.log('📷 Placeholder photo detected - deferring selfie validation');
+    onProgress?.(25, 'Placeholder selfie detected, validating video only...');
+  }
+
   let videoValid = false;
   let photoValid = false;
   let details = '';
@@ -35,7 +45,7 @@ export async function runBasicFileCheck(
     // Progress: Starting video check
     onProgress?.(10, 'Checking video file format...');
 
-    // Video validation
+    // Video validation (always required)
     if (!videoBlob.type.startsWith('video/')) {
       details = 'Invalid video format - not a video file';
       console.error('❌', details);
@@ -50,24 +60,46 @@ export async function runBasicFileCheck(
       console.log('✅ Video file validation passed');
     }
 
-    // Progress: Video check complete, starting photo check
-    onProgress?.(50, 'Checking photo file format...');
+    if (!videoValid) {
+      // If video is invalid, fail regardless of photo status
+      onProgress?.(100, details);
+      console.error('❌ Basic file check failed:', details);
+      console.groupEnd();
 
-    // Photo validation
-    if (!photoBlob.type.startsWith('image/')) {
-      details = videoValid ? 'Invalid image format - not an image file' : details + ' | Invalid image format';
-      console.error('❌ Invalid image format');
-    } else if (photoBlob.size < 1024) {
-      details = videoValid ? 'Photo file too small (less than 1KB)' : details + ' | Photo too small';
-      console.error('❌ Photo file too small');
-    } else if (photoBlob.size > 10 * 1024 * 1024) {
-      details = videoValid
-        ? `Photo file too large (${(photoBlob.size / 1024 / 1024).toFixed(1)}MB > 10MB)`
-        : details + ' | Photo too large';
-      console.error('❌ Photo file too large');
+      return {
+        passed: false,
+        confidence: 0,
+        details,
+        videoValid: false,
+        photoValid: false,
+        isPlaceholderPhoto,
+      };
+    }
+
+    // Progress: Video check complete
+    onProgress?.(isPlaceholderPhoto ? 70 : 50, 'Video validated, checking photo...');
+
+    // Photo validation - handle placeholder gracefully
+    if (isPlaceholderPhoto) {
+      // Placeholder photo - pass with lower confidence
+      photoValid = true; // Allow placeholder to pass
+      details = 'Video validated, selfie pending capture';
+      console.log('📷 Placeholder photo accepted - selfie validation deferred');
     } else {
-      photoValid = true;
-      console.log('✅ Photo file validation passed');
+      // Real photo validation
+      if (!photoBlob.type.startsWith('image/')) {
+        details = 'Invalid image format - not an image file';
+        console.error('❌ Invalid image format');
+      } else if (photoBlob.size < 1024) {
+        details = 'Photo file too small (less than 1KB)';
+        console.error('❌ Photo file too small');
+      } else if (photoBlob.size > 10 * 1024 * 1024) {
+        details = `Photo file too large (${(photoBlob.size / 1024 / 1024).toFixed(1)}MB > 10MB)`;
+        console.error('❌ Photo file too large');
+      } else {
+        photoValid = true;
+        console.log('✅ Photo file validation passed');
+      }
     }
 
     // Progress: Finalizing check
@@ -78,16 +110,22 @@ export async function runBasicFileCheck(
     let confidence = 0;
 
     if (passed) {
-      confidence = 100; // Perfect score for valid files
-      details = 'All files validated successfully';
-      console.log('✅ Basic file check completed successfully');
+      if (isPlaceholderPhoto) {
+        confidence = 60; // Lower confidence for placeholder - can be completed later
+        details = 'Video validated successfully, awaiting selfie capture';
+        console.log('✅ Basic file check completed with placeholder photo (partial)');
+      } else {
+        confidence = 100; // Perfect score for all valid files
+        details = 'All files validated successfully';
+        console.log('✅ Basic file check completed successfully');
+      }
     } else {
       confidence = 0; // No confidence if files are invalid
       console.error('❌ Basic file check failed:', details);
     }
 
     // Progress: Complete
-    onProgress?.(100, passed ? 'Files validated successfully' : details);
+    onProgress?.(100, passed ? details : 'File validation failed');
 
     console.groupEnd();
 
@@ -97,6 +135,7 @@ export async function runBasicFileCheck(
       details,
       videoValid,
       photoValid,
+      isPlaceholderPhoto,
     };
   } catch (error) {
     console.error('💥 Basic file check error:', error);
@@ -110,6 +149,7 @@ export async function runBasicFileCheck(
       details: `File validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       videoValid: false,
       photoValid: false,
+      isPlaceholderPhoto,
     };
   }
 }

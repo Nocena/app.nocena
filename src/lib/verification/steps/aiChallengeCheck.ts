@@ -17,6 +17,7 @@ export interface AIChallengeCheckResult {
   explanation: string;
   score: number; // 0-100 from OpenAI
   framesAnalyzed: number;
+  rawAIResponse?: any;
 }
 
 /**
@@ -228,5 +229,6 @@ function processAIResult(result: any, framesAnalyzed: number): AIChallengeCheckR
     explanation: result.explanation,
     score,
     framesAnalyzed,
+    rawAIResponse: result,
   };
 }
