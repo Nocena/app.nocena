@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
 import { useBackgroundTasks } from '../../../contexts/BackgroundTaskContext';
@@ -47,13 +48,13 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
   const [thumbnailGenerated, setThumbnailGenerated] = useState<boolean>(false);
+  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const url = URL.createObjectURL(videoBlob);
     setVideoUrl(url);
 
-    // Generate thumbnail immediately
     console.log('Starting thumbnail generation');
     generateThumbnail(url);
 
@@ -65,6 +66,40 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     };
   }, [videoBlob]);
 
+  // Update background task status
+  useEffect(() => {
+    const getBackgroundTaskStatus = () => {
+      const tasks = [];
+
+      if (backgroundTaskIds.videoAnalysisId) {
+        const task = backgroundTasks.getTask(backgroundTaskIds.videoAnalysisId);
+        if (task) {
+          tasks.push({
+            name: 'Video Analysis',
+            status: task.status,
+            progress: task.progress,
+          });
+        }
+      }
+
+      if (backgroundTaskIds.nftGenerationId) {
+        const task = backgroundTasks.getTask(backgroundTaskIds.nftGenerationId);
+        if (task) {
+          tasks.push({
+            name: 'NFT Generation',
+            status: task.status,
+            progress: task.progress,
+          });
+        }
+      }
+
+      return tasks;
+    };
+
+    const newStatus = getBackgroundTaskStatus();
+    setBackgroundTaskStatus(newStatus);
+  }, [backgroundTaskIds.videoAnalysisId, backgroundTaskIds.nftGenerationId]);
+
   const generateThumbnail = (videoUrl: string) => {
     const video = document.createElement('video');
     video.src = videoUrl;
@@ -73,7 +108,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     video.crossOrigin = 'anonymous';
 
     const extractFrame = () => {
-      if (thumbnailGenerated) return; // Prevent multiple generations
+      if (thumbnailGenerated) return;
 
       try {
         const canvas = document.createElement('canvas');
@@ -102,25 +137,17 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     };
 
     video.onloadedmetadata = () => {
-      console.log('Video metadata loaded for thumbnail');
       video.currentTime = 0.05;
     };
 
-    video.onloadeddata = () => {
-      console.log('Video data loaded for thumbnail');
-      if (video.videoWidth > 0) {
-        extractFrame();
-      }
-    };
-
     video.onseeked = () => {
-      console.log('Video seeked for thumbnail');
       extractFrame();
     };
 
     video.oncanplay = () => {
-      console.log('Video can play for thumbnail');
-      extractFrame();
+      if (!thumbnailGenerated) {
+        extractFrame();
+      }
     };
 
     video.onerror = (e) => {
@@ -128,228 +155,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     };
   };
 
-  const canProceed = videoDuration >= 3;
-
-  const formatDuration = (duration: number) => {
-    if (duration <= 0) {
-      return 'Unknown';
-    }
-    return `${duration.toFixed(1)}s`;
-  };
-
-  // Get background task status for display - FIXED to prevent constant polling
-  const getBackgroundTaskStatus = () => {
-    const tasks = [];
-
-    if (backgroundTaskIds.videoAnalysisId) {
-      const task = backgroundTasks.getTask(backgroundTaskIds.videoAnalysisId);
-      if (task) {
-        tasks.push({
-          name: 'Video Analysis',
-          status: task.status,
-          progress: task.progress,
-          icon: '📹',
-        });
-      }
-    }
-
-    if (backgroundTaskIds.nftGenerationId) {
-      const task = backgroundTasks.getTask(backgroundTaskIds.nftGenerationId);
-      if (task) {
-        tasks.push({
-          name: 'NFT Generation',
-          status: task.status,
-          progress: task.progress,
-          icon: '🎨',
-        });
-      }
-    }
-
-    return tasks;
-  };
-
-  // FIXED: Get status once and memoize it, don't call in render loop
-  const [backgroundTaskStatus, setBackgroundTaskStatus] = useState<any[]>([]);
-
-  // Update status when task IDs change, but don't spam
-  useEffect(() => {
-    const newStatus = getBackgroundTaskStatus();
-    setBackgroundTaskStatus(newStatus);
-  }, [backgroundTaskIds.videoAnalysisId, backgroundTaskIds.nftGenerationId]);
-
-  return (
-    <div className="fixed inset-0 bg-black text-white z-50">
-      {/* Navigation Buttons */}
-      <div
-        className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
-        style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: '0.5rem',
-        }}
-      >
-        {/* Back Button - Left */}
-        <button onClick={onBack} className="focus:outline-none pointer-events-auto" aria-label="Back">
-          <ThematicContainer
-            color="nocenaBlue"
-            glassmorphic={true}
-            asButton={false}
-            rounded="full"
-            className="w-12 h-12 flex items-center justify-center"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </ThematicContainer>
-        </button>
-
-        {/* Cancel Button - Right */}
-        <button onClick={onCancel} className="focus:outline-none pointer-events-auto" aria-label="Cancel">
-          <ThematicContainer
-            color="nocenaBlue"
-            glassmorphic={true}
-            asButton={false}
-            rounded="full"
-            className="w-12 h-12 flex items-center justify-center"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </ThematicContainer>
-        </button>
-      </div>
-
-      {/* Main Content Container */}
-      <div className="h-full flex flex-col">
-        {/* Scrollable Content */}
-        <div
-          className="flex-1 overflow-y-auto px-6 py-4"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 80px)' }}
-        >
-          {/* Header - Compact */}
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-light mb-1">Review Your Recording</h2>
-            <div className="text-sm text-gray-400">
-              {challenge.title} • {formatDuration(videoDuration)}
-            </div>
-          </div>
-
-          {/* Video Player - FIXED to prevent event loops */}
-          <div className="mb-6 flex justify-center">
-            <div className="relative rounded-2xl overflow-hidden bg-black w-64 h-80 shadow-2xl">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                poster={thumbnailUrl || undefined}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  console.error('Video loading error:', e);
-                }}
-                onLoadedData={() => {
-                  console.log('Main video loaded data');
-                  // FIXED: Only seek if we haven't generated thumbnail yet
-                  if (!thumbnailGenerated && videoRef.current) {
-                    const video = videoRef.current;
-                    video.currentTime = 0.05;
-                  }
-                }}
-                onSeeked={() => {
-                  console.log('Main video seeked');
-                  // FIXED: Only generate thumbnail once from main video
-                  if (!thumbnailGenerated && videoRef.current) {
-                    generateThumbnailFromMainVideo();
-                  }
-                }}
-                onCanPlay={() => {
-                  console.log('Main video can play');
-                  // FIXED: Removed currentTime setting that caused infinite loop
-                }}
-                preload="metadata"
-                playsInline
-                controlsList="nodownload nofullscreen noremoteplayback"
-                disablePictureInPicture
-                onClick={(e) => {
-                  const video = e.target as HTMLVideoElement;
-                  if (video.paused) {
-                    video.play();
-                  } else {
-                    video.pause();
-                  }
-                }}
-                style={
-                  {
-                    WebkitPlaysinline: true,
-                  } as React.CSSProperties
-                }
-              />
-            </div>
-          </div>
-
-          {/* Status Message */}
-          <div
-            className={`rounded-2xl p-5 mb-6 ${
-              canProceed
-                ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/20 border border-green-800/20'
-                : 'bg-gradient-to-r from-red-900/30 to-orange-900/20 border border-red-800/20'
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  canProceed ? 'bg-green-500/20' : 'bg-red-500/20'
-                }`}
-              >
-                <svg
-                  className={`w-5 h-5 ${canProceed ? 'text-green-400' : 'text-red-400'}`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  {canProceed ? (
-                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                  ) : (
-                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                  )}
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className={`text-base font-medium mb-1 ${canProceed ? 'text-green-300' : 'text-red-300'}`}>
-                  {canProceed
-                    ? `Perfect! ${formatDuration(videoDuration)} recording`
-                    : `Too short: ${formatDuration(videoDuration)}`}
-                </p>
-                <p className="text-sm text-gray-400 leading-relaxed">
-                  {canProceed ? 'Ready for identity verification' : 'Minimum 3 seconds required for verification'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fixed Action Buttons at Bottom */}
-        <div
-          className="flex-shrink-0 px-6 py-4 bg-black/50 backdrop-blur-sm border-t border-gray-800"
-          style={{
-            paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
-          }}
-        >
-          <div className="flex gap-4">
-            <PrimaryButton onClick={onRetakeVideo} text="Retake Video" className="flex-1" isActive={true} />
-            <PrimaryButton
-              onClick={onApproveVideo}
-              text={canProceed ? 'Continue' : 'Too Short'}
-              className={`flex-1 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!canProceed}
-              isActive={!canProceed}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Helper function to generate thumbnail from main video (called only once)
-  function generateThumbnailFromMainVideo() {
+  const generateThumbnailFromMainVideo = () => {
     if (!videoRef.current || thumbnailGenerated) return;
 
     try {
@@ -377,7 +183,203 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
     } catch (error) {
       console.error('Error generating thumbnail from main video:', error);
     }
-  }
+  };
+
+  const canProceed = videoDuration >= 3;
+  const formatDuration = (duration: number) => {
+    if (duration <= 0) return 'Unknown';
+    return `${duration.toFixed(1)}s`;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black text-white z-50">
+      {/* Navigation Buttons */}
+      <div
+        className="flex justify-between items-center px-4 fixed top-0 left-0 right-0 z-50 pointer-events-none mt-4"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: '0.5rem',
+        }}
+      >
+        {/* Back Button */}
+        <button onClick={onBack} className="focus:outline-none pointer-events-auto" aria-label="Back">
+          <ThematicContainer
+            color="nocenaBlue"
+            glassmorphic={true}
+            asButton={false}
+            rounded="full"
+            className="w-12 h-12 flex items-center justify-center"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </ThematicContainer>
+        </button>
+
+        {/* Cancel Button */}
+        <button onClick={onCancel} className="focus:outline-none pointer-events-auto" aria-label="Cancel">
+          <ThematicContainer
+            color="nocenaBlue"
+            glassmorphic={true}
+            asButton={false}
+            rounded="full"
+            className="w-12 h-12 flex items-center justify-center"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </ThematicContainer>
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div
+        className="h-full flex flex-col items-center justify-center px-6 py-4"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 80px)' }}
+      >
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-light mb-1">Review Recording</h2>
+          <div className="text-sm text-gray-400">{challenge.title}</div>
+        </div>
+
+        {/* Video Player Card */}
+        <div className="mb-8">
+          <ThematicContainer
+            color="nocenaBlue"
+            glassmorphic={true}
+            asButton={false}
+            rounded="2xl"
+            className="p-6"
+          >
+            <div className="relative rounded-xl overflow-hidden bg-black w-64 h-80 shadow-2xl mx-auto">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                poster={thumbnailUrl || undefined}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('Video loading error:', e);
+                }}
+                onLoadedData={() => {
+                  console.log('Main video loaded data');
+                  if (!thumbnailGenerated && videoRef.current) {
+                    const video = videoRef.current;
+                    video.currentTime = 0.05;
+                  }
+                }}
+                onSeeked={() => {
+                  console.log('Main video seeked');
+                  if (!thumbnailGenerated && videoRef.current) {
+                    generateThumbnailFromMainVideo();
+                  }
+                }}
+                onCanPlay={() => {
+                  console.log('Main video can play');
+                }}
+                preload="metadata"
+                playsInline
+                controlsList="nodownload nofullscreen noremoteplayback"
+                disablePictureInPicture
+                onClick={(e) => {
+                  const video = e.target as HTMLVideoElement;
+                  if (video.paused) {
+                    video.play();
+                  } else {
+                    video.pause();
+                  }
+                }}
+                style={{
+                  WebkitPlaysinline: true,
+                } as React.CSSProperties}
+              />
+
+              {/* Video Info Overlay */}
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="bg-black/50 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={challenge.challengerProfile}
+                        alt="Challenger"
+                        width={20}
+                        height={20}
+                        className="w-5 h-5 object-cover rounded-full"
+                      />
+                      <span className="text-sm font-medium">{challenge.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-semibold">{formatDuration(videoDuration)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ThematicContainer>
+        </div>
+
+        {/* Status Card */}
+        <div className="mb-8 w-full max-w-sm">
+          <ThematicContainer
+            color={canProceed ? "nocenaPurple" : "nocenaPink"}
+            glassmorphic={true}
+            asButton={false}
+            rounded="2xl"
+            className="p-6 text-center"
+          >
+            {/* Status Icon */}
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              canProceed 
+                ? 'bg-nocenaPurple/20 border border-nocenaPurple/30' 
+                : 'bg-nocenaPink/20 border border-nocenaPink/30'
+            }`}>
+              <svg
+                className={`w-6 h-6 ${canProceed ? 'text-nocenaPurple' : 'text-nocenaPink'}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                {canProceed ? (
+                  <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                ) : (
+                  <path d="M12 8v4m0 4h.01" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+              </svg>
+            </div>
+
+            {/* Status Text */}
+            <h3 className={`text-lg font-bold mb-2 ${canProceed ? 'text-nocenaPurple' : 'text-nocenaPink'}`}>
+              {canProceed ? 'Ready to Proceed' : 'Recording Too Short (3s minimum)'}
+            </h3>
+
+            {/* Duration Display */}
+            <div className="bg-black/30 rounded-xl p-3">
+              <div className="text-lg font-bold text-white">{formatDuration(videoDuration)}</div>
+              <div className="text-xs text-gray-400">Duration</div>
+            </div>
+          </ThematicContainer>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="w-full max-w-sm space-y-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <PrimaryButton 
+            onClick={onRetakeVideo} 
+            text="Retake Video" 
+            className="w-full" 
+            isActive={true} 
+          />
+          <PrimaryButton
+            onClick={onApproveVideo}
+            text={canProceed ? 'Continue to Selfie' : 'Too Short to Continue'}
+            className="w-full"
+            disabled={!canProceed}
+            isActive={!canProceed}
+          />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default VideoReviewScreen;

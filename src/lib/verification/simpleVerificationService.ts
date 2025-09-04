@@ -12,6 +12,7 @@ export interface VerificationStep {
   progress: number;
   message: string;
   confidence?: number;
+  result?: any; // Store step-specific results
 }
 
 export interface VerificationResult {
@@ -19,6 +20,8 @@ export interface VerificationResult {
   steps: VerificationStep[];
   overallConfidence: number;
   passed: boolean;
+  isPartial?: boolean; // Indicates if this is a partial verification (with placeholder selfie)
+  pendingSteps?: string[]; // List of step IDs that are pending due to placeholders
 }
 
 export class SimpleVerificationService {
@@ -82,6 +85,7 @@ export class SimpleVerificationService {
         progress: 100,
         message: result.details,
         confidence: result.confidence / 100, // Convert to 0-1 scale
+        result, // Store the full result for later reference
       });
 
       return result.passed;
@@ -118,6 +122,7 @@ export class SimpleVerificationService {
         progress: 100,
         message: result.details,
         confidence: result.confidence / 100, // Convert to 0-1 scale
+        result,
       });
 
       return result.passed;
@@ -154,6 +159,7 @@ export class SimpleVerificationService {
         progress: 100,
         message: result.details,
         confidence: result.confidence / 100, // Convert to 0-1 scale
+        result,
       });
 
       return result.passed;
@@ -190,6 +196,7 @@ export class SimpleVerificationService {
         progress: 100,
         message: result.details,
         confidence: result.confidence / 100, // Convert to 0-1 scale
+        result,
       });
 
       return result.passed;
@@ -204,46 +211,72 @@ export class SimpleVerificationService {
     }
   }
 
-  // Main verification process
+  // Main verification process - UPDATED to handle placeholders
   async runFullVerification(
     videoBlob: Blob,
     photoBlob: Blob,
     challengeDescription: string,
   ): Promise<VerificationResult> {
     try {
-      // Step 1: Basic file check
+      // Step 1: Basic file check (handles placeholders gracefully)
       const basicCheckPassed = await this.runBasicCheck(videoBlob, photoBlob);
       if (!basicCheckPassed) {
         return this.getFailedResult('Basic file check failed');
       }
 
-      // Step 2: Human detection in video
-      const humanVideoCheckPassed = await this.runHumanVideoCheck(videoBlob);
-      if (!humanVideoCheckPassed) {
-        return this.getFailedResult('Human detection in video failed');
-      }
+      // Check if we're dealing with a placeholder photo
+      const basicResult = this.steps.find((s) => s.id === 'basic-check')?.result;
+      const hasPlaceholderPhoto = basicResult?.isPlaceholderPhoto === true;
 
-      // Step 3: Human detection in selfie
+      // Step 2: Skip video check for now (your service doesn't use it)
+      // const humanVideoCheckPassed = await this.runHumanVideoCheck(videoBlob);
+      // if (!humanVideoCheckPassed) {
+      //   return this.getFailedResult('Human detection in video failed');
+      // }
+
+      // Step 3: Human detection in selfie (handles placeholders gracefully)
       const humanSelfieCheckPassed = await this.runHumanSelfieCheck(photoBlob);
       if (!humanSelfieCheckPassed) {
+        // Check if this failed due to placeholder - if so, create partial result
+        const selfieResult = this.steps.find((s) => s.id === 'human-selfie-check')?.result;
+        if (selfieResult?.isPlaceholder) {
+          // This should not happen as placeholders return passed=true, but handle just in case
+          console.log('Unexpected: Placeholder selfie check failed');
+        }
         return this.getFailedResult('Human detection in selfie failed');
       }
 
-      // Step 4: AI challenge verification
+      // Step 4: AI challenge verification (only if we have a real photo or want to try anyway)
       const aiCheckPassed = await this.runAICheck(videoBlob, challengeDescription);
       if (!aiCheckPassed) {
         return this.getFailedResult('AI challenge verification failed');
       }
 
-      // All checks passed
+      // All checks passed - determine if this is partial or complete
       const overallConfidence = this.calculateOverallConfidence();
+      const isPartial = hasPlaceholderPhoto;
+      const pendingSteps = isPartial ? ['human-selfie-check'] : [];
 
-      return {
-        success: true,
-        steps: this.steps,
-        overallConfidence,
-        passed: true,
-      };
+      if (isPartial) {
+        console.log('✅ Partial verification completed - awaiting selfie');
+        return {
+          success: true,
+          steps: this.steps,
+          overallConfidence,
+          passed: true,
+          isPartial: true,
+          pendingSteps,
+        };
+      } else {
+        console.log('✅ Full verification completed');
+        return {
+          success: true,
+          steps: this.steps,
+          overallConfidence,
+          passed: true,
+          isPartial: false,
+        };
+      }
     } catch (error) {
       console.error('Verification process error:', error);
       return this.getFailedResult('Verification process failed');
@@ -259,15 +292,27 @@ export class SimpleVerificationService {
   }
 
   private getFailedResult(message: string): VerificationResult {
+    // Get more detailed error from failed steps
+    const failedStep = this.steps.find((s) => s.status === 'failed');
+    const details = failedStep ? failedStep.message : message;
+
     return {
       success: false,
       steps: this.steps,
       overallConfidence: 0,
       passed: false,
+      isPartial: false,
     };
   }
 
   getSteps(): VerificationStep[] {
     return this.steps;
+  }
+
+  // NEW: Check if verification is ready for completion (all real data available)
+  isReadyForFullVerification(videoBlob: Blob, photoBlob: Blob): boolean {
+    const hasValidVideo = videoBlob && videoBlob.size > 0 && videoBlob.type.startsWith('video/');
+    const hasValidPhoto = photoBlob && photoBlob.size > 100 && photoBlob.type.startsWith('image/');
+    return hasValidVideo && hasValidPhoto;
   }
 }

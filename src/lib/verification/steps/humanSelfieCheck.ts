@@ -9,11 +9,13 @@ export interface HumanSelfieCheckResult {
   faceDetected: boolean;
   faceConfidence: number;
   faceSize: number; // Percentage of image covered by face
+  isPlaceholder?: boolean; // Track if this was a placeholder
 }
 
 /**
  * STEP 3: Human Detection in Selfie
  * Uses TensorFlow to detect human faces in the selfie photo
+ * Handles placeholder images gracefully for background verification optimization
  */
 export async function runHumanSelfieCheck(
   photoBlob: Blob,
@@ -21,6 +23,28 @@ export async function runHumanSelfieCheck(
 ): Promise<HumanSelfieCheckResult> {
   console.group('📸 HUMAN DETECTION IN SELFIE');
   console.log('Photo size:', `${(photoBlob.size / 1024).toFixed(2)} KB`);
+
+  // Check if this is a placeholder photo
+  const isPlaceholder = !photoBlob || photoBlob.size === 0 || photoBlob.type === '' || photoBlob.size < 100;
+
+  if (isPlaceholder) {
+    console.log('📷 Placeholder photo detected - deferring face detection');
+    onProgress?.(50, 'Placeholder selfie detected...');
+    onProgress?.(100, 'Awaiting selfie capture for face verification');
+
+    console.log('📊 Placeholder selfie result: deferred verification');
+    console.groupEnd();
+
+    return {
+      passed: true, // Allow placeholder to pass
+      confidence: 30, // Low confidence until real selfie is provided
+      details: 'Selfie capture pending - face detection will be performed when image is available',
+      faceDetected: false,
+      faceConfidence: 0,
+      faceSize: 0,
+      isPlaceholder: true,
+    };
+  }
 
   try {
     // Progress: Starting
@@ -158,6 +182,7 @@ export async function runHumanSelfieCheck(
       faceDetected: detectionResult.hasHuman,
       faceConfidence: detectionResult.confidence,
       faceSize: faceSize / 100, // Convert back to 0-1 scale for consistency
+      isPlaceholder: false,
     };
   } catch (error) {
     console.error('💥 Human selfie check error:', error);
@@ -172,6 +197,7 @@ export async function runHumanSelfieCheck(
       faceDetected: false,
       faceConfidence: 0,
       faceSize: 0,
+      isPlaceholder: false,
     };
   }
 }

@@ -118,7 +118,7 @@ function buildClothingPrompt(
   const rarityEnhancements = {
     common: 'clean, well-crafted appearance',
     uncommon: 'subtle green accent details and refined finish',
-    rare: 'elegant blue highlights and enhanced material quality', 
+    rare: 'elegant blue highlights and enhanced material quality',
     epic: 'sophisticated purple accents with premium detailing',
     legendary: 'luxurious golden touches and masterful craftsmanship',
   };
@@ -134,7 +134,7 @@ async function verifyTemplateUrl(url: string): Promise<boolean> {
     const contentType = response.headers.get('content-type') || '';
     return response.ok && (contentType.includes('image/jpeg') || contentType.includes('image/png'));
   } catch (error) {
-    console.warn('Template URL verification failed:', error);
+    console.warn('🟨 Template URL verification failed:', error);
     return false;
   }
 }
@@ -160,11 +160,15 @@ function generateItemName(itemType: ItemType, rarity: RarityType): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('🟦 === CLOTHING REWARD GENERATION STARTED ===');
+  
   if (req.method !== 'POST') {
+    console.log('🟥 ERROR: Method not allowed -', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    console.log('🟩 Step 1: Parsing request body...');
     const {
       userID,
       completionId,
@@ -179,52 +183,81 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       enhance = '4x',
     } = req.body;
 
+    console.log('🟩 Request body parsed successfully:', {
+      userID,
+      completionId,
+      challengeTitle,
+      challengeDescription: challengeDescription.slice(0, 50) + '...',
+      forceItemType,
+      forceRarity,
+      model,
+      width,
+      height,
+      steps,
+      enhance,
+    });
+
     if (!userID || !completionId) {
+      console.log('🟥 ERROR: Missing required fields - userID:', !!userID, 'completionId:', !!completionId);
       return res.status(400).json({
         error: 'Missing required fields: userID and completionId',
       });
     }
 
-    if (!process.env.CHAINGPT_API_KEY) {
+    console.log('🟩 Step 2: Checking environment variables...');
+    const hasApiKey = !!process.env.CHAINGPT_API_KEY;
+    console.log('🟩 ChainGPT API key present:', hasApiKey);
+    if (!hasApiKey) {
+      console.log('🟥 ERROR: ChainGPT API key not configured');
       return res.status(500).json({ error: 'ChainGPT API key not configured' });
     }
 
+    console.log('🟩 Step 3: Generating item type and rarity...');
     // Generate or use forced item type and rarity
     const { itemType, rarity } =
       forceItemType && forceRarity
         ? { itemType: forceItemType as ItemType, rarity: forceRarity as RarityType }
         : generateRandomItemAndRarity();
 
+    console.log('🟩 Generated/Selected:', { itemType, rarity, forced: !!(forceItemType && forceRarity) });
+
+    console.log('🟩 Step 4: Getting template data...');
     // Get template CID and token bonus
     const templateCID = getClothingTemplateCID(itemType, rarity);
     const tokenBonus = getTokenBonus(itemType, rarity);
     const itemName = generateItemName(itemType, rarity);
 
+    console.log('🟩 Template data retrieved:', {
+      templateCID,
+      tokenBonus,
+      itemName,
+    });
+
+    console.log('🟩 Step 5: Building template URL...');
     // Build the template URL
     const templateUrl = buildClothingTemplateUrl(templateCID);
+    console.log('🟩 Template URL built:', templateUrl);
 
+    console.log('🟩 Step 6: Verifying template accessibility...');
     // Verify template is accessible
     const templateAccessible = await verifyTemplateUrl(templateUrl);
+    console.log('🟩 Template accessible:', templateAccessible);
     if (!templateAccessible) {
-      console.warn(`Template URL not accessible: ${templateUrl}, continuing with generation...`);
+      console.log('🟨 WARNING: Template URL not accessible, continuing with generation...');
     }
 
-    const nft = new Nft({ apiKey: process.env.CHAINGPT_API_KEY });
+    console.log('🟩 Step 7: Initializing ChainGPT NFT instance...');
+    const nft = new Nft({ apiKey: process.env.CHAINGPT_API_KEY! });
+    console.log('🟩 ChainGPT NFT instance created successfully');
 
+    console.log('🟩 Step 8: Building generation prompt...');
     // Build prompt with simplified approach
     const finalPrompt = buildClothingPrompt(itemType, rarity, challengeTitle, challengeDescription);
+    console.log('🟩 Final prompt created (length: ' + finalPrompt.length + ')');
+    console.log('🟦 Prompt preview:', finalPrompt.slice(0, 100) + '...');
 
-    console.log('Clothing Reward Generation Details:');
-    console.log('   User ID:', userID);
-    console.log('   Completion ID:', completionId);
-    console.log('   Challenge:', challengeTitle);
-    console.log('   Item Type:', itemType);
-    console.log('   Rarity:', rarity);
-    console.log('   Token Bonus:', tokenBonus + '%');
-    console.log('   Final Prompt:', finalPrompt);
-
-    // Balanced generation parameters inspired by avatar approach
-    const imgResp = await nft.generateImage({
+    console.log('🟩 Step 9: Preparing generation parameters...');
+    const generationParams = {
       prompt: finalPrompt,
       model,
       height,
@@ -264,39 +297,105 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ],
         },
       ],
-    } as any);
+    };
 
+    console.log('🟩 Generation parameters prepared:', {
+      ...generationParams,
+      prompt: '[PROMPT_READY]',
+      traits: '[TRAITS_READY]'
+    });
+
+    console.log('🟦 Step 10: Calling ChainGPT generateImage...');
+    console.log('🟦 About to call nft.generateImage with params...');
+    console.log('🟦 Generation params summary:', {
+      prompt_length: finalPrompt.length,
+      model,
+      width,
+      height,
+      steps: 2,
+      enhance,
+      template_url_length: templateUrl.length,
+      strength: 0.1,
+      isCharacterPreserve: true,
+      style: '3d-model'
+    });
+    
+    let imgResp;
+    try {
+      imgResp = await nft.generateImage(generationParams as any);
+      console.log('🟩 ChainGPT generateImage API call completed!');
+    } catch (apiError: any) {
+      console.log('🟥 ERROR: ChainGPT generateImage API call failed:', apiError);
+      console.log('🟥 API Error type:', typeof apiError);
+      console.log('🟥 API Error message:', apiError?.message);
+      console.log('🟥 API Error response:', apiError?.response);
+      throw apiError;
+    }
+    console.log('🟩 Response received, analyzing structure...');
+    console.log('🟦 imgResp type:', typeof imgResp);
+    console.log('🟦 imgResp keys:', imgResp ? Object.keys(imgResp) : 'null/undefined');
+
+    if (imgResp?.data) {
+      console.log('🟩 imgResp.data exists, keys:', Object.keys(imgResp.data));
+      console.log('🟦 imgResp.data.data type:', typeof imgResp.data.data);
+    } else {
+      console.log('🟨 WARNING: imgResp.data is missing or falsy');
+    }
+
+    console.log('🟩 Step 11: Processing image data...');
     // Handle the response data
     let bytes: number[];
     const responseData = imgResp?.data?.data;
 
+    console.log('🟦 responseData extracted, type:', typeof responseData);
+    console.log('🟦 responseData is array:', Array.isArray(responseData));
+    console.log('🟦 responseData length/size:', responseData?.length || 'no length property');
+
     if (!responseData) {
+      console.log('🟥 ERROR: Missing image data from generateImage()');
       throw new Error('Missing image data from generateImage()');
     }
 
     if (Array.isArray(responseData)) {
+      console.log('🟩 Processing as array, length:', responseData.length);
       bytes = responseData;
     } else if (typeof responseData === 'object' && responseData.length !== undefined) {
+      console.log('🟩 Processing as object with length, converting to array...');
       bytes = Object.values(responseData) as number[];
+      console.log('🟩 Converted to array, new length:', bytes.length);
     } else {
+      console.log('🟥 ERROR: Invalid image data format:', typeof responseData);
+      console.log('🟥 responseData sample:', responseData);
       throw new Error('Invalid image data format from generateImage()');
     }
 
+    console.log('🟩 Step 12: Validating bytes array...');
     if (!bytes || bytes.length === 0) {
+      console.log('🟥 ERROR: Empty or invalid bytes - length:', bytes?.length);
       throw new Error('Empty or invalid image bytes from generateImage()');
     }
 
+    console.log('🟩 Bytes validation passed, creating Uint8Array...');
     const u8 = new Uint8Array(bytes);
+    console.log('🟩 Uint8Array created, length:', u8.length);
 
     if (u8.length === 0) {
+      console.log('🟥 ERROR: Received empty image data from ChainGPT');
       throw new Error('Received empty image data from ChainGPT');
     }
 
+    console.log('🟩 Step 13: Converting to base64...');
     // Convert to base64 data URL
     const base64String = Buffer.from(u8).toString('base64');
     const dataUrl = `data:image/jpeg;base64,${base64String}`;
+    console.log('🟩 Base64 conversion completed, length:', base64String.length);
 
-    console.log('Generated clothing reward successfully');
+    console.log('🟩 === CLOTHING REWARD GENERATION COMPLETED SUCCESSFULLY ===');
+    console.log('🟩 Final summary:');
+    console.log('   📊 Item:', itemName);
+    console.log('   📊 Token bonus:', tokenBonus + '%');
+    console.log('   📊 Image size:', u8.length, 'bytes');
+    console.log('   📊 Base64 length:', base64String.length, 'chars');
 
     return res.status(200).json({
       success: true,
@@ -333,14 +432,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
   } catch (error: any) {
-    console.error('Clothing reward generation error:', error);
+    console.log('🟥 === ERROR OCCURRED ===');
+    console.error('🟥 Clothing reward generation error:', error);
+    console.log('🟥 Error type:', typeof error);
+    console.log('🟥 Error name:', error?.name);
+    console.log('🟥 Error message:', error?.message);
+    console.log('🟥 Error stack:', error?.stack);
 
     if (error?.response) {
-      console.error('ChainGPT API Error Response:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-      });
+      console.log('🟥 ChainGPT API Error Response detected:');
+      console.error('🟥 Status:', error.response.status);
+      console.error('🟥 Status text:', error.response.statusText);
+      console.error('🟥 Response data:', error.response.data);
+      console.error('🟥 Response headers:', error.response.headers);
+    } else {
+      console.log('🟨 No response object in error');
     }
 
     const details = error?.response?.data
@@ -349,9 +455,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : JSON.stringify(error.response.data, null, 2)
       : error?.message || 'Unknown error';
 
+    console.log('🟥 Final error details to return:', details);
+
     return res.status(500).json({
       error: 'Failed to generate clothing reward',
       details,
+      debugInfo: {
+        errorType: typeof error,
+        errorName: error?.name,
+        hasResponseObject: !!error?.response,
+        timestamp: new Date().toISOString(),
+      }
     });
   }
 }

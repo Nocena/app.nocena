@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
 
@@ -18,15 +19,16 @@ interface SelfieScreenProps {
   challenge: Challenge;
   onSelfieCompleted: (photoBlob: Blob) => void;
   onBack: () => void;
-  onCancel: () => void; // Add cancel handler
+  onCancel: () => void;
 }
 
-type SelfieStage = 'camera';
-
-const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieCompleted, onBack, onCancel }) => {
-  const [stage, setStage] = useState<SelfieStage>('camera');
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
-
+const SelfieScreen: React.FC<SelfieScreenProps> = ({ 
+  challenge, 
+  onSelfieCompleted, 
+  onBack, 
+  onCancel 
+}) => {
+  const [cameraReady, setCameraReady] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -51,6 +53,9 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.oncanplay = () => {
+          setCameraReady(true);
+        };
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
@@ -85,21 +90,13 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
     canvas.toBlob(
       (blob) => {
         if (blob) {
-          setPhotoBlob(blob);
           stopCamera();
-          // Go straight to verification - no review step
           onSelfieCompleted(blob);
         }
       },
       'image/jpeg',
       0.9,
     );
-  };
-
-  const handleContinue = () => {
-    if (photoBlob) {
-      onSelfieCompleted(photoBlob);
-    }
   };
 
   return (
@@ -112,7 +109,7 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
           paddingBottom: '0.5rem',
         }}
       >
-        {/* Back Button - Left */}
+        {/* Back Button */}
         <button onClick={onBack} className="focus:outline-none pointer-events-auto" aria-label="Back">
           <ThematicContainer
             color="nocenaBlue"
@@ -127,7 +124,7 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
           </ThematicContainer>
         </button>
 
-        {/* Cancel Button - Right */}
+        {/* Cancel Button */}
         <button onClick={onCancel} className="focus:outline-none pointer-events-auto" aria-label="Cancel">
           <ThematicContainer
             color="nocenaBlue"
@@ -143,17 +140,23 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
         </button>
       </div>
 
-      {/* Header Info - Moved down to accommodate navigation buttons */}
+      {/* Header */}
       <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10 text-center"
         style={{
           top: 'calc(env(safe-area-inset-top) + 100px)',
         }}
       >
-        <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-          <div className="text-lg font-medium mb-1 text-center">Identity Verification</div>
-          <div className="text-sm text-gray-300 text-center">Verify it's really you completing this challenge</div>
-        </div>
+        <ThematicContainer
+          color="nocenaBlue"
+          glassmorphic={true}
+          asButton={false}
+          rounded="xl"
+          className="px-6 py-3"
+        >
+          <div className="text-lg font-medium mb-1">Identity Verification</div>
+          <div className="text-sm text-gray-300">Take a selfie to verify completion</div>
+        </ThematicContainer>
       </div>
 
       {/* Video Stream */}
@@ -165,29 +168,60 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
         className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
       />
 
-      {/* Face Guide Overlay - Centered text */}
+      {/* Face Guide Overlay */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-        <div className="w-64 h-80 border-2 border-white/50 rounded-full flex items-center justify-center">
-          <div className="text-white/70 text-sm text-center">
-            <div className="text-center">Center your face</div>
-            <div className="text-center">in this area</div>
+        <div className="relative">
+          {/* Face oval guide */}
+          <div className="w-56 h-72 border-2 border-nocenaPurple/60 rounded-full flex items-center justify-center">
+            {!cameraReady && (
+              <div className="text-nocenaPurple/70 text-sm text-center">
+                <div>Loading camera...</div>
+              </div>
+            )}
           </div>
+          
+          {/* Corner guides */}
+          <div className="absolute -top-2 -left-2 w-6 h-6 border-l-2 border-t-2 border-nocenaPurple rounded-tl-lg"></div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 border-r-2 border-t-2 border-nocenaPurple rounded-tr-lg"></div>
+          <div className="absolute -bottom-2 -left-2 w-6 h-6 border-l-2 border-b-2 border-nocenaPurple rounded-bl-lg"></div>
+          <div className="absolute -bottom-2 -right-2 w-6 h-6 border-r-2 border-b-2 border-nocenaPurple rounded-br-lg"></div>
         </div>
       </div>
 
-      {/* Instructions - Centered text */}
+      {/* Challenge Info */}
       <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom) + 140px)',
         }}
       >
-        <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
-          <span className="text-white text-sm text-center">Look directly at the camera</span>
-        </div>
+        <ThematicContainer
+          color="nocenaPink"
+          glassmorphic={true}
+          asButton={false}
+          rounded="xl"
+          className="px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <Image
+              src={challenge.challengerProfile}
+              alt="Challenger"
+              width={32}
+              height={32}
+              className="w-8 h-8 object-cover rounded-full"
+            />
+            <div>
+              <div className="text-sm font-medium text-white">{challenge.title}</div>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold text-nocenaPink">{challenge.reward}</span>
+                <Image src="/nocenix.ico" alt="Nocenix" width={14} height={14} />
+              </div>
+            </div>
+          </div>
+        </ThematicContainer>
       </div>
 
-      {/* Capture Button - Safe area aware */}
+      {/* Capture Button */}
       <div
         className="absolute left-1/2 transform -translate-x-1/2 z-10"
         style={{
@@ -196,14 +230,24 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieComplete
       >
         <button
           onClick={capturePhoto}
-          className="relative w-20 h-20 rounded-full border-2 border-white transition-all duration-300"
+          disabled={!cameraReady}
+          className={`relative w-20 h-20 rounded-full transition-all duration-300 ${
+            cameraReady 
+              ? 'border-2 border-white shadow-lg hover:scale-105' 
+              : 'border-2 border-gray-600 opacity-50'
+          }`}
+          aria-label="Take selfie"
         >
           <div
-            className="absolute inset-1 rounded-full"
-            style={{
-              background: '#FF15C9',
-            }}
+            className={`absolute inset-1 rounded-full transition-all duration-300 ${
+              cameraReady 
+                ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' 
+                : 'bg-gray-600'
+            }`}
           />
+          {cameraReady && (
+            <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
+          )}
         </button>
       </div>
 

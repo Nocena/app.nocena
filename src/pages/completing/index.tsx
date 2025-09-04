@@ -332,17 +332,16 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
       try {
         // Start verification analysis in background with model dependency
         const dependencies = backgroundTaskIds.modelPreloadId ? [backgroundTaskIds.modelPreloadId] : [];
-        
+
         const verificationId = backgroundTasks.startVerification({
           videoBlob,
-          photoBlob: new Blob(), // Placeholder - will be updated when selfie is taken
           challenge,
           dependencies,
         });
 
         console.log('Verification analysis started:', verificationId);
 
-        setBackgroundTaskIds(prev => ({
+        setBackgroundTaskIds((prev) => ({
           ...prev,
           verificationId,
         }));
@@ -362,9 +361,9 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
       backgroundTasks.cancelTask(backgroundTaskIds.verificationId);
     }
 
-    setBackgroundTaskIds(prev => ({
+    setBackgroundTaskIds((prev) => ({
       nftGenerationId: prev.nftGenerationId, // Keep NFT
-      modelPreloadId: prev.modelPreloadId,   // Keep models
+      modelPreloadId: prev.modelPreloadId, // Keep models
       // Remove verification
     }));
 
