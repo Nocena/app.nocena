@@ -350,10 +350,10 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
   // 1. NFT GENERATION - KEEP EXACTLY AS IS (working perfectly)
   const processNFTGeneration = async (data: any, taskId: string, signal: AbortSignal) => {
     const { userId, challengeData } = data;
-  
+
     console.log('[NFT] Starting generation for user:', userId);
     updateProgress(taskId, 5);
-  
+
     try {
       // Use the correct API endpoint path with better error handling
       const response = await fetch('/api/chainGPT/generate-clothing-reward', {
@@ -373,10 +373,10 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
         }),
         signal,
       });
-  
+
       if (signal.aborted) throw new Error('Cancelled');
       updateProgress(taskId, 50);
-  
+
       // Better error handling for the response
       if (!response.ok) {
         let errorMessage;
@@ -389,27 +389,27 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
           errorMessage = `HTTP ${response.status}: ${textError || 'Unknown server error'}`;
           console.error('[NFT] Raw Error Response:', textError);
         }
-        
+
         throw new Error(`NFT generation failed: ${errorMessage}`);
       }
-  
+
       const result = await response.json();
       updateProgress(taskId, 90);
-  
+
       console.log('[NFT] API Response:', result);
-  
+
       if (!result.success) {
         throw new Error(result.error || 'NFT generation failed - no success flag');
       }
-  
+
       // Check for required fields in the response
       if (!result.generation?.imageUrl) {
         console.error('[NFT] Missing imageUrl in response:', result);
         throw new Error('NFT generation failed - no image URL returned');
       }
-  
+
       updateProgress(taskId, 100);
-  
+
       const finalResult = {
         success: true,
         collectionId: result.clothingInfo?.templateCID || 'generated',
@@ -421,25 +421,24 @@ export const BackgroundTaskProvider: React.FC<BackgroundTaskProviderProps> = ({ 
         tokenBonus: result.clothingInfo?.tokenBonus || 0,
         itemType: result.clothingInfo?.type || 'hoodie',
       };
-  
+
       console.log('[NFT] Generation completed successfully:', finalResult.templateName, finalResult.rarity);
       return finalResult;
-  
     } catch (error: any) {
       if (signal.aborted) throw error;
-      
+
       console.error('[NFT] Generation error details:', {
         message: error.message,
         stack: error.stack,
         isNftError: error.isNftError,
         userId,
-        challengeData
+        challengeData,
       });
-      
+
       throw new Error(`NFT generation failed: ${error.message}`);
     }
   };
-  
+
   // 2. MODEL PRELOAD - Preload TensorFlow face recognition models
   const processModelPreload = async (data: any, taskId: string, signal: AbortSignal) => {
     console.log('[Models] Starting preload...');

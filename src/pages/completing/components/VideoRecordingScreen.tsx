@@ -611,22 +611,18 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
             onClick={startCountdown}
             disabled={!cameraInitialized}
             className={`relative w-20 h-20 rounded-full transition-all duration-300 ${
-              cameraInitialized 
-                ? 'border-2 border-white shadow-lg hover:scale-105' 
+              cameraInitialized
+                ? 'border-2 border-white shadow-lg hover:scale-105'
                 : 'border-2 border-gray-600 opacity-50'
             }`}
             aria-label="Start recording"
           >
             <div
               className={`absolute inset-1 rounded-full transition-all duration-300 ${
-                cameraInitialized 
-                  ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' 
-                  : 'bg-gray-600'
+                cameraInitialized ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' : 'bg-gray-600'
               }`}
             />
-            {cameraInitialized && (
-              <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
-            )}
+            {cameraInitialized && <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />}
             {!cameraInitialized && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -648,9 +644,7 @@ const VideoRecordingScreen: React.FC<VideoRecordingScreenProps> = ({ challenge, 
             aria-label="Stop recording"
           >
             <div className="absolute inset-1 bg-gradient-to-br from-nocenaPink to-nocenaPurple rounded-full" />
-            <div
-              className="absolute inset-6 transition-all duration-500 ease-in-out rounded-sm bg-white"
-            />
+            <div className="absolute inset-6 transition-all duration-500 ease-in-out rounded-sm bg-white" />
             <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
           </button>
         )}

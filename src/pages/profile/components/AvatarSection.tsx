@@ -683,6 +683,7 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
               onClick={handleGenerateAvatar}
               disabled={isGeneratingAvatar || !customPrompt.trim()}
               className="w-full py-3"
+              isActive={true}
             />
 
             {/* Loading state for generation */}
@@ -705,7 +706,6 @@ const AvatarSection: React.FC<AvatarSectionProps> = ({
                   onClick={handleSaveAvatar}
                   disabled={isSaving}
                   className="w-full py-3"
-                  isActive={true}
                 />
 
                 {/* Loading state for saving */}

@@ -161,7 +161,7 @@ function generateItemName(itemType: ItemType, rarity: RarityType): string {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🟦 === CLOTHING REWARD GENERATION STARTED ===');
-  
+
   if (req.method !== 'POST') {
     console.log('🟥 ERROR: Method not allowed -', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
@@ -302,7 +302,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🟩 Generation parameters prepared:', {
       ...generationParams,
       prompt: '[PROMPT_READY]',
-      traits: '[TRAITS_READY]'
+      traits: '[TRAITS_READY]',
     });
 
     console.log('🟦 Step 10: Calling ChainGPT generateImage...');
@@ -317,9 +317,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       template_url_length: templateUrl.length,
       strength: 0.1,
       isCharacterPreserve: true,
-      style: '3d-model'
+      style: '3d-model',
     });
-    
+
     let imgResp;
     try {
       imgResp = await nft.generateImage(generationParams as any);
@@ -465,7 +465,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         errorName: error?.name,
         hasResponseObject: !!error?.response,
         timestamp: new Date().toISOString(),
-      }
+      },
     });
   }
 }
