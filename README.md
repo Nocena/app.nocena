@@ -1,6 +1,6 @@
-# Nocena App
+# Nocena App - built on Flow
 
-Nocena is a challenge-based social networking application where users can complete daily, weekly, and monthly AI-generated challenges similar to BeReal. The platform also features business-sponsored public challenges displayed on a map, and a token-based reward system on the Polygon blockchain.
+Nocena is a challenge-based social networking application where users can complete daily, weekly, and monthly AI-generated challenges similar to BeReal. The platform also features business-sponsored public challenges displayed on a map, and a token-based reward system on the Flow blockchain.
 
 ## Features
 
@@ -16,7 +16,7 @@ Nocena is a challenge-based social networking application where users can comple
 - **Backend**: Integrated in Next.js
 - **Database**: Dgraph
 - **Image Storage**: Pinata (IPFS)
-- **Blockchain**: Polygon for the token layer
+- **Blockchain**: Flow for the token layer
 - **Package Manager**: pnpm
 
 ## Getting Started
@@ -174,8 +174,7 @@ app.nocena/
 │   ├── lib/                                    # Library code
 │   │   ├── api/                                # Main backend structure
 │   │   │   ├── dgraph.ts                       # Dgraph database integration
-│   │   │   ├── pinata.ts                       # Pinata IPFS integration
-│   │   │   └── polygon.ts                      # Polygon blockchain integration
+│   │   │   └── pinata.ts                       # Pinata IPFS integration
 │   │   ├── completing/                         # Challenge completion functionality
 │   │   │   ├── mediaServices.ts                # Media handling for challenge completion
 │   │   │   └── types.ts                        # Type definitions for challenge completion
@@ -262,6 +261,8 @@ app.nocena/
 1. Create a feature branch
 2. Make your changes
 3. Submit a pull request
+
+To check out our Cadence smart contract check out [Nocenix Token](https://github.com/cadenpiper/Nocenix)
 
 ## Troubleshooting
 

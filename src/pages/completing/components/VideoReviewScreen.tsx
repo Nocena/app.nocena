@@ -245,13 +245,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
         {/* Video Player Card */}
         <div className="mb-8">
-          <ThematicContainer
-            color="nocenaBlue"
-            glassmorphic={true}
-            asButton={false}
-            rounded="2xl"
-            className="p-6"
-          >
+          <ThematicContainer color="nocenaBlue" glassmorphic={true} asButton={false} rounded="2xl" className="p-6">
             <div className="relative rounded-xl overflow-hidden bg-black w-64 h-80 shadow-2xl mx-auto">
               <video
                 ref={videoRef}
@@ -289,9 +283,11 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
                     video.pause();
                   }
                 }}
-                style={{
-                  WebkitPlaysinline: true,
-                } as React.CSSProperties}
+                style={
+                  {
+                    WebkitPlaysinline: true,
+                  } as React.CSSProperties
+                }
               />
 
               {/* Video Info Overlay */}
@@ -321,18 +317,20 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         {/* Status Card */}
         <div className="mb-8 w-full max-w-sm">
           <ThematicContainer
-            color={canProceed ? "nocenaPurple" : "nocenaPink"}
+            color={canProceed ? 'nocenaPurple' : 'nocenaPink'}
             glassmorphic={true}
             asButton={false}
             rounded="2xl"
             className="p-6 text-center"
           >
             {/* Status Icon */}
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              canProceed 
-                ? 'bg-nocenaPurple/20 border border-nocenaPurple/30' 
-                : 'bg-nocenaPink/20 border border-nocenaPink/30'
-            }`}>
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                canProceed
+                  ? 'bg-nocenaPurple/20 border border-nocenaPurple/30'
+                  : 'bg-nocenaPink/20 border border-nocenaPink/30'
+              }`}
+            >
               <svg
                 className={`w-6 h-6 ${canProceed ? 'text-nocenaPurple' : 'text-nocenaPink'}`}
                 viewBox="0 0 24 24"
@@ -363,12 +361,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
 
         {/* Action Buttons */}
         <div className="w-full max-w-sm space-y-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <PrimaryButton 
-            onClick={onRetakeVideo} 
-            text="Retake Video" 
-            className="w-full" 
-            isActive={true} 
-          />
+          <PrimaryButton onClick={onRetakeVideo} text="Retake Video" className="w-full" isActive={true} />
           <PrimaryButton
             onClick={onApproveVideo}
             text={canProceed ? 'Continue to Selfie' : 'Too Short to Continue'}

@@ -912,7 +912,6 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           {verificationStage === 'failed' && (
             <div className="text-center">
               <ThematicContainer color="nocenaPink" glassmorphic={true} asButton={false} rounded="2xl" className="p-8">
-
                 {/* Title */}
                 <h3 className="text-2xl font-bold text-white mb-2">Mission failed</h3>
 

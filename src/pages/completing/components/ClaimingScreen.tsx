@@ -529,9 +529,11 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                     video.pause();
                   }
                 }}
-                style={{
-                  WebkitPlaysinline: true,
-                } as React.CSSProperties}
+                style={
+                  {
+                    WebkitPlaysinline: true,
+                  } as React.CSSProperties
+                }
               />
 
               <div className="absolute top-4 right-4 w-20 h-24 rounded-xl overflow-hidden border-2 border-white shadow-lg">
@@ -601,51 +603,47 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                         <p className="text-xs text-gray-400">Generating {nftState.templateName}...</p>
                       </div>
                     )}
-                    
-                    {(nftState.status === 'background-ready' || nftState.status === 'completed' || nftState.status === 'saved') && 
-                     nftState.imageUrl && (
-                      <div className="space-y-3">
-                        {(() => {
-                          const rarityStyles = getRarityStyles(nftState.rarity || 'common');
-                          return (
-                            <>
-                              <div
-                                className={`w-20 h-20 mx-auto rounded-xl overflow-hidden border-2 ${rarityStyles.borderColor} ${rarityStyles.animation || ''} cursor-pointer hover:scale-105 transition-transform shadow-lg ${rarityStyles.glowColor}`}
-                                onClick={() => setShowNFTPopup(true)}
-                              >
-                                <img
-                                  src={nftState.imageUrl}
-                                  alt={nftState.templateName || 'NFT'}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div>
-                                <div className={`text-sm font-bold ${rarityStyles.textColor}`}>
-                                  {nftState.templateName}
+
+                    {(nftState.status === 'background-ready' ||
+                      nftState.status === 'completed' ||
+                      nftState.status === 'saved') &&
+                      nftState.imageUrl && (
+                        <div className="space-y-3">
+                          {(() => {
+                            const rarityStyles = getRarityStyles(nftState.rarity || 'common');
+                            return (
+                              <>
+                                <div
+                                  className={`w-20 h-20 mx-auto rounded-xl overflow-hidden border-2 ${rarityStyles.borderColor} ${rarityStyles.animation || ''} cursor-pointer hover:scale-105 transition-transform shadow-lg ${rarityStyles.glowColor}`}
+                                  onClick={() => setShowNFTPopup(true)}
+                                >
+                                  <img
+                                    src={nftState.imageUrl}
+                                    alt={nftState.templateName || 'NFT'}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
-                                {nftState.tokenBonus && (
-                                  <div className={`text-xs ${rarityStyles.textColor}`}>
-                                    +{nftState.tokenBonus}% Token Bonus
+                                <div>
+                                  <div className={`text-sm font-bold ${rarityStyles.textColor}`}>
+                                    {nftState.templateName}
                                   </div>
-                                )}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
+                                  {nftState.tokenBonus && (
+                                    <div className={`text-xs ${rarityStyles.textColor}`}>
+                                      +{nftState.tokenBonus}% Token Bonus
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                   </div>
                 )}
               </ThematicContainer>
 
               {/* Description Input */}
-              <ThematicContainer
-                color="nocenaBlue"
-                glassmorphic={true}
-                asButton={false}
-                rounded="2xl"
-                className="p-6"
-              >
+              <ThematicContainer color="nocenaBlue" glassmorphic={true} asButton={false} rounded="2xl" className="p-6">
                 <h4 className="text-lg font-bold text-white mb-4 text-center">Share Your Experience</h4>
                 <textarea
                   value={challengeDescription}
@@ -661,13 +659,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
 
           {claimingStage === 'claiming' && (
             <div className="text-center">
-              <ThematicContainer
-                color="nocenaPink"
-                glassmorphic={true}
-                asButton={false}
-                rounded="2xl"
-                className="p-8"
-              >
+              <ThematicContainer color="nocenaPink" glassmorphic={true} asButton={false} rounded="2xl" className="p-8">
                 <div className="w-16 h-16 border-4 border-nocenaPink/20 border-t-nocenaPink rounded-full animate-spin mx-auto mb-6" />
                 <h3 className="text-xl font-bold text-white mb-4">Processing Claim</h3>
                 <div className="space-y-2 text-sm text-gray-300">
@@ -691,9 +683,9 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                 <div className="w-20 h-20 bg-nocenaPurple/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-nocenaPurple/30">
                   <Image src="/nocenix.ico" alt="Success" width={40} height={40} />
                 </div>
-                
+
                 <h3 className="text-2xl font-bold text-nocenaPurple mb-4">Rewards Claimed!</h3>
-                
+
                 <div className="bg-black/30 rounded-xl p-4 mb-6">
                   <div className="flex items-center justify-center gap-2">
                     <span className="text-xl font-bold">+{challenge.reward}</span>
@@ -719,12 +711,10 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
-                            <div className={`text-sm font-bold ${rarityStyles.textColor}`}>
-                              {nftState.templateName}
-                            </div>
-                            
+                            <div className={`text-sm font-bold ${rarityStyles.textColor}`}>{nftState.templateName}</div>
+
                             {nftState.tokenBonus && (
                               <div className={`text-xs ${rarityStyles.textColor}`}>
                                 +{nftState.tokenBonus}% Token Bonus Applied
@@ -744,13 +734,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
 
           {claimingStage === 'failed' && (
             <div className="text-center">
-              <ThematicContainer
-                color="nocenaPink"
-                glassmorphic={true}
-                asButton={false}
-                rounded="2xl"
-                className="p-8"
-              >
+              <ThematicContainer color="nocenaPink" glassmorphic={true} asButton={false} rounded="2xl" className="p-8">
                 <div className="w-16 h-16 bg-nocenaPink/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-nocenaPink/30">
                   <svg className="w-8 h-8 text-nocenaPink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
@@ -821,19 +805,25 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
                 const rarityStyles = getRarityStyles(nftState.rarity || 'common');
                 return (
                   <>
-                    <div className={`aspect-square rounded-2xl overflow-hidden border-4 ${rarityStyles.borderColor} ${rarityStyles.animation || ''} mb-4 shadow-xl ${rarityStyles.glowColor}`}>
+                    <div
+                      className={`aspect-square rounded-2xl overflow-hidden border-4 ${rarityStyles.borderColor} ${rarityStyles.animation || ''} mb-4 shadow-xl ${rarityStyles.glowColor}`}
+                    >
                       <img src={nftState.imageUrl} alt={nftState.templateName} className="w-full h-full object-cover" />
                     </div>
 
                     <div className="space-y-3">
                       <h3 className={`text-lg font-bold ${rarityStyles.textColor}`}>{nftState.templateName}</h3>
 
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${rarityStyles.bgColor} ${rarityStyles.textColor} border ${rarityStyles.borderColor}`}>
+                      <div
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${rarityStyles.bgColor} ${rarityStyles.textColor} border ${rarityStyles.borderColor}`}
+                      >
                         {(nftState.rarity || 'common').toUpperCase()} RARITY
                       </div>
 
                       {nftState.tokenBonus && (
-                        <div className={`bg-gradient-to-r ${rarityStyles.gradient} rounded-lg p-3 border ${rarityStyles.borderColor}/50`}>
+                        <div
+                          className={`bg-gradient-to-r ${rarityStyles.gradient} rounded-lg p-3 border ${rarityStyles.borderColor}/50`}
+                        >
                           <div className="flex items-center justify-center gap-2">
                             <span className={`text-sm font-bold ${rarityStyles.textColor}`}>
                               +{nftState.tokenBonus}% Token Bonus

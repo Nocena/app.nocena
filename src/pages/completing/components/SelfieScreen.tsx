@@ -22,12 +22,7 @@ interface SelfieScreenProps {
   onCancel: () => void;
 }
 
-const SelfieScreen: React.FC<SelfieScreenProps> = ({ 
-  challenge, 
-  onSelfieCompleted, 
-  onBack, 
-  onCancel 
-}) => {
+const SelfieScreen: React.FC<SelfieScreenProps> = ({ challenge, onSelfieCompleted, onBack, onCancel }) => {
   const [cameraReady, setCameraReady] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -147,13 +142,7 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({
           top: 'calc(env(safe-area-inset-top) + 100px)',
         }}
       >
-        <ThematicContainer
-          color="nocenaBlue"
-          glassmorphic={true}
-          asButton={false}
-          rounded="xl"
-          className="px-6 py-3"
-        >
+        <ThematicContainer color="nocenaBlue" glassmorphic={true} asButton={false} rounded="xl" className="px-6 py-3">
           <div className="text-lg font-medium mb-1">Identity Verification</div>
           <div className="text-sm text-gray-300">Take a selfie to verify completion</div>
         </ThematicContainer>
@@ -179,7 +168,7 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({
               </div>
             )}
           </div>
-          
+
           {/* Corner guides */}
           <div className="absolute -top-2 -left-2 w-6 h-6 border-l-2 border-t-2 border-nocenaPurple rounded-tl-lg"></div>
           <div className="absolute -top-2 -right-2 w-6 h-6 border-r-2 border-t-2 border-nocenaPurple rounded-tr-lg"></div>
@@ -195,13 +184,7 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({
           bottom: 'calc(env(safe-area-inset-bottom) + 140px)',
         }}
       >
-        <ThematicContainer
-          color="nocenaPink"
-          glassmorphic={true}
-          asButton={false}
-          rounded="xl"
-          className="px-4 py-3"
-        >
+        <ThematicContainer color="nocenaPink" glassmorphic={true} asButton={false} rounded="xl" className="px-4 py-3">
           <div className="flex items-center gap-3">
             <Image
               src={challenge.challengerProfile}
@@ -232,22 +215,16 @@ const SelfieScreen: React.FC<SelfieScreenProps> = ({
           onClick={capturePhoto}
           disabled={!cameraReady}
           className={`relative w-20 h-20 rounded-full transition-all duration-300 ${
-            cameraReady 
-              ? 'border-2 border-white shadow-lg hover:scale-105' 
-              : 'border-2 border-gray-600 opacity-50'
+            cameraReady ? 'border-2 border-white shadow-lg hover:scale-105' : 'border-2 border-gray-600 opacity-50'
           }`}
           aria-label="Take selfie"
         >
           <div
             className={`absolute inset-1 rounded-full transition-all duration-300 ${
-              cameraReady 
-                ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' 
-                : 'bg-gray-600'
+              cameraReady ? 'bg-gradient-to-br from-nocenaPink to-nocenaPurple' : 'bg-gray-600'
             }`}
           />
-          {cameraReady && (
-            <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />
-          )}
+          {cameraReady && <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse" />}
         </button>
       </div>
 
