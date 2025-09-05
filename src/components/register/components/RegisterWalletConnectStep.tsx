@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ConnectButton, useActiveAccount } from 'thirdweb/react';
+import ThematicContainer from '../../ui/ThematicContainer';
+import PrimaryButton from '../../ui/PrimaryButton';
 import { client, chain } from '../../../lib/thirdweb';
-
-// Import wallet connectors
 import { inAppWallet, createWallet } from 'thirdweb/wallets';
 
 interface RegisterWalletConnectStepProps {
@@ -16,7 +16,6 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
   const [isCheckingWallet, setIsCheckingWallet] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
 
-  // Configure which wallets/login methods to show - same as login page
   const wallets = [
     inAppWallet({
       auth: {
@@ -29,7 +28,6 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
     createWallet('com.trustwallet.app'),
   ];
 
-  // Check if wallet already exists in database
   const checkWalletExists = async (walletAddress: string): Promise<boolean> => {
     try {
       console.log('🔍 [FRONTEND] Checking wallet:', walletAddress);
@@ -41,9 +39,6 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
         },
         body: JSON.stringify({ wallet: walletAddress }),
       });
-
-      console.log('🔍 [FRONTEND] Response status:', response.status);
-      console.log('🔍 [FRONTEND] Response ok:', response.ok);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -60,7 +55,6 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
     }
   };
 
-  // Effect to check wallet when account changes
   useEffect(() => {
     if (account?.address) {
       setIsCheckingWallet(true);
@@ -69,9 +63,7 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
       checkWalletExists(account.address)
         .then((exists) => {
           if (exists) {
-            setWalletError(
-              'This wallet is already registered with another account. Please use a different wallet or sign in instead.',
-            );
+            setWalletError('This wallet is already registered. Please use a different wallet or sign in instead.');
           } else {
             setWalletError(null);
           }
@@ -88,19 +80,26 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
 
   const handleContinue = () => {
     if (walletError) {
-      return; // Don't continue if there's an error
+      return;
     }
     onWalletConnected();
   };
 
   return (
-    <div className="w-full space-y-6">
-      <div className="bg-gray-800/50 rounded-[2rem] p-6 border border-gray-600">
-        <div className="text-center space-y-4">
-          <h3 className="text-white font-semibold text-lg">Connect Your Wallet</h3>
-          <p className="text-gray-300 text-sm">
-            Connect your wallet to create your Nocena account. No passwords needed!
-          </p>
+    <div className="w-full max-w-md mx-auto space-y-6">
+      {/* Main Connect Card */}
+      {!account ? (
+        <ThematicContainer
+          color="nocenaBlue"
+          glassmorphic={true}
+          asButton={false}
+          rounded="2xl"
+          className="p-8 text-center"
+        >
+          <div className="w-16 h-16 bg-nocenaBlue/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-nocenaBlue/30">
+            <div className="w-6 h-6 border-2 border-nocenaBlue border-t-transparent rounded-full animate-spin" />
+          </div>
+
           <ConnectButton
             client={client}
             chain={chain}
@@ -111,85 +110,98 @@ const RegisterWalletConnectStep: React.FC<RegisterWalletConnectStepProps> = ({ o
               titleIcon: '/logo/LogoDark.png',
             }}
           />
+        </ThematicContainer>
+      ) : (
+        <div className="space-y-6">
+          {/* Checking State */}
+          {isCheckingWallet && (
+            <ThematicContainer
+              color="nocenaPink"
+              glassmorphic={true}
+              asButton={false}
+              rounded="2xl"
+              className="p-8 text-center"
+            >
+              <div className="w-16 h-16 border-4 border-nocenaPink/20 border-t-nocenaPink rounded-full animate-spin mx-auto mb-6" />
+              <div className="bg-black/30 rounded-lg px-3 py-2 inline-block">
+                <span className="text-xs font-mono text-gray-400">
+                  {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                </span>
+              </div>
+            </ThematicContainer>
+          )}
 
-          {account && (
-            <div className="mt-4 space-y-3">
-              {/* Loading state */}
-              {isCheckingWallet && (
-                <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-xl">
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-blue-400 text-sm">Verifying wallet...</p>
-                  </div>
-                </div>
-              )}
+          {/* Error State */}
+          {walletError && !isCheckingWallet && (
+            <ThematicContainer
+              color="nocenaPink"
+              glassmorphic={true}
+              asButton={false}
+              rounded="2xl"
+              className="p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-nocenaPink/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-nocenaPink/30">
+                <div className="w-6 h-6 border-2 border-nocenaPink border-dashed rounded-full" />
+              </div>
 
-              {/* Error state */}
-              {walletError && !isCheckingWallet && (
-                <div className="p-3 bg-red-500/20 border border-red-500 rounded-xl">
-                  <p className="text-red-400 text-sm">{walletError}</p>
-                  <div className="mt-3 flex space-x-2">
-                    <Link
-                      href="/login"
-                      className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-500 hover:to-blue-400 transition-all text-center text-sm"
-                    >
-                      Sign In Instead
-                    </Link>
-                  </div>
-                </div>
-              )}
+              <p className="text-sm text-gray-300 mb-6">{walletError}</p>
 
-              {/* Success state */}
-              {!walletError && !isCheckingWallet && (
-                <div className="p-3 bg-green-500/20 border border-green-500 rounded-xl">
-                  <p className="text-green-400 text-sm">
-                    Wallet connected: {account.address.slice(0, 6)}...{account.address.slice(-4)}
-                  </p>
-                  <button
-                    onClick={handleContinue}
-                    className="mt-3 w-full py-2 px-4 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:from-green-500 hover:to-green-400 transition-all"
-                  >
-                    Continue
-                  </button>
+              <div className="bg-black/30 rounded-lg px-3 py-2 inline-block mb-6">
+                <span className="text-xs font-mono text-gray-400">
+                  {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <Link href="/login">
+                  <PrimaryButton text="Sign In Instead" className="w-full" isActive={true} />
+                </Link>
+
+                <ConnectButton
+                  client={client}
+                  chain={chain}
+                  wallets={wallets}
+                  theme="dark"
+                  connectModal={{
+                    title: 'Connect Different Wallet',
+                    titleIcon: '/logo/LogoDark.png',
+                  }}
+                />
+              </div>
+            </ThematicContainer>
+          )}
+
+          {/* Success State */}
+          {!walletError && !isCheckingWallet && (
+            <ThematicContainer
+              color="nocenaPurple"
+              glassmorphic={true}
+              asButton={false}
+              rounded="2xl"
+              className="p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-nocenaPurple/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-nocenaPurple/30">
+                <div className="w-6 h-6 border-2 border-nocenaPurple rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-nocenaPurple rounded-full" />
                 </div>
-              )}
-            </div>
+              </div>
+
+              <div className="bg-black/30 rounded-lg px-3 py-2 inline-block mb-6">
+                <span className="text-xs font-mono text-gray-400">
+                  {account.address.slice(0, 8)}...{account.address.slice(-6)}
+                </span>
+              </div>
+
+              <PrimaryButton
+                onClick={handleContinue}
+                text="Continue Registration"
+                className="w-full"
+                isActive={false}
+              />
+            </ThematicContainer>
           )}
         </div>
-      </div>
-
-      <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
-        <h4 className="text-white font-semibold mb-2">Why Wallet Authentication?</h4>
-        <ul className="text-gray-300 text-sm space-y-1">
-          <li>• No passwords to remember or forget</li>
-          <li>• Your challenge rewards go directly to your wallet</li>
-          <li>• Enhanced security with blockchain technology</li>
-          <li>• Easy integration with DeFi and other Web3 apps</li>
-        </ul>
-      </div>
-
-      {/* Social Login Benefits for Crypto Users */}
-      <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
-        <h4 className="text-white font-semibold mb-2">Connect with Your Community</h4>
-        <div className="grid grid-cols-2 gap-2 text-gray-300 text-xs">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Discord Communities</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-            <span>Telegram Groups</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <span>X (Twitter) Crypto</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-nocenaPink rounded-full"></div>
-            <span>Social Verification</span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

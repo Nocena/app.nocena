@@ -3,6 +3,7 @@ import { Control, useWatch, useFormContext } from 'react-hook-form';
 import { useEffect, useState, useCallback } from 'react';
 import { NocenaInput } from '@components/form';
 import PrimaryButton from '../../ui/PrimaryButton';
+import ThematicContainer from '../../ui/ThematicContainer';
 
 type FormValues = {
   username: string;
@@ -147,7 +148,7 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
         setDbCheckTimeout(null);
       }
     }
-  }, [username, checkUsernameInDatabase]); // Removed dbCheckTimeout from dependencies
+  }, [username, checkUsernameInDatabase]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -171,77 +172,54 @@ const RegisterFormStep = ({ control, loading, setStep }: Props) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Success indicator for invite code */}
-      <div className="bg-green-500/20 border border-green-500 rounded-xl p-4">
-        <div className="flex items-center justify-center space-x-3">
-          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <span className="text-green-400 font-semibold">Invite code verified!</span>
+    <div className="w-full max-w-md mx-auto">
+      <ThematicContainer color="nocenaBlue" glassmorphic={true} asButton={false} rounded="2xl" className="p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Create Your Account</h1>
+          <p className="text-gray-300 text-base">Choose your username</p>
         </div>
-      </div>
 
-      {/* Username input */}
-      <div className="bg-gray-800/50 rounded-[2rem] overflow-hidden border border-gray-600">
-        <NocenaInput control={control} name="username" placeholder="Choose your username" required />
-      </div>
-
-      {/* Username Status */}
-      <UsernameStatusDisplay
-        username={username}
-        localValidation={localValidation}
-        isCheckingDbUsername={isCheckingDbUsername}
-        dbUsernameError={dbUsernameError}
-      />
-
-      {/* Helper text */}
-      <div className="text-center">
-        <p className="text-gray-300 text-sm font-light">Choose the name by which you want to be known in challenges</p>
-        <div className="text-gray-400 text-xs mt-2 space-y-1">
-          <p>• 3-20 characters • Letters, numbers, and underscores only</p>
-          <p>• Must start with a letter • Cannot be changed later</p>
-        </div>
-      </div>
-
-      {/* Continue Button */}
-      <PrimaryButton
-        text={loading ? 'Processing...' : 'Continue'}
-        onClick={handleContinue}
-        disabled={loading || !isFormValid}
-        className="w-full"
-      />
-
-      {/* Info Cards */}
-      <div className="space-y-4">
-        <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
-          <div className="flex items-start space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold text-sm mb-1">Unique Identity</h4>
-              <p className="text-gray-300 text-xs leading-relaxed">
-                Your username will be unique across the entire Nocena platform.
-              </p>
-            </div>
+        {/* Username Input */}
+        <div className="mb-6">
+          <div className="bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/50">
+            <NocenaInput control={control} name="username" placeholder="Choose your username" required />
           </div>
         </div>
-      </div>
+
+        {/* Username Status */}
+        <div className="mb-6">
+          <UsernameStatusDisplay
+            username={username}
+            localValidation={localValidation}
+            isCheckingDbUsername={isCheckingDbUsername}
+            dbUsernameError={dbUsernameError}
+          />
+        </div>
+
+        {/* Helper Text */}
+        <div className="text-center mb-8">
+          <div className="text-gray-400 text-xs space-y-1">
+            <p>3-20 characters</p>
+            <p>Letters, numbers and underscores only</p>
+            <p>Must start with a letter</p>
+            <p>Cannot be changed later</p>
+          </div>
+        </div>
+
+        {/* Continue Button */}
+        <PrimaryButton
+          text={loading ? 'Processing...' : 'Continue'}
+          onClick={handleContinue}
+          disabled={loading || !isFormValid}
+          className="w-full"
+        />
+      </ThematicContainer>
     </div>
   );
 };
 
-// Simplified Username Status Component
+// Clean Username Status Component
 interface UsernameStatusProps {
   username: string;
   localValidation: { isValid: boolean; errors: string[] };
@@ -264,14 +242,11 @@ const UsernameStatusDisplay = ({
   // Show local validation errors first
   if (!localValidation.isValid) {
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
         {localValidation.errors.map((error, index) => (
-          <div key={index} className="flex items-center space-x-2 text-red-400 text-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span>{error}</span>
-          </div>
+          <p key={index} className="text-red-400 text-sm text-center">
+            {error}
+          </p>
         ))}
       </div>
     );
@@ -279,36 +254,22 @@ const UsernameStatusDisplay = ({
 
   // Show database username error
   if (dbUsernameError) {
-    return (
-      <div className="flex items-start space-x-2 text-red-400 text-sm">
-        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-        <span>{dbUsernameError}</span>
-      </div>
-    );
+    return <p className="text-red-400 text-sm text-center">{dbUsernameError}</p>;
   }
 
   // Show checking state
   if (isCheckingDbUsername) {
     return (
-      <div className="flex items-center space-x-2 text-blue-400 text-sm">
+      <div className="flex items-center justify-center space-x-2">
         <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-        <span>Checking username availability...</span>
+        <span className="text-blue-400 text-sm">Checking username availability...</span>
       </div>
     );
   }
 
   // Show success when all checks pass
   if (!isCheckingDbUsername && !dbUsernameError) {
-    return (
-      <div className="flex items-center space-x-2 text-green-400 text-sm">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-        <span>✨ Username is available</span>
-      </div>
-    );
+    return <p className="text-green-400 text-sm text-center">Username is available</p>;
   }
 
   return null;

@@ -561,8 +561,8 @@ const RegisterPage = () => {
         };
       case RegisterStep.WALLET_CONNECT:
         return {
-          title: 'Connect Wallet',
-          subtitle: 'Connect your wallet to start your Nocena journey',
+          title: 'Create your profile',
+          subtitle: 'Connect some of your accounts to start your Nocena journey',
         };
       case RegisterStep.USER_INFO:
         return {
