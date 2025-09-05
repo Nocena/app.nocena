@@ -1,4 +1,4 @@
-// src/lib/pushNotifications.ts - Push notification utilities
+// src/lib/pushNotifications.ts - Updated Push notification utilities
 
 /**
  * Check if push notifications are supported
@@ -29,7 +29,7 @@ export const requestNotificationPermission = async (): Promise<NotificationPermi
 };
 
 /**
- * Register service worker
+ * Register service worker and ensure it's ready
  */
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
@@ -38,8 +38,16 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    // Register the main service worker
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+    });
+
     console.log('Service worker registered:', registration);
+
+    // Wait for the service worker to be ready
+    await navigator.serviceWorker.ready;
+
     return registration;
   } catch (error) {
     console.error('Service worker registration failed:', error);
@@ -81,13 +89,14 @@ export const subscribeToPushNotifications = async (): Promise<string | null> => 
       return JSON.stringify(existingSubscription);
     }
 
-    // Subscribe to push notifications
+    // Get VAPID key from environment
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
       console.error('VAPID public key not configured');
       return null;
     }
 
+    // Subscribe to push notifications
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
@@ -143,6 +152,89 @@ export const getCurrentPushSubscription = async (): Promise<string | null> => {
     console.error('Error getting push subscription:', error);
     return null;
   }
+};
+
+/**
+ * Check service worker version and handle updates
+ */
+export const checkForServiceWorkerUpdate = async (): Promise<string | null> => {
+  if (!('serviceWorker' in navigator)) {
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    if (registration) {
+      // Force check for updates
+      await registration.update();
+
+      // Get current version from service worker
+      return new Promise((resolve) => {
+        const messageChannel = new MessageChannel();
+        messageChannel.port1.onmessage = (event) => {
+          resolve(event.data.version || null);
+        };
+
+        if (registration.active) {
+          registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
+        } else {
+          resolve(null);
+        }
+      });
+    }
+    return null;
+  } catch (error) {
+    console.error('Error checking service worker version:', error);
+    return null;
+  }
+};
+
+/**
+ * Force service worker update
+ */
+export const forceServiceWorkerUpdate = async (): Promise<boolean> => {
+  if (!('serviceWorker' in navigator)) {
+    return false;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    if (registration) {
+      await registration.update();
+
+      // Send skip waiting message to new service worker
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('Error forcing service worker update:', error);
+    return false;
+  }
+};
+
+/**
+ * Listen for service worker updates
+ */
+export const onServiceWorkerUpdate = (callback: (version: string) => void): (() => void) => {
+  if (!('serviceWorker' in navigator)) {
+    return () => {};
+  }
+
+  const handleMessage = (event: MessageEvent) => {
+    if (event.data && event.data.type === 'SW_UPDATED') {
+      callback(event.data.version);
+    }
+  };
+
+  navigator.serviceWorker.addEventListener('message', handleMessage);
+
+  // Return cleanup function
+  return () => {
+    navigator.serviceWorker.removeEventListener('message', handleMessage);
+  };
 };
 
 /**
