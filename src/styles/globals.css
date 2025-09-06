@@ -166,3 +166,49 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;
 }
+
+/* Only apply hover effects on devices that actually support hover */
+@media (hover: hover) and (pointer: fine) {
+  /* Desktop hover effects */
+  .menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .menu-item:hover .menu-icon {
+    color: white;
+  }
+  
+  .menu-item:hover .menu-arrow {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* Touch-specific styles - no hover effects */
+@media (hover: none) and (pointer: coarse) {
+  .menu-item {
+    /* Remove any hover-specific styling */
+    transition: transform 0.15s ease;
+  }
+  
+  .menu-item:active {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(0.98);
+  }
+}
+
+/* iOS-specific optimizations */
+.ios-touch-fix {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Remove group hover effects on touch devices */
+@media (hover: none) {
+  .group:hover > * {
+    /* Reset any group hover effects */
+    color: inherit;
+    background-color: inherit;
+  }
+}

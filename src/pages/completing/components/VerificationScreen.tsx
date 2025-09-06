@@ -75,7 +75,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   // Development mode configuration
   const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';
-  const [useMockVerification, setUseMockVerification] = useState(true); // CHANGED: Default to false
+  const [useMockVerification, setUseMockVerification] = useState(false); // CHANGED: Default to false to test real verification
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const monitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -861,7 +861,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 </div>
 
                 {/* Title */}
-                <h3 className="text-2xl font-bold text-white mb-2">Mission Complete</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">Challenge passed respect +</h3>
 
                 {/* Score Display */}
                 <div className="mb-6">
@@ -913,7 +913,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
             <div className="text-center">
               <ThematicContainer color="nocenaPink" glassmorphic={true} asButton={false} rounded="2xl" className="p-8">
                 {/* Title */}
-                <h3 className="text-2xl font-bold text-white mb-2">Mission failed</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">Challenge failed</h3>
 
                 {/* Score Display */}
                 <div className="mb-6">

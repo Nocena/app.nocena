@@ -238,13 +238,13 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 80px)' }}
       >
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <h2 className="text-xl font-light mb-1">Review Recording</h2>
           <div className="text-sm text-gray-400">{challenge.title}</div>
         </div>
 
         {/* Video Player Card */}
-        <div className="mb-8">
+        <div className="mb-4">
           <ThematicContainer color="nocenaBlue" glassmorphic={true} asButton={false} rounded="2xl" className="p-6">
             <div className="relative rounded-xl overflow-hidden bg-black w-64 h-80 shadow-2xl mx-auto">
               <video
@@ -315,7 +315,7 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         </div>
 
         {/* Status Card */}
-        <div className="mb-8 w-full max-w-sm">
+        <div className="mb-4 w-full max-w-sm">
           <ThematicContainer
             color={canProceed ? 'nocenaPurple' : 'nocenaPink'}
             glassmorphic={true}
@@ -360,12 +360,12 @@ const VideoReviewScreen: React.FC<VideoReviewScreenProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="w-full max-w-sm space-y-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <PrimaryButton onClick={onRetakeVideo} text="Retake Video" className="w-full" isActive={true} />
+        <div className="w-full max-w-sm flex gap-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <PrimaryButton onClick={onRetakeVideo} text="Retake Video" className="flex-1" isActive={true} />
           <PrimaryButton
             onClick={onApproveVideo}
             text={canProceed ? 'Continue to Selfie' : 'Too Short to Continue'}
-            className="w-full"
+            className="flex-1"
             disabled={!canProceed}
             isActive={!canProceed}
           />
