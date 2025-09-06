@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../ui/PrimaryButton';
 import ThematicImage from '../ui/ThematicImage';
 import ThematicContainer from '../ui/ThematicContainer';
-// import InviteFriends from './menu/InviteFriends';
 import WalletMenu from './menu/Wallet';
 import NocenixMenu from './menu/Nocenix';
 import VerificationMenu from './menu/Verification';
@@ -23,10 +22,236 @@ interface MenuProps {
 const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar = false }) => {
   const { user } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   const defaultProfilePic = '/images/profile.png';
+
+  // Enhanced MenuItem with proper scroll detection
+  const MenuItem = ({
+    icon,
+    title,
+    onClick,
+    description,
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    onClick: () => void;
+    description?: string;
+  }) => {
+    const [isPressed, setIsPressed] = useState(false);
+    const touchStartRef = useRef<{ 
+      x: number; 
+      y: number; 
+      time: number; 
+      scrollTop: number;
+    } | null>(null);
+    
+    const scrollThreshold = 10;
+    const timeThreshold = 500;
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      const currentScrollTop = contentRef.current?.scrollTop || 0;
+      
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+        scrollTop: currentScrollTop
+      };
+      setIsPressed(true);
+      setIsScrolling(false);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!touchStartRef.current) return;
+
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+      const currentScrollTop = contentRef.current?.scrollTop || 0;
+      const scrollDelta = Math.abs(currentScrollTop - touchStartRef.current.scrollTop);
+
+      // Detect scrolling by movement or scroll position change
+      if (deltaX > scrollThreshold || deltaY > scrollThreshold || scrollDelta > 5) {
+        setIsPressed(false);
+        setIsScrolling(true);
+        touchStartRef.current = null;
+      }
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStartRef.current || isScrolling) {
+        setIsPressed(false);
+        touchStartRef.current = null;
+        return;
+      }
+
+      const touch = e.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+      const deltaTime = Date.now() - touchStartRef.current.time;
+      const currentScrollTop = contentRef.current?.scrollTop || 0;
+      const scrollDelta = Math.abs(currentScrollTop - touchStartRef.current.scrollTop);
+
+      setIsPressed(false);
+
+      // Only trigger if it's a genuine tap
+      if (deltaX <= scrollThreshold && 
+          deltaY <= scrollThreshold && 
+          deltaTime <= timeThreshold &&
+          scrollDelta <= 5) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Add small delay for visual feedback
+        requestAnimationFrame(() => {
+          onClick();
+        });
+      }
+
+      touchStartRef.current = null;
+    };
+
+    const handleTouchCancel = () => {
+      setIsPressed(false);
+      touchStartRef.current = null;
+    };
+
+    // Mouse fallback
+    const handleClick = (e: React.MouseEvent) => {
+      if (isScrolling) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    };
+
+    return (
+      <div
+        className={`w-full flex items-center py-4 px-6 transition-all duration-100 cursor-pointer text-left rounded-lg select-none ${
+          isPressed && !isScrolling
+            ? 'bg-white/20 scale-[0.98]' 
+            : 'bg-transparent'
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        style={{ 
+          WebkitTapHighlightColor: 'transparent',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          touchAction: 'pan-y',
+          userSelect: 'none'
+        }}
+      >
+        <div className="flex-shrink-0 w-5 h-5 text-white/70">
+          {icon}
+        </div>
+        <div className="flex-1 ml-4">
+          <div className="text-white font-medium text-base">{title}</div>
+          {description && <div className="text-white/60 text-sm mt-0.5">{description}</div>}
+        </div>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-white/50"
+        >
+          <polyline points="9,18 15,12 9,6" />
+        </svg>
+      </div>
+    );
+  };
+
+  // Enhanced SocialButton with scroll awareness
+  const SocialButton = ({ 
+    href, 
+    children, 
+    gradientFrom, 
+    gradientTo 
+  }: { 
+    href: string; 
+    children: React.ReactNode;
+    gradientFrom: string;
+    gradientTo: string;
+  }) => {
+    const [isPressed, setIsPressed] = useState(false);
+    const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now()
+      };
+      setIsPressed(true);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      if (!touchStartRef.current) {
+        setIsPressed(false);
+        return;
+      }
+
+      const touch = e.changedTouches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+      const deltaTime = Date.now() - touchStartRef.current.time;
+
+      setIsPressed(false);
+
+      if (deltaX <= 10 && deltaY <= 10 && deltaTime <= 300) {
+        e.preventDefault();
+        setTimeout(() => {
+          window.open(href, '_blank');
+        }, 0);
+      }
+
+      touchStartRef.current = null;
+    };
+
+    const handleTouchCancel = () => {
+      setIsPressed(false);
+      touchStartRef.current = null;
+    };
+
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      window.open(href, '_blank');
+    };
+
+    return (
+      <div
+        className={`w-12 h-12 rounded-full bg-gradient-to-br ${gradientFrom} ${gradientTo} flex items-center justify-center transition-transform duration-100 cursor-pointer shadow-lg select-none ${
+          isPressed ? 'scale-95' : ''
+        }`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        style={{ 
+          WebkitTapHighlightColor: 'transparent',
+          WebkitTouchCallout: 'none',
+          touchAction: 'manipulation'
+        }}
+      >
+        {children}
+      </div>
+    );
+  };
 
   // Handle click outside
   useEffect(() => {
@@ -40,7 +265,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
 
-  // Prevent background scrolling when menu is open
+  // Prevent background scrolling
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -53,13 +278,15 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     };
   }, [isOpen]);
 
-  // Handle touch gestures for swipe to close
-  const handleTouchStart = (e: React.TouchEvent) => {
+  // Handle swipe to close (only for menu panel, not content)
+  const handleMenuTouchStart = (e: React.TouchEvent) => {
+    // Only handle if touch is on the menu panel itself, not scrollable content
+    if (contentRef.current?.contains(e.target as Node)) return;
     setTouchStart(e.touches[0].clientX);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return;
+  const handleMenuTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || contentRef.current?.contains(e.target as Node)) return;
 
     const currentTouch = e.touches[0].clientX;
     const diff = touchStart - currentTouch;
@@ -70,105 +297,44 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleMenuTouchEnd = () => {
     setTouchStart(null);
   };
 
-  // Improved MenuItem with proper touch handling that distinguishes taps from scrolls
-  const MenuItem = ({
-    icon,
-    title,
-    onClick,
-    description,
-  }: {
-    icon: React.ReactNode;
-    title: string;
-    onClick: () => void;
-    description?: string;
-  }) => {
-    const [touchStartY, setTouchStartY] = useState<number | null>(null);
-    const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
-    const [hasMoved, setHasMoved] = useState(false);
+  // Handle scroll events to detect scrolling state
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-      setTouchStartY(e.touches[0].clientY);
-      setTouchStartTime(Date.now());
-      setHasMoved(false);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-      if (!touchStartY) return;
-
-      const currentY = e.touches[0].clientY;
-      const diff = Math.abs(currentY - touchStartY);
-
-      // If movement is more than 10px, consider it a scroll
-      if (diff > 10) {
-        setHasMoved(true);
+    const handleScroll = () => {
+      setIsScrolling(true);
+      
+      // Clear existing timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
       }
+      
+      // Set new timeout to clear scrolling state
+      scrollTimeout = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
     };
 
-    const handleTouchEnd = (e: React.TouchEvent) => {
-      if (!touchStartTime || !touchStartY) return;
-
-      const touchDuration = Date.now() - touchStartTime;
-
-      // Only trigger click if:
-      // 1. Touch was brief (less than 300ms)
-      // 2. There was minimal movement (not a scroll)
-      if (touchDuration < 300 && !hasMoved) {
-        e.preventDefault();
-        e.stopPropagation();
-        onClick();
-      }
-
-      // Reset state
-      setTouchStartY(null);
-      setTouchStartTime(null);
-      setHasMoved(false);
-    };
-
-    const handleClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick();
-    };
-
-    return (
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleClick}
-        className="w-full flex items-center py-4 px-6 hover:bg-white/10 active:bg-white/20 transition-all duration-200 cursor-pointer group text-left rounded-lg select-none touch-manipulation"
-        role="button"
-        tabIndex={0}
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
-        <div className="flex-shrink-0 w-5 h-5 text-white/70 group-hover:text-white transition-colors">{icon}</div>
-        <div className="flex-1 ml-4">
-          <div className="text-white font-medium text-base">{title}</div>
-          {description && <div className="text-white/60 text-sm mt-0.5">{description}</div>}
-        </div>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-white/50 group-hover:text-white/80 transition-colors"
-        >
-          <polyline points="9,18 15,12 9,6" />
-        </svg>
-      </div>
-    );
-  };
+    const contentElement = contentRef.current;
+    if (contentElement) {
+      contentElement.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        contentElement.removeEventListener('scroll', handleScroll);
+        if (scrollTimeout) {
+          clearTimeout(scrollTimeout);
+        }
+      };
+    }
+  }, []);
 
   const renderMainMenu = () => (
     <div className="flex flex-col h-full">
       {/* User Info */}
-      <div className="text-center py-8 px-6 border-b border-white/20">
+      <div className="text-center py-8 px-6 border-b border-white/20 flex-shrink-0">
         <div className="w-20 h-20 mx-auto mb-4">
           <ThematicImage className="w-full h-full z-999">
             <Image
@@ -193,8 +359,14 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         />
       </div>
 
-      {/* Menu Items */}
-      <div className="flex-1 py-4 px-3 space-y-2">
+      {/* Scrollable Menu Items */}
+      <div 
+        className="flex-1 py-4 px-3 space-y-2 overflow-y-auto scrollbar-hide"
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}
+      >
         <MenuItem
           icon={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -219,72 +391,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           description="Your token balance and history"
           onClick={() => setActiveSection('nocenix')}
         />
-
-        {/* COMMENTED OUT: Special Invite Friends Item */}
-        {/* 
-        <div className="mx-3 mb-4 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-nocenaBlue/20 to-nocenaPurple/20 rounded-xl blur-md"></div>
-
-          <div
-            onTouchStart={(e) => {
-              const touch = e.touches[0];
-              e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
-              e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
-              e.currentTarget.setAttribute('data-has-moved', 'false');
-            }}
-            onTouchMove={(e) => {
-              const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
-              const currentY = e.touches[0].clientY;
-              const diff = Math.abs(currentY - touchStartY);
-
-              if (diff > 10) {
-                e.currentTarget.setAttribute('data-has-moved', 'true');
-              }
-            }}
-            onTouchEnd={(e) => {
-              const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
-              const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
-              const touchDuration = Date.now() - touchStartTime;
-
-              if (touchDuration < 300 && !hasMoved) {
-                e.preventDefault();
-                e.stopPropagation();
-                setActiveSection('invite');
-              }
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setActiveSection('invite');
-            }}
-            className="relative w-full flex items-center py-4 px-6 bg-gradient-to-r from-nocenaBlue/10 to-nocenaPurple/10 hover:from-nocenaBlue/20 hover:to-nocenaPurple/20 active:from-nocenaBlue/30 active:to-nocenaPurple/30 transition-all duration-300 cursor-pointer group text-left rounded-xl border border-nocenaBlue/30 select-none touch-manipulation"
-            role="button"
-            tabIndex={0}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-nocenaBlue to-nocenaPurple rounded-lg flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <div className="flex-1 ml-4">
-              <div className="text-white font-semibold text-base flex items-center">
-                Invite Friends
-                <ThematicContainer asButton={false} color="nocenaPink" className="ml-4 px-2 ">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-lg font-semibold">50</span>
-                    <Image src="/nocenix.ico" alt="Nocenix" width={24} height={24} />
-                  </div>
-                </ThematicContainer>
-              </div>
-              <div className="text-white/70 text-sm mt-0.5">Share and earn together</div>
-            </div>
-          </div>
-        </div>
-        */}
 
         <MenuItem
           icon={
@@ -351,131 +457,40 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         />
       </div>
 
-      {/* Social Links & Logout */}
-      <div className="px-6 py-4 border-t border-white/20 space-y-4">
+      {/* Social Links - Fixed at bottom */}
+      <div className="px-6 py-4 border-t border-white/20 space-y-4 flex-shrink-0">
         <div>
           <p className="text-white/70 text-sm mb-4 text-center">Connect with us</p>
           <div className="flex justify-center space-x-4">
-            <div
-              onTouchStart={(e) => {
-                const touch = e.touches[0];
-                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
-                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
-                e.currentTarget.setAttribute('data-has-moved', 'false');
-              }}
-              onTouchMove={(e) => {
-                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
-                const currentY = e.touches[0].clientY;
-                const diff = Math.abs(currentY - touchStartY);
-
-                if (diff > 10) {
-                  e.currentTarget.setAttribute('data-has-moved', 'true');
-                }
-              }}
-              onTouchEnd={(e) => {
-                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
-                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
-                const touchDuration = Date.now() - touchStartTime;
-
-                if (touchDuration < 300 && !hasMoved) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open('https://x.com/nocena_app', '_blank');
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://x.com/nocena_app', '_blank');
-              }}
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 active:from-blue-700 active:to-blue-900 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-lg select-none"
-              role="button"
-              tabIndex={0}
+            <SocialButton 
+              href="https://x.com/nocena_app"
+              gradientFrom="from-blue-500"
+              gradientTo="to-blue-700"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                 <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
               </svg>
-            </div>
-            <div
-              onTouchStart={(e) => {
-                const touch = e.touches[0];
-                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
-                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
-                e.currentTarget.setAttribute('data-has-moved', 'false');
-              }}
-              onTouchMove={(e) => {
-                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
-                const currentY = e.touches[0].clientY;
-                const diff = Math.abs(currentY - touchStartY);
+            </SocialButton>
 
-                if (diff > 10) {
-                  e.currentTarget.setAttribute('data-has-moved', 'true');
-                }
-              }}
-              onTouchEnd={(e) => {
-                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
-                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
-                const touchDuration = Date.now() - touchStartTime;
-
-                if (touchDuration < 300 && !hasMoved) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open('https://discord.gg/nocena', '_blank');
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://discord.gg/nocena', '_blank');
-              }}
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 active:from-purple-700 active:to-purple-900 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-lg select-none"
-              role="button"
-              tabIndex={0}
+            <SocialButton 
+              href="https://discord.gg/nocena"
+              gradientFrom="from-purple-500"
+              gradientTo="to-purple-700"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                 <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
               </svg>
-            </div>
-            <div
-              onTouchStart={(e) => {
-                const touch = e.touches[0];
-                e.currentTarget.setAttribute('data-touch-start-y', touch.clientY.toString());
-                e.currentTarget.setAttribute('data-touch-start-time', Date.now().toString());
-                e.currentTarget.setAttribute('data-has-moved', 'false');
-              }}
-              onTouchMove={(e) => {
-                const touchStartY = parseFloat(e.currentTarget.getAttribute('data-touch-start-y') || '0');
-                const currentY = e.touches[0].clientY;
-                const diff = Math.abs(currentY - touchStartY);
+            </SocialButton>
 
-                if (diff > 10) {
-                  e.currentTarget.setAttribute('data-has-moved', 'true');
-                }
-              }}
-              onTouchEnd={(e) => {
-                const touchStartTime = parseFloat(e.currentTarget.getAttribute('data-touch-start-time') || '0');
-                const hasMoved = e.currentTarget.getAttribute('data-has-moved') === 'true';
-                const touchDuration = Date.now() - touchStartTime;
-
-                if (touchDuration < 300 && !hasMoved) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open('https://t.me/+whC098-RLD02N2I0', '_blank');
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                window.open('https://t.me/+whC098-RLD02N2I0', '_blank');
-              }}
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 active:from-blue-600 active:to-blue-800 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-lg select-none"
-              role="button"
-              tabIndex={0}
+            <SocialButton 
+              href="https://t.me/+whC098-RLD02N2I0"
+              gradientFrom="from-blue-400"
+              gradientTo="to-blue-600"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-.962 6.502-.542 1.06-1.097 1.117-1.816.75-.293-.149-.677-.363-1.077-.598-.358-.208-.954-.44-1.155-.596-.177-.138-.362-.301-.244-.615.09-.23.827-.96 1.529-1.681.388-.396.47-.688.215-.702-.154-.008-.22.176-.373.297-.409.32-1.302.952-1.821 1.22-.562.292-.78.07-1.295-.11-.538-.188-1.058-.398-1.058-.398s-.375-.336.263-.695c.865-.488 1.673-.912 1.673-.912l-.003-.004zm.716 5.827c.209.138.49.304.49.304l-.003-.004z" />
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-.962 6.502-.542 1.06-1.097 1.117-1.816.75-.293-.149-.677-.363-1.077-.598-.358-.208-.954-.44-1.155-.596-.177-.138-.362-.301-.244-.615.09-.23.827-.96 1.529-1.681.388-.396.47-.688.215-.702-.154-.008-.22.176-.373.297-.409.32-1.302.952-1.821 1.22-.562.292-.78.07-1.295-.11-.538-.188-1.058-.398-1.058-.398s-.375-.336.263-.695c.865-.488 1.673-.912 1.673-.912l-.003-.004z" />
               </svg>
-            </div>
+            </SocialButton>
           </div>
         </div>
       </div>
@@ -488,8 +503,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         return <WalletMenu onBack={() => setActiveSection(null)} />;
       case 'nocenix':
         return <NocenixMenu onBack={() => setActiveSection(null)} />;
-      // case 'invite':
-      //   return <InviteFriends onBack={() => setActiveSection(null)} />;
       case 'verification':
         return <VerificationMenu onBack={() => setActiveSection(null)} />;
       case 'settings':
@@ -513,12 +526,12 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         className={`fixed top-0 left-0 h-full w-[85%] max-w-sm transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } transition-transform duration-300 ease-in-out z-[9990]`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onTouchStart={handleMenuTouchStart}
+        onTouchMove={handleMenuTouchMove}
+        onTouchEnd={handleMenuTouchEnd}
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        {/* Clean glassmorphic background - single unified container */}
+        {/* Clean glassmorphic background */}
         <div className="h-full bg-black/30 backdrop-blur-xl border-r border-white/20">
           {/* Close button */}
           <div className="flex absolute justify-end p-4 pb-2 bg-transparent right-0 z-10">
@@ -528,14 +541,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
                 e.stopPropagation();
                 onClose();
               }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onClose();
-              }}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:bg-white/35 transition-all duration-200 cursor-pointer select-none"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 transition-transform duration-200 cursor-pointer select-none"
               role="button"
               tabIndex={0}
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
+              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -545,7 +557,12 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           </div>
 
           {/* Content */}
-          <div className="h-full overflow-y-auto pb-4">{renderSectionContent()}</div>
+          <div 
+            ref={contentRef}
+            className="h-full overflow-y-auto pb-4"
+          >
+            {renderSectionContent()}
+          </div>
         </div>
       </div>
     </>
