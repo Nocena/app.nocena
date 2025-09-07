@@ -851,7 +851,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 glassmorphic={true}
                 asButton={false}
                 rounded="2xl"
-                className="p-8"
+                className="p-6"
               >
                 {/* Success Icon */}
                 <div className="w-16 h-16 bg-nocenaPurple/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-nocenaPurple/30">
