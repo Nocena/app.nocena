@@ -1,6 +1,6 @@
 // public/sw.js - Main Service Worker for Nocena
 // Version for cache busting and updates
-const SW_VERSION = 'v1.3.1';
+const SW_VERSION = 'v1.3.2';
 const CACHE_NAME = `nocena-cache-${SW_VERSION}`;
 
 console.log('🔧 Nocena SW:', SW_VERSION, 'starting...');
