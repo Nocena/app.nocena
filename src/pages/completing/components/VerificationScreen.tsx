@@ -851,7 +851,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 glassmorphic={true}
                 asButton={false}
                 rounded="2xl"
-                className="p-8"
+                className="p-6"
               >
                 {/* Success Icon */}
                 <div className="w-16 h-16 bg-nocenaPurple/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-nocenaPurple/30">
@@ -866,10 +866,73 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 {/* Score Display */}
                 <div className="mb-6">
                   {(() => {
-                    const ratings = parseAIRatings(verificationResult?.explanation || '', verificationResult);
-                    const overallScore = Math.round(
-                      ((ratings.creativity + ratings.authenticity + ratings.effort) * 10) / 3,
-                    );
+                    // UPDATED: Extract AI analysis data for SUCCESS case (same as failure logic)
+                    let aiResult = null;
+                    let aiExplanation = '';
+
+                    // First, try to get AI step result from verification steps
+                    if (verificationResult?.steps) {
+                      const aiStep = verificationResult.steps.find((s: any) => s.id === 'ai-challenge-check');
+                      if (aiStep?.result) {
+                        aiResult = aiStep.result.rawAIResponse || aiStep.result;
+                        aiExplanation = aiResult?.explanation || aiStep.result.explanation || '';
+                      }
+                    }
+
+                    // Fallback: Use the main verification result if no steps found
+                    if (!aiResult && verificationResult) {
+                      aiResult = verificationResult;
+                      aiExplanation = verificationResult.explanation || verificationResult.details || '';
+                    }
+
+                    // UPDATED: Parse ratings using the same logic as failure case
+                    const extractRatingsFromText = (text: string) => {
+                      const creativityMatch = text.match(/(?:[Cc]reativity|eativity):\s*(\d+)\/10/);
+                      const authenticityMatch = text.match(/(?:[Aa]uthenticity|uthenticity):\s*(\d+)\/10/);
+                      const effortMatch = text.match(/(?:[Ee]ffort|ffort):\s*(\d+)\/10/);
+
+                      return {
+                        creativity: creativityMatch ? parseInt(creativityMatch[1]) : 0,
+                        authenticity: authenticityMatch ? parseInt(authenticityMatch[1]) : 0,
+                        effort: effortMatch ? parseInt(effortMatch[1]) : 0,
+                      };
+                    };
+
+                    // Try to get ratings from aiResult object first, then fallback to text parsing
+                    let ratings = { creativity: 0, authenticity: 0, effort: 0 };
+                    
+                    if (aiResult) {
+                      // Try to get from object properties
+                      const objRatings = {
+                        creativity: aiResult.creativity || aiResult.creativityScore,
+                        authenticity: aiResult.authenticity || aiResult.authenticityScore,
+                        effort: aiResult.effort || aiResult.effortScore,
+                      };
+
+                      if (objRatings.creativity !== undefined && objRatings.authenticity !== undefined && objRatings.effort !== undefined) {
+                        ratings = objRatings;
+                      } else {
+                        // Fallback to parsing from explanation text
+                        ratings = extractRatingsFromText(aiExplanation);
+                      }
+                    } else {
+                      // Last resort: try to parse from any available text
+                      ratings = extractRatingsFromText(aiExplanation);
+                    }
+
+                    // Calculate overall score
+                    const overallScore = aiResult?.score || 
+                      Math.round(((ratings.creativity + ratings.authenticity + ratings.effort) * 10) / 3);
+
+                    // DEBUG: Log the parsing results
+                    console.log('SUCCESS PARSING DEBUG:', {
+                      aiResult,
+                      aiExplanation,
+                      ratings,
+                      overallScore,
+                      verificationResult
+                    });
+
                     return (
                       <>
                         <div className="text-4xl font-black bg-gradient-to-r from-nocenaPink to-nocenaPurple bg-clip-text text-transparent mb-2">
