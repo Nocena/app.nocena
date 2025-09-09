@@ -13,8 +13,9 @@ import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
 import UpdateNotification from '../components/PWA/UpdateNotification';
-import CacheDebugger from '../components/PWA/CacheDebugger'; // Add this import
+import CacheDebugger from '../components/PWA/CacheDebugger';
 import { BackgroundTaskProvider, useBackgroundTasks } from '../contexts/BackgroundTaskContext';
+import { permissionManager } from '../lib/utils/permissionManager';
 
 // Simple loading indicator component for route changes
 const LoadingIndicator = () => (
@@ -33,6 +34,51 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
   // Safe pathname access
   const currentPathname = router?.pathname || '';
+
+  // Initialize permission manager early
+  useEffect(() => {
+    const initPermissions = async () => {
+      try {
+        await permissionManager.initialize();
+        console.log('Permission manager initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize permission manager:', error);
+      }
+    };
+
+    initPermissions();
+  }, []);
+
+  // Handle service worker messages for permission management
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SW_UPDATED' && event.data?.preservePermissions) {
+        console.log('Service worker updated, refreshing permissions...');
+        // Small delay to allow new SW to settle
+        setTimeout(() => {
+          permissionManager.forceRefresh();
+        }, 1000);
+      }
+
+      if (event.data?.type === 'REFRESH_PERMISSIONS') {
+        console.log('Service worker requested permission refresh');
+        permissionManager.forceRefresh();
+      }
+
+      if (event.data?.type === 'PERIODIC_PERMISSION_CHECK') {
+        // Silent refresh for periodic checks
+        permissionManager.forceRefresh();
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, []);
 
   // Handle route change loading indicator
   useEffect(() => {
@@ -88,6 +134,10 @@ function MyAppContent({ Component, pageProps }: AppProps) {
         window.dispatchEvent(new Event('nocena_app_background'));
       } else if (document.visibilityState === 'visible') {
         window.dispatchEvent(new Event('nocena_app_foreground'));
+        // Refresh permissions when app comes back to foreground
+        setTimeout(() => {
+          permissionManager.forceRefresh();
+        }, 500);
       }
     };
 

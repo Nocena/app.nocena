@@ -71,7 +71,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [currentStepMessage, setCurrentStepMessage] = useState('Ready to verify submission');
   const [errorMessage, setErrorMessage] = useState('');
-  const [backgroundVerificationUsed, setBackgroundVerificationUsed] = useState(false);
+  const [backgroundVerificationUsed, setBackgroundVerificationUsed] = useState(true);
 
   // Development mode configuration
   const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';

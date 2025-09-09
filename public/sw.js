@@ -1,6 +1,6 @@
-// public/sw.js - Main Service Worker for Nocena
+// public/sw.js - Enhanced Service Worker for Nocena with Permission Management
 // Version for cache busting and updates
-const SW_VERSION = 'v1.3.3';
+const SW_VERSION = 'v1.4.0';
 const CACHE_NAME = `nocena-cache-${SW_VERSION}`;
 
 console.log('🔧 Nocena SW:', SW_VERSION, 'starting...');
@@ -9,7 +9,7 @@ console.log('🔧 Nocena SW:', SW_VERSION, 'starting...');
 self.addEventListener('install', (event) => {
   console.log('📦 SW Installing:', SW_VERSION);
 
-  // Skip waiting to activate immediately
+  // Skip waiting to activate immediately but handle gracefully
   self.skipWaiting();
 
   event.waitUntil(
@@ -53,12 +53,14 @@ self.addEventListener('activate', (event) => {
         );
       }),
 
-      // Notify clients about the update
+      // Notify clients about the update with permission preservation flag
       self.clients.matchAll().then((clients) => {
         clients.forEach((client) => {
           client.postMessage({
             type: 'SW_UPDATED',
             version: SW_VERSION,
+            preservePermissions: true, // Signal to preserve permissions
+            timestamp: Date.now(),
           });
         });
       }),
@@ -68,7 +70,66 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Push notification event handler
+// Enhanced message handler for permission management
+self.addEventListener('message', (event) => {
+  console.log('💬 SW Message received:', event.data);
+
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ 
+      version: SW_VERSION,
+      timestamp: Date.now(),
+    });
+  }
+
+  // Handle permission state preservation
+  if (event.data && event.data.type === 'PRESERVE_PERMISSIONS') {
+    handlePermissionPreservation(event.data.permissions);
+  }
+
+  // Handle camera stream cleanup requests
+  if (event.data && event.data.type === 'CLEANUP_CAMERA_STREAMS') {
+    // Notify all clients to cleanup camera streams before update
+    self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
+        if (client !== event.source) {
+          client.postMessage({
+            type: 'CLEANUP_MEDIA_STREAMS',
+            reason: 'service_worker_update',
+          });
+        }
+      });
+    });
+  }
+});
+
+// Handle permission preservation across updates
+async function handlePermissionPreservation(permissions) {
+  try {
+    // Store permission state in cache for retrieval after update
+    const cache = await caches.open(CACHE_NAME);
+    const permissionData = {
+      permissions,
+      timestamp: Date.now(),
+      swVersion: SW_VERSION,
+    };
+
+    // Store as a synthetic response
+    const response = new Response(JSON.stringify(permissionData), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    await cache.put('/permission-state', response);
+    console.log('💾 Permissions preserved for update');
+  } catch (error) {
+    console.error('❌ Failed to preserve permissions:', error);
+  }
+}
+
+// Push notification event handler with enhanced permission checking
 self.addEventListener('push', (event) => {
   console.log('📱 Push received:', event);
 
@@ -105,23 +166,48 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      tag: notificationData.tag,
-      data: notificationData.data,
-      requireInteraction: false,
-      actions: [
-        {
-          action: 'open',
-          title: 'Open App',
-          icon: '/icons/icon-192x192.png',
-        },
-      ],
-    }),
+    // Check if we can show notifications before attempting
+    checkNotificationPermission().then((canShow) => {
+      if (canShow) {
+        return self.registration.showNotification(notificationData.title, {
+          body: notificationData.body,
+          icon: notificationData.icon,
+          badge: notificationData.badge,
+          tag: notificationData.tag,
+          data: notificationData.data,
+          requireInteraction: false,
+          actions: [
+            {
+              action: 'open',
+              title: 'Open App',
+              icon: '/icons/icon-192x192.png',
+            },
+          ],
+        });
+      } else {
+        console.log('📱 Notification permission not available');
+      }
+    }).catch((error) => {
+      console.error('📱 Failed to show notification:', error);
+    })
   );
 });
+
+// Check notification permission
+async function checkNotificationPermission() {
+  try {
+    // Check if notifications are supported
+    if (!self.registration || !self.registration.showNotification) {
+      return false;
+    }
+
+    // For service workers, we assume permission is granted if push was received
+    return true;
+  } catch (error) {
+    console.error('Error checking notification permission:', error);
+    return false;
+  }
+}
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
@@ -155,28 +241,25 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'challenge-completion') {
     event.waitUntil(syncChallengeCompletions());
   }
-});
 
-// Message handler for communication with main thread
-self.addEventListener('message', (event) => {
-  console.log('💬 SW Message received:', event.data);
-
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: SW_VERSION });
+  if (event.tag === 'permission-refresh') {
+    event.waitUntil(syncPermissionState());
   }
 });
 
-// Fetch event handler with caching strategy
+// Enhanced fetch event handler with permission-aware caching
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Only handle GET requests
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Special handling for permission-sensitive resources
+  if (url.pathname.includes('/completing') || url.pathname.includes('/camera')) {
+    event.respondWith(networkFirstWithPermissionCheck(request));
     return;
   }
 
@@ -204,7 +287,72 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Caching strategies
+// Permission-aware network strategy
+async function networkFirstWithPermissionCheck(request) {
+  try {
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      
+      // Clone response for caching
+      const responseToCache = networkResponse.clone();
+      
+      // Notify clients that camera page is being loaded
+      if (request.url.includes('/completing')) {
+        notifyClientsAboutCameraPage();
+      }
+      
+      cache.put(request, responseToCache);
+    }
+
+    return networkResponse;
+  } catch (error) {
+    console.log('🌐 Network failed for permission-sensitive page:', request.url);
+
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(request);
+
+    if (cachedResponse) {
+      // Notify that we're serving from cache
+      notifyClientsAboutCacheLoad();
+      return cachedResponse;
+    }
+
+    // If it's a navigation request, return offline page
+    if (request.mode === 'navigate') {
+      return cache.match('/offline') || new Response('Offline - Camera features require connection');
+    }
+
+    throw error;
+  }
+}
+
+// Notify clients about camera page loading
+function notifyClientsAboutCameraPage() {
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'CAMERA_PAGE_LOADING',
+        timestamp: Date.now(),
+      });
+    });
+  });
+}
+
+// Notify clients about cache load
+function notifyClientsAboutCacheLoad() {
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'SERVING_FROM_CACHE',
+        timestamp: Date.now(),
+      });
+    });
+  });
+}
+
+// Standard caching strategies
 async function networkFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
@@ -259,18 +407,32 @@ async function cacheFirstStrategy(request) {
 // Sync offline challenge completions
 async function syncChallengeCompletions() {
   try {
-    // Get stored offline completions from IndexedDB or localStorage
-    // This would sync with your backend when online
     console.log('🔄 Syncing offline challenge completions...');
-
     // Implementation depends on your offline storage strategy
-    // For now, just log that sync was attempted
   } catch (error) {
     console.error('🔄 Sync failed:', error);
   }
 }
 
-// Periodic maintenance
+// Sync permission state
+async function syncPermissionState() {
+  try {
+    console.log('🔄 Syncing permission state...');
+    
+    // Notify all clients to refresh permissions
+    const clients = await self.clients.matchAll();
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'REFRESH_PERMISSIONS',
+        timestamp: Date.now(),
+      });
+    });
+  } catch (error) {
+    console.error('🔄 Permission sync failed:', error);
+  }
+}
+
+// Enhanced periodic maintenance with permission awareness
 setInterval(() => {
   console.log('🧹 Running SW maintenance...');
 
@@ -279,6 +441,32 @@ setInterval(() => {
     cacheNames
       .filter((cacheName) => cacheName.includes('nocena-cache') && cacheName !== CACHE_NAME)
       .forEach((cacheName) => caches.delete(cacheName));
+  });
+
+  // Trigger permission state sync if needed
+  self.clients.matchAll().then((clients) => {
+    if (clients.length > 0) {
+      // Only sync if there are active clients
+      if (self.registration && self.registration.sync) {
+        self.registration.sync.register('permission-refresh').catch(() => {
+          // Sync not supported, use message instead
+          clients.forEach((client) => {
+            client.postMessage({
+              type: 'PERIODIC_PERMISSION_CHECK',
+              timestamp: Date.now(),
+            });
+          });
+        });
+      } else {
+        // Fallback to direct messaging
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'PERIODIC_PERMISSION_CHECK',
+            timestamp: Date.now(),
+          });
+        });
+      }
+    }
   });
 }, 300000); // Every 5 minutes
 
