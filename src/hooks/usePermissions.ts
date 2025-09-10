@@ -8,7 +8,7 @@ export function usePermissions() {
     microphone: 'unknown',
     notifications: 'unknown',
   });
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,10 +132,7 @@ export function usePermissions() {
 
   const hasEssentialPermissions = useCallback(() => {
     // Camera and microphone are essential for core functionality
-    return (
-      permissionState.camera === 'granted' &&
-      permissionState.microphone === 'granted'
-    );
+    return permissionState.camera === 'granted' && permissionState.microphone === 'granted';
   }, [permissionState]);
 
   return {

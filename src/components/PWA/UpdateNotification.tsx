@@ -13,13 +13,13 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      let cleanupFunctions: (() => void)[] = [];
+      const cleanupFunctions: (() => void)[] = [];
 
       const initializeServiceWorker = async () => {
         try {
           // Get existing registration
           let reg = await navigator.serviceWorker.getRegistration('/');
-          
+
           if (!reg) {
             // If no registration exists, register it
             reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -36,11 +36,11 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
           const handleUpdateFound = () => {
             console.log('🔄 Service worker update found');
             const newWorker = reg!.installing;
-            
+
             if (newWorker) {
               const handleStateChange = () => {
                 console.log('📱 SW State:', newWorker.state);
-                
+
                 // When the new service worker is installed and ready
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   console.log('✅ New service worker ready, showing update notification');
@@ -106,7 +106,6 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
           // Initial update check
           await checkForUpdates();
-
         } catch (error) {
           console.error('❌ Service worker initialization failed:', error);
         }
@@ -116,7 +115,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
       // Cleanup function
       return () => {
-        cleanupFunctions.forEach(cleanup => cleanup());
+        cleanupFunctions.forEach((cleanup) => cleanup());
       };
     }
   }, []);
@@ -133,7 +132,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
       };
 
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-      
+
       return () => {
         navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       };
@@ -142,7 +141,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
   const handleUpdate = () => {
     console.log('🔄 User requested update');
-    
+
     if (registration?.waiting) {
       // Tell the waiting service worker to skip waiting and become active
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -158,33 +157,30 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
         }
       });
     }
-    
+
     onUpdate?.();
   };
 
   const handleDismiss = () => {
     console.log('⏭️ User dismissed update notification');
     setUpdateAvailable(false);
-    
+
     // Show again after 30 minutes if there's still an update waiting
-    setTimeout(() => {
-      if (registration?.waiting) {
-        setUpdateAvailable(true);
-      }
-    }, 30 * 60 * 1000);
+    setTimeout(
+      () => {
+        if (registration?.waiting) {
+          setUpdateAvailable(true);
+        }
+      },
+      30 * 60 * 1000,
+    );
   };
 
   if (!updateAvailable) return null;
 
   return (
     <div className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-sm">
-      <ThematicContainer
-        color="nocenaPurple"
-        glassmorphic={true}
-        asButton={false}
-        rounded="2xl"
-        className="p-6"
-      >
+      <ThematicContainer color="nocenaPurple" glassmorphic={true} asButton={false} rounded="2xl" className="p-6">
         {/* Icon */}
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 bg-nocenaPurple/20 rounded-full flex items-center justify-center border border-nocenaPurple/30">
@@ -194,9 +190,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
         {/* Content */}
         <div className="text-center mb-6">
-          <h3 className="text-lg font-bold text-white mb-2">
-            App Update Ready
-          </h3>
+          <h3 className="text-lg font-bold text-white mb-2">App Update Ready</h3>
           <p className="text-gray-300 text-sm">
             {newVersion ? `Version ${newVersion} is available` : 'Get the latest features and improvements'}
           </p>
@@ -204,13 +198,8 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate }) => 
 
         {/* Buttons */}
         <div className="space-y-3">
-          <PrimaryButton
-            text="Update Now"
-            onClick={handleUpdate}
-            className="w-full"
-            isActive={true}
-          />
-          
+          <PrimaryButton text="Update Now" onClick={handleUpdate} className="w-full" isActive={true} />
+
           <button
             onClick={handleDismiss}
             className="w-full text-sm text-gray-400 hover:text-gray-300 transition-colors py-2"
