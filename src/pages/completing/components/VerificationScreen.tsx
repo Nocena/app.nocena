@@ -900,7 +900,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
                     // Try to get ratings from aiResult object first, then fallback to text parsing
                     let ratings = { creativity: 0, authenticity: 0, effort: 0 };
-                    
+
                     if (aiResult) {
                       // Try to get from object properties
                       const objRatings = {
@@ -909,7 +909,11 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                         effort: aiResult.effort || aiResult.effortScore,
                       };
 
-                      if (objRatings.creativity !== undefined && objRatings.authenticity !== undefined && objRatings.effort !== undefined) {
+                      if (
+                        objRatings.creativity !== undefined &&
+                        objRatings.authenticity !== undefined &&
+                        objRatings.effort !== undefined
+                      ) {
                         ratings = objRatings;
                       } else {
                         // Fallback to parsing from explanation text
@@ -921,7 +925,8 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     }
 
                     // Calculate overall score
-                    const overallScore = aiResult?.score || 
+                    const overallScore =
+                      aiResult?.score ||
                       Math.round(((ratings.creativity + ratings.authenticity + ratings.effort) * 10) / 3);
 
                     // DEBUG: Log the parsing results
@@ -930,7 +935,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                       aiExplanation,
                       ratings,
                       overallScore,
-                      verificationResult
+                      verificationResult,
                     });
 
                     return (

@@ -80,11 +80,11 @@ export const getCurrentDeviceSubscription = async (): Promise<string | null> => 
  */
 export const subscriptionsMatch = (sub1: string | null, sub2: string | null): boolean => {
   if (!sub1 || !sub2) return false;
-  
+
   try {
     const parsed1 = JSON.parse(sub1);
     const parsed2 = JSON.parse(sub2);
-    
+
     // Compare the endpoint which is unique per device/browser
     return parsed1.endpoint === parsed2.endpoint;
   } catch (error) {
@@ -137,7 +137,9 @@ export const getUserStoredSubscription = async (userId: string): Promise<string 
 /**
  * Check if current device subscription matches what's stored in database
  */
-export const checkSubscriptionSync = async (userId: string): Promise<{
+export const checkSubscriptionSync = async (
+  userId: string,
+): Promise<{
   isInSync: boolean;
   currentDeviceSubscription: string | null;
   storedSubscription: string | null;
@@ -211,9 +213,9 @@ export const subscribeToPushNotifications = async (userId?: string): Promise<str
 
     // Check if already subscribed
     const existingSubscription = await registration.pushManager.getSubscription();
-    
+
     let subscription = existingSubscription;
-    
+
     if (!subscription) {
       // Get VAPID key from environment
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -254,15 +256,15 @@ export const subscribeToPushNotifications = async (userId?: string): Promise<str
  * Sync current device subscription with database
  */
 export const syncSubscriptionWithDatabase = async (
-  userId: string, 
-  deviceSubscription?: string | null
+  userId: string,
+  deviceSubscription?: string | null,
 ): Promise<boolean> => {
   console.log('🔔 SYNC: Starting subscription sync for user:', userId);
 
   try {
     // Get device subscription if not provided
-    const currentSubscription = deviceSubscription || await getCurrentDeviceSubscription();
-    
+    const currentSubscription = deviceSubscription || (await getCurrentDeviceSubscription());
+
     if (!currentSubscription) {
       console.log('🔔 SYNC: No device subscription to sync');
       return false;
@@ -270,7 +272,7 @@ export const syncSubscriptionWithDatabase = async (
 
     // Check current sync status
     const syncStatus = await checkSubscriptionSync(userId);
-    
+
     if (syncStatus.isInSync) {
       console.log('🔔 SYNC: Subscriptions already in sync');
       return true;
@@ -291,7 +293,9 @@ export const syncSubscriptionWithDatabase = async (
 /**
  * Initialize push notifications with automatic sync
  */
-export const initializePushNotifications = async (userId: string): Promise<{
+export const initializePushNotifications = async (
+  userId: string,
+): Promise<{
   success: boolean;
   subscription: string | null;
   wasUpdated: boolean;
@@ -322,7 +326,7 @@ export const initializePushNotifications = async (userId: string): Promise<{
 
     // Get or create subscription
     const subscription = await subscribeToPushNotifications(userId);
-    
+
     if (!subscription) {
       return {
         success: false,
@@ -334,7 +338,7 @@ export const initializePushNotifications = async (userId: string): Promise<{
 
     // Check if database was updated during subscription process
     const syncStatus = await checkSubscriptionSync(userId);
-    
+
     return {
       success: true,
       subscription,
@@ -366,12 +370,12 @@ export const unsubscribeFromPushNotifications = async (userId?: string): Promise
     if (subscription) {
       const successful = await subscription.unsubscribe();
       console.log('Unsubscribed from push notifications:', successful);
-      
+
       // Update database if userId provided
       if (userId && successful) {
         await updateUserPushSubscription(userId, null);
       }
-      
+
       return successful;
     }
 
@@ -554,14 +558,16 @@ export const updateUserPushSubscription = async (userId: string, subscription: s
 /**
  * Get notification status for UI display
  */
-export const getNotificationStatus = async (userId?: string): Promise<{
+export const getNotificationStatus = async (
+  userId?: string,
+): Promise<{
   permission: NotificationPermission;
   isSubscribed: boolean;
   isInSync: boolean;
   needsUpdate: boolean;
 }> => {
   const permission = Notification.permission;
-  
+
   if (!isPushNotificationSupported() || permission === 'denied') {
     return {
       permission,
@@ -584,7 +590,7 @@ export const getNotificationStatus = async (userId?: string): Promise<{
   }
 
   const syncStatus = await checkSubscriptionSync(userId);
-  
+
   return {
     permission,
     isSubscribed,

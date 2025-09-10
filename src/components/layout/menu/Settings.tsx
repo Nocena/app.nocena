@@ -19,12 +19,12 @@ interface SettingsMenuProps {
   onRefreshNotificationStatus?: () => Promise<void>;
 }
 
-const SettingsMenu: React.FC<SettingsMenuProps> = ({ 
-  onBack, 
+const SettingsMenu: React.FC<SettingsMenuProps> = ({
+  onBack,
   notificationState,
   onEnableNotifications,
   onSyncNotifications,
-  onRefreshNotificationStatus 
+  onRefreshNotificationStatus,
 }) => {
   const {
     permissionState,
@@ -59,90 +59,94 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
 
   const handleRequest = async (
     permission: 'camera' | 'microphone' | 'notifications' | 'all',
-    requestFn: () => Promise<any>
+    requestFn: () => Promise<any>,
   ) => {
-    setIsRequesting(prev => ({ ...prev, [permission]: true }));
+    setIsRequesting((prev) => ({ ...prev, [permission]: true }));
     try {
       await requestFn();
     } catch (error) {
       console.error(`Failed to request ${permission} permission:`, error);
     } finally {
-      setIsRequesting(prev => ({ ...prev, [permission]: false }));
+      setIsRequesting((prev) => ({ ...prev, [permission]: false }));
     }
   };
 
   const handleEnablePushNotifications = async () => {
     if (!onEnableNotifications) return;
-    
-    setIsRequesting(prev => ({ ...prev, pushSync: true }));
+
+    setIsRequesting((prev) => ({ ...prev, pushSync: true }));
     try {
       await onEnableNotifications();
     } catch (error) {
       console.error('Failed to enable push notifications:', error);
     } finally {
-      setIsRequesting(prev => ({ ...prev, pushSync: false }));
+      setIsRequesting((prev) => ({ ...prev, pushSync: false }));
     }
   };
 
   const handleSyncPushNotifications = async () => {
     if (!onSyncNotifications) return;
-    
-    setIsRequesting(prev => ({ ...prev, pushSync: true }));
+
+    setIsRequesting((prev) => ({ ...prev, pushSync: true }));
     try {
       await onSyncNotifications();
     } catch (error) {
       console.error('Failed to sync push notifications:', error);
     } finally {
-      setIsRequesting(prev => ({ ...prev, pushSync: false }));
+      setIsRequesting((prev) => ({ ...prev, pushSync: false }));
     }
   };
 
   const handleRefreshStatus = async () => {
     if (!onRefreshNotificationStatus) return;
-    
-    setIsRequesting(prev => ({ ...prev, pushSync: true }));
+
+    setIsRequesting((prev) => ({ ...prev, pushSync: true }));
     try {
       await onRefreshNotificationStatus();
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Failed to refresh notification status:', error);
     } finally {
-      setIsRequesting(prev => ({ ...prev, pushSync: false }));
+      setIsRequesting((prev) => ({ ...prev, pushSync: false }));
     }
   };
 
   const getStatusIcon = (state: string) => {
     switch (state) {
-      case 'granted': return <CheckCircle className="w-4 h-4 text-green-400" />;
-      case 'denied': return <XCircle className="w-4 h-4 text-red-400" />;
-      case 'prompt': return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
-      default: return <div className="w-4 h-4 rounded-full bg-white/40" />;
+      case 'granted':
+        return <CheckCircle className="w-4 h-4 text-green-400" />;
+      case 'denied':
+        return <XCircle className="w-4 h-4 text-red-400" />;
+      case 'prompt':
+        return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
+      default:
+        return <div className="w-4 h-4 rounded-full bg-white/40" />;
     }
   };
 
   const getPushNotificationStatus = () => {
     if (!notificationState) return { icon: <div className="w-4 h-4 rounded-full bg-white/40" />, text: 'Unknown' };
-    
+
     if (notificationState.isLoading) {
       return { icon: <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />, text: 'Checking...' };
     }
-    
+
     if (notificationState.permission === 'denied') {
       return { icon: <XCircle className="w-4 h-4 text-red-400" />, text: 'Permission Denied' };
     }
-    
+
     if (!notificationState.isSubscribed) {
       return { icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />, text: 'Not Subscribed' };
     }
-    
+
     if (notificationState.needsUpdate) {
       return { icon: <AlertTriangle className="w-4 h-4 text-orange-400" />, text: 'Needs Sync' };
     }
-    
+
     if (notificationState.isSubscribed && notificationState.isInSync) {
       return { icon: <CheckCircle className="w-4 h-4 text-green-400" />, text: 'Active & Synced' };
     }
-    
+
     return { icon: <div className="w-4 h-4 rounded-full bg-white/40" />, text: 'Unknown' };
   };
 
@@ -193,11 +197,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           <h2 className="text-white text-2xl font-bold">Settings</h2>
           <p className="text-white/60 text-sm">
             App permissions and preferences
-            {!isLoading && (
-              <span className="block text-xs mt-1">
-                Last checked: {lastRefresh.toLocaleTimeString()}
-              </span>
-            )}
+            {!isLoading && <span className="block text-xs mt-1">Last checked: {lastRefresh.toLocaleTimeString()}</span>}
           </p>
         </div>
       </div>
@@ -208,14 +208,12 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               {error && <div className="text-red-300 text-sm">{error}</div>}
-              {notificationState?.error && (
-                <div className="text-red-300 text-sm">Push: {notificationState.error}</div>
-              )}
+              {notificationState?.error && <div className="text-red-300 text-sm">Push: {notificationState.error}</div>}
             </div>
-            <button 
+            <button
               onClick={() => {
                 clearError();
-              }} 
+              }}
               className="text-red-400 hover:text-red-300"
             >
               ✕
@@ -241,9 +239,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                   <div className="text-white font-semibold mb-1 text-lg">
                     {missingPermissions.length} permission{missingPermissions.length > 1 ? 's' : ''} needed
                   </div>
-                  <div className="text-red-300 text-sm">
-                    Missing: {missingPermissions.join(', ')}
-                  </div>
+                  <div className="text-red-300 text-sm">Missing: {missingPermissions.join(', ')}</div>
                 </div>
                 <button
                   onClick={() => handleRequest('all', requestAllPermissions)}
@@ -291,8 +287,8 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                       isRequesting.camera
                         ? 'bg-white/10 text-white/40'
                         : permissionState.camera === 'denied'
-                        ? 'bg-red-600 hover:bg-red-500 text-white'
-                        : 'bg-nocenaBlue hover:bg-nocenaBlue/80 text-white'
+                          ? 'bg-red-600 hover:bg-red-500 text-white'
+                          : 'bg-nocenaBlue hover:bg-nocenaBlue/80 text-white'
                     }`}
                   >
                     {isRequesting.camera ? 'Requesting...' : permissionState.camera === 'denied' ? 'Blocked' : 'Allow'}
@@ -329,11 +325,15 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                       isRequesting.microphone
                         ? 'bg-white/10 text-white/40'
                         : permissionState.microphone === 'denied'
-                        ? 'bg-red-600 hover:bg-red-500 text-white'
-                        : 'bg-nocenaPink hover:bg-nocenaPink/80 text-white'
+                          ? 'bg-red-600 hover:bg-red-500 text-white'
+                          : 'bg-nocenaPink hover:bg-nocenaPink/80 text-white'
                     }`}
                   >
-                    {isRequesting.microphone ? 'Requesting...' : permissionState.microphone === 'denied' ? 'Blocked' : 'Allow'}
+                    {isRequesting.microphone
+                      ? 'Requesting...'
+                      : permissionState.microphone === 'denied'
+                        ? 'Blocked'
+                        : 'Allow'}
                   </button>
                 )}
               </div>
@@ -367,11 +367,15 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
                       isRequesting.notifications
                         ? 'bg-white/10 text-white/40'
                         : permissionState.notifications === 'denied'
-                        ? 'bg-red-600 hover:bg-red-500 text-white'
-                        : 'bg-nocenaPurple hover:bg-nocenaPurple/80 text-white'
+                          ? 'bg-red-600 hover:bg-red-500 text-white'
+                          : 'bg-nocenaPurple hover:bg-nocenaPurple/80 text-white'
                     }`}
                   >
-                    {isRequesting.notifications ? 'Requesting...' : permissionState.notifications === 'denied' ? 'Blocked' : 'Allow'}
+                    {isRequesting.notifications
+                      ? 'Requesting...'
+                      : permissionState.notifications === 'denied'
+                        ? 'Blocked'
+                        : 'Allow'}
                   </button>
                 )}
               </div>

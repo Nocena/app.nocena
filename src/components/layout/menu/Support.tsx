@@ -120,7 +120,7 @@ const SupportMenu: React.FC<SupportMenuProps> = ({ onBack }) => {
           <p className="text-white/70 text-sm leading-relaxed mb-4">
             If you're having trouble accessing the group, feel free to reach out via alternative channels.
           </p>
-          
+
           <div className="space-y-3">
             <div className="flex items-center space-x-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
               <div className="w-10 h-10 bg-nocenaPink/20 rounded-lg flex items-center justify-center">
@@ -163,13 +163,15 @@ const SupportMenu: React.FC<SupportMenuProps> = ({ onBack }) => {
             <div className="flex items-start space-x-3">
               <div className="w-2 h-2 bg-nocenaPink rounded-full mt-2 flex-shrink-0"></div>
               <p className="text-white/70 text-sm">
-                <strong className="text-white">Be specific:</strong> Include details about what you were doing when the issue occurred
+                <strong className="text-white">Be specific:</strong> Include details about what you were doing when the
+                issue occurred
               </p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-2 h-2 bg-nocenaBlue rounded-full mt-2 flex-shrink-0"></div>
               <p className="text-white/70 text-sm">
-                <strong className="text-white">Screenshots help:</strong> Visual examples make it easier to understand your issue
+                <strong className="text-white">Screenshots help:</strong> Visual examples make it easier to understand
+                your issue
               </p>
             </div>
             <div className="flex items-start space-x-3">

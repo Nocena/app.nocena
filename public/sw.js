@@ -79,7 +79,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ 
+    event.ports[0].postMessage({
       version: SW_VERSION,
       timestamp: Date.now(),
     });
@@ -119,9 +119,9 @@ async function handlePermissionPreservation(permissions) {
 
     // Store as a synthetic response
     const response = new Response(JSON.stringify(permissionData), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
-    
+
     await cache.put('/permission-state', response);
     console.log('💾 Permissions preserved for update');
   } catch (error) {
@@ -167,29 +167,31 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     // Check if we can show notifications before attempting
-    checkNotificationPermission().then((canShow) => {
-      if (canShow) {
-        return self.registration.showNotification(notificationData.title, {
-          body: notificationData.body,
-          icon: notificationData.icon,
-          badge: notificationData.badge,
-          tag: notificationData.tag,
-          data: notificationData.data,
-          requireInteraction: false,
-          actions: [
-            {
-              action: 'open',
-              title: 'Open App',
-              icon: '/icons/icon-192x192.png',
-            },
-          ],
-        });
-      } else {
-        console.log('📱 Notification permission not available');
-      }
-    }).catch((error) => {
-      console.error('📱 Failed to show notification:', error);
-    })
+    checkNotificationPermission()
+      .then((canShow) => {
+        if (canShow) {
+          return self.registration.showNotification(notificationData.title, {
+            body: notificationData.body,
+            icon: notificationData.icon,
+            badge: notificationData.badge,
+            tag: notificationData.tag,
+            data: notificationData.data,
+            requireInteraction: false,
+            actions: [
+              {
+                action: 'open',
+                title: 'Open App',
+                icon: '/icons/icon-192x192.png',
+              },
+            ],
+          });
+        } else {
+          console.log('📱 Notification permission not available');
+        }
+      })
+      .catch((error) => {
+        console.error('📱 Failed to show notification:', error);
+      }),
   );
 });
 
@@ -294,15 +296,15 @@ async function networkFirstWithPermissionCheck(request) {
 
     if (networkResponse.status === 200) {
       const cache = await caches.open(CACHE_NAME);
-      
+
       // Clone response for caching
       const responseToCache = networkResponse.clone();
-      
+
       // Notify clients that camera page is being loaded
       if (request.url.includes('/completing')) {
         notifyClientsAboutCameraPage();
       }
-      
+
       cache.put(request, responseToCache);
     }
 
@@ -418,7 +420,7 @@ async function syncChallengeCompletions() {
 async function syncPermissionState() {
   try {
     console.log('🔄 Syncing permission state...');
-    
+
     // Notify all clients to refresh permissions
     const clients = await self.clients.matchAll();
     clients.forEach((client) => {

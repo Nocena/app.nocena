@@ -135,8 +135,7 @@ const FAQMenu: React.FC<FAQMenuProps> = ({ onBack }) => {
           </div>
           <div className="bg-nocenaBlue/20 rounded-lg p-4 border border-nocenaBlue/30">
             <p className="text-nocenaBlue text-sm leading-relaxed">
-              If you're reporting an issue, please include{' '}
-              <span className="font-semibold">steps to reproduce</span>,{' '}
+              If you're reporting an issue, please include <span className="font-semibold">steps to reproduce</span>,{' '}
               <span className="font-semibold">screenshots</span>, or any other helpful material, if possible.
             </p>
           </div>
@@ -149,12 +148,14 @@ const FAQMenu: React.FC<FAQMenuProps> = ({ onBack }) => {
             The camera isn't working - what do I do?
           </h3>
           <p className="text-white/70 text-sm leading-relaxed mb-4">
-            <span className="text-nocenaBlue font-semibold">Check permissions</span> - Make sure you allowed camera access. For detialed debugging of camera, microphone and notifications issues you can.
+            <span className="text-nocenaBlue font-semibold">Check permissions</span> - Make sure you allowed camera
+            access. For detialed debugging of camera, microphone and notifications issues you can.
           </p>
           <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
             <h4 className="text-yellow-200 font-semibold mb-2">On Android devices</h4>
             <p className="text-yellow-200 text-sm leading-relaxed">
-              Ensure that camera access is granted to Google Chrome or your default browser. Since Nocena is a PWA, it runs through your browser in the background - even when installed as an app.
+              Ensure that camera access is granted to Google Chrome or your default browser. Since Nocena is a PWA, it
+              runs through your browser in the background - even when installed as an app.
             </p>
           </div>
         </div>

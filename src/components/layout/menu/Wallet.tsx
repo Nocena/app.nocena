@@ -62,9 +62,7 @@ const WalletMenu: React.FC<WalletMenuProps> = ({ onBack }) => {
           <Image src={nocenix} alt="Nocenix" width={24} height={24} />
           <div className="text-xl font-medium text-white">NCX</div>
         </div>
-        <p className="text-white/50 text-sm text-center">
-          Your tokens are safely stored and ready to use
-        </p>
+        <p className="text-white/50 text-sm text-center">Your tokens are safely stored and ready to use</p>
       </div>
 
       {/* What is a Wallet */}
@@ -74,12 +72,12 @@ const WalletMenu: React.FC<WalletMenuProps> = ({ onBack }) => {
           Your Digital Wallet
         </h3>
         <p className="text-white/70 text-sm leading-relaxed mb-4">
-          Think of your wallet like a secure digital account that holds your Nocenix tokens. 
-          Just like your email or social media account, it's protected and belongs to you.
+          Think of your wallet like a secure digital account that holds your Nocenix tokens. Just like your email or
+          social media account, it's protected and belongs to you.
         </p>
         <p className="text-white/70 text-sm leading-relaxed">
-          The best part? You already have one! When you joined Nocena, we automatically created 
-          a secure wallet for you behind the scenes.
+          The best part? You already have one! When you joined Nocena, we automatically created a secure wallet for you
+          behind the scenes.
         </p>
       </div>
 
@@ -129,19 +127,22 @@ const WalletMenu: React.FC<WalletMenuProps> = ({ onBack }) => {
           <div className="flex items-start space-x-3">
             <div className="w-2 h-2 bg-nocenaPink rounded-full mt-2 flex-shrink-0"></div>
             <p className="text-white/70 text-sm">
-              <strong className="text-white">No Complex Setup:</strong> Your wallet was created when you signed up with your email or phone
+              <strong className="text-white">No Complex Setup:</strong> Your wallet was created when you signed up with
+              your email or phone
             </p>
           </div>
           <div className="flex items-start space-x-3">
             <div className="w-2 h-2 bg-nocenaBlue rounded-full mt-2 flex-shrink-0"></div>
             <p className="text-white/70 text-sm">
-              <strong className="text-white">No Hidden Fees:</strong> Earning, sending, and receiving tokens is completely free
+              <strong className="text-white">No Hidden Fees:</strong> Earning, sending, and receiving tokens is
+              completely free
             </p>
           </div>
           <div className="flex items-start space-x-3">
             <div className="w-2 h-2 bg-nocenaPurple rounded-full mt-2 flex-shrink-0"></div>
             <p className="text-white/70 text-sm">
-              <strong className="text-white">No Technical Knowledge:</strong> Use it just like any other social app feature
+              <strong className="text-white">No Technical Knowledge:</strong> Use it just like any other social app
+              feature
             </p>
           </div>
         </div>
