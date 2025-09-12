@@ -494,5 +494,3 @@ export class PWAPermissionManager {
   }
 }
 
-// Export singleton instance
-export const permissionManager = PWAPermissionManager.getInstance();

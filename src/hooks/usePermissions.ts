@@ -1,8 +1,10 @@
 // hooks/usePermissions.ts
 import { useState, useEffect, useCallback } from 'react';
-import { permissionManager, PermissionState } from '../lib/utils/permissionManager';
+import { PermissionState, PWAPermissionManager } from '../lib/utils/permissionManager';
 
 export function usePermissions() {
+  const [permissionManager, setPermissionManager] = useState<PWAPermissionManager | null>(null);
+
   const [permissionState, setPermissionState] = useState<PermissionState>({
     camera: 'unknown',
     microphone: 'unknown',
@@ -14,8 +16,12 @@ export function usePermissions() {
 
   // Initialize permission manager
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const initializePermissions = async () => {
       try {
+        const permissionManager = PWAPermissionManager.getInstance();
+        setPermissionManager(permissionManager);
         await permissionManager.initialize();
         setPermissionState(permissionManager.getPermissionState());
         setIsLoading(false);
@@ -27,8 +33,12 @@ export function usePermissions() {
     };
 
     initializePermissions();
+  }, []);
 
-    // Listen for permission changes
+  // Listen for permission changes
+  useEffect(() => {
+    if (!permissionManager) return;
+
     const handlePermissionChange = (newState: PermissionState) => {
       setPermissionState(newState);
     };
@@ -38,7 +48,7 @@ export function usePermissions() {
     return () => {
       permissionManager.removeListener(handlePermissionChange);
     };
-  }, []);
+  }, [permissionManager]);
 
   // Handle service worker messages
   useEffect(() => {
@@ -47,18 +57,18 @@ export function usePermissions() {
         console.log('Service worker updated, preserving permissions...');
         // Small delay to allow new SW to settle
         setTimeout(() => {
-          permissionManager.forceRefresh();
+          permissionManager?.forceRefresh();
         }, 1000);
       }
 
       if (event.data?.type === 'REFRESH_PERMISSIONS') {
         console.log('Service worker requested permission refresh');
-        permissionManager.forceRefresh();
+        permissionManager?.forceRefresh();
       }
 
       if (event.data?.type === 'PERIODIC_PERMISSION_CHECK') {
         // Silent refresh for periodic checks
-        permissionManager.forceRefresh();
+        permissionManager?.forceRefresh();
       }
 
       if (event.data?.type === 'CLEANUP_MEDIA_STREAMS') {
@@ -72,55 +82,55 @@ export function usePermissions() {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
     };
-  }, []);
+  }, [permissionManager]);
 
   const requestCameraPermission = useCallback(async () => {
     setError(null);
     try {
-      const result = await permissionManager.requestCameraPermission();
+      const result = await permissionManager?.requestCameraPermission();
       return result;
     } catch (err) {
       setError('Failed to request camera permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestMicrophonePermission = useCallback(async () => {
     setError(null);
     try {
-      const result = await permissionManager.requestMicrophonePermission();
+      const result = await permissionManager?.requestMicrophonePermission();
       return result;
     } catch (err) {
       setError('Failed to request microphone permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestNotificationPermission = useCallback(async () => {
     setError(null);
     try {
-      const result = await permissionManager.requestNotificationPermission();
+      const result = await permissionManager?.requestNotificationPermission();
       return result;
     } catch (err) {
       setError('Failed to request notification permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestAllPermissions = useCallback(async () => {
     setError(null);
     try {
-      const result = await permissionManager.requestAllPermissions();
+      const result = await permissionManager?.requestAllPermissions();
       return result;
     } catch (err) {
       setError('Failed to request permissions');
       return permissionState;
     }
-  }, [permissionState]);
+  }, [permissionManager, permissionState]);
 
   const shouldShowPrimer = useCallback((permission: 'camera' | 'microphone' | 'notifications') => {
-    return permissionManager.shouldShowPermissionPrimer(permission);
-  }, []);
+    return permissionManager?.shouldShowPermissionPrimer(permission);
+  }, [permissionManager]);
 
   const hasAllRequiredPermissions = useCallback(() => {
     return (
@@ -136,6 +146,7 @@ export function usePermissions() {
   }, [permissionState]);
 
   return {
+    permissionManager,
     permissionState,
     isLoading,
     error,
