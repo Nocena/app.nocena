@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./NCXConverter.sol";
 
 /**
  * @title Subscription Contract
@@ -11,26 +12,10 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *      and creators to swap NCX earnings to USDT via KlaySwap
  */
 
-interface IKLAYswapRouter {
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external returns (uint256[] memory amounts);
-}
-
-contract Subscription is ReentrancyGuard {
+contract Subscription is NCXConverter, ReentrancyGuard {
     /// @notice Subscription tier levels
     enum SubscriptionTier { BASIC, PREMIUM, VIP }
     
-    /// @notice NCX token used for subscription payments
-    IERC20 public immutable ncxToken;
-    /// @notice USDT token for swap conversions
-    IERC20 public immutable usdtToken;
-    /// @notice KlaySwap router for NCX to USDT swaps
-    IKLAYswapRouter public immutable klayswapRouter;
     /// @notice Fixed subscription duration (30 days)
     uint256 public immutable subscriptionDuration;
     
@@ -54,8 +39,6 @@ contract Subscription is ReentrancyGuard {
     event SubscriptionCancelled(address indexed user, address indexed creator, SubscriptionTier tier);
     /// @notice Emitted when a creator sets their subscription price
     event TierPriceSet(address indexed creator, SubscriptionTier tier, uint256 price);
-    /// @notice Emitted when a creator swaps NCX to USDT
-    event NCXSwappedToUSDT(address indexed creator, uint256 ncxAmount, uint256 usdtReceived);
     
     /// @notice Thrown when trying to subscribe to yourself
     error CannotSubscribeToSelf();
@@ -63,8 +46,6 @@ contract Subscription is ReentrancyGuard {
     error InvalidPrice();
     /// @notice Thrown when creator hasn't set a price for tier
     error TierPriceNotSet();
-    /// @notice Thrown when swap amount is zero
-    error InvalidSwapAmount();
     /// @notice Thrown when token addresses are invalid
     error InvalidTokenAddress();
     /// @notice Thrown when unauthorized access to earnings
@@ -77,14 +58,8 @@ contract Subscription is ReentrancyGuard {
      * @param _klayswapRouter Address of the KlaySwap router
      * @param _duration Subscription duration in seconds
      */
-    constructor(address _ncxToken, address _usdtToken, address _klayswapRouter, uint256 _duration) {
-        if (_ncxToken == address(0) || _usdtToken == address(0) || _klayswapRouter == address(0)) {
-            revert InvalidTokenAddress();
-        }
-        
-        ncxToken = IERC20(_ncxToken);
-        usdtToken = IERC20(_usdtToken);
-        klayswapRouter = IKLAYswapRouter(_klayswapRouter);
+    constructor(address _ncxToken, address _usdtToken, address _klayswapRouter, uint256 _duration) 
+        NCXConverter(_ncxToken, _usdtToken, _klayswapRouter) {
         subscriptionDuration = _duration;
     }
     
@@ -190,23 +165,7 @@ contract Subscription is ReentrancyGuard {
         // Transfer NCX from creator to contract
         ncxToken.transferFrom(msg.sender, address(this), ncxAmount);
         
-        // Approve router to spend NCX
-        ncxToken.approve(address(klayswapRouter), ncxAmount);
-        
-        // Set up swap path: NCX -> USDT
-        address[] memory path = new address[](2);
-        path[0] = address(ncxToken);
-        path[1] = address(usdtToken);
-        
-        // Execute swap with 5-minute deadline
-        uint256[] memory amounts = klayswapRouter.swapExactTokensForTokens(
-            ncxAmount,
-            minUSDTOut,
-            path,
-            msg.sender,
-            block.timestamp + 300
-        );
-        
-        emit NCXSwappedToUSDT(msg.sender, ncxAmount, amounts[1]);
+        // Use modular converter
+        _swapNCXToUSDT(ncxAmount, minUSDTOut, msg.sender);
     }
 }
