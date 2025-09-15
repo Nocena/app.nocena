@@ -316,3 +316,70 @@ export interface ProfileDataType {
   isFollowedByMe: boolean;
 }
 // ---- end by matija --------
+
+// ---- added by matija for kaia hackathon ----
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  bio: string;
+  isCreator: boolean;
+  nocenixBalance: number;
+  usdtBalance: number;
+  followers: number;
+  following: number;
+}
+
+export interface MembershipTier {
+  id: string;
+  name: string;
+  description: string;
+  price: number; // in nocenix tokens
+  color: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  benefits: string[];
+  subscriberCount: number;
+}
+
+export interface Post {
+  id: string;
+  creatorId: string;
+  creator: User;
+  title: string;
+  content: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  tierRequired?: MembershipTier;
+  isPublic: boolean;
+  likes: number;
+  comments: number;
+  createdAt: string;
+  tags: string[];
+}
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  creatorId: string;
+  tierId: string;
+  tier: MembershipTier;
+  isActive: boolean;
+  startDate: string;
+  nextBillingDate: string;
+}
+
+export interface Creator {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  banner?: string;
+  bio: string;
+  category: string;
+  followers: number;
+  posts: number;
+  isFollowing?: boolean;
+  membershipTiers: MembershipTier[];
+}
+// ---- end by matija for kaia hackathon ----

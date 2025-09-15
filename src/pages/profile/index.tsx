@@ -1,23 +1,23 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { updateBio, updateProfilePicture, updateCoverPhoto, getUserAvatar } from '../../lib/api/dgraph';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getUserAvatar, updateBio, updateCoverPhoto, updateProfilePicture } from '../../lib/api/dgraph';
 import { unpinFromPinata } from '../../lib/api/pinata';
-import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
+import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicContainer from '../../components/ui/ThematicContainer';
-import PrimaryButton from '../../components/ui/PrimaryButton';
 import FollowersPopup from './components/FollowersPopup';
-import AvatarSection from './components/AvatarSection'; // Changed from TrailerSection
 import StatsSection from './components/StatsSection';
-import CalendarSection from './components/CalendarSection';
 
 import PenIcon from '../../components/icons/pen';
 
 // Custom hooks
 import useFollowersData from '../../hooks/useFollowersData';
+import PostsSection from '@pages/profile/components/PostsSection';
+import { mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
+import MembershipSection from '@pages/profile/components/MembershipSection';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -35,7 +35,7 @@ const ProfileView: React.FC = () => {
   const [bio, setBio] = useState<string>(user?.bio || 'No bio yet');
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
-  const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
+  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'achievements'>('posts');
 
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
@@ -448,6 +448,18 @@ const ProfileView: React.FC = () => {
                     <div className="text-2xl font-bold">{followersCount}</div>
                     <div className="text-sm text-white/60">Followers</div>
                   </div>
+                  <div
+                    className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <div className="text-2xl font-bold">{mockPosts.length}</div>
+                    <div className="text-sm text-white/60">Posts</div>
+                  </div>
+                  <div
+                    className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <div className="text-2xl font-bold text-nocenaPink">{mockSubscribedTiers.length}</div>
+                    <div className="text-sm text-white/60">Tiers</div>
+                  </div>
                   <div className="w-px h-8 bg-white/20"></div>
                   <div className="text-center">
                     <div className="flex items-center space-x-1">
@@ -520,8 +532,8 @@ const ProfileView: React.FC = () => {
           {/* Three Section Menu using ThematicContainer */}
           <div className="flex justify-center mb-6 space-x-4">
             {[
-              { key: 'trailer', label: 'Avatar' }, // Changed label
-              { key: 'calendar', label: 'Calendar' },
+              { key: 'posts', label: 'Posts' }, // Changed label
+              { key: 'membership', label: 'Membership' },
               { key: 'achievements', label: 'Stats' },
             ].map(({ key, label }) => (
               <ThematicContainer
@@ -539,24 +551,22 @@ const ProfileView: React.FC = () => {
           </div>
 
           {/* Content Based on Active Section */}
-          <div className="space-y-4">
-            {activeSection === 'trailer' && (
+          <div className="space-y-4 lg:px-12 md:px-8 sm:px-4">
+            {activeSection === 'posts' && (
               <div className="space-y-4">
-                <AvatarSection
-                  profilePicture={profilePic}
-                  generatedAvatar={generatedAvatar}
-                  onAvatarUpdated={handleAvatarUpdated}
-                  userID={user?.id}
-                  enableAvatarFeature={true}
+                <PostsSection
+                  posts={mockPosts}
+                  subscribedTiers={mockSubscribedTiers}
+                  isOwnProfile={true}
                 />
               </div>
             )}
 
-            {activeSection === 'calendar' && (
-              <CalendarSection
-                dailyChallenges={dailyChallenges}
-                weeklyChallenges={weeklyChallenges}
-                monthlyChallenges={monthlyChallenges}
+            {activeSection === 'membership' && (
+              <MembershipSection
+                creator={mockCreators[0]}
+                subscribedTiers={mockSubscribedTiers}
+                isOwnProfile={true}
               />
             )}
 
