@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import PrimaryButton from '../ui/PrimaryButton';
 import ThematicImage from '../ui/ThematicImage';
-import ThematicContainer from '../ui/ThematicContainer';
 import WalletMenu from './menu/Wallet';
 import NocenixMenu from './menu/Nocenix';
 import SettingsMenu from './menu/Settings';
@@ -10,6 +9,8 @@ import FAQMenu from './menu/FAQ';
 import SupportMenu from './menu/Support';
 import FeedbackMenu from './menu/Feedback';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
+import { Dumbbell } from 'lucide-react';
 
 interface MenuProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface MenuProps {
 }
 
 const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar = false }) => {
+  const router = useRouter();
   const { user } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -370,6 +372,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           title="Wallet"
           description="Manage your tokens and rewards"
           onClick={() => setActiveSection('wallet')}
+        />
+
+        <MenuItem
+          icon={ <Dumbbell size={20}/> }
+          title="Challenge"
+          description="Challenge To Earn"
+          onClick={() => router.push('/challenge')}
         />
 
         <MenuItem

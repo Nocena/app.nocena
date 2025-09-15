@@ -1,16 +1,17 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
 import { getUserByIdFromDgraph, toggleFollowUser } from '../../lib/api/dgraph';
-import { useAuth, User as AuthUser } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
-import TrailerSection from './components/AvatarSection';
 import StatsSection from './components/StatsSection';
-import CalendarSection from './components/CalendarSection';
+import PostsSection from '@pages/profile/components/PostsSection';
+import { mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
+import MembershipSection from '@pages/profile/components/MembershipSection';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -45,24 +46,9 @@ const OtherProfileView: React.FC = () => {
   const [showFollowersPopup, setShowFollowersPopup] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
-  const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
+  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'achievements'>('posts');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
 
   // Check if this page is visible in the PageManager
   useEffect(() => {
@@ -361,24 +347,6 @@ const OtherProfileView: React.FC = () => {
     }
   };
 
-  // Handle "Challenge Me" button click
-  const handleChallengeClick = () => {
-    if (!user || !currentUser) return;
-
-    console.log('Challenge button clicked for user:', user.username);
-
-    // Navigate to create challenge with private mode and target user data
-    router.push({
-      pathname: '/createchallenge',
-      query: {
-        isPrivate: 'true',
-        targetUserId: user.id,
-        targetUsername: user.username,
-        targetProfilePic: user.profilePicture || defaultProfilePic,
-      },
-    });
-  };
-
   // Handle followers click
   const handleFollowersClick = () => {
     setShowFollowersPopup(true);
@@ -397,19 +365,6 @@ const OtherProfileView: React.FC = () => {
       }
     }
     return streak;
-  }, [user]);
-
-  const totalChallenges = useMemo(() => {
-    if (!user) return 0;
-    const dailyChallenges = user.dailyChallenge.split('').map((char) => char === '1');
-    const weeklyChallenges = user.weeklyChallenge.split('').map((char) => char === '1');
-    const monthlyChallenges = user.monthlyChallenge.split('').map((char) => char === '1');
-
-    return (
-      dailyChallenges.filter(Boolean).length +
-      weeklyChallenges.filter(Boolean).length +
-      monthlyChallenges.filter(Boolean).length
-    );
   }, [user]);
 
   const getButtonColor = (section: string) => {
@@ -613,8 +568,8 @@ const OtherProfileView: React.FC = () => {
             {/* Three Section Menu using ThematicContainer */}
             <div className="mb-6 flex space-x-3 w-full">
               {[
-                { key: 'trailer', label: 'Avatar' },
-                { key: 'calendar', label: 'Calendar' },
+                { key: 'posts', label: 'Posts' },
+                { key: 'membership', label: 'Membership' },
                 { key: 'achievements', label: 'Stats' },
               ].map(({ key, label }) => (
                 <ThematicContainer
@@ -633,15 +588,21 @@ const OtherProfileView: React.FC = () => {
 
             {/* Content Based on Active Section - with bottom margin */}
             <div className="space-y-4 mb-8">
-              {activeSection === 'trailer' && (
-                <TrailerSection profilePicture="placeholder" generatedAvatar="placeholder" />
+              {activeSection === 'posts' && (
+                <div className="space-y-4">
+                  <PostsSection
+                    posts={mockPosts}
+                    subscribedTiers={mockSubscribedTiers}
+                    isOwnProfile={false}
+                  />
+                </div>
               )}
 
-              {activeSection === 'calendar' && (
-                <CalendarSection
-                  dailyChallenges={user.dailyChallenge.split('').map((char) => char === '1')}
-                  weeklyChallenges={user.weeklyChallenge.split('').map((char) => char === '1')}
-                  monthlyChallenges={user.monthlyChallenge.split('').map((char) => char === '1')}
+              {activeSection === 'membership' && (
+                <MembershipSection
+                  creator={mockCreators[0]}
+                  subscribedTiers={mockSubscribedTiers}
+                  isOwnProfile={false}
                 />
               )}
 
