@@ -382,4 +382,51 @@ export interface Creator {
   isFollowing?: boolean;
   membershipTiers: MembershipTier[];
 }
+
+export interface ChallengeCardType {
+  id: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  creatorId: string;
+  creatorAvatar: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  reward: number; // NCX tokens
+  participants: number;
+  completions: number;
+  createdAt: string;
+  tags: string[];
+}
+
+export interface completionItem {
+  id: string;
+  challenge: {
+    description: string;
+    title: string;
+    id: string;
+    reward: number;
+  },
+  completionDate: string;
+  isLiked: boolean;
+  likesCount: number;
+  videoUrl: string;
+  selfieUrl: string;
+}
 // ---- end by matija for kaia hackathon ----
+
+export interface MediaMetadata {
+  // New format (individual CIDs) - this is what you're using now
+  videoCID?: string;
+  selfieCID?: string;
+  // Old format (directory structure) - for backwards compatibility
+  directoryCID?: string;
+  videoFileName?: string;
+  selfieFileName?: string;
+  // Common properties
+  hasVideo?: boolean;
+  hasSelfie?: boolean;
+  timestamp?: number;
+  description?: string;
+  verificationResult?: any;
+}

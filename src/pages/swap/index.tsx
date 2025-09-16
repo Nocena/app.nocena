@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ArrowUpDown, ArrowLeft, Wallet, TrendingUp, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { mockUser } from '../../data/mock';
 import { useRouter } from 'next/router';
-
+import { Toast } from './components/Toast';
 const TokenSwap = () => {
   const router = useRouter();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [user, setUser] = useState(mockUser);
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
@@ -128,6 +130,11 @@ const TokenSwap = () => {
       setFromAmount('');
       setToAmount('');
       setIsSwapping(false);
+
+      // Show success toast
+      setToastMessage(`Successfully swapped ${fromAmountNum.toLocaleString()} ${fromToken} for ${toAmountNum.toLocaleString()} ${toToken}!`);
+      setShowToast(true);
+
     }, 2000);
   };
 
@@ -362,6 +369,15 @@ const TokenSwap = () => {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type="success"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        duration={4000}
+      />
 
       {/* Swap History */}
       <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">

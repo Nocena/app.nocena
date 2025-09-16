@@ -1,5 +1,5 @@
 // pages/home/index.tsx - WITH DISCOVER BUTTON
-import { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ import { ChevronRight, Clock, Sparkles, Trophy } from 'lucide-react';
 import { CreatorCard } from './components/CreatorCard';
 import { mockCreators, newCreators, recentChallengers, recentlyVisited } from '../../data/mock';
 import { Creator } from '../../lib/types';
+import SearchBox, { SearchUser } from '@pages/search/components/SearchBox';
 
 const SectionHeader = ({ icon: Icon, title, subtitle, color }: {
   icon: any;
@@ -47,6 +48,17 @@ const HomeView = () => {
     }
   };
 
+  const handleUserSelect = useCallback(
+    (selectedUser: SearchUser) => {
+      if (user?.id === selectedUser.id) {
+        router.push('/profile');
+      } else {
+        router.push(`/profile/${selectedUser.id}`);
+      }
+    },
+    [router, user?.id],
+  );
+
   if (loading) {
     return (
       <div className="text-white p-4 min-h-screen flex items-center justify-center">
@@ -67,6 +79,9 @@ const HomeView = () => {
         ) : (
           /* Main Content */
           <div className="max-w-7xl mx-auto space-y-12">
+            <div className="flex justify-center">
+              <SearchBox onUserSelect={handleUserSelect} />
+            </div>
             {/* Recently Visited */}
             <section>
               <SectionHeader

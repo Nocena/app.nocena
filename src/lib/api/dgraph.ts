@@ -3,6 +3,7 @@ import axios from 'axios';
 import { User } from '../../contexts/AuthContext';
 import { getDayOfYear, getWeekOfYear } from '../utils/dateUtils';
 import { ChallengeFormData, CreateChallengeResponse, PublicChallenge, PrivateChallenge } from '../map/types';
+import { getCompletionItemByCompletedChallenge } from '@utils/challengeUtils';
 
 const DGRAPH_ENDPOINT = process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT || '';
 
@@ -2701,11 +2702,12 @@ export async function fetchUserCompletions(
       filterConditions.length > 1 ? `and: [${filterConditions.join(', ')}]` : filterConditions[0].slice(1, -1); // Remove outer braces for single condition
 
     // Query through User's completedChallenges field
+/*
     const query = `
       query FetchUserCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
         getUser(id: $userId) {
           completedChallenges(
-            filter: { 
+            filter: {
               ${filterString}
             }
             order: { desc: completionDate }
@@ -2747,6 +2749,28 @@ export async function fetchUserCompletions(
         }
       }
     `;
+*/
+    const query = `
+    query($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
+      getUser(id: $userId) {
+        completedChallenges(
+          filter: { 
+            completionDate: { between: { min: $startDate, max: $endDate } }
+          }
+          order: { desc: completionDate }
+        ) {
+          id
+          media
+          completionDate
+          challengeType
+          user { id username profilePicture }
+          aiChallenge { id title description frequency reward }
+          privateChallenge { id title description reward }
+          publicChallenge { id title description reward }
+        }
+      }
+    }
+`;
 
     const response = await axios.post(
       DGRAPH_ENDPOINT,
@@ -2766,7 +2790,10 @@ export async function fetchUserCompletions(
       throw new Error('Failed to fetch user completions');
     }
 
-    return response.data.data?.getUser?.completedChallenges || [];
+    const responseArray = response.data.data?.getUser?.completedChallenges || [];
+    return responseArray
+      .map((item: any) => getCompletionItemByCompletedChallenge(item))
+      .filter((item: any) => !!item)
   } catch (error) {
     console.error('Error fetching user completions:', error);
     throw error;

@@ -4,27 +4,12 @@ import Image from 'next/image';
 import { getProfilePictureUrl, getVideoUrl, getSelfieUrl } from '../../../lib/api/pinata';
 import IPFSMediaLoader from '../../../components/IPFSMediaLoader';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
+import { MediaMetadata } from '../../../lib/types';
 
 interface ProfileInfo {
   userId: string;
   username: string;
   profilePicture: string | null;
-}
-
-interface MediaMetadata {
-  // New format (individual CIDs) - this is what you're using now
-  videoCID?: string;
-  selfieCID?: string;
-  // Old format (directory structure) - for backwards compatibility
-  directoryCID?: string;
-  videoFileName?: string;
-  selfieFileName?: string;
-  // Common properties
-  hasVideo?: boolean;
-  hasSelfie?: boolean;
-  timestamp?: number;
-  description?: string;
-  verificationResult?: any;
 }
 
 interface CompletionItemProps {

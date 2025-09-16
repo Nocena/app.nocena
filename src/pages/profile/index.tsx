@@ -16,8 +16,9 @@ import PenIcon from '../../components/icons/pen';
 // Custom hooks
 import useFollowersData from '../../hooks/useFollowersData';
 import PostsSection from '@pages/profile/components/PostsSection';
-import { mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
+import { mockChallenges, mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
 import MembershipSection from '@pages/profile/components/MembershipSection';
+import ChallengesSection from '@pages/profile/components/ChallengesSection';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -35,7 +36,7 @@ const ProfileView: React.FC = () => {
   const [bio, setBio] = useState<string>(user?.bio || 'No bio yet');
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
-  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'achievements'>('posts');
+  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'challenge' | 'achievements'>('posts');
 
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
@@ -534,6 +535,7 @@ const ProfileView: React.FC = () => {
             {[
               { key: 'posts', label: 'Posts' }, // Changed label
               { key: 'membership', label: 'Membership' },
+              { key: 'challenge', label: 'Challenges' },
               { key: 'achievements', label: 'Stats' },
             ].map(({ key, label }) => (
               <ThematicContainer
@@ -567,6 +569,12 @@ const ProfileView: React.FC = () => {
                 creator={mockCreators[0]}
                 subscribedTiers={mockSubscribedTiers}
                 isOwnProfile={true}
+              />
+            )}
+
+            {activeSection === 'challenge' && (
+              <ChallengesSection
+                user={user}
               />
             )}
 

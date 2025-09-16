@@ -10,8 +10,9 @@ import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
 import StatsSection from './components/StatsSection';
 import PostsSection from '@pages/profile/components/PostsSection';
-import { mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
+import { mockChallenges, mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
 import MembershipSection from '@pages/profile/components/MembershipSection';
+import ChallengesSection from '@pages/profile/components/ChallengesSection';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -46,7 +47,7 @@ const OtherProfileView: React.FC = () => {
   const [showFollowersPopup, setShowFollowersPopup] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
-  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'achievements'>('posts');
+  const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'challenge' | 'achievements'>('posts');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -570,6 +571,7 @@ const OtherProfileView: React.FC = () => {
               {[
                 { key: 'posts', label: 'Posts' },
                 { key: 'membership', label: 'Membership' },
+                { key: 'challenge', label: 'Challenges' },
                 { key: 'achievements', label: 'Stats' },
               ].map(({ key, label }) => (
                 <ThematicContainer
@@ -603,6 +605,12 @@ const OtherProfileView: React.FC = () => {
                   creator={mockCreators[0]}
                   subscribedTiers={mockSubscribedTiers}
                   isOwnProfile={false}
+                />
+              )}
+
+              {activeSection === 'challenge' && (
+                <ChallengesSection
+                  user={user}
                 />
               )}
 
