@@ -212,3 +212,19 @@ body {
     background-color: inherit;
   }
 }
+
+.main-page-wrapper {
+  padding: 3rem 0 7rem 0
+}
+
+/* For Chrome, Safari, Edge */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* For Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}

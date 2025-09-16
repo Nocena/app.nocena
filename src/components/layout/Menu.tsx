@@ -10,7 +10,7 @@ import SupportMenu from './menu/Support';
 import FeedbackMenu from './menu/Feedback';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Dumbbell } from 'lucide-react';
+import { ArrowUpDown, Dumbbell } from 'lucide-react';
 
 interface MenuProps {
   isOpen: boolean;
@@ -391,6 +391,13 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
           title="Nocenix"
           description="Your token balance and history"
           onClick={() => setActiveSection('nocenix')}
+        />
+
+        <MenuItem
+          icon={ <ArrowUpDown size={20}/> }
+          title="Swap"
+          description="Token swap"
+          onClick={() => router.push('/swap')}
         />
 
         <MenuItem
