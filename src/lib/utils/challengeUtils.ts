@@ -289,6 +289,7 @@ export const getCompletionItemByCompletedChallenge = (completedChallenge: any): 
         id: completedChallenge.id,
         challenge: completedChallenge.aiChallenge || completedChallenge.publicChallenge || completedChallenge.privateChallenge,
         completionDate: completedChallenge.completionDate,
+        user: completedChallenge.user,
         isLiked: false,
         likesCount: 0,
         videoUrl,

@@ -1831,6 +1831,43 @@ export const searchUsers = async (query: string): Promise<any[]> => {
   }
 };
 
+export const getRecentUsers = async (): Promise<any[]> => {
+  const searchQuery = `
+    query GetTop10Users {
+      queryUser(first: 10) {
+        id
+        username
+        bio
+        wallet
+        profilePicture
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(DGRAPH_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: searchQuery,
+        variables: {},
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      console.error('Dgraph query error:', data.errors);
+      return [];
+    }
+
+    return data.data?.queryUser || [];
+  } catch (error) {
+    console.error('Network error:', error);
+    return [];
+  }
+};
+
 export const toggleFollowUser = async (
   currentUserId: string,
   targetUserId: string,
@@ -6296,3 +6333,285 @@ export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) 
     return null;
   }
 }
+
+// ----------------- begin of kaia hackathon graph functions ---------------
+
+/**
+ * Fetch membership tiers by creatorId
+ */
+export async function fetchMembershipTiersByCreator(
+  creatorId: string,
+): Promise<any[]> {
+  try {
+    const query = `
+      query($creatorId: String!) {
+        queryMembershipTier(filter: { creatorId: $creatorId }) {
+          id
+          name
+          description
+          price
+          benefits
+          creator {
+            id
+            username
+            profilePicture
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: { creatorId },
+      },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch membership tiers');
+    }
+
+    return response.data.data?.queryMembershipTier || [];
+  } catch (error) {
+    console.error('Error fetching membership tiers:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add a new membership tier for a user
+ */
+export async function addMembershipTierForUser(
+  creatorId: string,
+  name: string,
+  description: string,
+  price: number,
+  benefits: string[],
+): Promise<any> {
+  try {
+    const mutation = `
+      mutation($creatorId: String!, $name: String!, $description: String, $price: Int!, $benefits: [String]) {
+        addMembershipTier(input: [{
+          creatorId: $creatorId,
+          name: $name,
+          description: $description,
+          price: $price,
+          benefits: $benefits
+        }]) {
+          membershipTier {
+            id
+            name
+            description
+            price
+            benefits
+            creator {
+              id
+              username
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          creatorId,
+          name,
+          description,
+          price,
+          benefits,
+        },
+      },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to add membership tier');
+    }
+
+    return response.data.data?.addMembershipTier?.membershipTier?.[0] || null;
+  } catch (error) {
+    console.error('Error adding membership tier:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add a new post for a user with a required membership tier
+ */
+export async function addPostWithTier(
+  creatorId: string,
+  title: string,
+  content: string,
+  tierRequiredId: string,
+  isPublic: boolean,
+  tags: string[] = [],
+  mediaUrl?: string,
+  mediaType?: string
+): Promise<any> {
+  try {
+    const mutation = `
+      mutation AddPost(
+        $creatorId: String!,
+        $title: String!,
+        $content: String!,
+        $tierRequiredId: String!,
+        $isPublic: Boolean!,
+        $tags: [String],
+        $mediaUrl: String,
+        $mediaType: String
+      ) {
+        addPost(input: [{
+          creatorId: $creatorId,
+          title: $title,
+          content: $content,
+          tierRequiredId: $tierRequiredId,
+          isPublic: $isPublic,
+          tags: $tags,
+          mediaUrl: $mediaUrl,
+          mediaType: $mediaType
+        }]) {
+          post {
+            id
+            title
+            content
+            isPublic
+            tags
+            mediaUrl
+            mediaType
+            createdAt
+            tierRequired {
+              id
+              name
+              price
+            }
+            creator {
+              id
+              username
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          creatorId,
+          title,
+          content,
+          tierRequiredId,
+          isPublic,
+          tags,
+          mediaUrl,
+          mediaType,
+        },
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.data.errors) {
+      console.error("GraphQL errors:", response.data.errors);
+      throw new Error("Failed to add post");
+    }
+
+    return response.data.data?.addPost?.post?.[0] || null;
+  } catch (error) {
+    console.error("Error adding post with tier:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all posts by a given userId
+ */
+export async function fetchUserPosts(
+  userId: string,
+  limit: number = 20,
+  offset: number = 0
+): Promise<any[]> {
+  try {
+    const query = `
+      query($userId: String!, $first: Int, $offset: Int) {
+        queryPost(
+          filter: { creatorId: { eq: $userId } }
+          order: { desc: createdAt }
+          first: $first
+          offset: $offset
+        ) {
+          id
+          title
+          content
+          mediaUrl
+          mediaType
+          isPublic
+          tags
+          likes
+          comments
+          createdAt
+          tierRequired {
+            id
+            name
+            price
+          }
+          creator {
+            id
+            username
+            profilePicture
+          }
+          postComments {
+            id
+            content
+            createdAt
+            user {
+              id
+              username
+            }
+          }
+          postLikes {
+            id
+            createdAt
+            user {
+              id
+              username
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query,
+        variables: {
+          userId,
+          first: limit,
+          offset,
+        },
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.data.errors) {
+      console.error("GraphQL errors:", response.data.errors);
+      throw new Error("Failed to fetch user posts");
+    }
+
+    return response.data.data?.queryPost || [];
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    throw error;
+  }
+}
+// ----------------- end of kaia hackathon graph functions ---------------
+

@@ -449,12 +449,14 @@ const ProfileView: React.FC = () => {
                     <div className="text-2xl font-bold">{followersCount}</div>
                     <div className="text-sm text-white/60">Followers</div>
                   </div>
+                  <div className="w-px h-8 bg-white/20"></div>
                   <div
                     className="text-center cursor-pointer hover:opacity-80 transition-opacity"
                   >
                     <div className="text-2xl font-bold">{mockPosts.length}</div>
                     <div className="text-sm text-white/60">Posts</div>
                   </div>
+                  <div className="w-px h-8 bg-white/20"></div>
                   <div
                     className="text-center cursor-pointer hover:opacity-80 transition-opacity"
                   >

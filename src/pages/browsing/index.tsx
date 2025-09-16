@@ -1,66 +1,9 @@
 // pages/browsing/index.tsx - Minimal camera cleanup additions
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../../../src/contexts/AuthContext'; // Add this import
+import { useAuth } from '../../contexts/AuthContext'; // Add this import
 import InteractionSidebar from './components/InteractionSidebar';
-
-interface ChallengeCompletion {
-  id: string;
-  user: {
-    id: string;
-    username: string;
-    profilePicture: string;
-  };
-  completionDate: string;
-  media: string; // JSON string containing videoCID and selfieCID
-  challengeType: string;
-  description?: string; // User's completion description (removed from query)
-  publicChallenge?: {
-    id: string;
-    title: string;
-    description: string;
-    reward: number;
-  };
-  privateChallenge?: {
-    id: string;
-    title: string;
-    description: string;
-    reward: number;
-  };
-  aiChallenge?: {
-    id: string;
-    title: string;
-    description: string;
-    reward: number;
-  };
-  videoUrl?: string;
-  selfieUrl?: string;
-  // Local state for likes (will be replaced with DB data later)
-  localLikes?: number;
-  localIsLiked?: boolean;
-  // Database fields for likes
-  totalLikes?: number;
-  isLiked?: boolean;
-  recentLikes?: Array<{
-    id: string;
-    username: string;
-    profilePicture: string;
-  }>;
-  // Database fields for reactions
-  totalReactions?: number;
-  recentReactions?: Array<{
-    id: string;
-    reactionType: string;
-    emoji: string;
-    selfieUrl?: string;
-    user: {
-      id: string;
-      username: string;
-      profilePicture: string;
-    };
-    createdAt: string;
-  }>;
-}
+import { ChallengeCompletion } from '../../lib/types';
 
 const BrowsingPage: React.FC = () => {
   const router = useRouter();

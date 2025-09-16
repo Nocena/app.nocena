@@ -103,41 +103,15 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
               Monthly Price (NCX) *
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              {/*<DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />*/}
               <input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="100"
                 min="1"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nocenaBlue focus:border-transparent"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-nocenaBlue focus:border-transparent"
               />
-            </div>
-          </div>
-
-          {/* Tier Color/Rarity */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Tier Rarity
-            </label>
-            <div className="grid grid-cols-5 gap-3">
-              {tierColors.map((tier) => (
-                <button
-                  key={tier.value}
-                  onClick={() => setSelectedColor(tier.value as any)}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                    selectedColor === tier.value
-                      ? `border-${tier.value === 'common' ? 'rarityCommon' :
-                        tier.value === 'uncommon' ? 'rarityUncommon' :
-                          tier.value === 'rare' ? 'rarityRare' :
-                            tier.value === 'epic' ? 'rarityEpic' : 'rarityLegendary'} bg-opacity-20`
-                      : 'border-gray-700 hover:border-gray-600'
-                  }`}
-                >
-                  <div className={`w-4 h-4 rounded-full mx-auto mb-1 ${tier.bg}`}></div>
-                  <p className={`text-xs ${tier.color} font-medium`}>{tier.label}</p>
-                </button>
-              ))}
             </div>
           </div>
 

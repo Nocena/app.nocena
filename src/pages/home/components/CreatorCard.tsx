@@ -1,10 +1,10 @@
 import React from 'react';
-import { Users, FileText, Star } from 'lucide-react';
-import { Creator } from '../../../lib/types'
+import { FileText, Star, Users } from 'lucide-react';
+import { SimplifiedUser } from '../../../lib/types';
 
 interface CreatorCardProps {
-  creator: Creator;
-  onProfileClick: (username: string) => void;
+  creator: SimplifiedUser;
+  onProfileClick: () => void;
   showStats?: boolean;
 }
 
@@ -15,14 +15,14 @@ export const CreatorCard: React.FC<CreatorCardProps> = ({
                                                         }) => {
   return (
     <div
-      onClick={() => onProfileClick(creator.username)}
+      onClick={() => onProfileClick()}
       className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:border-nocenaBlue transition-all duration-300 cursor-pointer hover:scale-105 group"
     >
       <div className="flex items-center space-x-4 mb-4">
         <div className="relative">
           <img
             src={creator.avatar}
-            alt={creator.displayName}
+            alt={creator.username}
             className="w-16 h-16 rounded-full border-2 border-nocenaPurple group-hover:border-nocenaPink transition-colors duration-300"
           />
           <div className="absolute -bottom-1 -right-1 bg-nocenaPink text-white p-1 rounded-full">
@@ -31,29 +31,24 @@ export const CreatorCard: React.FC<CreatorCardProps> = ({
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-bold text-white group-hover:text-nocenaBlue transition-colors duration-300">
-            {creator.displayName}
+            {creator.username}
           </h3>
           <p className="text-gray-400 text-sm">@{creator.username}</p>
-          <p className="text-nocenaPink text-xs font-medium mt-1">{creator.category}</p>
         </div>
       </div>
 
       <p className="text-gray-300 text-sm mb-4 line-clamp-2 leading-relaxed">
-        {creator.bio}
+        {creator.bio ? creator.bio : `This user doesn't have bio`}
       </p>
 
       {showStats && (
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center space-x-1 text-gray-400">
-            <Users className="w-4 h-4" />
-            <span>{creator.followers.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center space-x-1 text-gray-400">
             <FileText className="w-4 h-4" />
-            <span>{creator.posts} posts</span>
+            <span>0 posts</span>
           </div>
           <div className="text-nocenaBlue font-medium">
-            {creator.membershipTiers.length} tiers
+            0 tiers
           </div>
         </div>
       )}

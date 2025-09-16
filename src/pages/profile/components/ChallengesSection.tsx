@@ -54,7 +54,7 @@ const ChallengesSection: React.FC<ChallengesSectionProps> = ({
     return (
       <div className="text-center py-10">
         <LoadingSpinner size="md" />
-        <p className="mt-2 text-gray-300">Loading completions...</p>
+        <p className="mt-2 text-gray-300">Loading finished challenges...</p>
       </div>
     );
   }

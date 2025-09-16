@@ -7,7 +7,9 @@ interface ChallengeCardProps {
   onClick?: (challenge: completionItem) => void;
 }
 
-export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onClick }) => {
+export const ChallengeCard: React.FC<ChallengeCardProps> = ({
+                                                              challenge,
+                                                              onClick }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playButtonRef = useRef<HTMLDivElement>(null);
 
@@ -18,7 +20,9 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onClick
     });
   };
 
-  const handleVideoClick = useCallback(() => {
+  const handleVideoClick = useCallback((event: React.MouseEvent<HTMLVideoElement>) => {
+    event.stopPropagation(); // <-- Prevent parent div click
+
     const video = videoRef.current;
     if (video) {
       if (video.paused) {
