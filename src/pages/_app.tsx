@@ -13,7 +13,6 @@ import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
 import UpdateNotification from '../components/PWA/UpdateNotification';
-import CacheDebugger from '../components/PWA/CacheDebugger';
 import { BackgroundTaskProvider, useBackgroundTasks } from '../contexts/BackgroundTaskContext';
 import { permissionManager } from '../lib/utils/permissionManager';
 
@@ -318,7 +317,6 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
       {renderPWAPrompt()}
       <UpdateNotification />
-      <CacheDebugger />
     </>
   );
 }

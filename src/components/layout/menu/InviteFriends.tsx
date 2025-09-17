@@ -97,21 +97,20 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
 
   // Get available invite codes (unused ones first)
   const availableCodes = inviteStats?.inviteCodes?.filter((code) => !code.isUsed) || [];
-  const primaryCode = availableCodes[0]?.code;
 
   const createInviteMessage = (code: string) => `Hello Challenger!
 
-  You've just been invited to Nocena — where fun meets rewards.
-  Complete challenges. Earn token. Connect with people.
+You've just been invited to Nocena — where fun meets rewards.
+Complete challenges. Earn token. Connect with people.
 
-  Your invite code: ${code}
-  We both get 50 Nocenix when you join!
-  Download: https://app.nocena/${code}
+Your invite code: ${code}
+We both get 50 Nocenix when you join!
+Download: https://app.nocena/${code}
 
-  ⚠️ *Pro tip:* If you're opening this in Meta, Telegram, or any in-app browser, tap the ... menu and choose "Open in browser" to install the app properly.
+⚠️ *Pro tip:* If you're opening this in Meta, Telegram, or any in-app browser, tap the ... menu and choose "Open in browser" to install the app properly.
 
-  Need assistance? Tap [this link].
-  `;
+Need assistance? Tap [this link].
+`;
 
   const handleShare = async (code: string) => {
     const message = createInviteMessage(code);
@@ -163,47 +162,83 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-nocenaBg to-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-2 border-nocenaBlue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/60">Loading your invite codes...</p>
+      <div className="p-6">
+        <div
+          onClick={onBack}
+          className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="mr-2"
+          >
+            <polyline points="15,18 9,12 15,6" />
+          </svg>
+          Back to Menu
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-white/20 border-t-white/70 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-white/70">Loading your invite codes...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-nocenaBg to-gray-900 text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-nocenaBg/50 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center justify-between p-4">
-          <button onClick={onBack} className="flex items-center text-white/70 hover:text-white transition-colors">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="mr-2"
-            >
-              <polyline points="15,18 9,12 15,6" />
-            </svg>
-            Back
-          </button>
-          <h1 className="text-lg font-semibold">Invite Friends</h1>
-          <div className="w-12" />
+    <div className="p-6">
+      <div
+        onTouchStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBack();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBack();
+        }}
+        className="flex items-center text-white/70 hover:text-white mb-6 transition-colors cursor-pointer select-none"
+        role="button"
+        tabIndex={0}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="mr-2"
+        >
+          <polyline points="15,18 9,12 15,6" />
+        </svg>
+        Back to Menu
+      </div>
+
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="w-12 h-12 bg-nocenaPink rounded-xl flex items-center justify-center">
+          <Users className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-white text-2xl font-bold">Invite Friends</h2>
+          <p className="text-white/60 text-sm">Share the fun and earn together</p>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         {/* Browser Warning */}
         {showBrowserWarning && (
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4">
+          <div className="bg-orange-500/20 rounded-2xl p-4 border border-orange-500/30">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-orange-200 font-medium mb-1">Open in Browser Required</h3>
+                <h3 className="text-orange-200 font-semibold mb-1 text-lg">Open in Browser Required</h3>
                 <p className="text-orange-300/80 text-sm">
                   You're in an in-app browser. For the best experience sharing invites, tap the menu (⋯) and select
                   "Open in Browser".
@@ -215,93 +250,85 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+          <div className="bg-red-500/20 rounded-2xl p-4 border border-red-500/30">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-red-200 font-medium mb-1">Error</h3>
+                <h3 className="text-red-200 font-semibold mb-1 text-lg">Error</h3>
                 <p className="text-red-300/80 text-sm">{error}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 mx-auto bg-nocena-brand rounded-full flex items-center justify-center">
-            <Users className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Share the Fun</h2>
-            <p className="text-white/60 text-sm">
+        {/* Your Invite Codes */}
+        {inviteStats && inviteStats.inviteCodes.length > 0 && (
+          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+            <h3 className="text-white font-semibold mb-4 text-lg">Your Invite Codes</h3>
+            <p className="text-white/60 text-sm mb-4">
               {availableCodes.length > 0
                 ? `You have ${availableCodes.length} invite code${availableCodes.length !== 1 ? 's' : ''} ready. Both earn 50 Nocenix tokens!`
                 : 'All invite codes have been used. Great job spreading the word!'}
             </p>
-          </div>
-        </div>
 
-        {/* Your Invite Codes */}
-        {inviteStats && inviteStats.inviteCodes.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-white/80 font-medium text-sm">Your Invite Codes</h3>
-
-            {inviteStats.inviteCodes.map((invite, index) => (
-              <div key={invite.code} className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className={`text-2xl font-mono font-bold ${invite.isUsed ? 'text-white/40' : 'text-white'}`}>
-                      {invite.code}
+            <div className="space-y-4">
+              {inviteStats.inviteCodes.map((invite, index) => (
+                <div key={invite.code} className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`text-xl font-mono font-bold ${invite.isUsed ? 'text-white/40' : 'text-white'}`}>
+                        {invite.code}
+                      </div>
+                      {invite.isUsed ? (
+                        <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                          ✓ Used
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-nocenaBlue/20 text-nocenaBlue text-xs rounded-full font-medium">
+                          Ready
+                        </span>
+                      )}
                     </div>
-                    {invite.isUsed ? (
-                      <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                        ✓ Used
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-nocena-blue/20 text-nocena-blue text-xs rounded-full font-medium">
-                        Ready
-                      </span>
-                    )}
                   </div>
+
+                  {invite.isUsed ? (
+                    <div className="text-center py-4">
+                      <p className="text-white/50 text-sm">This code has been used successfully! 🎉</p>
+                      <p className="text-white/40 text-xs mt-1">You both earned 50 Nocenix tokens</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center space-x-4">
+                      <button
+                        onClick={() => handleShare(invite.code)}
+                        className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-nocenaBlue hover:bg-nocenaBlue/80 transition-colors"
+                        title="Share anywhere"
+                      >
+                        <Share className="w-5 h-5" />
+                        <span className="text-xs">Share</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSMS(invite.code)}
+                        className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-nocenaPink hover:bg-nocenaPink/80 transition-colors"
+                        title="Send via SMS"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="text-xs">SMS</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleCopyCode(invite.code)}
+                        className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-nocenaPurple hover:bg-nocenaPurple/80 transition-colors"
+                        title="Copy invite code only"
+                      >
+                        <Copy className="w-5 h-5" />
+                        <span className="text-xs">Copy</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-
-                {invite.isUsed ? (
-                  <div className="text-center py-4">
-                    <p className="text-white/50 text-sm">This code has been used successfully! 🎉</p>
-                    <p className="text-white/40 text-xs mt-1">You both earned 50 Nocenix tokens</p>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center space-x-4">
-                    <button
-                      onClick={() => handleShare(invite.code)}
-                      className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-nocena-blue hover:bg-nocena-blue/80 transition-colors"
-                      title="Share anywhere"
-                    >
-                      <Share className="w-5 h-5" />
-                      <span className="text-xs">Share</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleSMS(invite.code)}
-                      className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                      title="Send via SMS"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      <span className="text-xs">SMS</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleCopyCode(invite.code)}
-                      className="flex flex-col items-center space-y-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                      title="Copy invite code only"
-                    >
-                      <Copy className="w-5 h-5" />
-                      <span className="text-xs">Copy</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -313,13 +340,13 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
         )}
 
         {/* Rewards Info */}
-        <div className="bg-nocena-pink-fade rounded-2xl p-6 border border-nocenaPink/20">
+        <div className="bg-gradient-to-r from-nocenaPink/10 to-nocenaBlue/10 rounded-2xl p-6 border border-nocenaPink/20">
           <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 bg-nocena-pink rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-nocenaPink rounded-xl flex items-center justify-center flex-shrink-0">
               <Gift className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h4 className="text-white font-semibold mb-2">Double the Rewards</h4>
+              <h4 className="text-white font-semibold mb-2 text-lg">Double the Rewards</h4>
               <p className="text-white/70 text-sm leading-relaxed">
                 When someone joins with your code, you both instantly receive
                 <span className="text-nocenaPink font-semibold"> 50 Nocenix tokens</span>.
@@ -330,17 +357,46 @@ const InviteFriends: React.FC<InviteFriendsProps> = ({ onBack }) => {
 
         {/* Stats */}
         {inviteStats && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/5 rounded-xl p-4 text-center border border-white/10">
-              <div className="text-2xl font-bold text-white">{inviteStats.friendsInvited}</div>
-              <div className="text-white/50 text-xs mt-1">Friends Joined</div>
-            </div>
-            <div className="bg-white/5 rounded-xl p-4 text-center border border-white/10">
-              <div className="text-2xl font-bold text-nocenaPink">{inviteStats.tokensEarned}</div>
-              <div className="text-white/50 text-xs mt-1">Tokens Earned</div>
+          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+            <h3 className="text-white font-semibold mb-4 text-lg">Your Stats</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                <div className="text-2xl font-bold text-white">{inviteStats.friendsInvited}</div>
+                <div className="text-white/50 text-xs mt-1">Friends Joined</div>
+              </div>
+              <div className="bg-white/5 rounded-lg p-4 text-center border border-white/10">
+                <div className="text-2xl font-bold text-nocenaPink">{inviteStats.tokensEarned}</div>
+                <div className="text-white/50 text-xs mt-1">Tokens Earned</div>
+              </div>
             </div>
           </div>
         )}
+
+        {/* How it works */}
+        <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+          <h3 className="text-white font-semibold mb-4 text-lg">How It Works</h3>
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-nocenaPink rounded-full mt-2 flex-shrink-0"></div>
+              <p className="text-white/70 text-sm">
+                <strong className="text-white">Share your code:</strong> Send it via any app or copy it to share
+                manually
+              </p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-nocenaBlue rounded-full mt-2 flex-shrink-0"></div>
+              <p className="text-white/70 text-sm">
+                <strong className="text-white">Friend joins:</strong> They use your code during registration
+              </p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="w-2 h-2 bg-nocenaPurple rounded-full mt-2 flex-shrink-0"></div>
+              <p className="text-white/70 text-sm">
+                <strong className="text-white">Both get rewarded:</strong> 50 Nocenix tokens each, instantly
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

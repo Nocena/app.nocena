@@ -384,7 +384,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
     }
 
     const pathToIndexMap: Record<string, number> = {
-      '/home': 0,
+      '/home_new': 0,
       '/map': 1,
       '/inbox': 2,
       '/search': 3,
@@ -432,7 +432,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
       // Stop camera streams before navigation (except when going to camera pages)
       const cameraPages = ['/browsing', '/completing'];
       const routeMapping: Record<number, string> = {
-        0: '/home',
+        0: '/home_new',
         1: '/map',
         2: '/inbox',
         3: '/search',
@@ -443,7 +443,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ handleLogout, children }) => {
         8: '/browsing',
       };
 
-      const targetRoute = index === 6 && user?.wallet ? `/profile/${user.id}` : routeMapping[index] || '/home';
+      const targetRoute = index === 6 && user?.wallet ? `/profile/${user.id}` : routeMapping[index] || '/home_new';
       const isGoingToCameraPage = cameraPages.some((page) => targetRoute.startsWith(page));
 
       if (!isGoingToCameraPage) {

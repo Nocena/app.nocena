@@ -1,0 +1,308 @@
+type User  {
+	id: String! @id
+	username: String! @search(by:[exact,term,trigram]) 
+	bio: String 
+	wallet: String! @search(by:[exact]) 
+	profilePicture: String 
+	coverPhoto: String 
+	trailerVideo: String 
+	earnedTokens: Int @search 
+	earnedTokensToday: Int @search 
+	earnedTokensThisWeek: Int @search 
+	earnedTokensThisMonth: Int @search 
+	lastEarningsUpdate: DateTime @search 
+	pushSubscription: String @search(by:[exact]) 
+	lensHandle: String @search(by:[exact]) 
+	lensAccountId: String @search(by:[exact]) 
+	lensTransactionHash: String @search(by:[exact]) 
+	lensMetadataUri: String 
+	personalField1Type: String 
+	personalField1Value: String 
+	personalField1Metadata: String 
+	personalField2Type: String 
+	personalField2Value: String 
+	personalField2Metadata: String 
+	personalField3Type: String 
+	personalField3Value: String 
+	personalField3Metadata: String 
+	invitedBy: User 
+	invitedById: String @search(by:[exact]) 
+	inviteCode: String @search(by:[exact]) 
+	followers: [User] @hasInverse(field:following) 
+	following: [User] 
+	notifications: [Notification] @hasInverse(field:user) 
+	completedChallenges: [ChallengeCompletion] @hasInverse(field:user) 
+	receivedPrivateChallenges: [PrivateChallenge] @hasInverse(field:targetUser) 
+	createdPrivateChallenges: [PrivateChallenge] @hasInverse(field:creator) 
+	createdPublicChallenges: [PublicChallenge] @hasInverse(field:creator) 
+	participatingPublicChallenges: [PublicChallenge] @hasInverse(field:participants) 
+	dailyChallenge: String! 
+	weeklyChallenge: String! 
+	monthlyChallenge: String! 
+	ownedNFTs: [NFTItem] @hasInverse(field:owner) 
+	currentAvatar: String
+	baseAvatar: String
+	avatarHistory: [Avatar] @hasInverse(field:user)
+	equippedCap: NFTItem
+	equippedHoodie: NFTItem
+	equippedPants: NFTItem
+	equippedShoes: NFTItem
+	totalTokenBonus: Int @search 
+	reactions: [Reaction] @hasInverse(field:user) 
+	posts: [Post] @hasInverse(field:creator)
+	membershipTiers: [MembershipTier] @hasInverse(field:creator)
+	subscriptions: [UserSubscription] @hasInverse(field:subscriber)
+}
+
+type Avatar {
+	id: String! @id
+	user: User! @hasInverse(field:avatarHistory)
+	baseImageUrl: String!
+	generatedImageUrl: String!
+	baseImageCID: String
+	generatedImageCID: String
+	equippedCap: NFTItem
+	equippedHoodie: NFTItem
+	equippedPants: NFTItem
+	equippedShoes: NFTItem
+	generationPrompt: String
+	generatedAt: DateTime @search
+	isActive: Boolean! @search
+}
+
+type InviteCode  {
+	id: String! @id
+	code: String! @search(by:[exact]) 
+	ownerId: String! @search(by:[exact]) 
+	owner: User 
+	isUsed: Boolean! @search 
+	usedById: String @search(by:[exact]) 
+	usedBy: User 
+	createdAt: DateTime @search 
+	usedAt: DateTime @search 
+	source: String! @search(by:[exact]) 
+}
+
+type PrivateChallenge  {
+	id: String! @id
+	title: String! @search(by:[fulltext,term]) 
+	description: String 
+	reward: Int 
+	createdAt: DateTime 
+	expiresAt: DateTime 
+	isActive: Boolean! @search 
+	creator: User! 
+	targetUser: User! 
+	isCompleted: Boolean! @search 
+	completions: [ChallengeCompletion] @hasInverse(field:privateChallenge) 
+}
+
+type PublicChallenge  {
+	id: String! @id
+	title: String! @search(by:[fulltext,term]) 
+	description: String 
+	reward: Int 
+	createdAt: DateTime 
+	isActive: Boolean! @search 
+	creator: User! 
+	location: GeoPoint! 
+	maxParticipants: Int! 
+	participantCount: Int! 
+	participants: [User] 
+	completions: [ChallengeCompletion] @hasInverse(field:publicChallenge) 
+}
+
+type AIChallenge  {
+	id: String! @id
+	title: String! @search(by:[fulltext,term]) 
+	description: String 
+	reward: Int 
+	createdAt: DateTime 
+	isActive: Boolean! @search 
+	frequency: String! @search(by:[exact]) 
+	day: Int 
+	week: Int 
+	month: Int 
+	year: Int 
+	completions: [ChallengeCompletion] @hasInverse(field:aiChallenge) 
+}
+
+type ChallengeCompletion  {
+	id: String! @id
+	user: User! @hasInverse(field:completedChallenges) 
+	privateChallenge: PrivateChallenge @hasInverse(field:completions) 
+	publicChallenge: PublicChallenge @hasInverse(field:completions) 
+	aiChallenge: AIChallenge @hasInverse(field:completions) 
+	completionDate: DateTime @search 
+	completionDay: Int @search 
+	completionWeek: Int @search 
+	completionMonth: Int @search 
+	completionYear: Int @search 
+	media: String 
+	likes: [User] 
+	likesCount: Int 
+	comments: [Comment] 
+	challengeType: String! @search(by:[exact]) 
+	status: String! @search 
+	nftReward: NFTItem 
+	reactions: [Reaction] @hasInverse(field:completion) 
+}
+
+type GeoPoint  {
+	latitude: Float 
+	longitude: Float 
+}
+
+type Notification  {
+	id: String! @id
+	user: User! @hasInverse(field:notifications) 
+	userId: String! @search(by:[exact]) 
+	triggeredBy: User 
+	triggeredById: String @search(by:[exact]) 
+	content: String 
+	notificationType: String! @search(by:[exact]) 
+	privateChallenge: PrivateChallenge 
+	publicChallenge: PublicChallenge 
+	aiChallenge: AIChallenge 
+	isRead: Boolean! @search 
+	createdAt: DateTime 
+}
+
+type Message  {
+	id: String! @id
+	sender: User! 
+	recipient: User! 
+	content: String 
+	sentAt: DateTime 
+}
+
+type Comment  {
+	id: String! @id
+	user: User! 
+	completion: ChallengeCompletion! 
+	content: String 
+	createdAt: DateTime 
+}
+
+type Feed  {
+	id: String! @id
+	user: User! 
+	dailyCompletions: [ChallengeCompletion] 
+	date: DateTime @search 
+	hasUserCompleted: Boolean! @search 
+}
+
+type SearchResult  {
+	id: String! @id
+	type: String @search(by:[exact]) 
+	title: String @search(by:[fulltext,term]) 
+	likes: Int 
+}
+
+type TransactionRecord  {
+	recordId: String! @search(by:[exact]) @id
+	transactionId: String! @search(by:[exact]) 
+	timestamp: DateTime! @search(by:[hour]) 
+}
+
+type PersonalFieldType  {
+	id: String! @id
+	name: String! @search(by:[exact]) 
+	displayName: String! 
+	category: String! @search(by:[exact]) 
+	requiresAPI: Boolean! 
+	apiEndpoint: String 
+	iconEmoji: String 
+	isActive: Boolean! 
+	description: String 
+	createdAt: DateTime @search 
+}
+
+type NFTItem  {
+	id: String! @id
+	name: String! @search(by:[fulltext,term]) 
+	description: String 
+	itemType: String! @search(by:[exact]) 
+	rarity: String! @search(by:[exact]) 
+	tokenBonus: Int! @search 
+	imageUrl: String! 
+	imageCID: String @search(by:[exact]) 
+	generatedAt: DateTime @search 
+	generationPrompt: String 
+	owner: User! @hasInverse(field:ownedNFTs) 
+	isEquipped: Boolean! @search 
+	tokenId: String @search(by:[exact]) 
+	mintTransactionHash: String @search(by:[exact]) 
+}
+
+type Reaction  {
+	id: String! @id
+	user: User! @hasInverse(field:reactions) 
+	completion: ChallengeCompletion! @hasInverse(field:reactions) 
+	reactionType: String! @search(by:[exact]) 
+	selfieCID: String! @search(by:[exact]) 
+	createdAt: DateTime @search 
+}
+
+type Post {
+    id: String! @id
+    creatorId: String! @search(by:[exact])
+    creator: User! @hasInverse(field:posts)
+    title: String! @search(by:[fulltext,term])
+    content: String! @search(by:[fulltext])
+    mediaUrl: String
+    mediaType: String @search(by:[exact])
+    tierRequired: MembershipTier
+    tierRequiredId: String @search(by:[exact])
+    isPublic: Boolean! @search
+    likes: Int! @search
+    comments: Int! @search
+    createdAt: DateTime! @search
+    tags: [String] @search(by:[term])
+    postComments: [PostComment] @hasInverse(field:post)
+    postLikes: [PostLike] @hasInverse(field:post)
+}
+
+type MembershipTier {
+    id: String! @id
+    creator: User! @hasInverse(field:membershipTiers)
+    creatorId: String! @search(by:[exact])
+    name: String! @search(by:[exact,term])
+    description: String
+    price: Int! @search
+    benefits: [String]
+    posts: [Post] @hasInverse(field:tierRequired)
+    subscribers: [UserSubscription] @hasInverse(field:tier)
+}
+
+type PostComment {
+    id: String! @id
+    post: Post! @hasInverse(field:postComments)
+    postId: String! @search(by:[exact])
+    user: User!
+    userId: String! @search(by:[exact])
+    content: String! @search(by:[fulltext])
+    createdAt: DateTime! @search
+    likes: Int! @search
+}
+
+type PostLike {
+    id: String! @id
+    post: Post! @hasInverse(field:postLikes)
+    postId: String! @search(by:[exact])
+    user: User!
+    userId: String! @search(by:[exact])
+    createdAt: DateTime! @search
+}
+
+type UserSubscription {
+    id: String! @id
+    subscriber: User! @hasInverse(field:subscriptions)
+    subscriberId: String! @search(by:[exact])
+    tier: MembershipTier! @hasInverse(field:subscribers)
+    tierId: String! @search(by:[exact])
+    startDate: DateTime! @search
+    endDate: DateTime @search
+    isActive: Boolean! @search
+    createdAt: DateTime! @search
+}
