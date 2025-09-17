@@ -1,0 +1,25 @@
+{
+  "network": "kaia-mainnet",
+  "chainId": 8217,
+  "lastUpdated": "2025-09-16T06:45:16.783Z",
+  "contracts": {
+    "NCXToken": {
+      "address": "0xfeb47dff2bb9eb3e9bc0e7c57b30c3633483f634",
+      "name": "Nocenix",
+      "symbol": "NCX"
+    },
+    "Subscription": {
+      "address": "0xf4d7519ec9b758aab0e46545e4f38b13897ab0ef"
+    },
+    "CrowdfundingEscrow": {
+      "address": "0xed54c7b0c8e44bf2ccf63513097a5ac0d0c8d8fb"
+    }
+  },
+  "external": {
+    "USDT": "0xd077A400968890Eacc75cdc901F0356c943e4fDb",
+    "KlaySwapRouter": "0x6C14E2e4bae412137437A8Ec9e57263212d141A0"
+  },
+  "minter": {
+    "address": "0x0fd8926eedf2d5e19692d18df02a8fbef9dec89a"
+  }
+}

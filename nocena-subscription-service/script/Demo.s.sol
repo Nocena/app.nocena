@@ -2,60 +2,76 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title Subscription Contract Deployment Script
- * @notice Deploys the Nocena subscription system to Kaia Network
- * @dev This script:
- *      - Uses real Kaia mainnet token addresses (USDT, NCX, KlaySwap)
- *      - Deploys with 30-day subscription duration
- *      - Reads private key from .env file for secure deployment
- *      - Works on Kaia mainnet fork (testing)
+ * @title Comprehensive Deployment Script
+ * @notice Deploys all Nocena contracts to Kaia Network
+ * @dev Deploys Nocenix token, Subscription, and CrowdfundingEscrow contracts
  * 
  * Usage:
- *   Fork: forge script script/Demo.s.sol:DemoScript --fork-url https://public-en.node.kaia.io --fork-block-number 195700000
- *   Mainnet: forge script script/Demo.s.sol:DemoScript --rpc-url https://public-en.node.kaia.io --broadcast
+ *   Local Fork: forge script script/Demo.s.sol:DemoScript --rpc-url http://localhost:8545 --broadcast
  */
 
 import {Script, console} from "forge-std/Script.sol";
 import {Subscription} from "../src/Subscription.sol";
+import {CrowdfundingEscrow} from "../src/CrowdfundingEscrow.sol";
+import {Nocenix} from "../src/Nocenix.sol";
 
 contract DemoScript is Script {
     // Real Kaia Mainnet Token Addresses
     address constant USDT = 0xd077A400968890Eacc75cdc901F0356c943e4fDb;
-    address constant NOCENIX = 0x5b73C5498c1E3b4dbA84de0F1833c4a029d90519;
     address constant KLAYSWAP_ROUTER = 0x6C14E2e4bae412137437A8Ec9e57263212d141A0;
-    
-    // Demo wallet with existing tokens (deployer address)
-    address constant DEMO_WALLET = 0x0fd8926eeDF2D5E19692d18dF02a8fBef9DEc89a;
     
     function run() external {
         console.log("=== KAIA MAINNET FORK DEMO ===");
         console.log("Block:", block.number);
-        console.log("Demo Wallet:", DEMO_WALLET);
         
-        // Deploy subscription contract using private key from .env
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(privateKey);
+        // Use anvil's first default private key
+        uint256 deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        address deployer = vm.addr(deployerPrivateKey);
+        console.log("Deployer:", deployer);
         
-        // Deploy with real Kaia token addresses and 30-day duration
+        vm.startBroadcast(deployerPrivateKey);
+        
+        // Deploy Nocenix token first
+        Nocenix ncxToken = new Nocenix();
+        
+        // Deploy Subscription contract
         Subscription subscription = new Subscription(
-            NOCENIX,           // NCX token for payments
-            USDT,              // USDT token for swaps
-            KLAYSWAP_ROUTER,   // KlaySwap router for NCX->USDT
-            30 days            // Subscription duration
+            address(ncxToken),     // NCX token for payments
+            USDT,                  // USDT token for swaps
+            KLAYSWAP_ROUTER,       // KlaySwap router for NCX->USDT
+            30 days                // Subscription duration
         );
         
-        console.log("Subscription Contract:", address(subscription));
+        // Deploy CrowdfundingEscrow contract
+        CrowdfundingEscrow crowdfunding = new CrowdfundingEscrow(
+            address(ncxToken),     // NCX token for payments
+            USDT,                  // USDT token for swaps
+            KLAYSWAP_ROUTER        // KlaySwap router for NCX->USDT
+        );
         
         vm.stopBroadcast();
         
-        // Display contract capabilities
+        console.log("\n=== DEPLOYED CONTRACTS ===");
+        console.log("Nocenix Token:", address(ncxToken));
+        console.log("Subscription Contract:", address(subscription));
+        console.log("CrowdfundingEscrow Contract:", address(crowdfunding));
+        console.log("USDT Token:", USDT);
+        console.log("KlaySwap Router:", KLAYSWAP_ROUTER);
+        
         console.log("\n=== CONTRACT FEATURES ===");
-        console.log("- Creators can set subscription prices");
+        console.log("SUBSCRIPTION:");
+        console.log("- Creators set BASIC/PREMIUM/VIP tier prices");
         console.log("- Users pay NCX to subscribe to creators");
         console.log("- Creators receive NCX payments directly");
         console.log("- Creators can swap NCX to USDT via KlaySwap");
         
+        console.log("\nCROWDFUNDING:");
+        console.log("- Creators set funding goals with reward tiers");
+        console.log("- Backers contribute NCX to challenges");
+        console.log("- Funds held in escrow until completion");
+        console.log("- Automatic refunds if goals not met");
+        
         console.log("\n=== READY FOR TESTING ===");
-        console.log("Contract deployed successfully on Kaia fork!");
+        console.log("All contracts deployed successfully on Kaia fork!");
     }
 }
