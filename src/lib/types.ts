@@ -345,7 +345,11 @@ export interface MembershipTier {
 export interface Post {
   id: string;
   creatorId: string;
-  creator: User;
+  creator: {
+    id: string;
+    username: string;
+    profilePicture: string;
+  };
   title: string;
   content: string;
   mediaUrl?: string;

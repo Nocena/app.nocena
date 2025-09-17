@@ -1,5 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getUserAvatar, updateBio, updateCoverPhoto, updateProfilePicture } from '../../lib/api/dgraph';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  fetchMembershipTiersByCreator,
+  getSubscriptionsByUserId,
+  getUserAvatar,
+  updateBio,
+  updateCoverPhoto,
+  updateProfilePicture,
+} from '../../lib/api/dgraph';
 import { unpinFromPinata } from '../../lib/api/pinata';
 import type { StaticImageData } from 'next/image';
 import Image from 'next/image';
@@ -16,9 +23,9 @@ import PenIcon from '../../components/icons/pen';
 // Custom hooks
 import useFollowersData from '../../hooks/useFollowersData';
 import PostsSection from '@pages/profile/components/PostsSection';
-import { mockChallenges, mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
 import MembershipSection from '@pages/profile/components/MembershipSection';
 import ChallengesSection from '@pages/profile/components/ChallengesSection';
+import { MembershipTier } from '../../lib/types';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -38,6 +45,9 @@ const ProfileView: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'challenge' | 'achievements'>('posts');
 
+  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([])
+  const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([])
+
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
 
@@ -56,6 +66,17 @@ const ProfileView: React.FC = () => {
   const { followersCount, followers, showFollowersPopup, setShowFollowersPopup, handleFollowersClick } =
     useFollowersData(user?.id);
 
+  const updateUserMembershipTiers = useCallback(async (userId: string) => {
+    const tiers = await fetchMembershipTiersByCreator(userId)
+    setMembershipTiers(tiers)
+  }, [])
+
+  const updateSubscriptionTiers = useCallback(async (userId: string) => {
+    const tiers = await getSubscriptionsByUserId(userId)
+    setSubscribedTiers(tiers.map((tier: any) => tier.tierId))
+  }, [])
+
+
   // Sync user data when user changes
   useEffect(() => {
     if (user) {
@@ -71,6 +92,9 @@ const ProfileView: React.FC = () => {
       // NEW: Avatar data loading
       setGeneratedAvatar(user.currentAvatar || null);
 
+      updateUserMembershipTiers(user.id)
+      updateSubscriptionTiers(user.id)
+
       console.log('🎨 ProfileView: User avatar data loaded:', {
         currentAvatar: user.currentAvatar,
         baseAvatar: user.baseAvatar,
@@ -83,6 +107,9 @@ const ProfileView: React.FC = () => {
       });
     }
   }, [user]);
+
+
+
 
   // NEW: Load avatar data from database on component mount
   useEffect(() => {
@@ -450,20 +477,6 @@ const ProfileView: React.FC = () => {
                     <div className="text-sm text-white/60">Followers</div>
                   </div>
                   <div className="w-px h-8 bg-white/20"></div>
-                  <div
-                    className="text-center cursor-pointer hover:opacity-80 transition-opacity"
-                  >
-                    <div className="text-2xl font-bold">{mockPosts.length}</div>
-                    <div className="text-sm text-white/60">Posts</div>
-                  </div>
-                  <div className="w-px h-8 bg-white/20"></div>
-                  <div
-                    className="text-center cursor-pointer hover:opacity-80 transition-opacity"
-                  >
-                    <div className="text-2xl font-bold text-nocenaPink">{mockSubscribedTiers.length}</div>
-                    <div className="text-sm text-white/60">Tiers</div>
-                  </div>
-                  <div className="w-px h-8 bg-white/20"></div>
                   <div className="text-center">
                     <div className="flex items-center space-x-1">
                       <span className="text-2xl font-bold">{tokenBalance}</span>
@@ -559,8 +572,10 @@ const ProfileView: React.FC = () => {
             {activeSection === 'posts' && (
               <div className="space-y-4">
                 <PostsSection
-                  posts={mockPosts}
-                  subscribedTiers={mockSubscribedTiers}
+                  userId={user!.id}
+                  currentUserId={user!.id}
+                  tiers={membershipTiers}
+                  subscribedTiers={subscribedTiers}
                   isOwnProfile={true}
                 />
               </div>
@@ -568,9 +583,11 @@ const ProfileView: React.FC = () => {
 
             {activeSection === 'membership' && (
               <MembershipSection
-                creator={mockCreators[0]}
-                subscribedTiers={mockSubscribedTiers}
+                userId={user!.id}
                 isOwnProfile={true}
+                subscribedTiers={subscribedTiers}
+                membershipTiers={membershipTiers}
+                updateUserMembershipTiers={updateUserMembershipTiers}
               />
             )}
 

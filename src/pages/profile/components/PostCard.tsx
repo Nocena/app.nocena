@@ -1,32 +1,26 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share, Lock, Play, Eye } from 'lucide-react';
 import { Post, MembershipTier } from '../../../lib/types';
+import { useRouter } from 'next/router';
 
 interface PostCardProps {
   post: Post;
   hasAccess: boolean;
-  showBlurred?: boolean;
-  onSubscribe?: (tierId: string) => void;
+  onSubscribe?: (post: Post) => void;
   onLike?: (postId: string) => void;
   onClick?: () => void;
+  justShowLocked?: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred = false, onSubscribe, onLike, onClick }) => {
+export const PostCard: React.FC<PostCardProps> = ({
+                                                    post,
+                                                    hasAccess,
+                                                    onSubscribe,
+                                                    onLike,
+                                                    onClick,
+                                                    justShowLocked = false,
+                                                  }) => {
   const [isLiked, setIsLiked] = useState(false);
-
-  const getTierColor = (tier?: MembershipTier) => {
-    if (!tier) return '';
-/*
-    switch (tier.color) {
-      case 'common': return 'border-rarityCommon bg-rarityCommonDark';
-      case 'uncommon': return 'border-rarityUncommon bg-rarityUncommonDark';
-      case 'rare': return 'border-rarityRare bg-rarityRareDark';
-      case 'epic': return 'border-rarityEpic bg-rarityEpicDark';
-      case 'legendary': return 'border-rarityLegendary bg-rarityLegendaryDark';
-      default: return 'border-gray-700 bg-gray-900';
-    }
-*/
-  };
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -43,24 +37,24 @@ export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred
 
   return (
     <div
-      className={`bg-gray-900 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 cursor-pointer ${getTierColor(post.tierRequired)}`}
+      className={`bg-gray-900 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 cursor-pointer`}
       onClick={onClick}
     >
       {/* Creator Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <img
-            src={post.creator.avatar}
-            alt={post.creator.displayName}
+            src={post.creator.profilePicture}
+            alt={post.creator.username}
             className="w-10 h-10 rounded-full border-2 border-nocenaPurple"
           />
           <div>
-            <h3 className="text-white font-semibold">{post.creator.displayName}</h3>
+            <h3 className="text-white font-semibold">{post.creator.username}</h3>
             <p className="text-gray-400 text-sm">@{post.creator.username} • {formatDate(post.createdAt)}</p>
           </div>
         </div>
-        {post.tierRequired && (
-          <div className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${getTierColor(post.tierRequired)}`}>
+        {!post.isPublic && post.tierRequired && (
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold text-white`}>
             {post.tierRequired.name}
           </div>
         )}
@@ -73,21 +67,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred
         {/* Media Preview */}
         {post.mediaUrl && (
           <div className="relative mb-4 rounded-lg overflow-hidden">
-            {hasAccess && !showBlurred ? (
+            {hasAccess ? (
               <div className="relative">
                 {post.mediaType === 'video' ? (
                   <video
                     src={post.mediaUrl}
-                    className={`w-full h-64 object-cover ${post.tierRequired ? 'filter blur-sm' : ''}`}
-                    controls={!post.tierRequired}
+                    className={`w-full h-64 object-cover ${!hasAccess ? 'filter blur-sm' : ''}`}
+                    controls={hasAccess}
                   />
                 ) : (
                   <img
                     src={post.mediaUrl}
                     alt={post.title}
-                    className={`w-full h-64 object-cover ${post.tierRequired ? 'filter blur-sm' : ''}`}
+                    className={`w-full h-64 object-cover ${!hasAccess ? 'filter blur-sm' : ''}`}
                   />
                 )}
+{/*
                 {post.tierRequired && (
                   <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
                     <div className="text-center">
@@ -108,7 +103,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred
                     </div>
                   </div>
                 )}
-                {post.mediaType === 'video' && post.tierRequired && (
+*/}
+                {post.mediaType === 'video' && !hasAccess && (
                   <Play className="absolute top-4 right-4 w-6 h-6 text-gray-400" />
                 )}
               </div>
@@ -131,11 +127,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred
                     <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-white font-semibold mb-2">Premium Content</p>
                     <p className="text-sm text-gray-300 mb-4">Subscribe to unlock this content</p>
-                    {onSubscribe && post.tierRequired && (
+                    {!justShowLocked && onSubscribe && post.tierRequired && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSubscribe(post.tierRequired!.id);
+                          onSubscribe(post);
                         }}
                         className="bg-nocena-purple hover:bg-nocena-purple-fade text-white px-4 py-2 rounded-lg transition-all duration-200"
                       >
@@ -151,10 +147,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, hasAccess, showBlurred
 
         {/* Text Content Preview */}
         <div className="mb-4">
-          <p className={`text-gray-300 leading-relaxed line-clamp-3 ${post.tierRequired ? 'filter blur-sm' : ''}`}>
+          <p className={`text-gray-300 leading-relaxed line-clamp-3 ${!hasAccess ? 'filter blur-sm' : ''}`}>
             {post.content}
           </p>
-          {post.tierRequired && (
+          {!hasAccess && (
             <div className="mt-2 flex items-center text-gray-400 text-sm">
               <Lock className="w-4 h-4 mr-1" />
               <span>Full content available to subscribers</span>

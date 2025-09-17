@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import { getUserByIdFromDgraph, toggleFollowUser } from '../../lib/api/dgraph';
+import {
+  fetchMembershipTiersByCreator,
+  getSubscriptionsByUserId,
+  getUserByIdFromDgraph,
+  toggleFollowUser,
+} from '../../lib/api/dgraph';
 import { useAuth } from '../../contexts/AuthContext';
 import { getPageState, updatePageState } from '../../components/PageManager';
 import PrimaryButton from '../../components/ui/PrimaryButton';
@@ -10,9 +15,10 @@ import ThematicContainer from '../../components/ui/ThematicContainer';
 import FollowersPopup from './components/FollowersPopup';
 import StatsSection from './components/StatsSection';
 import PostsSection from '@pages/profile/components/PostsSection';
-import { mockChallenges, mockCreators, mockPosts, mockSubscribedTiers } from '../../data/mock';
+import { mockPosts, mockSubscribedTiers } from '../../data/mock';
 import MembershipSection from '@pages/profile/components/MembershipSection';
 import ChallengesSection from '@pages/profile/components/ChallengesSection';
+import { MembershipTier } from '../../lib/types';
 
 const defaultProfilePic = '/images/profile.png';
 const nocenix = '/nocenix.ico';
@@ -48,8 +54,20 @@ const OtherProfileView: React.FC = () => {
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'challenge' | 'achievements'>('posts');
+  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([])
+  const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([])
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const updateUserMembershipTiers = useCallback(async (userId: string) => {
+    const tiers = await fetchMembershipTiersByCreator(userId)
+    setMembershipTiers(tiers)
+  }, [])
+
+  const updateSubscriptionTiers = useCallback(async (userId: string) => {
+    const tiers = await getSubscriptionsByUserId(userId)
+    setSubscribedTiers(tiers.map((tier: any) => tier.tierId))
+  }, [])
 
   // Check if this page is visible in the PageManager
   useEffect(() => {
@@ -81,11 +99,17 @@ const OtherProfileView: React.FC = () => {
     // Initialize visibility based on current route
     setIsPageVisible(window.location.pathname === profilePath);
 
+    updateUserMembershipTiers(userID as string)
+
     return () => {
       window.removeEventListener('pageVisibilityChange', handleVisibilityChange);
       window.removeEventListener('routeChange', handleRouteChange);
     };
   }, [userID]);
+
+  useEffect(() => {
+    updateSubscriptionTiers(currentUser?.id || '')
+  }, [currentUser])
 
   // Function to fetch user data with caching
   const fetchUserData = useCallback(async (userId: string, showLoading = true) => {
@@ -593,8 +617,11 @@ const OtherProfileView: React.FC = () => {
               {activeSection === 'posts' && (
                 <div className="space-y-4">
                   <PostsSection
-                    posts={mockPosts}
-                    subscribedTiers={mockSubscribedTiers}
+                    userId={user.id}
+                    currentUserId={currentUser!.id}
+                    tiers={membershipTiers}
+                    subscribedTiers={subscribedTiers}
+                    updateSubscriptionTiers={updateSubscriptionTiers}
                     isOwnProfile={false}
                   />
                 </div>
@@ -602,9 +629,10 @@ const OtherProfileView: React.FC = () => {
 
               {activeSection === 'membership' && (
                 <MembershipSection
-                  creator={mockCreators[0]}
-                  subscribedTiers={mockSubscribedTiers}
+                  userId={user.id}
                   isOwnProfile={false}
+                  subscribedTiers={subscribedTiers}
+                  membershipTiers={membershipTiers}
                 />
               )}
 

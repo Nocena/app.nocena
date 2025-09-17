@@ -2,16 +2,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import { fetchChallengeCompletionsWithLikesAndReactions, getRecentUsers } from '../../lib/api/dgraph';
+import {
+  fetchChallengeCompletionsWithLikesAndReactions, fetchTopPosts,
+  getRecentUsers,
+  getSubscriptionsByUserId,
+} from '../../lib/api/dgraph';
 
 // Component imports
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ChevronRight, Clock, Sparkles, Trophy } from 'lucide-react';
 import { CreatorCard } from './components/CreatorCard';
-import { mockCreators, recentlyVisited } from '../../data/mock';
-import { ChallengeCompletion, Creator, SimplifiedUser } from '../../lib/types';
+import { ChallengeCompletion, Creator, Post, SimplifiedUser } from '../../lib/types';
 import SearchBox, { SearchUser } from '@pages/search/components/SearchBox';
 import { ChallengeCard } from '@pages/profile/components/ChallengeCard';
+import { PostCard } from '@pages/profile/components/PostCard';
 
 const SectionHeader = ({
                          icon: Icon,
@@ -50,9 +54,20 @@ const HomeView = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
   const [selectedUser, setSelectedUser] = useState<Creator | null>(null);
   const [completions, setCompletions] = useState<ChallengeCompletion[]>([]);
   const [newJoinedUsers, setNewJoinedUsers] = useState<SimplifiedUser[]>([]);
+  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([]);
+  const updateSubscriptionTiers = useCallback(async (userId: string) => {
+    const tiers = await getSubscriptionsByUserId(userId);
+    setSubscribedTiers(tiers.map((tier: any) => tier.tierId));
+  }, []);
+
+
+  useEffect(() => {
+    updateSubscriptionTiers(user?.id || '');
+  }, [user])
 
   const handleUserSelect = useCallback(
     (selectedUser: SearchUser) => {
@@ -123,7 +138,7 @@ const HomeView = () => {
 
       // Sort by completion date (most recent first)
       processedCompletions
-        .sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime())
+        .sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime());
 
       setCompletions(processedCompletions.slice(0, 6));
     } catch (err) {
@@ -139,11 +154,21 @@ const HomeView = () => {
         id: user.id,
         username: user.username,
         avatar: user.profilePicture,
-        bio: user.bio
-      })))
-      console.log("users", users)
+        bio: user.bio,
+      })));
+      console.log('users', users);
     } catch (err) {
       console.error('Error fetching challenge completions:', err);
+    }
+  };
+
+  const updateTopPosts = async () => {
+    try {
+      // Fetch completions with like and reaction data
+      const posts = await fetchTopPosts();
+      setRecentPosts(posts.slice(0, 4));
+    } catch (err) {
+      console.error('Error fetching top posts:', err);
     }
   };
 
@@ -151,12 +176,13 @@ const HomeView = () => {
     Promise.all([
       fetchChallengeCompletions(),
       fetchNewJoinedUsers(),
+      updateTopPosts(),
     ]).then(() => {
-      setIsLoadingData(false)
+      setIsLoadingData(false);
     }).catch(() => {
-      setIsLoadingData(false)
-    })
-  }, [])
+      setIsLoadingData(false);
+    });
+  }, []);
 
   if (loading) {
     return (
@@ -185,20 +211,26 @@ const HomeView = () => {
             <section>
               <SectionHeader
                 icon={Clock}
-                title="Recently Visited"
-                subtitle="Creators you've checked out recently"
-                color="bg-nocenaBlue"
+                title="Recent Posts"
+                subtitle="Latest content from creators you follow"
+                color="bg-nocenaPurple"
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-{/*
-                {recentlyVisited.map((creator) => (
-                  <CreatorCard
-                    key={creator.id}
-                    creator={creator}
-                    onProfileClick={handleProfileClick}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {recentPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    hasAccess={
+                      post.isPublic ||
+                      !post.tierRequired ||
+                      post.creator.id === user?.id ||
+                      subscribedTiers.includes(post.tierRequired.id)
+                    }
+                    justShowLocked={true}
+                    onSubscribe={() => {}}
+                    onClick={() => router.push(`/post/${post.id}`)}
                   />
                 ))}
-*/}
               </div>
             </section>
 

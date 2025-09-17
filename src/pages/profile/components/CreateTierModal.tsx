@@ -4,7 +4,7 @@ import { X, Plus, Trash2, Crown, DollarSign, FileText, Gift } from 'lucide-react
 interface CreateTierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateTier: (tierData: any) => void;
+  onCreateTier: (tierData: any) => Promise<void>;
 }
 
 export const CreateTierModal: React.FC<CreateTierModalProps> = ({
@@ -17,6 +17,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
   const [description, setDescription] = useState('');
   const [benefits, setBenefits] = useState<string[]>(['']);
   const [selectedColor, setSelectedColor] = useState<'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'>('common');
+  const [isAdding, setIsAdding] = useState(false);
 
   const tierColors = [
     { value: 'common', label: 'Common', color: 'text-rarityCommon', bg: 'bg-rarityCommon' },
@@ -40,16 +41,17 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
     setBenefits(newBenefits);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const tierData = {
       name,
       price: parseInt(price),
       description,
-      color: selectedColor,
       benefits: benefits.filter(benefit => benefit.trim() !== ''),
     };
 
-    onCreateTier(tierData);
+    setIsAdding(true)
+    await onCreateTier(tierData);
+    setIsAdding(false)
 
     // Reset form
     setName('');
@@ -214,10 +216,17 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isFormValid}
-            className="bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed font-semibold"
+            disabled={!isFormValid || isAdding}
+            className="flex items-center justify-center bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed font-semibold"
           >
-            Create Tier
+            {isAdding ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Creating...</span>
+              </>
+            ) : (
+              <span>Create Tier</span>
+            )}
           </button>
         </div>
       </div>

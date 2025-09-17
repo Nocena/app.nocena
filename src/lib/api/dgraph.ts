@@ -2739,54 +2739,54 @@ export async function fetchUserCompletions(
       filterConditions.length > 1 ? `and: [${filterConditions.join(', ')}]` : filterConditions[0].slice(1, -1); // Remove outer braces for single condition
 
     // Query through User's completedChallenges field
-/*
-    const query = `
-      query FetchUserCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
-        getUser(id: $userId) {
-          completedChallenges(
-            filter: {
-              ${filterString}
+    /*
+        const query = `
+          query FetchUserCompletions($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
+            getUser(id: $userId) {
+              completedChallenges(
+                filter: {
+                  ${filterString}
+                }
+                order: { desc: completionDate }
+              ) {
+              id
+              media
+              completionDate
+              completionDay
+              completionWeek
+              completionMonth
+              completionYear
+              status
+              challengeType
+              likesCount
+              user {
+                id
+                username
+                profilePicture
+              }
+              aiChallenge {
+                id
+                title
+                description
+                frequency
+                reward
+              }
+              privateChallenge {
+                id
+                title
+                description
+                reward
+              }
+              publicChallenge {
+                id
+                title
+                description
+                reward
+              }
             }
-            order: { desc: completionDate }
-          ) {
-          id
-          media
-          completionDate
-          completionDay
-          completionWeek
-          completionMonth
-          completionYear
-          status
-          challengeType
-          likesCount
-          user {
-            id
-            username
-            profilePicture
           }
-          aiChallenge {
-            id
-            title
-            description
-            frequency
-            reward
-          }
-          privateChallenge {
-            id
-            title
-            description
-            reward
-          }
-          publicChallenge {
-            id
-            title
-            description
-            reward
-          }
-        }
-      }
-    `;
-*/
+        `;
+    */
     const query = `
     query($userId: String!, $startDate: DateTime!, $endDate: DateTime!) {
       getUser(id: $userId) {
@@ -2830,7 +2830,7 @@ export async function fetchUserCompletions(
     const responseArray = response.data.data?.getUser?.completedChallenges || [];
     return responseArray
       .map((item: any) => getCompletionItemByCompletedChallenge(item))
-      .filter((item: any) => !!item)
+      .filter((item: any) => !!item);
   } catch (error) {
     console.error('Error fetching user completions:', error);
     throw error;
@@ -3062,7 +3062,7 @@ export function hasCompletedChallenge(user: any, challengeType: 'daily' | 'weekl
       ((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400000 +
         new Date(now.getFullYear(), 0, 1).getDay() +
         1) /
-        7,
+      7,
     );
     return user.weeklyChallenge?.charAt(weekOfYear - 1) === '1';
   } else {
@@ -6345,7 +6345,7 @@ export async function fetchMembershipTiersByCreator(
   try {
     const query = `
       query($creatorId: String!) {
-        queryMembershipTier(filter: { creatorId: $creatorId }) {
+        queryMembershipTier(filter: { creatorId:  {eq: $creatorId} }) {
           id
           name
           description
@@ -6355,6 +6355,9 @@ export async function fetchMembershipTiersByCreator(
             id
             username
             profilePicture
+          }
+          subscribersAggregate {
+            count
           }
         }
       }
@@ -6374,7 +6377,11 @@ export async function fetchMembershipTiersByCreator(
       throw new Error('Failed to fetch membership tiers');
     }
 
-    return response.data.data?.queryMembershipTier || [];
+    // Add subscriberCount directly in the returned array
+    return (response.data.data?.queryMembershipTier || []).map((tier: any) => ({
+      ...tier,
+      subscriberCount: tier.subscribersAggregate?.count || 0,
+    }));
   } catch (error) {
     console.error('Error fetching membership tiers:', error);
     throw error;
@@ -6395,6 +6402,8 @@ export async function addMembershipTierForUser(
     const mutation = `
       mutation($creatorId: String!, $name: String!, $description: String, $price: Int!, $benefits: [String]) {
         addMembershipTier(input: [{
+          id: "${uuidv4()}",
+          creator: { id: $creatorId },
           creatorId: $creatorId,
           name: $name,
           description: $description,
@@ -6454,7 +6463,7 @@ export async function addPostWithTier(
   isPublic: boolean,
   tags: string[] = [],
   mediaUrl?: string,
-  mediaType?: string
+  mediaType?: string,
 ): Promise<any> {
   try {
     const mutation = `
@@ -6469,11 +6478,17 @@ export async function addPostWithTier(
         $mediaType: String
       ) {
         addPost(input: [{
+          id: "${uuidv4()}",
+          creator: { id: $creatorId },
           creatorId: $creatorId,
           title: $title,
           content: $content,
+          tierRequired: {id: $tierRequiredId},
           tierRequiredId: $tierRequiredId,
           isPublic: $isPublic,
+          likes: 0,
+          comments: 0,
+          createdAt: "${new Date().toISOString()}",
           tags: $tags,
           mediaUrl: $mediaUrl,
           mediaType: $mediaType
@@ -6516,17 +6531,17 @@ export async function addPostWithTier(
           mediaType,
         },
       },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
-      throw new Error("Failed to add post");
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to add post');
     }
 
     return response.data.data?.addPost?.post?.[0] || null;
   } catch (error) {
-    console.error("Error adding post with tier:", error);
+    console.error('Error adding post with tier:', error);
     throw error;
   }
 }
@@ -6537,7 +6552,7 @@ export async function addPostWithTier(
 export async function fetchUserPosts(
   userId: string,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<any[]> {
   try {
     const query = `
@@ -6599,19 +6614,239 @@ export async function fetchUserPosts(
           offset,
         },
       },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { 'Content-Type': 'application/json' } },
     );
 
     if (response.data.errors) {
-      console.error("GraphQL errors:", response.data.errors);
-      throw new Error("Failed to fetch user posts");
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch user posts');
     }
 
     return response.data.data?.queryPost || [];
   } catch (error) {
-    console.error("Error fetching user posts:", error);
+    console.error('Error fetching user posts:', error);
     throw error;
   }
 }
+
+export async function fetchTopPosts(): Promise<any[]> {
+  const query = `
+    query {
+      queryPost(order: { desc: createdAt }, first: 10) {
+        id
+        title
+        content
+        mediaUrl
+        mediaType
+        isPublic
+        createdAt
+        tags
+        likes
+        comments
+        creator {
+          id
+          username
+          profilePicture
+        }
+        tierRequired {
+          id
+          name
+          price
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch top posts');
+    }
+
+    return response.data.data?.queryPost || [];
+  } catch (error) {
+    console.error('Error fetching top posts:', error);
+    throw error;
+  }
+}
+
+export async function fetchPostById(postId: string) {
+  const query = `
+    query GetPostById($id: String!) {
+      getPost(id: $id) {
+        id
+        title
+        content
+        mediaUrl
+        mediaType
+        isPublic
+        likes
+        comments
+        createdAt
+        tags
+        tierRequired {
+          id
+          name
+          price
+          benefits
+        }
+        creator {
+          id
+          username
+          profilePicture
+        }
+        postComments {
+          id
+          content
+          createdAt
+          user {
+            id
+            username
+          }
+        }
+        postLikes {
+          id
+          user {
+            id
+            username
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await axios.post(
+    DGRAPH_ENDPOINT,
+    { query, variables: { id: postId } },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+
+  if (response.data.errors) {
+    console.error('GraphQL errors:', response.data.errors);
+    throw new Error('Failed to fetch post');
+  }
+
+  return response.data.data.getPost;
+}
+
+export async function getSubscriptionsByUserId(userId: string) {
+  const query = `
+    query($userId: String!) {
+      queryUserSubscription(filter: { subscriberId: { eq: $userId }}) {
+        id
+        subscriberId
+        tierId
+        startDate
+        endDate
+        isActive
+        createdAt
+        tier {
+          id
+          name
+          price
+          benefits
+        }
+      }
+    }
+  `;
+
+  const variables = { userId };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query, variables },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to fetch user subscriptions');
+    }
+
+    return response.data.data.queryUserSubscription;
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error);
+    throw error;
+  }
+}
+
+export async function addNewUserSubscription(
+  subscriberId: string,
+  tierId: string,
+  startDate: string,
+  endDate?: string,
+  isActive: boolean = true,
+) {
+  const mutation = `
+    mutation AddUserSubscription(
+      $subscriberId: String!,
+      $tierId: String!,
+      $startDate: DateTime!,
+      $endDate: DateTime,
+      $isActive: Boolean!
+    ) {
+      addUserSubscription(input: [{
+        id: "${uuidv4()}",
+        subscriber: { id: $subscriberId },
+        subscriberId: $subscriberId,
+        tier: { id: $tierId },
+        tierId: $tierId,
+        startDate: $startDate,
+        endDate: $endDate,
+        isActive: $isActive,
+        createdAt: "${new Date().toISOString()}"
+      }]) {
+        userSubscription {
+          id
+          subscriberId
+          tierId
+          startDate
+          endDate
+          isActive
+          createdAt
+          tier {
+            id
+            name
+            price
+            benefits
+          }
+        }
+      }
+    }
+  `;
+  const variables = {
+    subscriberId,
+    tierId,
+    startDate,
+    endDate: endDate || (new Date()).toISOString(),
+    isActive,
+  };
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      { query: mutation, variables },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (response.data.errors) {
+      console.error('GraphQL errors:', response.data.errors);
+      throw new Error('Failed to add user subscription');
+    }
+
+    return response.data.data.addUserSubscription.userSubscription[0];
+  } catch (error) {
+    console.error('Error adding subscription:', error);
+    throw error;
+  }
+}
+
 // ----------------- end of kaia hackathon graph functions ---------------
 

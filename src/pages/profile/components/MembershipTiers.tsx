@@ -6,12 +6,14 @@ interface MembershipTiersProps {
   tiers: MembershipTier[];
   subscribedTiers: string[];
   onSubscribe: (tierId: string) => void;
+  isOwnProfile: boolean;
 }
 
 export const MembershipTiers: React.FC<MembershipTiersProps> = ({
                                                                   tiers,
                                                                   subscribedTiers,
                                                                   onSubscribe,
+                                                                  isOwnProfile,
                                                                 }) => {
   const getTierIcon = (color: string) => {
     switch (color) {
@@ -78,7 +80,7 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
         <h2 className="text-xl font-bold text-white">Membership Tiers</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
         {tiers.map((tier) => {
           const colors = getTierColors(tier.color);
           const isSubscribed = subscribedTiers.includes(tier.id);
@@ -142,18 +144,21 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
                   <span>{tier.subscriberCount} subscribers</span>
                 </div>
 
-                {/* Subscribe Button */}
-                <button
-                  onClick={() => onSubscribe(tier.id)}
-                  disabled={isSubscribed}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 ${
-                    isSubscribed
-                      ? 'bg-green-600 cursor-not-allowed'
-                      : `${colors.button} hover:scale-105`
-                  }`}
-                >
-                  {isSubscribed ? 'Subscribed' : `Subscribe for ${tier.price} NCX`}
-                </button>
+                {
+                  !isOwnProfile && (
+                    <button
+                      onClick={() => onSubscribe(tier.id)}
+                      disabled={isSubscribed}
+                      className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 ${
+                        isSubscribed
+                          ? 'bg-green-600 cursor-not-allowed'
+                          : `${colors.button} hover:scale-105`
+                      }`}
+                    >
+                      {isSubscribed ? 'Subscribed' : `Subscribe for ${tier.price} NCX`}
+                    </button>
+                  )
+                }
               </div>
             </div>
           );

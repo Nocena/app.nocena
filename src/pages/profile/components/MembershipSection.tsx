@@ -1,32 +1,50 @@
-import React, { useState } from 'react';
-import { Creator } from '../../../lib/types';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Users } from 'lucide-react';
 import { MembershipTiers } from './MembershipTiers';
 import { CreateTierModal } from './CreateTierModal';
+import {
+  addMembershipTierForUser,
+  fetchMembershipTiersByCreator,
+  getSubscriptionsByUserId,
+} from '../../../lib/api/dgraph';
+import { MembershipTier } from '../../../lib/types';
 
 interface MembershipSectionProps {
-  creator: Creator;
-  subscribedTiers: string[];
+  userId: string;
   isOwnProfile: boolean;
+  subscribedTiers: string[];
+  membershipTiers: MembershipTier[];
+  updateUserMembershipTiers?: (userId: string) => Promise<void>;
 }
 
 const MembershipSection: React.FC<MembershipSectionProps> = ({
-                                                               creator,
-                                                               subscribedTiers,
+                                                               userId,
                                                                isOwnProfile,
+                                                               subscribedTiers,
+                                                               membershipTiers,
+                                                               updateUserMembershipTiers,
                                                              }) => {
   const [isCreateTierModalOpen, setIsCreateTierModalOpen] = useState(false);
+
   const onSubscribe = (tierId: string) => {
   };
-  const handleCreateTier = (tierData: any) => {
+  const handleCreateTier = async (tierData: any) => {
     // onCreateTier?.(tierData);
+    await addMembershipTierForUser(
+      userId,
+      tierData.name,
+      tierData.description,
+      tierData.price,
+      tierData.benefits,
+    )
+    await updateUserMembershipTiers?.(userId)
     setIsCreateTierModalOpen(false);
   };
 
   // UNIFIED AVATAR INTERFACE - Single container for visual consistency
   return (
     <div>
-      {creator.membershipTiers.length > 0 ? (
+      {membershipTiers.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-white">Membership Tiers</h3>
@@ -41,9 +59,10 @@ const MembershipSection: React.FC<MembershipSectionProps> = ({
             )}
           </div>
           <MembershipTiers
-            tiers={creator.membershipTiers}
+            tiers={membershipTiers}
             subscribedTiers={subscribedTiers}
             onSubscribe={onSubscribe}
+            isOwnProfile={isOwnProfile}
           />
         </div>
       ) : (

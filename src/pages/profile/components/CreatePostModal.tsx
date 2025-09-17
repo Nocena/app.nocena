@@ -6,7 +6,7 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   membershipTiers: MembershipTier[];
-  onCreatePost: (postData: any) => void;
+  onCreatePost: (postData: any) => Promise<void>;
 }
 
 export const CreatePostModal: React.FC<CreatePostModalProps> = ({
@@ -21,6 +21,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [selectedTier, setSelectedTier] = useState<string>('public');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string>('');
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -31,7 +32,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const postData = {
       title,
       content,
@@ -40,9 +41,10 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       isPublic: selectedTier === 'public',
       mediaFile: mediaFile,
     };
+    setIsAdding(true)
+    await onCreatePost(postData);
 
-    onCreatePost(postData);
-
+    setIsAdding(false)
     // Reset form
     setTitle('');
     setContent('');
@@ -220,10 +222,17 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!title || !content}
-            className="bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
+            disabled={!title || !content || !mediaFile || isAdding}
+            className="flex items-center justify-center bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
           >
-            Create Post
+            {isAdding ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Creating...</span>
+              </>
+            ) : (
+              <span>Create Post</span>
+            )}
           </button>
         </div>
       </div>
