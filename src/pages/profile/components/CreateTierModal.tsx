@@ -217,7 +217,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
           <button
             onClick={handleSubmit}
             disabled={!isFormValid || isAdding}
-            className="flex items-center justify-center bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed font-semibold"
+            className="flex gap-1 items-center justify-center bg-nocena-purple hover:bg-nocena-purple-fade disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-2 rounded-lg transition-all duration-200 disabled:cursor-not-allowed font-semibold"
           >
             {isAdding ? (
               <>

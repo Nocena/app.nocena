@@ -359,11 +359,11 @@ const TokenSwap = () => {
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-gray-400">24h Volume</span>
-                <span className="text-white">$1.2M</span>
+                <span className="text-white">$1.2k</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-gray-400">Liquidity</span>
-                <span className="text-white">$8.7M</span>
+                <span className="text-white">9.4k</span>
               </div>
             </div>
           </div>
