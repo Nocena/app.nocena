@@ -13,8 +13,7 @@ import RegisterPage from './register';
 import { default as IOSPWAPrompt } from '../components/PWA/iOSPWAPrompt';
 import { default as AndroidPWAPrompt } from '../components/PWA/AndroidPWAPrompt';
 import UpdateNotification from '../components/PWA/UpdateNotification';
-import CacheDebugger from '../components/PWA/CacheDebugger';
-import { BackgroundTaskProvider, useBackgroundTasks } from '../contexts/BackgroundTaskContext';
+import { BackgroundTaskProvider } from '../contexts/BackgroundTaskContext';
 import { usePermissions } from 'src/hooks/usePermissions';
 
 // Simple loading indicator component for route changes
@@ -319,7 +318,6 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 
       {renderPWAPrompt()}
       <UpdateNotification />
-      <CacheDebugger />
     </>
   );
 }

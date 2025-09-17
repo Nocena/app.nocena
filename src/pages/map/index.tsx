@@ -1,369 +1,291 @@
-import React, { useEffect, useRef, useState } from 'react';
+// pages/map/index.tsx - WITH DISCOVER BUTTON
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import type { MapOptions } from 'maplibre-gl';
-import { ChallengeData, LocationData } from '../../lib/map/types';
-import UserLocationMarker from './components/UserLocationMarker';
-import ChallengeMarker from './components/ChallengeMarker';
-import MapControls from './components/MapControls';
-import LoadingOverlay from './components/LoadingOverlay';
-import { fetchNearbyChallenge, getMapStyleURL, getUserLocation, loadMapLibreCSS } from '../../lib/map/mapService';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  fetchChallengeCompletionsWithLikesAndReactions,
+  fetchTopPosts,
+  getRecentUsers,
+  getSubscriptionsByUserId,
+} from '../../lib/api/dgraph';
 
-// Define the interface for our custom event
-interface BrowsingNavigationDetail {
-  challengeId: string;
-  userId: string;
-}
+// Component imports
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import { ChevronRight, Clock, Sparkles, Trophy } from 'lucide-react';
+import { CreatorCard } from '../../components/home/CreatorCard';
+import { ChallengeCompletion, Creator, Post, SimplifiedUser } from '../../lib/types';
+import SearchBox, { SearchUser } from '@pages/search/components/SearchBox';
+import { ChallengeCard } from '../../components/profile/ChallengeCard';
+import { PostCard } from '../../components/profile/PostCard';
 
-interface BrowsingNavigationEvent extends CustomEvent {
-  detail: BrowsingNavigationDetail;
-}
+const SectionHeader = ({
+  icon: Icon,
+  title,
+  subtitle,
+  color,
+  onClickViewAll,
+}: {
+  icon: any;
+  title: string;
+  subtitle: string;
+  color: string;
+  onClickViewAll?: (() => void) | null;
+}) => (
+  <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center space-x-3">
+      <div className={`p-2 rounded-lg ${color} bg-opacity-20`}>
+        <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
+      </div>
+      <div>
+        <h2 className="text-xl font-bold text-white">{title}</h2>
+        <p className="text-gray-400 text-sm">{subtitle}</p>
+      </div>
+    </div>
+    <button
+      className="flex items-center space-x-1 text-nocenaBlue hover:text-nocenaPink transition-colors duration-200"
+      onClick={() => onClickViewAll?.()}
+    >
+      <span className="text-sm">View All</span>
+      <ChevronRight className="w-4 h-4" />
+    </button>
+  </div>
+);
 
 const MapView = () => {
   const router = useRouter();
-
-  // Refs
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-
-  // State
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapLibrary, setMapLibrary] = useState<any>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedPin, setSelectedPin] = useState<number | null>(null);
-  const [locatingUser, setLocatingUser] = useState(true);
-  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
-  const [challenges, setChallenges] = useState<ChallengeData[]>([]);
-  const [initialLocationSet, setInitialLocationSet] = useState(false);
-
-  // Handle zoom in button click
-  const handleZoomIn = () => {
-    if (!mapInstanceRef.current) return;
-
-    const currentZoom = mapInstanceRef.current.getZoom();
-    mapInstanceRef.current.zoomTo(currentZoom + 1, {
-      duration: 300,
-      essential: true,
-    });
-  };
-
-  // Handle zoom out button click
-  const handleZoomOut = () => {
-    if (!mapInstanceRef.current) return;
-
-    const currentZoom = mapInstanceRef.current.getZoom();
-    mapInstanceRef.current.zoomTo(currentZoom - 1, {
-      duration: 300,
-      essential: true,
-    });
-  };
-
-  // Force full viewport height for map container
-  useEffect(() => {
-    const setMapHeight = () => {
-      if (mapContainerRef.current) {
-        // Force the map to take full viewport height
-        mapContainerRef.current.style.height = '100vh';
-        mapContainerRef.current.style.width = '100vw';
-
-        // Also set position to ensure it covers everything
-        const parentContainer = mapContainerRef.current.parentElement;
-        if (parentContainer) {
-          parentContainer.style.position = 'fixed';
-          parentContainer.style.top = '0';
-          parentContainer.style.left = '0';
-          parentContainer.style.right = '0';
-          parentContainer.style.bottom = '0';
-          parentContainer.style.zIndex = '1';
-        }
-      }
-    };
-
-    setMapHeight();
-    window.addEventListener('resize', setMapHeight);
-
-    return () => {
-      window.removeEventListener('resize', setMapHeight);
-    };
+  const { user, loading } = useAuth();
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
+  const [selectedUser, setSelectedUser] = useState<Creator | null>(null);
+  const [completions, setCompletions] = useState<ChallengeCompletion[]>([]);
+  const [newJoinedUsers, setNewJoinedUsers] = useState<SimplifiedUser[]>([]);
+  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([]);
+  const updateSubscriptionTiers = useCallback(async (userId: string) => {
+    const tiers = await getSubscriptionsByUserId(userId);
+    setSubscribedTiers(tiers.map((tier: any) => tier.tierId));
   }, []);
 
-  // Get user location first, then initialize map
   useEffect(() => {
-    const getUserLocationFirst = async () => {
-      setLocatingUser(true);
+    updateSubscriptionTiers(user?.id || '');
+  }, [user]);
 
-      try {
-        // Get user location
-        const location = await getUserLocation();
-        setUserLocation(location);
-        setInitialLocationSet(true);
-      } catch (error: any) {
-        console.warn('Error getting user location:', error);
-
-        // Default location already handled in getUserLocation
-        const defaultLocation = { longitude: 14.4378, latitude: 50.0755 }; // Prague center
-        setUserLocation(defaultLocation);
-        setInitialLocationSet(true);
-
-        setLoadError('Unable to determine your precise location. Using default location instead.');
-        setTimeout(() => setLoadError(null), 5000);
+  const handleUserSelect = useCallback(
+    (selectedUser: SearchUser) => {
+      if (user?.id === selectedUser.id) {
+        router.push('/profile');
+      } else {
+        router.push(`/profile/${selectedUser.id}`);
       }
-    };
+    },
+    [router, user?.id],
+  );
 
-    getUserLocationFirst();
-  }, []);
+  const fetchChallengeCompletions = async () => {
+    try {
+      // Import the enhanced function from dgraph.ts
 
-  // Load and initialize MapLibre only after we have the user's location
-  useEffect(() => {
-    if (!initialLocationSet || !userLocation) return;
+      // Get current user ID for like status
+      const currentUserId = user?.id; // Use actual user ID from auth context
 
-    const initializeMap = async () => {
-      try {
-        // Load MapLibre CSS
-        loadMapLibreCSS();
+      // Fetch completions with like and reaction data
+      const allCompletions = await fetchChallengeCompletionsWithLikesAndReactions('', currentUserId);
 
-        // Dynamically import MapLibre
-        const MapLibre = await import('maplibre-gl');
-        setMapLibrary(MapLibre);
-
-        if (!mapContainerRef.current) return;
-
-        // Get token from environment variable
-        const jawgAccessToken = process.env.NEXT_PUBLIC_JAWG_ACCESS_TOKEN;
-
-        if (!jawgAccessToken) {
-          console.warn('NEXT_PUBLIC_JAWG_ACCESS_TOKEN is not set in environment variables');
-          setLoadError('Map access token not configured. Please contact support.');
-          return;
-        }
-
-        // Create map with the user's location as center
-        const map = new MapLibre.Map({
-          container: mapContainerRef.current,
-          style: getMapStyleURL(jawgAccessToken),
-          center: [userLocation.longitude, userLocation.latitude],
-          zoom: 15,
-          attributionControl: false,
-          zoomControl: false,
-          renderWorldCopies: false,
-          interactive: true,
-          pitchWithRotate: false,
-          antialias: true,
-          fadeDuration: 0,
-          preserveDrawingBuffer: true,
-        } as MapOptions);
-
-        // Add only a minimal attribution control
-        map.addControl(
-          new MapLibre.AttributionControl({
-            compact: true,
-          }),
-          'bottom-left',
-        );
-
-        // When map loads, load challenges
-        map.on('load', async () => {
-          console.log('Map loaded successfully');
-          mapInstanceRef.current = map;
-          setMapLoaded(true);
+      // Process media URLs for each completion
+      const processedCompletions = await Promise.all(
+        allCompletions.map(async (completion: any) => {
+          let videoUrl = null;
+          let selfieUrl = null;
 
           try {
-            // Load nearby challenges
-            const nearbyChallenge = await fetchNearbyChallenge(userLocation);
-            setChallenges(nearbyChallenge);
-          } catch (error) {
-            console.error('Error fetching challenges:', error);
-          } finally {
-            setLocatingUser(false);
+            const media = JSON.parse(completion.media);
+            let videoCID = media.videoCID;
+            let selfieCID = media.selfieCID;
+
+            // Handle nested CID structure
+            if (!videoCID && !selfieCID && media.directoryCID) {
+              try {
+                const directoryData = JSON.parse(media.directoryCID);
+                videoCID = directoryData.videoCID;
+                selfieCID = directoryData.selfieCID;
+              } catch (dirParseError) {
+                console.error('Error parsing directory CID:', dirParseError);
+              }
+            }
+
+            if (videoCID) {
+              videoUrl = `https://gateway.pinata.cloud/ipfs/${videoCID}`;
+            }
+            if (selfieCID) {
+              selfieUrl = `https://gateway.pinata.cloud/ipfs/${selfieCID}`;
+            }
+          } catch (parseError) {
+            console.error('Error parsing media for completion:', completion.id, parseError);
           }
-        });
 
-        map.on('error', (e) => {
-          console.error('Map error:', e);
-          setLoadError('Error loading map. Please try again later.');
-          setLocatingUser(false);
-        });
-      } catch (error) {
-        console.error('Failed to initialize map:', error);
-        setLoadError('Failed to load map. Please check your connection and try again.');
-        setLocatingUser(false);
-      }
-    };
+          return {
+            ...completion,
+            videoUrl,
+            selfieUrl,
+            // Use real database values for both likes and reactions
+            localLikes: completion.totalLikes || 0,
+            localIsLiked: completion.isLiked || false,
+          };
+        }),
+      );
 
-    initializeMap();
+      // Sort by completion date (most recent first)
+      processedCompletions.sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime());
 
-    // Cleanup
-    return () => {
-      if (mapInstanceRef.current && mapInstanceRef.current.remove) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [initialLocationSet, userLocation]);
-
-  // Handle recenter button click
-  const handleRecenterMap = async () => {
-    if (!mapInstanceRef.current) return;
-
-    setLocatingUser(true);
-
-    try {
-      const location = await getUserLocation();
-      setUserLocation(location);
-
-      mapInstanceRef.current.flyTo({
-        center: [location.longitude, location.latitude],
-        zoom: 16,
-        essential: true,
-        animate: true,
-        duration: 1000, // 1 second animation
-      });
-    } catch (error) {
-      console.warn('Error getting position for recentering:', error);
-    } finally {
-      setLocatingUser(false);
+      setCompletions(processedCompletions.slice(0, 6));
+    } catch (err) {
+      console.error('Error fetching challenge completions:', err);
     }
   };
 
-  // Reset selected pin when map moves
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    const handleMapMove = () => {
-      if (selectedPin !== null) {
-        setSelectedPin(null);
-      }
-    };
-
-    const mapInstance = mapInstanceRef.current;
-    mapInstance.on('movestart', handleMapMove);
-
-    return () => {
-      if (mapInstance && mapInstance.off) {
-        mapInstance.off('movestart', handleMapMove);
-      }
-    };
-  }, [selectedPin]);
-
-  // FIXED: Better navigation handling for browsing page with proper typing
-  useEffect(() => {
-    const handleBrowsingNavigation = async (event: Event) => {
-      // Type assertion to our custom event interface
-      const customEvent = event as BrowsingNavigationEvent;
-      const { challengeId, userId } = customEvent.detail;
-
-      console.log('🎬 Navigating to browsing:', { challengeId, userId });
-
-      try {
-        // Use Next.js router with proper error handling
-        await router.push({
-          pathname: '/browsing',
-          query: { challengeId, userId },
-        });
-        console.log('✅ Navigation to browsing successful');
-      } catch (error) {
-        console.error('❌ Navigation error:', error);
-        // Fallback to direct URL navigation if router fails
-        window.location.href = `/browsing?challengeId=${challengeId}&userId=${userId}`;
-      }
-    };
-
-    // Also expose router globally for popup component usage
-    if (typeof window !== 'undefined') {
-      (window as any).__NEXT_ROUTER__ = router;
+  const fetchNewJoinedUsers = async () => {
+    try {
+      // Fetch completions with like and reaction data
+      const users = await getRecentUsers();
+      setNewJoinedUsers(
+        users.slice(0, 6).map((user) => ({
+          id: user.id,
+          username: user.username,
+          avatar: user.profilePicture,
+          bio: user.bio,
+        })),
+      );
+      console.log('users', users);
+    } catch (err) {
+      console.error('Error fetching challenge completions:', err);
     }
+  };
 
-    window.addEventListener('navigateToBrowsing', handleBrowsingNavigation);
+  const updateTopPosts = async () => {
+    try {
+      // Fetch completions with like and reaction data
+      const posts = await fetchTopPosts();
+      setRecentPosts(posts.slice(0, 4));
+    } catch (err) {
+      console.error('Error fetching top posts:', err);
+    }
+  };
 
-    return () => {
-      window.removeEventListener('navigateToBrowsing', handleBrowsingNavigation);
-      // Clean up global router reference
-      if (typeof window !== 'undefined') {
-        delete (window as any).__NEXT_ROUTER__;
-      }
-    };
-  }, [router]);
-
-  // ADDED: Handle page visibility to pause/resume map when navigating away
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (mapInstanceRef.current) {
-        if (document.hidden) {
-          // Pause map rendering when page is hidden
-          mapInstanceRef.current.stop();
-        } else {
-          // Resume map rendering when page becomes visible
-          mapInstanceRef.current.start();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    Promise.all([fetchChallengeCompletions(), fetchNewJoinedUsers(), updateTopPosts()])
+      .then(() => {
+        setIsLoadingData(false);
+      })
+      .catch(() => {
+        setIsLoadingData(false);
+      });
   }, []);
 
+  if (loading) {
+    return (
+      <div className="text-white p-4 min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="fixed inset-0 bg-gray-900"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1,
-        width: '100vw',
-        height: '100vh',
-      }}
-    >
-      {/* Map container */}
-      <div
-        ref={mapContainerRef}
-        className="w-full h-full bg-gray-900"
-        style={{
-          width: '100vw',
-          height: '100vh',
-        }}
-      />
+    <div className="text-white p-4 min-h-screen mt-20 mb-20">
+      <div className="max-w-4xl mx-auto">
+        {/* Show loading state while fetching challenge */}
+        {isLoadingData ? (
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner size="md" />
+            <span className="ml-3 text-gray-300">Loading ...</span>
+          </div>
+        ) : (
+          /* Main Content */
+          <div className="max-w-7xl mx-auto space-y-12">
+            <div className="flex justify-center">
+              <SearchBox onUserSelect={handleUserSelect} />
+            </div>
+            {/* Recently Visited */}
+            <section>
+              <SectionHeader
+                icon={Clock}
+                title="Recent Posts"
+                subtitle="Latest content from creators you follow"
+                color="bg-nocenaPurple"
+              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {recentPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    hasAccess={
+                      post.isPublic ||
+                      !post.tierRequired ||
+                      post.creator.id === user?.id ||
+                      subscribedTiers.includes(post.tierRequired.id)
+                    }
+                    justShowLocked={true}
+                    onSubscribe={() => {}}
+                    onClick={() => router.push(`/post/${post.id}`)}
+                  />
+                ))}
+              </div>
+            </section>
 
-      {/* Challenge markers - Render these first so user marker appears on top */}
-      {mapLoaded &&
-        mapLibrary &&
-        challenges.map((challenge, index) => (
-          <ChallengeMarker
-            key={challenge.id || `challenge-${index}`}
-            map={mapInstanceRef.current}
-            MapLibre={mapLibrary}
-            challenge={challenge}
-            index={index}
-            isSelected={selectedPin === index}
-            onSelect={setSelectedPin}
-          />
-        ))}
+            {/* Recent Challengers */}
+            <section>
+              <SectionHeader
+                icon={Trophy}
+                title="Recent Challengers"
+                subtitle="recent challengers this week"
+                color="bg-nocenaPink"
+                onClickViewAll={() => {
+                  router.push('/browsing');
+                }}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                {completions.map((item) => (
+                  <ChallengeCard
+                    key={item.id}
+                    challenge={{
+                      id: item.id,
+                      user: item.user,
+                      challenge: (item.aiChallenge || item.publicChallenge || item.privateChallenge)!,
+                      completionDate: item.completionDate,
+                      isLiked: item.isLiked ?? false,
+                      likesCount: item.totalLikes ?? 0,
+                      videoUrl: item.videoUrl ?? '',
+                      selfieUrl: item.selfieUrl ?? '',
+                    }}
+                    onClick={(challenge) => {
+                      router.push(`/profile/${challenge.user.id}`);
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
 
-      {/* User location marker - Render last so it appears on top */}
-      {mapLoaded && mapLibrary && userLocation && (
-        <UserLocationMarker
-          map={mapInstanceRef.current}
-          MapLibre={mapLibrary}
-          location={[userLocation.longitude, userLocation.latitude]}
-        />
-      )}
-
-      {/* Map controls */}
-      <MapControls
-        mapLoaded={mapLoaded}
-        locatingUser={locatingUser}
-        onRecenter={handleRecenterMap}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        userLocation={userLocation}
-      />
-
-      {/* Loading overlay */}
-      <LoadingOverlay mapLoaded={mapLoaded} locatingUser={locatingUser} loadError={loadError} />
+            {/* New Posts */}
+            <section>
+              <SectionHeader
+                icon={Sparkles}
+                title="New Creators"
+                subtitle="Fresh faces joining the platform"
+                color="bg-nocenaPurple"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                {newJoinedUsers.map((creator) => (
+                  <CreatorCard
+                    key={creator.id}
+                    creator={creator}
+                    onProfileClick={() => {
+                      router.push(`/profile/${creator.id}`);
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
