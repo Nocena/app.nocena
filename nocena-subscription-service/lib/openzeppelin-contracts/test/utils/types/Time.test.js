@@ -18,7 +18,7 @@ const asUint = (value, size) => {
   return value;
 };
 
-const unpackDelay = delay => ({
+const unpackDelay = (delay) => ({
   valueBefore: (asUint(delay, 112) >> 32n) % (1n << 32n),
   valueAfter: (asUint(delay, 112) >> 0n) % (1n << 32n),
   effect: (asUint(delay, 112) >> 64n) % (1n << 48n),
@@ -27,12 +27,12 @@ const unpackDelay = delay => ({
 const packDelay = ({ valueBefore, valueAfter = 0n, effect = 0n }) =>
   (asUint(valueAfter, 32) << 0n) + (asUint(valueBefore, 32) << 32n) + (asUint(effect, 48) << 64n);
 
-const effectSamplesForTimepoint = timepoint => [
+const effectSamplesForTimepoint = (timepoint) => [
   0n,
   timepoint,
   ...product([-1n, 1n], [1n, 2n, 17n, 42n])
     .map(([sign, shift]) => timepoint + sign * shift)
-    .filter(effect => effect > 0n && effect <= MAX_UINT48),
+    .filter((effect) => effect > 0n && effect <= MAX_UINT48),
   MAX_UINT48,
 ];
 

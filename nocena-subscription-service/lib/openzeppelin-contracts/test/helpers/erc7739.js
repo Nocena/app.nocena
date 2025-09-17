@@ -2,7 +2,7 @@ const { ethers } = require('hardhat');
 const { formatType } = require('./eip712');
 
 const PersonalSign = formatType({ prefixed: 'bytes' });
-const TypedDataSign = contentsTypeName =>
+const TypedDataSign = (contentsTypeName) =>
   formatType({
     contents: contentsTypeName,
     name: 'string',
@@ -55,7 +55,7 @@ class ERC7739Signer extends ethers.AbstractSigner {
 
     return Promise.resolve(
       this.#signer.signTypedData(domain, allTypes, ERC4337Utils.prepareSignTypedData(value, this.#domain)),
-    ).then(signature =>
+    ).then((signature) =>
       ethers.concat([
         signature,
         ethers.TypedDataEncoder.hashDomain(domain), // appDomainSeparator

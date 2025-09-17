@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ChallengeCardType, completionItem, Post } from '../../../lib/types';
+import { completionItem } from '../../../lib/types';
 import { Trophy } from 'lucide-react';
-import { ChallengeCard } from './ChallengeCard';
+import { ChallengeCard } from '../../../components/profile/ChallengeCard';
 import LoadingSpinner from '@components/ui/LoadingSpinner';
 import { fetchUserCompletions } from '../../../lib/api/dgraph';
-
 
 interface ChallengesSectionProps {
   user: any;
 }
 
-const ChallengesSection: React.FC<ChallengesSectionProps> = ({
-                                                               user,
-                                                             }) => {
+const ChallengesSection: React.FC<ChallengesSectionProps> = ({ user }) => {
   const [loadingUserCompletion, setLoadingUserCompletion] = useState(true);
   const [userCompletion, setUserCompletion] = useState<any>(null);
 
@@ -28,8 +25,8 @@ const ChallengesSection: React.FC<ChallengesSectionProps> = ({
       try {
         // Calculate the date range for the selected period
         const now = new Date();
-        let startDate: Date = new Date(now.getFullYear() - 1, 1, 1);;
-        let endDate: Date = new Date(now); // End is always now
+        const startDate: Date = new Date(now.getFullYear() - 1, 1, 1);
+        const endDate: Date = new Date(now); // End is always now
 
         // Fetch completions for this period
         const completions = await fetchUserCompletions(
@@ -64,9 +61,7 @@ const ChallengesSection: React.FC<ChallengesSectionProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Challenges</h3>
-        <div className="text-sm text-gray-400">
-          {userCompletion.length} challenges available
-        </div>
+        <div className="text-sm text-gray-400">{userCompletion.length} challenges available</div>
       </div>
 
       {userCompletion.length > 0 ? (

@@ -37,7 +37,7 @@ async function fixture() {
   const domain = { name: 'AccountMultiSigner', version: '1', chainId: entrypointDomain.chainId }; // Missing verifyingContract
 
   const makeMock = (signers, threshold) =>
-    helper.newAccount('$AccountMultiSignerMock', [signers, threshold, 'AccountMultiSigner', '1']).then(mock => {
+    helper.newAccount('$AccountMultiSignerMock', [signers, threshold, 'AccountMultiSigner', '1']).then((mock) => {
       domain.verifyingContract = mock.address;
       return mock;
     });
@@ -46,7 +46,7 @@ async function fixture() {
   const signUserOp = function (userOp) {
     return this.signer
       .signTypedData(entrypointDomain, { PackedUserOperation }, userOp.packed)
-      .then(signature => Object.assign(userOp, { signature }));
+      .then((signature) => Object.assign(userOp, { signature }));
   };
 
   const invalidSig = function () {
@@ -134,36 +134,36 @@ describe('AccountMultiSigner', function () {
       const signers = [signerECDSA3.address];
 
       // Successfully adds a signer
-      const signersArrayBefore = await this.mock.getSigners(0, MAX_UINT64).then(s => s.map(ethers.getAddress));
+      const signersArrayBefore = await this.mock.getSigners(0, MAX_UINT64).then((s) => s.map(ethers.getAddress));
       await expect(this.mock.$_addSigners(signers))
         .to.emit(this.mock, 'ERC7913SignerAdded')
         .withArgs(signerECDSA3.address);
-      const signersArrayAfter = await this.mock.getSigners(0, MAX_UINT64).then(s => s.map(ethers.getAddress));
+      const signersArrayAfter = await this.mock.getSigners(0, MAX_UINT64).then((s) => s.map(ethers.getAddress));
       expect(signersArrayAfter.length).to.equal(signersArrayBefore.length + 1);
       expect(signersArrayAfter).to.include(ethers.getAddress(signerECDSA3.address));
 
       // Reverts if the signer was already added
       await expect(this.mock.$_addSigners(signers))
         .to.be.revertedWithCustomError(this.mock, 'MultiSignerERC7913AlreadyExists')
-        .withArgs(...signers.map(s => s.toLowerCase()));
+        .withArgs(...signers.map((s) => s.toLowerCase()));
     });
 
     it('can remove signers', async function () {
       const signers = [signerECDSA2.address];
 
       // Successfully removes an already added signer
-      const signersArrayBefore = await this.mock.getSigners(0, MAX_UINT64).then(s => s.map(ethers.getAddress));
+      const signersArrayBefore = await this.mock.getSigners(0, MAX_UINT64).then((s) => s.map(ethers.getAddress));
       await expect(this.mock.$_removeSigners(signers))
         .to.emit(this.mock, 'ERC7913SignerRemoved')
         .withArgs(signerECDSA2.address);
-      const signersArrayAfter = await this.mock.getSigners(0, MAX_UINT64).then(s => s.map(ethers.getAddress));
+      const signersArrayAfter = await this.mock.getSigners(0, MAX_UINT64).then((s) => s.map(ethers.getAddress));
       expect(signersArrayAfter.length).to.equal(signersArrayBefore.length - 1);
       expect(signersArrayAfter).to.not.include(ethers.getAddress(signerECDSA2.address));
 
       // Reverts removing a signer if it doesn't exist
       await expect(this.mock.$_removeSigners(signers))
         .to.be.revertedWithCustomError(this.mock, 'MultiSignerERC7913NonexistentSigner')
-        .withArgs(...signers.map(s => s.toLowerCase()));
+        .withArgs(...signers.map((s) => s.toLowerCase()));
 
       // Reverts if removing a signer makes the threshold unreachable
       await expect(this.mock.$_removeSigners([signerECDSA1.address]))
@@ -197,7 +197,7 @@ describe('AccountMultiSigner', function () {
 
     it('can read signers and threshold', async function () {
       await expect(
-        this.mock.getSigners(0, MAX_UINT64).then(s => s.map(ethers.getAddress)),
+        this.mock.getSigners(0, MAX_UINT64).then((s) => s.map(ethers.getAddress)),
       ).to.eventually.have.deep.members([signerECDSA1.address, signerECDSA2.address]);
 
       await expect(this.mock.threshold()).to.eventually.equal(1);
@@ -234,7 +234,7 @@ describe('AccountMultiSigner', function () {
         signerECDSA4.address, // Unauthorized signer
       ].sort((a, b) => (ethers.toBigInt(ethers.keccak256(a)) < ethers.toBigInt(ethers.keccak256(b)) ? -1 : 1));
 
-      const signatures = signers.map(signer => {
+      const signatures = signers.map((signer) => {
         if (signer === signerECDSA1.address) return authorizedSignature;
         return unauthorizedSignature;
       });
@@ -256,7 +256,7 @@ describe('AccountMultiSigner', function () {
         ethers.toBigInt(ethers.keccak256(a)) < ethers.toBigInt(ethers.keccak256(b)) ? -1 : 1,
       );
 
-      const signatures = signers.map(signer => {
+      const signatures = signers.map((signer) => {
         if (signer === signerECDSA1.address) return validSignature;
         return invalidSignature;
       });
@@ -278,7 +278,7 @@ describe('AccountMultiSigner', function () {
         ethers.toBigInt(ethers.keccak256(a)) < ethers.toBigInt(ethers.keccak256(b)) ? -1 : 1,
       );
       const unsortedSigners = signers.reverse();
-      const signatures = unsortedSigners.map(signer => {
+      const signatures = unsortedSigners.map((signer) => {
         if (signer === signerECDSA1.address) return validSignature1;
         return validSignature2;
       });

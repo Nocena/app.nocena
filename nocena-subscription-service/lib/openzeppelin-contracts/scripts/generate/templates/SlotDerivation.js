@@ -80,7 +80,7 @@ const mapping = ({ type }) => `\
  */
 function deriveMapping(bytes32 slot, ${type} key) internal pure returns (bytes32 result) {
     assembly ("memory-safe") {
-        mstore(0x00, ${(sanitize[type] ?? (x => x))('key')})
+        mstore(0x00, ${(sanitize[type] ?? ((x) => x))('key')})
         mstore(0x20, slot)
         result := keccak256(0x00, 0x40)
     }
@@ -112,7 +112,7 @@ module.exports = format(
     [].concat(
       namespace,
       array,
-      TYPES.map(type => (type.isValueType ? mapping(type) : mapping2(type))),
+      TYPES.map((type) => (type.isValueType ? mapping(type) : mapping2(type))),
     ),
   ).trimEnd(),
   '}',

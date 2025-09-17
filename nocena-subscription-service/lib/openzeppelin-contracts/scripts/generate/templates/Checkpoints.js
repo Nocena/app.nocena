@@ -23,7 +23,7 @@ const errors = `\
 error CheckpointUnorderedInsertion();
 `;
 
-const template = opts => `\
+const template = (opts) => `\
 struct ${opts.historyTypeName} {
     ${opts.checkpointTypeName}[] ${opts.checkpointFieldName};
 }
@@ -235,7 +235,7 @@ module.exports = format(
   format(
     [].concat(
       errors,
-      OPTS.map(opts => template(opts)),
+      OPTS.map((opts) => template(opts)),
     ),
   ).trimEnd(),
   '}',

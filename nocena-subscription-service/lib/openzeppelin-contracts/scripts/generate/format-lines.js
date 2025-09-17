@@ -8,7 +8,7 @@ function* indentEach(indent, lines) {
       yield* indentEach(indent + 1, line);
     } else {
       const padding = '    '.repeat(indent);
-      yield* line.split('\n').map(subline => (subline === '' ? '' : padding + subline));
+      yield* line.split('\n').map((subline) => (subline === '' ? '' : padding + subline));
     }
   }
 }

@@ -174,7 +174,7 @@ describe('ERC20Votes', function () {
 
             const { args } = await tx
               .wait()
-              .then(receipt => receipt.logs.find(event => event.fragment.name == 'DelegateChanged'));
+              .then((receipt) => receipt.logs.find((event) => event.fragment.name == 'DelegateChanged'));
             expect(args[0]).to.not.equal(this.holder);
             expect(args[1]).to.equal(ethers.ZeroAddress);
             expect(args[2]).to.equal(this.delegatee);
@@ -289,8 +289,8 @@ describe('ERC20Votes', function () {
             .withArgs(this.holder, supply, supply - 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 
@@ -309,8 +309,8 @@ describe('ERC20Votes', function () {
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 
@@ -332,8 +332,8 @@ describe('ERC20Votes', function () {
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 

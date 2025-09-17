@@ -348,7 +348,7 @@ export interface Post {
   creator: {
     id: string;
     username: string;
-    profilePicture: string;
+    avatar: string;
   };
   title: string;
   content: string;
@@ -417,12 +417,12 @@ export interface completionItem {
     title: string;
     id: string;
     reward: number;
-  },
+  };
   user: {
     id: string;
     profilePicture: string;
     username: string;
-  },
+  };
   completionDate: string;
   isLiked: boolean;
   likesCount: number;

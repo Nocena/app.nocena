@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Plus, Users } from 'lucide-react';
-import { MembershipTiers } from './MembershipTiers';
-import { CreateTierModal } from './CreateTierModal';
+import { MembershipTiers } from '../../../components/profile/MembershipTiers';
+import { CreateTierModal } from '../../../components/profile/CreateTierModal';
 import {
   addMembershipTierForUser,
   fetchMembershipTiersByCreator,
@@ -18,26 +18,19 @@ interface MembershipSectionProps {
 }
 
 const MembershipSection: React.FC<MembershipSectionProps> = ({
-                                                               userId,
-                                                               isOwnProfile,
-                                                               subscribedTiers,
-                                                               membershipTiers,
-                                                               updateUserMembershipTiers,
-                                                             }) => {
+  userId,
+  isOwnProfile,
+  subscribedTiers,
+  membershipTiers,
+  updateUserMembershipTiers,
+}) => {
   const [isCreateTierModalOpen, setIsCreateTierModalOpen] = useState(false);
 
-  const onSubscribe = (tierId: string) => {
-  };
+  const onSubscribe = (tierId: string) => {};
   const handleCreateTier = async (tierData: any) => {
     // onCreateTier?.(tierData);
-    await addMembershipTierForUser(
-      userId,
-      tierData.name,
-      tierData.description,
-      tierData.price,
-      tierData.benefits,
-    )
-    await updateUserMembershipTiers?.(userId)
+    await addMembershipTierForUser(userId, tierData.name, tierData.description, tierData.price, tierData.benefits);
+    await updateUserMembershipTiers?.(userId);
     setIsCreateTierModalOpen(false);
   };
 
@@ -85,7 +78,8 @@ const MembershipSection: React.FC<MembershipSectionProps> = ({
         onClose={() => setIsCreateTierModalOpen(false)}
         onCreateTier={handleCreateTier}
       />
-    </div>);
+    </div>
+  );
 };
 
 export default MembershipSection;

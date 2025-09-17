@@ -16,13 +16,13 @@ const { version } = require('../../package.json');
 const [tag] = run('git', 'tag')
   .split(/\r?\n/)
   .filter(semver.coerce) // check version can be processed
-  .filter(v => semver.satisfies(v, `< ${version}`)) // ignores prereleases unless currently a prerelease
+  .filter((v) => semver.satisfies(v, `< ${version}`)) // ignores prereleases unless currently a prerelease
   .sort(semver.rcompare);
 
 // Ordering tag → HEAD is important here.
 const files = run('git', 'diff', tag, 'HEAD', '--name-only', 'contracts/**/*.sol')
   .split(/\r?\n/)
-  .filter(file => file && !file.match(/mock/i) && fs.existsSync(file));
+  .filter((file) => file && !file.match(/mock/i) && fs.existsSync(file));
 
 for (const file of files) {
   const current = fs.readFileSync(file, 'utf8');

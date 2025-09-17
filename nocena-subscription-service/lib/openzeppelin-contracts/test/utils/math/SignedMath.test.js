@@ -42,7 +42,7 @@ describe('SignedMath', function () {
   });
 
   describe('abs', function () {
-    const abs = x => (x < 0n ? -x : x);
+    const abs = (x) => (x < 0n ? -x : x);
 
     for (const n of [ethers.MinInt256, ethers.MinInt256 + 1n, -1n, 0n, 1n, ethers.MaxInt256 - 1n, ethers.MaxInt256]) {
       it(`correctly computes the absolute value of ${n}`, async function () {

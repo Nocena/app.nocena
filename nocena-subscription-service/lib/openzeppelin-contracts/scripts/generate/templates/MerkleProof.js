@@ -179,8 +179,8 @@ module.exports = format(
   format(
     [].concat(
       errors,
-      OPTS.flatMap(opts => templateProof(opts)),
-      OPTS.flatMap(opts => templateMultiProof(opts)),
+      OPTS.flatMap((opts) => templateProof(opts)),
+      OPTS.flatMap((opts) => templateMultiProof(opts)),
     ),
   ).trimEnd(),
   '}',

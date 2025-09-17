@@ -38,10 +38,10 @@ async function fixture() {
     verifyingContract: mock.address,
   };
 
-  const signUserOp = userOp =>
+  const signUserOp = (userOp) =>
     signer
       .signTypedData(entrypointDomain, { PackedUserOperation }, userOp.packed)
-      .then(signature => Object.assign(userOp, { signature }));
+      .then((signature) => Object.assign(userOp, { signature }));
 
   return { helper, mock, domain, signer, target, beneficiary, other, signUserOp };
 }

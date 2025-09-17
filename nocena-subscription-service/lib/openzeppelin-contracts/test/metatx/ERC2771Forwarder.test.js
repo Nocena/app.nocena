@@ -29,7 +29,7 @@ async function fixture() {
     return req;
   };
 
-  const estimateRequest = request =>
+  const estimateRequest = (request) =>
     ethers.provider.estimateGas({
       from: forwarder,
       to: request.to,
@@ -153,8 +153,8 @@ describe('ERC2771Forwarder', function () {
 
       const { gasUsed } = await ethers.provider
         .getBlock('latest')
-        .then(block => block.getTransaction(0))
-        .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
+        .then((block) => block.getTransaction(0))
+        .then((tx) => ethers.provider.getTransactionReceipt(tx.hash));
 
       expect(gasUsed).to.equal(gasLimit);
     });
@@ -182,8 +182,8 @@ describe('ERC2771Forwarder', function () {
 
       const { gasUsed } = await ethers.provider
         .getBlock('latest')
-        .then(block => block.getTransaction(0))
-        .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
+        .then((block) => block.getTransaction(0))
+        .then((tx) => ethers.provider.getTransactionReceipt(tx.hash));
 
       // We assert that indeed the gas was totally consumed.
       expect(gasUsed).to.equal(gasLimit);
@@ -191,13 +191,13 @@ describe('ERC2771Forwarder', function () {
   });
 
   describe('executeBatch', function () {
-    const requestsValue = requests => sum(...requests.map(request => request.value));
+    const requestsValue = (requests) => sum(...requests.map((request) => request.value));
     const requestCount = 3;
     const idx = 1; // index that will be tampered with
 
     beforeEach(async function () {
-      this.forgeRequests = override =>
-        Promise.all(this.accounts.slice(0, requestCount).map(signer => this.forgeRequest(override, signer)));
+      this.forgeRequests = (override) =>
+        Promise.all(this.accounts.slice(0, requestCount).map((signer) => this.forgeRequest(override, signer)));
       this.requests = await this.forgeRequests({ value: 10n });
       this.value = requestsValue(this.requests);
     });
@@ -288,10 +288,10 @@ describe('ERC2771Forwarder', function () {
           // And then ignore the same request in a batch due to an already used nonce
           const events = await this.forwarder
             .executeBatch(this.requests, this.refundReceiver, { value: this.value })
-            .then(tx => tx.wait())
-            .then(receipt =>
+            .then((tx) => tx.wait())
+            .then((receipt) =>
               receipt.logs.filter(
-                log => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
+                (log) => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
               ),
             );
 
@@ -306,10 +306,10 @@ describe('ERC2771Forwarder', function () {
 
           const events = await this.forwarder
             .executeBatch(this.requests, this.refundReceiver, { value: this.value })
-            .then(tx => tx.wait())
-            .then(receipt =>
+            .then((tx) => tx.wait())
+            .then((receipt) =>
               receipt.logs.filter(
-                log => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
+                (log) => log?.fragment?.type == 'event' && log?.fragment?.name == 'ExecutedForwardRequest',
               ),
             );
 
@@ -343,8 +343,8 @@ describe('ERC2771Forwarder', function () {
 
         const { gasUsed } = await ethers.provider
           .getBlock('latest')
-          .then(block => block.getTransaction(0))
-          .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
+          .then((block) => block.getTransaction(0))
+          .then((tx) => ethers.provider.getTransactionReceipt(tx.hash));
 
         expect(gasUsed).to.equal(gasLimit);
       });
@@ -353,7 +353,7 @@ describe('ERC2771Forwarder', function () {
         // Similarly to the single execute, a malicious relayer could grief requests.
 
         // We estimate until the selected request as if they were executed normally
-        const estimate = await Promise.all(this.requests.slice(0, idx + 1).map(this.estimateRequest)).then(gas =>
+        const estimate = await Promise.all(this.requests.slice(0, idx + 1).map(this.estimateRequest)).then((gas) =>
           sum(...gas),
         );
 
@@ -373,8 +373,8 @@ describe('ERC2771Forwarder', function () {
 
         const { gasUsed } = await ethers.provider
           .getBlock('latest')
-          .then(block => block.getTransaction(0))
-          .then(tx => ethers.provider.getTransactionReceipt(tx.hash));
+          .then((block) => block.getTransaction(0))
+          .then((tx) => ethers.provider.getTransactionReceipt(tx.hash));
 
         // We assert that indeed the gas was totally consumed.
         expect(gasUsed).to.equal(gasLimit);

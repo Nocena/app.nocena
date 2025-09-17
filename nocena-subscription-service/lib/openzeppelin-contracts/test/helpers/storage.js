@@ -5,9 +5,9 @@ const ImplementationLabel = 'eip1967.proxy.implementation';
 const AdminLabel = 'eip1967.proxy.admin';
 const BeaconLabel = 'eip1967.proxy.beacon';
 
-const erc1967Slot = label => ethers.toBeHex(ethers.toBigInt(ethers.id(label)) - 1n);
-const erc7201Slot = label => ethers.toBeHex(ethers.toBigInt(ethers.keccak256(erc1967Slot(label))) & ~0xffn);
-const erc7201format = contractName => `openzeppelin.storage.${contractName}`;
+const erc1967Slot = (label) => ethers.toBeHex(ethers.toBigInt(ethers.id(label)) - 1n);
+const erc7201Slot = (label) => ethers.toBeHex(ethers.toBigInt(ethers.keccak256(erc1967Slot(label))) & ~0xffn);
+const erc7201format = (contractName) => `openzeppelin.storage.${contractName}`;
 
 const getSlot = (address, slot) =>
   ethers.provider.getStorage(address, ethers.isBytesLike(slot) ? slot : erc1967Slot(slot));
@@ -19,7 +19,7 @@ const setSlot = (address, slot, value) =>
   ]).then(([address, value]) => setStorageAt(address, ethers.isBytesLike(slot) ? slot : erc1967Slot(slot), value));
 
 const getAddressInSlot = (address, slot) =>
-  getSlot(address, slot).then(slotValue => ethers.AbiCoder.defaultAbiCoder().decode(['address'], slotValue)[0]);
+  getSlot(address, slot).then((slotValue) => ethers.AbiCoder.defaultAbiCoder().decode(['address'], slotValue)[0]);
 
 const upgradeableSlot = (contractName, offset) => {
   try {

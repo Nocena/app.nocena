@@ -10,7 +10,7 @@ const { shouldBehaveLikeSet } = require('./EnumerableSet.behavior');
 const getMethods = (mock, fnSigs) =>
   mapValues(
     fnSigs,
-    fnSig =>
+    (fnSig) =>
       (...args) =>
         mock.getFunction(fnSig)(0, ...args),
   );

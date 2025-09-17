@@ -92,7 +92,7 @@ module.exports = {
     '*': {
       'unused-param': !argv.coverage, // coverage causes unused-param warnings
       'transient-storage': false,
-      default: 'error',
+      'default': 'error',
     },
   },
   networks: {

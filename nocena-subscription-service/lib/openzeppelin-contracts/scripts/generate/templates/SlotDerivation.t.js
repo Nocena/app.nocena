@@ -109,16 +109,16 @@ module.exports = format(
       'using SlotDerivation for bytes32;',
       '',
       array,
-      TYPES.flatMap(type =>
+      TYPES.flatMap((type) =>
         [].concat(
           type,
-          (type.variants ?? []).map(variant => ({
+          (type.variants ?? []).map((variant) => ({
             type: variant,
             name: capitalize(variant),
             isValueType: type.isValueType,
           })),
         ),
-      ).map(type => (type.isValueType ? mapping(type) : boundedMapping(type))),
+      ).map((type) => (type.isValueType ? mapping(type) : boundedMapping(type))),
       mappingDirty(TYPES.bool),
       mappingDirty(TYPES.address),
     ),

@@ -39,7 +39,7 @@ async function fixture() {
   const makeMock = (signers, weights, threshold) =>
     helper
       .newAccount('$AccountMultiSignerWeightedMock', [signers, weights, threshold, 'AccountMultiSignerWeighted', '1'])
-      .then(mock => {
+      .then((mock) => {
         domain.verifyingContract = mock.address;
         return mock;
       });
@@ -48,7 +48,7 @@ async function fixture() {
   const signUserOp = function (userOp) {
     return this.signer
       .signTypedData(entrypointDomain, { PackedUserOperation }, userOp.packed)
-      .then(signature => Object.assign(userOp, { signature }));
+      .then((signature) => Object.assign(userOp, { signature }));
   };
 
   const invalidSig = function () {

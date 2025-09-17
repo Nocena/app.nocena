@@ -30,7 +30,7 @@ const encodeBatch = (...entries) =>
   ethers.AbiCoder.defaultAbiCoder().encode(
     ['(address,uint256,bytes)[]'],
     [
-      entries.map(entry =>
+      entries.map((entry) =>
         Array.isArray(entry)
           ? [entry[0].target ?? entry[0].address ?? entry[0], entry[1] ?? 0n, entry[2] ?? '0x']
           : [entry.target.target ?? entry.target.address ?? entry.target, entry.value ?? 0n, entry.data ?? '0x'],

@@ -16,7 +16,7 @@ const makeTree = (leaves = [], length = 2 ** DEPTH, zero = ethers.ZeroHash) =>
         leaves,
         Array.from({ length: length - leaves.length }, () => zero),
       )
-      .map(leaf => [leaf]),
+      .map((leaf) => [leaf]),
     ['bytes32'],
     { sortLeaves: false },
   );
@@ -72,8 +72,8 @@ describe('MerkleTree', function () {
   });
 
   describe('update', function () {
-    for (const { leafCount, leafIndex } of range(2 ** DEPTH + 1).flatMap(leafCount =>
-      range(leafCount).map(leafIndex => ({ leafCount, leafIndex })),
+    for (const { leafCount, leafIndex } of range(2 ** DEPTH + 1).flatMap((leafCount) =>
+      range(leafCount).map((leafIndex) => ({ leafCount, leafIndex })),
     ))
       it(`updating a leaf correctly updates the tree (leaf #${leafIndex + 1}/${leafCount})`, async function () {
         // initial tree

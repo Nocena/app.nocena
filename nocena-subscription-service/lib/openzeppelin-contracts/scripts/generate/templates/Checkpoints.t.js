@@ -11,7 +11,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 `;
 
-const template = opts => `\
+const template = (opts) => `\
 using Checkpoints for Checkpoints.${opts.historyTypeName};
 
 // Maximum gap between keys used during the fuzzing tests: the \`_prepareKeys\` function will make sure that
@@ -128,7 +128,7 @@ function testLookup(${opts.keyTypeName}[] memory keys, ${opts.valueTypeName}[] m
 // GENERATE
 module.exports = format(
   header,
-  ...OPTS.flatMap(opts => [
+  ...OPTS.flatMap((opts) => [
     `contract Checkpoints${opts.historyTypeName}Test is Test {`,
     [template(opts).trimEnd()],
     '}',

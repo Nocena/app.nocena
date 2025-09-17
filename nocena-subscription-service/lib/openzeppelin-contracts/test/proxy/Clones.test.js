@@ -29,13 +29,13 @@ async function fixture() {
   const implementation = await ethers.deployContract('DummyImplementation');
 
   const newClone =
-    args =>
+    (args) =>
     async (opts = {}) => {
       const clone = await (
         args
           ? factory.$cloneWithImmutableArgs.staticCall(implementation, args)
           : factory.$clone.staticCall(implementation)
-      ).then(address => implementation.attach(address));
+      ).then((address) => implementation.attach(address));
       const tx = await (args
         ? opts.deployValue
           ? factory.$cloneWithImmutableArgs(implementation, args, ethers.Typed.uint256(opts.deployValue))
@@ -50,14 +50,14 @@ async function fixture() {
     };
 
   const newCloneDeterministic =
-    args =>
+    (args) =>
     async (opts = {}) => {
       const salt = opts.salt ?? ethers.randomBytes(32);
       const clone = await (
         args
           ? factory.$cloneDeterministicWithImmutableArgs.staticCall(implementation, args, salt)
           : factory.$cloneDeterministic.staticCall(implementation, salt)
-      ).then(address => implementation.attach(address));
+      ).then((address) => implementation.attach(address));
       const tx = await (args
         ? opts.deployValue
           ? factory.$cloneDeterministicWithImmutableArgs(

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileText, Star, Users } from 'lucide-react';
-import { SimplifiedUser } from '../../../lib/types';
+import { SimplifiedUser } from '../../lib/types';
 
 interface CreatorCardProps {
   creator: SimplifiedUser;
@@ -8,11 +8,7 @@ interface CreatorCardProps {
   showStats?: boolean;
 }
 
-export const CreatorCard: React.FC<CreatorCardProps> = ({
-                                                          creator,
-                                                          onProfileClick,
-                                                          showStats = true
-                                                        }) => {
+export const CreatorCard: React.FC<CreatorCardProps> = ({ creator, onProfileClick, showStats = true }) => {
   return (
     <div
       onClick={() => onProfileClick()}
@@ -47,9 +43,7 @@ export const CreatorCard: React.FC<CreatorCardProps> = ({
             <FileText className="w-4 h-4" />
             <span>0 posts</span>
           </div>
-          <div className="text-nocenaBlue font-medium">
-            0 tiers
-          </div>
+          <div className="text-nocenaBlue font-medium">0 tiers</div>
         </div>
       )}
     </div>

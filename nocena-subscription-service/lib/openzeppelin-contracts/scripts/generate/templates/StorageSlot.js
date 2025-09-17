@@ -69,8 +69,8 @@ module.exports = format(
   'library StorageSlot {',
   format(
     [].concat(
-      TYPES.map(type => struct(type)),
-      TYPES.flatMap(type => [get(type), !type.isValueType && getStorage(type)].filter(Boolean)),
+      TYPES.map((type) => struct(type)),
+      TYPES.flatMap((type) => [get(type), !type.isValueType && getStorage(type)].filter(Boolean)),
     ),
   ).trimEnd(),
   '}',

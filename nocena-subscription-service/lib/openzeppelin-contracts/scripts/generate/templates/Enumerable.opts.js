@@ -10,7 +10,7 @@ const typeDescr = ({ type, size = 0, memory = false }) => {
   return { name, type: typeFull, typeLoc, base, size, memory };
 };
 
-const toSetTypeDescr = value => ({
+const toSetTypeDescr = (value) => ({
   name: value.name + 'Set',
   value,
 });
@@ -36,12 +36,14 @@ const MAP_TYPES = []
   .concat(
     // value type maps
     ['uint256', 'address', 'bytes32']
-      .flatMap((keyType, _, array) => array.map(valueType => ({ key: { type: keyType }, value: { type: valueType } })))
+      .flatMap((keyType, _, array) =>
+        array.map((valueType) => ({ key: { type: keyType }, value: { type: valueType } })),
+      )
       .slice(0, -1), // remove bytes32 → bytes32 (last one) that is already defined
     // non-value type maps
     { key: { type: 'bytes', memory: true }, value: { type: 'bytes', memory: true } },
   )
-  .map(entry => mapValues(entry, typeDescr))
+  .map((entry) => mapValues(entry, typeDescr))
   .map(toMapTypeDescr);
 
 module.exports = {

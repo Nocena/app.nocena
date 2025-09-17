@@ -23,7 +23,7 @@ for (const artifact of artifacts) {
       linearized.push(contractDef.linearizedBaseContracts);
 
       contractDef.linearizedBaseContracts.forEach((c1, i, contracts) =>
-        contracts.slice(i + 1).forEach(c2 => {
+        contracts.slice(i + 1).forEach((c2) => {
           graph.setEdge(c1, c2);
         }),
       );
@@ -35,12 +35,12 @@ for (const artifact of artifacts) {
   graph.nodes().forEach((x, i, nodes) =>
     nodes
       .slice(i + 1)
-      .filter(y => graph.hasEdge(x, y) && graph.hasEdge(y, x))
-      .forEach(y => {
+      .filter((y) => graph.hasEdge(x, y) && graph.hasEdge(y, x))
+      .forEach((y) => {
         console.log(`Conflict between ${names[x]} and ${names[y]} detected in the following dependency chains:`);
         linearized
-          .filter(chain => chain.includes(parseInt(x)) && chain.includes(parseInt(y)))
-          .forEach(chain => {
+          .filter((chain) => chain.includes(parseInt(x)) && chain.includes(parseInt(y)))
+          .forEach((chain) => {
             const comp = chain.indexOf(parseInt(x)) < chain.indexOf(parseInt(y)) ? '>' : '<';
             console.log(`- ${names[x]} ${comp} ${names[y]} in ${names[chain.find(Boolean)]}`);
             // console.log(`- ${names[x]} ${comp} ${names[y]}: ${chain.reverse().map(id => names[id]).join(', ')}`);

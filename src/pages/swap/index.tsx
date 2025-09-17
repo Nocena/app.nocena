@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUpDown, ArrowLeft, Wallet, TrendingUp, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, ArrowLeft, Wallet, TrendingUp, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { mockUser } from '../../data/mock';
 import { useRouter } from 'next/router';
-import { Toast } from './components/Toast';
+import { Toast } from '../../components/swap/Toast';
+
 const TokenSwap = () => {
   const router = useRouter();
   const [showToast, setShowToast] = useState(false);
@@ -48,14 +49,10 @@ const TokenSwap = () => {
   ]);
 
   const onSwap = (fromAmount: number, toAmount: number, fromToken: string, toToken: string) => {
-    setUser(prev => ({
+    setUser((prev) => ({
       ...prev,
-      nocenixBalance: fromToken === 'NCX'
-        ? prev.nocenixBalance - fromAmount
-        : prev.nocenixBalance + toAmount,
-      usdtBalance: fromToken === 'USDT'
-        ? prev.usdtBalance - fromAmount
-        : prev.usdtBalance + toAmount,
+      nocenixBalance: fromToken === 'NCX' ? prev.nocenixBalance - fromAmount : prev.nocenixBalance + toAmount,
+      usdtBalance: fromToken === 'USDT' ? prev.usdtBalance - fromAmount : prev.usdtBalance + toAmount,
     }));
   };
 
@@ -63,7 +60,7 @@ const TokenSwap = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
-      setExchangeRate(prev => Math.max(0.75, Math.min(0.85, prev + variation)));
+      setExchangeRate((prev) => Math.max(0.75, Math.min(0.85, prev + variation)));
     }, 5000);
 
     return () => clearInterval(interval);
@@ -125,16 +122,17 @@ const TokenSwap = () => {
         timestamp: new Date().toISOString(),
         status: 'completed' as const,
       };
-      setSwapHistory(prev => [newSwap, ...prev]);
+      setSwapHistory((prev) => [newSwap, ...prev]);
 
       setFromAmount('');
       setToAmount('');
       setIsSwapping(false);
 
       // Show success toast
-      setToastMessage(`Successfully swapped ${fromAmountNum.toLocaleString()} ${fromToken} for ${toAmountNum.toLocaleString()} ${toToken}!`);
+      setToastMessage(
+        `Successfully swapped ${fromAmountNum.toLocaleString()} ${fromToken} for ${toAmountNum.toLocaleString()} ${toToken}!`,
+      );
       setShowToast(true);
-
     }, 2000);
   };
 
@@ -192,7 +190,9 @@ const TokenSwap = () => {
                   <label className="text-sm font-medium text-gray-300">From</label>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Wallet className="w-4 h-4" />
-                    <span>Balance: {getMaxAmount().toLocaleString()} {fromToken}</span>
+                    <span>
+                      Balance: {getMaxAmount().toLocaleString()} {fromToken}
+                    </span>
                     <button
                       onClick={setMaxAmount}
                       className="text-nocenaBlue hover:text-nocenaPink transition-colors duration-200 font-medium"
@@ -209,8 +209,7 @@ const TokenSwap = () => {
                     placeholder="0.00"
                     className="flex-1 bg-transparent text-xl sm:text-2xl font-bold text-white placeholder-gray-500 focus:outline-none w-full sm:w-auto"
                   />
-                  <div
-                    className="flex items-center justify-center space-x-2 bg-gray-700 rounded-lg px-3 py-2 w-full sm:w-auto">
+                  <div className="flex items-center justify-center space-x-2 bg-gray-700 rounded-lg px-3 py-2 w-full sm:w-auto">
                     <img
                       src={`${fromToken === 'NCX' ? '/images/nocena-token.png' : '/images/usdt.png'}`}
                       alt="Token Image"
@@ -237,7 +236,9 @@ const TokenSwap = () => {
                   <label className="text-sm font-medium text-gray-300">To</label>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Wallet className="w-4 h-4" />
-                    <span>Balance: {(toToken === 'NCX' ? user.nocenixBalance : user.usdtBalance).toLocaleString()} {toToken}</span>
+                    <span>
+                      Balance: {(toToken === 'NCX' ? user.nocenixBalance : user.usdtBalance).toLocaleString()} {toToken}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -248,8 +249,7 @@ const TokenSwap = () => {
                     placeholder="0.00"
                     className="flex-1 bg-transparent text-xl sm:text-2xl font-bold text-white placeholder-gray-500 focus:outline-none w-full sm:w-auto"
                   />
-                  <div
-                    className="flex items-center justify-center space-x-2 bg-gray-700 rounded-lg px-3 py-2 w-full sm:w-auto">
+                  <div className="flex items-center justify-center space-x-2 bg-gray-700 rounded-lg px-3 py-2 w-full sm:w-auto">
                     <img
                       src={`${toToken === 'NCX' ? '/images/nocena-token.png' : '/images/usdt.png'}`}
                       alt="Token Image"
@@ -265,8 +265,10 @@ const TokenSwap = () => {
                 <div className="bg-gray-800 rounded-lg p-4 space-y-2">
                   <div className="flex flex-col sm:flex-row justify-between gap-1 sm:gap-0 text-sm">
                     <span className="text-gray-400">Exchange Rate</span>
-                    <span
-                      className="text-white">1 {fromToken} = {fromToken === 'NCX' ? exchangeRate.toFixed(4) : (1 / exchangeRate).toFixed(4)} {toToken}</span>
+                    <span className="text-white">
+                      1 {fromToken} = {fromToken === 'NCX' ? exchangeRate.toFixed(4) : (1 / exchangeRate).toFixed(4)}{' '}
+                      {toToken}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row justify-between gap-1 sm:gap-0 text-sm">
                     <span className="text-gray-400">Network Fee</span>
@@ -277,7 +279,9 @@ const TokenSwap = () => {
                   </div>
                   <div className="flex flex-col sm:flex-row justify-between gap-1 sm:gap-0 text-sm">
                     <span className="text-gray-400">You'll receive</span>
-                    <span className="text-nocenaPink font-medium">{toAmount} {toToken}</span>
+                    <span className="text-nocenaPink font-medium">
+                      {toAmount} {toToken}
+                    </span>
                   </div>
                 </div>
               )}
@@ -309,11 +313,7 @@ const TokenSwap = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src="/images/nocena-token.png"
-                    alt="NOCENIX"
-                    className="w-8 h-8 rounded-full"
-                  />
+                  <img src="/images/nocena-token.png" alt="NOCENIX" className="w-8 h-8 rounded-full" />
                   <div>
                     <p className="text-white font-medium">Nocenix</p>
                     <p className="text-gray-400 text-sm">NCX</p>
@@ -327,11 +327,7 @@ const TokenSwap = () => {
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src="/images/usdt.png"
-                    alt="USDT"
-                    className="w-8 h-8 rounded-full"
-                  />
+                  <img src="/images/usdt.png" alt="USDT" className="w-8 h-8 rounded-full" />
                   <div>
                     <p className="text-white font-medium">Tether</p>
                     <p className="text-gray-400 text-sm">USDT</p>
@@ -384,36 +380,22 @@ const TokenSwap = () => {
         <h3 className="text-lg font-bold text-white mb-6">Recent Swaps</h3>
         <div className="space-y-4">
           {swapHistory.map((swap) => (
-            <div key={swap.id}
-                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-800 rounded-lg">
+            <div
+              key={swap.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-800 rounded-lg"
+            >
               <div className="flex items-center space-x-4 min-w-0 flex-1">
                 <div className="flex items-center space-x-2">
                   {swap.from === 'NCX' ? (
-                    <img
-                      src="/images/nocena-token.png"
-                      alt="NOCENIX"
-                      className="w-6 h-6 rounded-full"
-                    />
+                    <img src="/images/nocena-token.png" alt="NOCENIX" className="w-6 h-6 rounded-full" />
                   ) : (
-                    <img
-                      src="/images/usdt.png"
-                      alt="USDT"
-                      className="w-6 h-6 rounded-full"
-                    />
+                    <img src="/images/usdt.png" alt="USDT" className="w-6 h-6 rounded-full" />
                   )}
                   <ArrowUpDown className="w-4 h-4 text-gray-400" />
                   {swap.to === 'NCX' ? (
-                    <img
-                      src="/images/nocena-token.png"
-                      alt="NOCENIX"
-                      className="w-6 h-6 rounded-full"
-                    />
+                    <img src="/images/nocena-token.png" alt="NOCENIX" className="w-6 h-6 rounded-full" />
                   ) : (
-                    <img
-                      src="/images/usdt.png"
-                      alt="USDT"
-                      className="w-6 h-6 rounded-full"
-                    />
+                    <img src="/images/usdt.png" alt="USDT" className="w-6 h-6 rounded-full" />
                   )}
                 </div>
                 <div>

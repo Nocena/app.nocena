@@ -16,7 +16,7 @@ async function fixture() {
   const target = await ethers.deployContract('CallReceiverMock');
 
   // ERC-4337 signer
-  const signer = new NonNativeSigner({ sign: hash => ({ serialized: hash }) });
+  const signer = new NonNativeSigner({ sign: (hash) => ({ serialized: hash }) });
 
   // ERC-4337 account
   const helper = new ERC4337Helper();
@@ -28,10 +28,10 @@ async function fixture() {
   // domain cannot be fetched using getDomain(mock) before the mock is deployed
   const domain = { name: 'Account', version: '1', chainId: entrypointDomain.chainId, verifyingContract: mock.address };
 
-  const signUserOp = async userOp =>
+  const signUserOp = async (userOp) =>
     signer
       .signTypedData(entrypointDomain, { PackedUserOperation }, userOp.packed)
-      .then(signature => Object.assign(userOp, { signature }));
+      .then((signature) => Object.assign(userOp, { signature }));
 
   return { helper, mock, domain, signer, target, beneficiary, other, signUserOp };
 }

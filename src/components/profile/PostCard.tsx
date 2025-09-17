@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share, Lock, Play, Eye } from 'lucide-react';
-import { Post, MembershipTier } from '../../../lib/types';
-import { useRouter } from 'next/router';
+import { Post } from '../../lib/types';
 
 interface PostCardProps {
   post: Post;
@@ -13,13 +12,13 @@ interface PostCardProps {
 }
 
 export const PostCard: React.FC<PostCardProps> = ({
-                                                    post,
-                                                    hasAccess,
-                                                    onSubscribe,
-                                                    onLike,
-                                                    onClick,
-                                                    justShowLocked = false,
-                                                  }) => {
+  post,
+  hasAccess,
+  onSubscribe,
+  onLike,
+  onClick,
+  justShowLocked = false,
+}) => {
   const [isLiked, setIsLiked] = useState(false);
 
   const handleLike = () => {
@@ -31,7 +30,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -44,19 +43,19 @@ export const PostCard: React.FC<PostCardProps> = ({
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <img
-            src={post.creator.profilePicture}
+            src={post.creator.avatar}
             alt={post.creator.username}
             className="w-10 h-10 rounded-full border-2 border-nocenaPurple"
           />
           <div>
             <h3 className="text-white font-semibold">{post.creator.username}</h3>
-            <p className="text-gray-400 text-sm">@{post.creator.username} • {formatDate(post.createdAt)}</p>
+            <p className="text-gray-400 text-sm">
+              @{post.creator.username} • {formatDate(post.createdAt)}
+            </p>
           </div>
         </div>
         {!post.isPublic && post.tierRequired && (
-          <div className={`px-3 py-1 rounded-full text-xs font-semibold text-white`}>
-            {post.tierRequired.name}
-          </div>
+          <div className={`px-3 py-1 rounded-full text-xs font-semibold text-white`}>{post.tierRequired.name}</div>
         )}
       </div>
 
@@ -82,7 +81,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                     className={`w-full h-64 object-cover ${!hasAccess ? 'filter blur-sm' : ''}`}
                   />
                 )}
-{/*
+                {/*
                 {post.tierRequired && (
                   <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
                     <div className="text-center">
@@ -111,16 +110,9 @@ export const PostCard: React.FC<PostCardProps> = ({
             ) : (
               <div className="relative">
                 {post.mediaType === 'video' ? (
-                  <video
-                    src={post.mediaUrl}
-                    className="w-full h-64 object-cover filter blur-sm"
-                  />
+                  <video src={post.mediaUrl} className="w-full h-64 object-cover filter blur-sm" />
                 ) : (
-                  <img
-                    src={post.mediaUrl}
-                    alt={post.title}
-                    className="w-full h-64 object-cover filter blur-sm"
-                  />
+                  <img src={post.mediaUrl} alt={post.title} className="w-full h-64 object-cover filter blur-sm" />
                 )}
                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
                   <div className="text-center">

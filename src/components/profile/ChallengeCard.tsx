@@ -1,22 +1,20 @@
 import React, { useCallback, useRef } from 'react';
 import { Clock, Heart, Play, Star } from 'lucide-react';
-import { completionItem } from '../../../lib/types';
+import { completionItem } from '../../lib/types';
 
 interface ChallengeCardProps {
   challenge: completionItem;
   onClick?: (challenge: completionItem) => void;
 }
 
-export const ChallengeCard: React.FC<ChallengeCardProps> = ({
-                                                              challenge,
-                                                              onClick }) => {
+export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge, onClick }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playButtonRef = useRef<HTMLDivElement>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -83,14 +81,11 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
             style={{ display: 'none' }}
           >
-            <button
-              className="bg-nocenaPink hover:bg-nocenaPurple text-white p-4 rounded-full transition-colors duration-200"
-            >
+            <button className="bg-nocenaPink hover:bg-nocenaPurple text-white p-4 rounded-full transition-colors duration-200">
               <Play className="w-6 h-6 fill-current" />
             </button>
           </div>
         </>
-
 
         {/* Creator Avatar - Top Right */}
         <div className="absolute top-3 right-3">
@@ -102,7 +97,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
         </div>
 
         {/* Play Button Overlay */}
-{/*
+        {/*
         <div
           className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
@@ -118,14 +113,10 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
       {/* Content */}
       <div className="p-4">
         {/* Title */}
-        <h3 className="text-lg font-bold text-white mb-2 line-clamp-1">
-          {challenge.challenge.title}
-        </h3>
+        <h3 className="text-lg font-bold text-white mb-2 line-clamp-1">{challenge.challenge.title}</h3>
 
         {/* Description */}
-        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-          {challenge.challenge.description}
-        </p>
+        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{challenge.challenge.description}</p>
 
         {/* Stats Row */}
         <div className="flex items-center justify-between text-sm">
@@ -140,14 +131,8 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            <img
-              src="/images/nocena-token.png"
-              alt="Token Image"
-              className="w-5 h-5 rounded-full"
-            />
-            <span className="text-nocenaBlue font-bold">
-              {challenge.challenge.reward} NCX
-            </span>
+            <img src="/images/nocena-token.png" alt="Token Image" className="w-5 h-5 rounded-full" />
+            <span className="text-nocenaBlue font-bold">{challenge.challenge.reward} NCX</span>
           </div>
         </div>
       </div>

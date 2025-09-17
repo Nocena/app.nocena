@@ -7,11 +7,7 @@ interface CreateTierModalProps {
   onCreateTier: (tierData: any) => Promise<void>;
 }
 
-export const CreateTierModal: React.FC<CreateTierModalProps> = ({
-                                                                  isOpen,
-                                                                  onClose,
-                                                                  onCreateTier,
-                                                                }) => {
+export const CreateTierModal: React.FC<CreateTierModalProps> = ({ isOpen, onClose, onCreateTier }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -46,12 +42,12 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
       name,
       price: parseInt(price),
       description,
-      benefits: benefits.filter(benefit => benefit.trim() !== ''),
+      benefits: benefits.filter((benefit) => benefit.trim() !== ''),
     };
 
-    setIsAdding(true)
+    setIsAdding(true);
     await onCreateTier(tierData);
-    setIsAdding(false)
+    setIsAdding(false);
 
     // Reset form
     setName('');
@@ -75,10 +71,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
             <Crown className="w-6 h-6 text-nocenaPink" />
             <h2 className="text-xl font-bold text-white">Create New Tier</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors duration-200"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors duration-200">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -87,9 +80,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
         <div className="p-6 space-y-6">
           {/* Tier Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Tier Name *
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Tier Name *</label>
             <input
               type="text"
               value={name}
@@ -101,9 +92,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
 
           {/* Monthly Price */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Monthly Price (NCX) *
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Monthly Price (NCX) *</label>
             <div className="relative">
               {/*<DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />*/}
               <input
@@ -119,9 +108,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description *
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
             <div className="relative">
               <FileText className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <textarea
@@ -137,9 +124,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
           {/* Benefits */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-300">
-                Benefits (Optional)
-              </label>
+              <label className="block text-sm font-medium text-gray-300">Benefits (Optional)</label>
               <button
                 onClick={addBenefit}
                 className="flex items-center space-x-1 text-nocenaBlue hover:text-nocenaPink transition-colors duration-200 text-sm"
@@ -178,27 +163,36 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
             <h4 className="text-white font-medium mb-2">Preview</h4>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  selectedColor === 'common' ? 'bg-rarityCommon' :
-                    selectedColor === 'uncommon' ? 'bg-rarityUncommon' :
-                      selectedColor === 'rare' ? 'bg-rarityRare' :
-                        selectedColor === 'epic' ? 'bg-rarityEpic' : 'bg-rarityLegendary'
-                }`}></div>
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    selectedColor === 'common'
+                      ? 'bg-rarityCommon'
+                      : selectedColor === 'uncommon'
+                        ? 'bg-rarityUncommon'
+                        : selectedColor === 'rare'
+                          ? 'bg-rarityRare'
+                          : selectedColor === 'epic'
+                            ? 'bg-rarityEpic'
+                            : 'bg-rarityLegendary'
+                  }`}
+                ></div>
                 <span className="text-white font-semibold">{name || 'Tier Name'}</span>
                 <span className="text-gray-400">•</span>
                 <span className="text-nocenaPink font-medium">{price || '0'} NCX/month</span>
               </div>
               <p className="text-gray-300 text-sm">{description || 'Tier description will appear here...'}</p>
-              {benefits.filter(b => b.trim()).length > 0 && (
+              {benefits.filter((b) => b.trim()).length > 0 && (
                 <div className="mt-2">
                   <p className="text-gray-400 text-xs mb-1">Benefits:</p>
                   <ul className="text-gray-300 text-xs space-y-1">
-                    {benefits.filter(b => b.trim()).map((benefit, index) => (
-                      <li key={index} className="flex items-center space-x-1">
-                        <span className="text-nocenaBlue">•</span>
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
+                    {benefits
+                      .filter((b) => b.trim())
+                      .map((benefit, index) => (
+                        <li key={index} className="flex items-center space-x-1">
+                          <span className="text-nocenaBlue">•</span>
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
                   </ul>
                 </div>
               )}
@@ -208,10 +202,7 @@ export const CreateTierModal: React.FC<CreateTierModalProps> = ({
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 text-gray-400 hover:text-white transition-colors duration-200"
-          >
+          <button onClick={onClose} className="px-6 py-2 text-gray-400 hover:text-white transition-colors duration-200">
             Cancel
           </button>
           <button

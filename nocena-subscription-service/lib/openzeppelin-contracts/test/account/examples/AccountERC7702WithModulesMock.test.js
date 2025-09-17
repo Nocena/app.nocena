@@ -53,10 +53,10 @@ describe('AccountERC7702WithModules: ERC-7702 account with ERC-7579 modules supp
   describe('using ERC-7702 signer', function () {
     beforeEach(async function () {
       this.signer = this.eoa;
-      this.signUserOp = userOp =>
+      this.signUserOp = (userOp) =>
         this.signer
           .signTypedData(this.entrypointDomain, { PackedUserOperation }, userOp.packed)
-          .then(signature => Object.assign(userOp, { signature }));
+          .then((signature) => Object.assign(userOp, { signature }));
     });
 
     shouldBehaveLikeAccountCore();
@@ -69,19 +69,19 @@ describe('AccountERC7702WithModules: ERC-7702 account with ERC-7579 modules supp
     beforeEach(async function () {
       // signer that adds a prefix to all signatures (except the userOp ones)
       this.signer = ethers.Wallet.createRandom();
-      this.signer.signMessage = message =>
+      this.signer.signMessage = (message) =>
         ethers.Wallet.prototype.signMessage
           .bind(this.signer)(message)
-          .then(sign => ethers.concat([this.validator.target, sign]));
+          .then((sign) => ethers.concat([this.validator.target, sign]));
       this.signer.signTypedData = (domain, types, values) =>
         ethers.Wallet.prototype.signTypedData
           .bind(this.signer)(domain, types, values)
-          .then(sign => ethers.concat([this.validator.target, sign]));
+          .then((sign) => ethers.concat([this.validator.target, sign]));
 
-      this.signUserOp = userOp =>
+      this.signUserOp = (userOp) =>
         ethers.Wallet.prototype.signTypedData
           .bind(this.signer)(this.entrypointDomain, { PackedUserOperation }, userOp.packed)
-          .then(signature => Object.assign(userOp, { signature }));
+          .then((signature) => Object.assign(userOp, { signature }));
 
       // Use the first 20 bytes from the nonce key (24 bytes) to identify the validator module
       this.userOp = { nonce: ethers.zeroPadBytes(ethers.hexlify(this.validator.target), 32) };

@@ -223,8 +223,8 @@ describe('ERC4626', function () {
   });
 
   for (const offset of [0n, 6n, 18n]) {
-    const parseToken = token => token * 10n ** decimals;
-    const parseShare = share => share * 10n ** (decimals + offset);
+    const parseToken = (token) => token * 10n ** decimals;
+    const parseShare = (share) => share * 10n ** (decimals + offset);
 
     const virtualAssets = 1n;
     const virtualShares = 10n ** offset;

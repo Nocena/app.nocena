@@ -173,9 +173,9 @@ function shouldBehaveLikeERC721() {
           it('keeps same tokens by index', async function () {
             if (!this.token.tokenOfOwnerByIndex) return;
 
-            expect(await Promise.all([0n, 1n].map(i => this.token.tokenOfOwnerByIndex(this.owner, i)))).to.have.members(
-              [firstTokenId, secondTokenId],
-            );
+            expect(
+              await Promise.all([0n, 1n].map((i) => this.token.tokenOfOwnerByIndex(this.owner, i))),
+            ).to.have.members([firstTokenId, secondTokenId]);
           });
         });
 
@@ -800,10 +800,9 @@ function shouldBehaveLikeERC721Enumerable() {
         it('returns correct token IDs for target', async function () {
           expect(await this.token.balanceOf(this.other)).to.equal(2n);
 
-          expect(await Promise.all([0n, 1n].map(i => this.token.tokenOfOwnerByIndex(this.other, i)))).to.have.members([
-            firstTokenId,
-            secondTokenId,
-          ]);
+          expect(await Promise.all([0n, 1n].map((i) => this.token.tokenOfOwnerByIndex(this.other, i)))).to.have.members(
+            [firstTokenId, secondTokenId],
+          );
         });
 
         it('returns empty collection for original owner', async function () {
@@ -817,7 +816,7 @@ function shouldBehaveLikeERC721Enumerable() {
 
     describe('tokenByIndex', function () {
       it('returns all tokens', async function () {
-        expect(await Promise.all([0n, 1n].map(i => this.token.tokenByIndex(i)))).to.have.members([
+        expect(await Promise.all([0n, 1n].map((i) => this.token.tokenByIndex(i)))).to.have.members([
           firstTokenId,
           secondTokenId,
         ]);
@@ -840,8 +839,8 @@ function shouldBehaveLikeERC721Enumerable() {
 
           expect(await this.token.totalSupply()).to.equal(3n);
 
-          expect(await Promise.all([0n, 1n, 2n].map(i => this.token.tokenByIndex(i))))
-            .to.have.members([firstTokenId, secondTokenId, newTokenId, anotherNewTokenId].filter(x => x !== tokenId))
+          expect(await Promise.all([0n, 1n, 2n].map((i) => this.token.tokenByIndex(i))))
+            .to.have.members([firstTokenId, secondTokenId, newTokenId, anotherNewTokenId].filter((x) => x !== tokenId))
             .to.not.include(tokenId);
         });
       }

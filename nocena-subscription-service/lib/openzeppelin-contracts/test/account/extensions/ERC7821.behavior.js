@@ -46,8 +46,8 @@ function shouldBehaveLikeERC7821({ deployable = true } = {}) {
                 data: this.target.interface.encodeFunctionData('mockFunctionExtra'),
               }),
             })
-            .then(op => op.addInitCode())
-            .then(op => this.signUserOp(op));
+            .then((op) => op.addInitCode())
+            .then((op) => this.signUserOp(op));
 
           // Can't call the account to get its nonce before it's deployed
           await expect(entrypoint.v08.getNonce(this.mock.target, 0)).to.eventually.equal(0);
@@ -68,7 +68,7 @@ function shouldBehaveLikeERC7821({ deployable = true } = {}) {
                 data: this.target.interface.encodeFunctionData('mockFunctionExtra'),
               }),
             })
-            .then(op => op.addInitCode());
+            .then((op) => op.addInitCode());
 
           operation.signature = '0x00';
 
@@ -91,7 +91,7 @@ function shouldBehaveLikeERC7821({ deployable = true } = {}) {
               data: this.target.interface.encodeFunctionData('mockFunctionExtra'),
             }),
           })
-          .then(op => this.signUserOp(op));
+          .then((op) => this.signUserOp(op));
 
         await expect(this.mock.getNonce()).to.eventually.equal(0);
         await expect(entrypoint.v08.handleOps([operation.packed], this.beneficiary))
@@ -103,7 +103,7 @@ function shouldBehaveLikeERC7821({ deployable = true } = {}) {
       it('should support sending eth to an EOA', async function () {
         const operation = await this.mock
           .createUserOp({ callData: this.encodeUserOpCalldata({ target: this.other, value: 42 }) })
-          .then(op => this.signUserOp(op));
+          .then((op) => this.signUserOp(op));
 
         await expect(this.mock.getNonce()).to.eventually.equal(0);
         await expect(entrypoint.v08.handleOps([operation.packed], this.beneficiary)).to.changeEtherBalance(
@@ -128,7 +128,7 @@ function shouldBehaveLikeERC7821({ deployable = true } = {}) {
               },
             ),
           })
-          .then(op => this.signUserOp(op));
+          .then((op) => this.signUserOp(op));
 
         await expect(this.mock.getNonce()).to.eventually.equal(0);
         const tx = entrypoint.v08.handleOps([operation.packed], this.beneficiary);

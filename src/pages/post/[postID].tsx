@@ -37,7 +37,7 @@ const PostDetailView: React.FC = () => {
     creator: {
       id: '',
       username: '',
-      profilePicture: '',
+      avatar: '',
     },
     title: '',
     content: '',
@@ -46,7 +46,7 @@ const PostDetailView: React.FC = () => {
     isPublic: true,
     likes: 0,
     comments: 0,
-    createdAt: (new Date()).toISOString(),
+    createdAt: new Date().toISOString(),
     tags: [],
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -88,24 +88,21 @@ const PostDetailView: React.FC = () => {
   }, [postID, currentUser]);
 
   const hasAccess = useMemo(() => {
-    if (!post) return false
+    if (!post) return false;
     if (post.isPublic) return true;
     if (post.creator.id === currentUser?.id) return true;
     if (!post.tierRequired) return true;
     return subscribedTiers.includes(post.tierRequired.id);
   }, [post, subscribedTiers, currentUser]);
 
-  console.log("post", post)
-  console.log("subscribedTiers", subscribedTiers)
+  console.log('post', post);
+  console.log('subscribedTiers', subscribedTiers);
 
-  const onSubscribe = () => {
-
-  };
+  const onSubscribe = () => {};
 
   const handleSubscribeClick = () => {
     setIsSubscriptionModalOpen(true);
   };
-
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -116,7 +113,6 @@ const PostDetailView: React.FC = () => {
       minute: '2-digit',
     });
   };
-
 
   if (isLoading) {
     return (
@@ -158,7 +154,7 @@ const PostDetailView: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <img
-                src={post.creator.profilePicture}
+                src={post.creator.avatar}
                 alt={post.creator.username}
                 className="w-12 h-12 rounded-full border-2 border-nocenaPurple"
               />
@@ -168,10 +164,7 @@ const PostDetailView: React.FC = () => {
               </div>
             </div>
             {post.tierRequired && (
-              <div
-                className={`px-4 py-2 rounded-full text-sm font-semibold text-white`}>
-                {post.tierRequired.name}
-              </div>
+              <div className={`px-4 py-2 rounded-full text-sm font-semibold text-white`}>{post.tierRequired.name}</div>
             )}
           </div>
 
@@ -229,7 +222,8 @@ const PostDetailView: React.FC = () => {
         <div className="p-6">
           <div className="prose prose-invert max-w-none">
             <p
-              className={`text-gray-300 text-lg leading-relaxed whitespace-pre-wrap ${!hasAccess ? 'filter blur-sm' : ''}`}>
+              className={`text-gray-300 text-lg leading-relaxed whitespace-pre-wrap ${!hasAccess ? 'filter blur-sm' : ''}`}
+            >
               {post.content}
             </p>
           </div>
@@ -249,7 +243,8 @@ const PostDetailView: React.FC = () => {
           {/* Tags */}
           {post.tags.length > 0 && (
             <div
-              className={`flex flex-wrap gap-3 mt-8 pt-6 border-t border-gray-800 ${!hasAccess ? 'filter blur-sm' : ''}`}>
+              className={`flex flex-wrap gap-3 mt-8 pt-6 border-t border-gray-800 ${!hasAccess ? 'filter blur-sm' : ''}`}
+            >
               {post.tags.map((tag, index) => (
                 <span
                   key={index}
@@ -275,14 +270,12 @@ const PostDetailView: React.FC = () => {
               <span className="text-lg">{post.likes + (isLiked ? 1 : 0)}</span>
             </button>
 
-            <button
-              className="flex items-center space-x-2 text-gray-400 hover:text-nocenaBlue transition-colors duration-200">
+            <button className="flex items-center space-x-2 text-gray-400 hover:text-nocenaBlue transition-colors duration-200">
               <MessageCircle className="w-6 h-6" />
               <span className="text-lg">{post.comments}</span>
             </button>
 
-            <button
-              className="flex items-center space-x-2 text-gray-400 hover:text-nocenaPurple transition-colors duration-200">
+            <button className="flex items-center space-x-2 text-gray-400 hover:text-nocenaPurple transition-colors duration-200">
               <Share className="w-6 h-6" />
               <span>Share</span>
             </button>

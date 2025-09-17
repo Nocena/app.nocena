@@ -12,7 +12,7 @@ const RoundingDown = [Rounding.Floor, Rounding.Trunc];
 const RoundingUp = [Rounding.Ceil, Rounding.Expand];
 
 const bytes = (value, width = undefined) => ethers.Typed.bytes(ethers.toBeHex(value, width));
-const uint256 = value => ethers.Typed.uint256(value);
+const uint256 = (value) => ethers.Typed.uint256(value);
 bytes.zero = '0x';
 uint256.zero = 0n;
 
@@ -22,7 +22,7 @@ const testCommutative = (fn, lhs, rhs, expected, ...extra) =>
     expect(fn(rhs, lhs, ...extra)).to.eventually.deep.equal(expected),
   ]);
 
-const splitHighLow = n => [n / (1n << 256n), n % (1n << 256n)];
+const splitHighLow = (n) => [n / (1n << 256n), n % (1n << 256n)];
 
 async function fixture() {
   const mock = await ethers.deployContract('$Math');
@@ -468,7 +468,7 @@ describe('Math', function () {
 
         if (p != 0) {
           for (const value of Array.from({ length: 16 }, generators.uint256)) {
-            const isInversible = factors.every(f => value % f);
+            const isInversible = factors.every((f) => value % f);
             it(`trying to inverse ${value}`, async function () {
               const result = await this.mock.$invMod(value, p);
               if (isInversible) {
@@ -508,9 +508,9 @@ describe('Math', function () {
 
     describe('with large bytes inputs', function () {
       for (const [[b, log2b], [e, log2e], [m, log2m]] of product(
-        range(320, 512, 64).map(e => [2n ** BigInt(e) + 1n, e]),
-        range(320, 512, 64).map(e => [2n ** BigInt(e) + 1n, e]),
-        range(320, 512, 64).map(e => [2n ** BigInt(e) + 1n, e]),
+        range(320, 512, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
+        range(320, 512, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
+        range(320, 512, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
       )) {
         it(`calculates b ** e % m (b=2**${log2b}+1) (e=2**${log2e}+1) (m=2**${log2m}+1)`, async function () {
           const mLength = ethers.dataLength(ethers.toBeHex(m));
@@ -549,9 +549,9 @@ describe('Math', function () {
 
     describe('with large bytes inputs', function () {
       for (const [[b, log2b], [e, log2e], [m, log2m]] of product(
-        range(320, 513, 64).map(e => [2n ** BigInt(e) + 1n, e]),
-        range(320, 513, 64).map(e => [2n ** BigInt(e) + 1n, e]),
-        range(320, 513, 64).map(e => [2n ** BigInt(e) + 1n, e]),
+        range(320, 513, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
+        range(320, 513, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
+        range(320, 513, 64).map((e) => [2n ** BigInt(e) + 1n, e]),
       )) {
         it(`calculates b ** e % m (b=2**${log2b}+1) (e=2**${log2e}+1) (m=2**${log2m}+1)`, async function () {
           const mLength = ethers.dataLength(ethers.toBeHex(m));

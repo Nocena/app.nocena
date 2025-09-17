@@ -7,7 +7,7 @@ function isExpectedError(e, suffix) {
 
 // Modifies the artifact require functions so that instead of X it loads the XUpgradeable contract.
 // This allows us to run the same test suite on both the original and the transpiled and renamed Upgradeable contracts.
-extendEnvironment(hre => {
+extendEnvironment((hre) => {
   const suffixes = ['UpgradeableWithInit', 'Upgradeable', ''];
 
   // Ethers

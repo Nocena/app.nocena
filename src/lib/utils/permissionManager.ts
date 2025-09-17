@@ -493,4 +493,3 @@ export class PWAPermissionManager {
     await this.checkAllPermissions();
   }
 }
-

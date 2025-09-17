@@ -20,10 +20,10 @@ const rules = [
   'visibility-modifier-order',
   'interface-starts-with-i',
   'duplicated-imports',
-  ...customRules.map(r => `openzeppelin/${r.ruleId}`),
+  ...customRules.map((r) => `openzeppelin/${r.ruleId}`),
 ];
 
 module.exports = {
   plugins: ['openzeppelin'],
-  rules: Object.fromEntries(rules.map(r => [r, 'error'])),
+  rules: Object.fromEntries(rules.map((r) => [r, 'error'])),
 };

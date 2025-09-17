@@ -17,7 +17,7 @@ const BrowsingPage: React.FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
-  console.log("completions", completions)
+  console.log('completions', completions);
 
   useEffect(() => {
     // Always fetch completions, with or without challengeId

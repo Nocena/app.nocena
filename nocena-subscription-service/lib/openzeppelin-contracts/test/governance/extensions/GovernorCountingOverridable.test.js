@@ -20,8 +20,8 @@ const votingDelay = 4n;
 const votingPeriod = 16n;
 const value = ethers.parseEther('1');
 
-const signBallot = account => (contract, message) =>
-  getDomain(contract).then(domain => account.signTypedData(domain, { OverrideBallot }, message));
+const signBallot = (account) => (contract, message) =>
+  getDomain(contract).then((domain) => account.signTypedData(domain, { OverrideBallot }, message));
 
 describe('GovernorCountingOverridable', function () {
   for (const { Token, mode } of TOKENS) {
@@ -125,7 +125,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter2, this.helper.id, VoteType.For, ethers.parseEther('19'), ''); // 10 + 7 + 2
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [0, 19, 0].map(x => ethers.parseEther(x.toString())),
+            [0, 19, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter2)).to.be.true;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter2)).to.be.false;
@@ -140,7 +140,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter2, this.helper.id, VoteType.For, ethers.parseEther('10'));
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 9, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 9, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter1)).to.be.false;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter1)).to.be.true;
@@ -165,7 +165,7 @@ describe('GovernorCountingOverridable', function () {
             .to.not.emit(this.mock, 'VoteReduced');
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 0, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 0, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter1)).to.be.false;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter1)).to.be.true;
@@ -177,7 +177,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter2, this.helper.id, VoteType.For, ethers.parseEther('9'), ''); // 7 + 2
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 9, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 9, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter2)).to.be.true;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter2)).to.be.false;
@@ -202,7 +202,7 @@ describe('GovernorCountingOverridable', function () {
             .to.not.emit(this.mock, 'VoteReduced');
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 0, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 0, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter1)).to.be.false;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter1)).to.be.true;
@@ -214,7 +214,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter2, this.helper.id, VoteType.For, ethers.parseEther('9'), ''); // 7 + 2
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 9, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 9, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter2)).to.be.true;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter2)).to.be.false;
@@ -229,7 +229,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter2, this.helper.id, VoteType.For, ethers.parseEther('2'));
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 7, 2].map(x => ethers.parseEther(x.toString())),
+            [10, 7, 2].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter4)).to.be.false;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter4)).to.be.true;
@@ -237,7 +237,7 @@ describe('GovernorCountingOverridable', function () {
 
         it('vote (with delegated balance) and override (with self balance) are independent', async function () {
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [0, 0, 0].map(x => ethers.parseEther(x.toString())),
+            [0, 0, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter1)).to.be.false;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter1)).to.be.false;
@@ -253,7 +253,7 @@ describe('GovernorCountingOverridable', function () {
             .withArgs(this.voter1, this.helper.id, VoteType.Against, ethers.parseEther('10'), '');
 
           expect(await this.mock.proposalVotes(this.helper.id)).to.deep.eq(
-            [10, 5, 0].map(x => ethers.parseEther(x.toString())),
+            [10, 5, 0].map((x) => ethers.parseEther(x.toString())),
           );
           expect(await this.mock.hasVoted(this.helper.id, this.voter1)).to.be.true;
           expect(await this.mock.hasVotedOverride(this.helper.id, this.voter1)).to.be.true;

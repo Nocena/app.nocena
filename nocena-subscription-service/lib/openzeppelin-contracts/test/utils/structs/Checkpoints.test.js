@@ -105,7 +105,7 @@ describe('Checkpoints', function () {
 
         it('lower lookup', async function () {
           for (let i = 0; i < 14; ++i) {
-            const value = this.checkpoints.find(x => i <= x.key)?.value || 0n;
+            const value = this.checkpoints.find((x) => i <= x.key)?.value || 0n;
 
             expect(await this.methods.lowerLookup(i)).to.equal(value);
           }
@@ -113,7 +113,7 @@ describe('Checkpoints', function () {
 
         it('upper lookup & upperLookupRecent', async function () {
           for (let i = 0; i < 14; ++i) {
-            const value = this.checkpoints.findLast(x => i >= x.key)?.value || 0n;
+            const value = this.checkpoints.findLast((x) => i >= x.key)?.value || 0n;
 
             expect(await this.methods.upperLookup(i)).to.equal(value);
             expect(await this.methods.upperLookupRecent(i)).to.equal(value);
@@ -135,7 +135,7 @@ describe('Checkpoints', function () {
           }
 
           for (let i = 0; i < 25; ++i) {
-            const value = allCheckpoints.findLast(x => i >= x.key)?.value || 0n;
+            const value = allCheckpoints.findLast((x) => i >= x.key)?.value || 0n;
             expect(await this.methods.upperLookup(i)).to.equal(value);
             expect(await this.methods.upperLookupRecent(i)).to.equal(value);
           }

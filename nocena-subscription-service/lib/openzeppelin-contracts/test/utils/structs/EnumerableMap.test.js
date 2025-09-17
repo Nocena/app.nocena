@@ -23,7 +23,7 @@ async function fixture() {
         values: Array.from({ length: 3 }, generators[value.type]),
         zeroValue: generators[value.type].zero,
         methods: mapValues(
-          MAP_TYPES.filter(map => map.key.name == key.name).length == 1
+          MAP_TYPES.filter((map) => map.key.name == key.name).length == 1
             ? {
                 set: `$set(uint256,${key.type},${value.type})`,
                 get: `$get(uint256,${key.type})`,
@@ -48,7 +48,7 @@ async function fixture() {
                 keys: `$keys_EnumerableMap_${name}(uint256)`,
                 keysPage: `$keys_EnumerableMap_${name}(uint256,uint256,uint256)`,
               },
-          fnSig =>
+          (fnSig) =>
             (...args) =>
               mock.getFunction(fnSig)(0, ...args),
         ),

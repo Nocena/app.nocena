@@ -28,7 +28,7 @@ module.exports = format(
     [].concat(
       'using TransientSlot for *;',
       '',
-      TYPES.filter(type => type.isValueType).map(type => transient(type)),
+      TYPES.filter((type) => type.isValueType).map((type) => transient(type)),
     ),
   ).trimEnd(),
   '}',

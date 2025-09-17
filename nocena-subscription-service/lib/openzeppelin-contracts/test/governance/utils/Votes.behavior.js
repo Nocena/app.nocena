@@ -15,7 +15,7 @@ function shouldBehaveLikeVotes(tokens, { mode = 'blocknumber', fungible = true }
 
   shouldBehaveLikeERC6372(mode);
 
-  const getWeight = token => (fungible ? token : 1n);
+  const getWeight = (token) => (fungible ? token : 1n);
 
   describe('run votes workflow', function () {
     it('initial nonce is 0', async function () {
@@ -164,7 +164,7 @@ function shouldBehaveLikeVotes(tokens, { mode = 'blocknumber', fungible = true }
           const receipt = await tx.wait();
 
           const [delegateChanged] = receipt.logs.filter(
-            log => this.votes.interface.parseLog(log)?.name === 'DelegateChanged',
+            (log) => this.votes.interface.parseLog(log)?.name === 'DelegateChanged',
           );
           const { args } = this.votes.interface.parseLog(delegateChanged);
           expect(args.delegator).to.not.be.equal(this.delegator);
@@ -229,7 +229,7 @@ function shouldBehaveLikeVotes(tokens, { mode = 'blocknumber', fungible = true }
       });
 
       it('returns the correct checkpointed total supply', async function () {
-        const weight = tokens.map(token => getWeight(token));
+        const weight = tokens.map((token) => getWeight(token));
 
         // t0 = mint #0
         const t0 = await this.votes.$_mint(this.alice, tokens[0]);

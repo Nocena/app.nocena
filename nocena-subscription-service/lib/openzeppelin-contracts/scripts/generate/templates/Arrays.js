@@ -15,7 +15,7 @@ import {Math} from "./math/Math.sol";
  */
 `;
 
-const sort = type => `\
+const sort = (type) => `\
 /**
  * @dev Sort an array of ${type.name} (in memory) following the provided comparator function.
  *
@@ -125,7 +125,7 @@ function _swap(uint256 ptr1, uint256 ptr2) private pure {
 }
 `;
 
-const castArray = type => `\
+const castArray = (type) => `\
 /// @dev Helper: low level cast ${type.name} memory array to uint256 memory array
 function _castToUint256Array(${type.name}[] memory input) private pure returns (uint256[] memory output) {
     assembly {
@@ -134,7 +134,7 @@ function _castToUint256Array(${type.name}[] memory input) private pure returns (
 }
 `;
 
-const castComparator = type => `\
+const castComparator = (type) => `\
 /// @dev Helper: low level cast ${type.name} comp function to uint256 comp function
 function _castToUint256Comp(
     function(${type.name}, ${type.name}) pure returns (bool) input
@@ -314,7 +314,7 @@ function upperBoundMemory(uint256[] memory array, uint256 element) internal pure
 }
 `;
 
-const unsafeAccessStorage = type => `\
+const unsafeAccessStorage = (type) => `\
 /**
  * @dev Access an array in an "unsafe" way. Skips solidity "index-out-of-range" check.
  *
@@ -331,7 +331,7 @@ function unsafeAccess(${type.name}[] storage arr, uint256 pos) internal pure ret
 }
 `;
 
-const unsafeAccessMemory = type => `\
+const unsafeAccessMemory = (type) => `\
 /**
  * @dev Access an array in an "unsafe" way. Skips solidity "index-out-of-range" check.
  *
@@ -346,7 +346,7 @@ function unsafeMemoryAccess(${type.name}[] memory arr, uint256 pos) internal pur
 }
 `;
 
-const unsafeSetLength = type => `\
+const unsafeSetLength = (type) => `\
 /**
  * @dev Helper to set the length of a dynamic array. Directly writing to \`.length\` is forbidden.
  *
@@ -370,10 +370,10 @@ module.exports = format(
       '',
       // sorting, comparator, helpers and internal
       sort({ name: 'uint256' }),
-      TYPES.filter(type => type.isValueType && type.name !== 'uint256').map(sort),
+      TYPES.filter((type) => type.isValueType && type.name !== 'uint256').map(sort),
       quickSort,
-      TYPES.filter(type => type.isValueType && type.name !== 'uint256').map(castArray),
-      TYPES.filter(type => type.isValueType && type.name !== 'uint256').map(castComparator),
+      TYPES.filter((type) => type.isValueType && type.name !== 'uint256').map(castArray),
+      TYPES.filter((type) => type.isValueType && type.name !== 'uint256').map(castComparator),
       // lookup
       search,
       // unsafe (direct) storage and memory access

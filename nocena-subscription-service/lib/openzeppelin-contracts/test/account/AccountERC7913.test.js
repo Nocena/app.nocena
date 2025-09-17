@@ -31,8 +31,8 @@ async function fixture() {
   const entrypointDomain = await getDomain(entrypoint.v08);
   const domain = { name: 'AccountERC7913', version: '1', chainId: entrypointDomain.chainId }; // Missing verifyingContract,
 
-  const makeMock = signer =>
-    helper.newAccount('$AccountERC7913Mock', [signer, 'AccountERC7913', '1']).then(mock => {
+  const makeMock = (signer) =>
+    helper.newAccount('$AccountERC7913Mock', [signer, 'AccountERC7913', '1']).then((mock) => {
       domain.verifyingContract = mock.address;
       return mock;
     });
@@ -40,7 +40,7 @@ async function fixture() {
   const signUserOp = function (userOp) {
     return this.signer
       .signTypedData(entrypointDomain, { PackedUserOperation }, userOp.packed)
-      .then(signature => Object.assign(userOp, { signature }));
+      .then((signature) => Object.assign(userOp, { signature }));
   };
 
   return {

@@ -375,7 +375,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         />
 
         <MenuItem
-          icon={ <Dumbbell size={20}/> }
+          icon={<Dumbbell size={20} />}
           title="Challenge"
           description="Challenge To Earn"
           onClick={() => router.push('/challenge')}
@@ -394,7 +394,7 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         />
 
         <MenuItem
-          icon={ <ArrowUpDown size={20}/> }
+          icon={<ArrowUpDown size={20} />}
           title="Swap"
           description="Token swap"
           onClick={() => router.push('/swap')}

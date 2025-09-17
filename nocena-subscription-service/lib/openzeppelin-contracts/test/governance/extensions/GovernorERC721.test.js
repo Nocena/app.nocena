@@ -40,7 +40,7 @@ describe('GovernorERC721', function () {
       ]);
 
       await owner.sendTransaction({ to: mock, value });
-      await Promise.all([NFT0, NFT1, NFT2, NFT3, NFT4].map(tokenId => token.$_mint(owner, tokenId)));
+      await Promise.all([NFT0, NFT1, NFT2, NFT3, NFT4].map((tokenId) => token.$_mint(owner, tokenId)));
 
       const helper = new GovernorHelper(mock, mode);
       await helper.connect(owner).delegate({ token, to: voter1, tokenId: NFT0 });

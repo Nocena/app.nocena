@@ -58,11 +58,11 @@ class Report {
     const refInfo = ref.info ?? ref.data;
 
     const deployments = updateInfo.deployments
-      .map(contract =>
+      .map((contract) =>
         Object.assign(contract, { previousVersion: refInfo.deployments.find(({ name }) => name === contract.name) }),
       )
-      .filter(contract => contract.gasData?.length && contract.previousVersion?.gasData?.length)
-      .flatMap(contract => [
+      .filter((contract) => contract.gasData?.length && contract.previousVersion?.gasData?.length)
+      .flatMap((contract) => [
         {
           contract: contract.name,
           method: '[bytecode length]',
@@ -72,7 +72,7 @@ class Report {
           contract: contract.name,
           method: '[construction cost]',
           avg: variation(
-            ...[contract.gasData, contract.previousVersion.gasData].map(x => Math.round(average(...x))),
+            ...[contract.gasData, contract.previousVersion.gasData].map((x) => Math.round(average(...x))),
             BASE_TX_COST,
           ),
         },
@@ -80,23 +80,26 @@ class Report {
       .sort((a, b) => `${a.contract}:${a.method}`.localeCompare(`${b.contract}:${b.method}`));
 
     const methods = Object.keys(updateInfo.methods)
-      .filter(key => refInfo.methods[key])
-      .filter(key => updateInfo.methods[key].numberOfCalls > 0)
+      .filter((key) => refInfo.methods[key])
+      .filter((key) => updateInfo.methods[key].numberOfCalls > 0)
       .filter(
-        key => !opts.strictTesting || updateInfo.methods[key].numberOfCalls === refInfo.methods[key].numberOfCalls,
+        (key) => !opts.strictTesting || updateInfo.methods[key].numberOfCalls === refInfo.methods[key].numberOfCalls,
       )
-      .map(key => ({
+      .map((key) => ({
         contract: refInfo.methods[key].contract,
         method: refInfo.methods[key].fnSig,
-        min: variation(...[updateInfo, refInfo].map(x => Math.min(...x.methods[key].gasData)), BASE_TX_COST),
-        max: variation(...[updateInfo, refInfo].map(x => Math.max(...x.methods[key].gasData)), BASE_TX_COST),
-        avg: variation(...[updateInfo, refInfo].map(x => Math.round(average(...x.methods[key].gasData))), BASE_TX_COST),
+        min: variation(...[updateInfo, refInfo].map((x) => Math.min(...x.methods[key].gasData)), BASE_TX_COST),
+        max: variation(...[updateInfo, refInfo].map((x) => Math.max(...x.methods[key].gasData)), BASE_TX_COST),
+        avg: variation(
+          ...[updateInfo, refInfo].map((x) => Math.round(average(...x.methods[key].gasData))),
+          BASE_TX_COST,
+        ),
       }))
       .sort((a, b) => `${a.contract}:${a.method}`.localeCompare(`${b.contract}:${b.method}`));
 
     return []
       .concat(deployments, methods)
-      .filter(row => !opts.hideEqual || row.min?.delta || row.max?.delta || row.avg?.delta);
+      .filter((row) => !opts.hideEqual || row.min?.delta || row.max?.delta || row.avg?.delta);
   }
 }
 
@@ -131,7 +134,7 @@ function formatCmpShell(rows) {
     { txt: 'Avg', length: 30 },
     { txt: '', length: 0 },
   ];
-  const HEADER = COLS.map(entry => chalk.bold(center(entry.txt, entry.length || 0)))
+  const HEADER = COLS.map((entry) => chalk.bold(center(entry.txt, entry.length || 0)))
     .join(' | ')
     .trim();
   const SEPARATOR = COLS.map(({ length }) => (length > 0 ? '-'.repeat(length + 2) : ''))
@@ -141,7 +144,7 @@ function formatCmpShell(rows) {
   return [
     '',
     HEADER,
-    ...rows.map(entry =>
+    ...rows.map((entry) =>
       [
         '',
         chalk.grey(entry.contract.padEnd(contractLength)),
@@ -200,10 +203,10 @@ function formatCmpMarkdown(rows) {
     { txt: '%', align: 'right' },
     { txt: '' },
   ];
-  const HEADER = COLS.map(entry => entry.txt)
+  const HEADER = COLS.map((entry) => entry.txt)
     .join(' | ')
     .trim();
-  const SEPARATOR = COLS.map(entry => (entry.txt ? alignPattern(entry.align) : ''))
+  const SEPARATOR = COLS.map((entry) => (entry.txt ? alignPattern(entry.align) : ''))
     .join('|')
     .trim();
 
@@ -213,7 +216,7 @@ function formatCmpMarkdown(rows) {
     HEADER,
     SEPARATOR,
     rows
-      .map(entry =>
+      .map((entry) =>
         [
           '',
           entry.contract,

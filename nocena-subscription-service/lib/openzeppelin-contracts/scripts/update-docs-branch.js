@@ -1,9 +1,9 @@
 const proc = require('child_process');
-const read = cmd => proc.execSync(cmd, { encoding: 'utf8' }).trim();
-const run = cmd => {
+const read = (cmd) => proc.execSync(cmd, { encoding: 'utf8' }).trim();
+const run = (cmd) => {
   proc.execSync(cmd, { stdio: 'inherit' });
 };
-const tryRead = cmd => {
+const tryRead = (cmd) => {
   try {
     return read(cmd);
   } catch {

@@ -10,7 +10,7 @@ function shouldBehaveLikeERC1271({ erc7739 = false } = {}) {
     beforeEach(async function () {
       // if deploy function is present, check that code is already in place
       if (this.mock.deploy) {
-        await ethers.provider.getCode(this.mock.address).then(code => code != '0x' || this.mock.deploy());
+        await ethers.provider.getCode(this.mock.address).then((code) => code != '0x' || this.mock.deploy());
       }
       this._signer = erc7739
         ? new ERC7739Signer(this.signer, this.domain ?? (await getDomain(this.mock)))

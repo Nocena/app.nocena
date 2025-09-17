@@ -25,8 +25,8 @@ const votingDelay = 4n;
 const votingPeriod = 16n;
 const value = ethers.parseEther('1');
 
-const signBallot = account => (contract, message) =>
-  getDomain(contract).then(domain => account.signTypedData(domain, { Ballot }, message));
+const signBallot = (account) => (contract, message) =>
+  getDomain(contract).then((domain) => account.signTypedData(domain, { Ballot }, message));
 
 async function deployToken(contractName) {
   try {
@@ -354,7 +354,7 @@ describe('Governor', function () {
               support: VoteType.For,
               voter: this.userEOA.address,
               nonce,
-              signature: (...args) => signBallot(this.userEOA)(...args).then(sig => tamper(sig, 42, 0xff)),
+              signature: (...args) => signBallot(this.userEOA)(...args).then((sig) => tamper(sig, 42, 0xff)),
             };
 
             await expect(this.helper.vote(voteParams))

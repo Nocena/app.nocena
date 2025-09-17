@@ -1,6 +1,6 @@
 import React from 'react';
 import { Crown, Star, Gem, Shield, Sparkles, Users, CheckCircle } from 'lucide-react';
-import { MembershipTier } from '../../../lib/types';
+import { MembershipTier } from '../../lib/types';
 
 interface MembershipTiersProps {
   tiers: MembershipTier[];
@@ -10,19 +10,25 @@ interface MembershipTiersProps {
 }
 
 export const MembershipTiers: React.FC<MembershipTiersProps> = ({
-                                                                  tiers,
-                                                                  subscribedTiers,
-                                                                  onSubscribe,
-                                                                  isOwnProfile,
-                                                                }) => {
+  tiers,
+  subscribedTiers,
+  onSubscribe,
+  isOwnProfile,
+}) => {
   const getTierIcon = (color: string) => {
     switch (color) {
-      case 'common': return <Shield className="w-6 h-6" />;
-      case 'uncommon': return <Star className="w-6 h-6" />;
-      case 'rare': return <Gem className="w-6 h-6" />;
-      case 'epic': return <Sparkles className="w-6 h-6" />;
-      case 'legendary': return <Crown className="w-6 h-6" />;
-      default: return <Shield className="w-6 h-6" />;
+      case 'common':
+        return <Shield className="w-6 h-6" />;
+      case 'uncommon':
+        return <Star className="w-6 h-6" />;
+      case 'rare':
+        return <Gem className="w-6 h-6" />;
+      case 'epic':
+        return <Sparkles className="w-6 h-6" />;
+      case 'legendary':
+        return <Crown className="w-6 h-6" />;
+      default:
+        return <Shield className="w-6 h-6" />;
     }
   };
 
@@ -84,8 +90,8 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
         {tiers.map((tier) => {
           const colors = getTierColors(tier.color);
           const isSubscribed = subscribedTiers.includes(tier.id);
-          const tierClass = tier.color === 'legendary' ? 'animate-legendary-glow' :
-            tier.color === 'epic' ? 'animate-epic-pulse' : '';
+          const tierClass =
+            tier.color === 'legendary' ? 'animate-legendary-glow' : tier.color === 'epic' ? 'animate-epic-pulse' : '';
 
           return (
             <div
@@ -96,26 +102,18 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-lg ${colors.bg} bg-opacity-20`}>
-                    <div className={colors.text}>
-                      {getTierIcon(tier.color)}
-                    </div>
+                    <div className={colors.text}>{getTierIcon(tier.color)}</div>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">{tier.name}</h3>
-                    <p className={`text-sm ${colors.text} capitalize font-medium`}>
-                      {tier.color}
-                    </p>
+                    <p className={`text-sm ${colors.text} capitalize font-medium`}>{tier.color}</p>
                   </div>
                 </div>
-                {isSubscribed && (
-                  <CheckCircle className="w-6 h-6 text-green-500" />
-                )}
+                {isSubscribed && <CheckCircle className="w-6 h-6 text-green-500" />}
               </div>
 
               {/* Description */}
-              <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                {tier.description}
-              </p>
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed">{tier.description}</p>
 
               {/* Benefits */}
               <div className="mb-6">
@@ -133,9 +131,7 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
               {/* Price and Stats */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-white">
-                    {tier.price.toLocaleString()} NCX
-                  </span>
+                  <span className="text-2xl font-bold text-white">{tier.price.toLocaleString()} NCX</span>
                   <span className="text-gray-400 text-sm">per month</span>
                 </div>
 
@@ -144,21 +140,17 @@ export const MembershipTiers: React.FC<MembershipTiersProps> = ({
                   <span>{tier.subscriberCount} subscribers</span>
                 </div>
 
-                {
-                  !isOwnProfile && (
-                    <button
-                      onClick={() => onSubscribe(tier.id)}
-                      disabled={isSubscribed}
-                      className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 ${
-                        isSubscribed
-                          ? 'bg-green-600 cursor-not-allowed'
-                          : `${colors.button} hover:scale-105`
-                      }`}
-                    >
-                      {isSubscribed ? 'Subscribed' : `Subscribe for ${tier.price} NCX`}
-                    </button>
-                  )
-                }
+                {!isOwnProfile && (
+                  <button
+                    onClick={() => onSubscribe(tier.id)}
+                    disabled={isSubscribed}
+                    className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 ${
+                      isSubscribed ? 'bg-green-600 cursor-not-allowed' : `${colors.button} hover:scale-105`
+                    }`}
+                  >
+                    {isSubscribed ? 'Subscribed' : `Subscribe for ${tier.price} NCX`}
+                  </button>
+                )}
               </div>
             </div>
           );

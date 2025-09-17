@@ -76,8 +76,8 @@ describe('ERC721Votes', function () {
             .withArgs(this.holder, 1n, 0n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 
@@ -96,8 +96,8 @@ describe('ERC721Votes', function () {
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 
@@ -119,8 +119,8 @@ describe('ERC721Votes', function () {
             .withArgs(this.recipient, 0n, 1n);
 
           const { logs } = await tx.wait();
-          const { index } = logs.find(event => event.fragment.name == 'DelegateVotesChanged');
-          for (const event of logs.filter(event => event.fragment.name == 'Transfer')) {
+          const { index } = logs.find((event) => event.fragment.name == 'DelegateVotesChanged');
+          for (const event of logs.filter((event) => event.fragment.name == 'Transfer')) {
             expect(event.index).to.lt(index);
           }
 

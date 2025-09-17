@@ -105,7 +105,7 @@ describe('GovernorCountingFractional', function () {
           const steps = [
             ['0', '2', '1'],
             ['1', '0', '1'],
-          ].map(votes => votes.map(vote => ethers.parseEther(vote)));
+          ].map((votes) => votes.map((vote) => ethers.parseEther(vote)));
 
           for (const votes of steps) {
             const params = ethers.solidityPacked(['uint128', 'uint128', 'uint128'], votes);
@@ -127,7 +127,7 @@ describe('GovernorCountingFractional', function () {
               );
           }
 
-          expect(await this.mock.proposalVotes(this.proposal.id)).to.deep.equal(zip(...steps).map(v => sum(...v)));
+          expect(await this.mock.proposalVotes(this.proposal.id)).to.deep.equal(zip(...steps).map((v) => sum(...v)));
           expect(await this.mock.hasVoted(this.proposal.id, this.voter2)).to.equal(true);
           expect(await this.mock.usedVotes(this.proposal.id, this.voter2)).to.equal(sum(...[].concat(...steps)));
         });

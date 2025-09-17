@@ -51,7 +51,7 @@ function match(entry, request) {
   return entry.spec == reqSpec && (!reqContract || entry.contract == reqContract);
 }
 
-const specs = JSON.parse(fs.readFileSync(argv.spec, 'utf8')).filter(s => argv.all || argv._.some(r => match(s, r)));
+const specs = JSON.parse(fs.readFileSync(argv.spec, 'utf8')).filter((s) => argv.all || argv._.some((r) => match(s, r)));
 
 const limit = pLimit(argv.parallel);
 
@@ -60,7 +60,7 @@ if (argv._.length == 0 && !argv.all) {
 }
 
 for (const r of argv._) {
-  if (!specs.some(s => match(s, r))) {
+  if (!specs.some((s) => match(s, r))) {
     console.error(`Error: Requested spec '${r}' not found in ${argv.spec}`);
     process.exitCode = 1;
   }
@@ -76,7 +76,7 @@ for (const { spec, contract, files, options = [] } of specs) {
       spec,
       contract,
       files,
-      [...options, ...argv.options].flatMap(opt => opt.split(' ')),
+      [...options, ...argv.options].flatMap((opt) => opt.split(' ')),
     ),
   );
 }
@@ -101,7 +101,7 @@ async function runCertora(spec, contract, files, options = []) {
       data
         .toString('utf8')
         .match(/-D\S+=\S+/g)
-        ?.map(s => s.split('=')) || [],
+        ?.map((s) => s.split('=')) || [],
     );
 
     if (jobId && userId) {

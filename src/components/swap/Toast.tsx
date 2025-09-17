@@ -9,13 +9,7 @@ interface ToastProps {
   duration?: number;
 }
 
-export const Toast: React.FC<ToastProps> = ({
-                                              message,
-                                              type,
-                                              isVisible,
-                                              onClose,
-                                              duration = 4000
-                                            }) => {
+export const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose, duration = 4000 }) => {
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(() => {
@@ -62,10 +56,7 @@ export const Toast: React.FC<ToastProps> = ({
           <div className="flex-1">
             <p className="text-white font-medium text-sm">{message}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-300 transition-colors duration-200"
-          >
+          <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors duration-200">
             <X className="w-4 h-4" />
           </button>
         </div>

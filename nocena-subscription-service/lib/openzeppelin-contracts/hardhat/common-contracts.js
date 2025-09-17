@@ -61,9 +61,9 @@ const setup = (input, ethers) =>
         ethers.getContractAt(input.abi, input.address),
       )
     : Promise.all(
-        Object.entries(input).map(([name, entry]) => setup(entry, ethers).then(result => [name, result])),
+        Object.entries(input).map(([name, entry]) => setup(entry, ethers).then((result) => [name, result])),
       ).then(Object.fromEntries);
 
 task(TASK_TEST_SETUP_TEST_ENVIRONMENT).setAction((_, env, runSuper) =>
-  runSuper().then(() => setup(INSTANCES, env.ethers).then(result => Object.assign(env, result))),
+  runSuper().then(() => setup(INSTANCES, env.ethers).then((result) => Object.assign(env, result))),
 );

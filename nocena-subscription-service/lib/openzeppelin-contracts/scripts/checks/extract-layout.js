@@ -15,7 +15,7 @@ function extractLayouts(path) {
   const deref = astDereferencer(output);
 
   for (const src in output.contracts) {
-    if (skipPath.some(prefix => src.startsWith(prefix))) {
+    if (skipPath.some((prefix) => src.startsWith(prefix))) {
       continue;
     }
 

@@ -38,18 +38,18 @@ describe('AccountERC7579', function () {
   beforeEach(async function () {
     Object.assign(this, await loadFixture(fixture));
 
-    this.signer.signMessage = message =>
+    this.signer.signMessage = (message) =>
       ethers.Wallet.prototype.signMessage
         .bind(this.signer)(message)
-        .then(sign => ethers.concat([this.validator.target, sign]));
+        .then((sign) => ethers.concat([this.validator.target, sign]));
     this.signer.signTypedData = (domain, types, values) =>
       ethers.Wallet.prototype.signTypedData
         .bind(this.signer)(domain, types, values)
-        .then(sign => ethers.concat([this.validator.target, sign]));
-    this.signUserOp = userOp =>
+        .then((sign) => ethers.concat([this.validator.target, sign]));
+    this.signUserOp = (userOp) =>
       ethers.Wallet.prototype.signTypedData
         .bind(this.signer)(this.entrypointDomain, { PackedUserOperation }, userOp.packed)
-        .then(signature => Object.assign(userOp, { signature }));
+        .then((signature) => Object.assign(userOp, { signature }));
 
     this.userOp = { nonce: ethers.zeroPadBytes(ethers.hexlify(this.validator.target), 32) };
   });

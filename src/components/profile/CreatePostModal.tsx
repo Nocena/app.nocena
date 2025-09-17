@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Image, Video, Upload, Tag, Globe, Lock } from 'lucide-react';
-import { MembershipTier } from '../../../lib/types';
+import { MembershipTier } from '../../lib/types';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -9,12 +9,7 @@ interface CreatePostModalProps {
   onCreatePost: (postData: any) => Promise<void>;
 }
 
-export const CreatePostModal: React.FC<CreatePostModalProps> = ({
-                                                                  isOpen,
-                                                                  onClose,
-                                                                  membershipTiers,
-                                                                  onCreatePost,
-                                                                }) => {
+export const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, membershipTiers, onCreatePost }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
@@ -36,15 +31,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     const postData = {
       title,
       content,
-      tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      tags: tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
       tierRequired: selectedTier === 'public' ? null : selectedTier,
       isPublic: selectedTier === 'public',
       mediaFile: mediaFile,
     };
-    setIsAdding(true)
+    setIsAdding(true);
     await onCreatePost(postData);
 
-    setIsAdding(false)
+    setIsAdding(false);
     // Reset form
     setTitle('');
     setContent('');
@@ -63,10 +61,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-bold text-white">Create New Post</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors duration-200"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors duration-200">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -75,9 +70,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         <div className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Title
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
             <input
               type="text"
               value={title}
@@ -89,9 +82,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Content
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Content</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -103,9 +94,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           {/* Media Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Media (Optional)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Media (Optional)</label>
             <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-gray-600 transition-colors duration-200">
               {mediaPreview ? (
                 <div className="space-y-4">
@@ -149,9 +138,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           {/* Access Level */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Access Level
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Access Level</label>
             <div className="space-y-3">
               <div
                 className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
@@ -196,9 +183,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Tags (Optional)
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Tags (Optional)</label>
             <div className="relative">
               <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -214,10 +199,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 text-gray-400 hover:text-white transition-colors duration-200"
-          >
+          <button onClick={onClose} className="px-6 py-2 text-gray-400 hover:text-white transition-colors duration-200">
             Cancel
           </button>
           <button

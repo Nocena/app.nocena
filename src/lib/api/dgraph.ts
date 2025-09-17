@@ -2828,9 +2828,7 @@ export async function fetchUserCompletions(
     }
 
     const responseArray = response.data.data?.getUser?.completedChallenges || [];
-    return responseArray
-      .map((item: any) => getCompletionItemByCompletedChallenge(item))
-      .filter((item: any) => !!item);
+    return responseArray.map((item: any) => getCompletionItemByCompletedChallenge(item)).filter((item: any) => !!item);
   } catch (error) {
     console.error('Error fetching user completions:', error);
     throw error;
@@ -3062,7 +3060,7 @@ export function hasCompletedChallenge(user: any, challengeType: 'daily' | 'weekl
       ((now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400000 +
         new Date(now.getFullYear(), 0, 1).getDay() +
         1) /
-      7,
+        7,
     );
     return user.weeklyChallenge?.charAt(weekOfYear - 1) === '1';
   } else {
@@ -6339,9 +6337,7 @@ export async function getUserAvatarByImageUrl(userId: string, imageUrl: string) 
 /**
  * Fetch membership tiers by creatorId
  */
-export async function fetchMembershipTiersByCreator(
-  creatorId: string,
-): Promise<any[]> {
+export async function fetchMembershipTiersByCreator(creatorId: string): Promise<any[]> {
   try {
     const query = `
       query($creatorId: String!) {
@@ -6549,11 +6545,7 @@ export async function addPostWithTier(
 /**
  * Fetch all posts by a given userId
  */
-export async function fetchUserPosts(
-  userId: string,
-  limit: number = 20,
-  offset: number = 0,
-): Promise<any[]> {
+export async function fetchUserPosts(userId: string, limit: number = 20, offset: number = 0): Promise<any[]> {
   try {
     const query = `
       query($userId: String!, $first: Int, $offset: Int) {
@@ -6658,11 +6650,7 @@ export async function fetchTopPosts(): Promise<any[]> {
   `;
 
   try {
-    const response = await axios.post(
-      DGRAPH_ENDPOINT,
-      { query },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    const response = await axios.post(DGRAPH_ENDPOINT, { query }, { headers: { 'Content-Type': 'application/json' } });
 
     if (response.data.errors) {
       console.error('GraphQL errors:', response.data.errors);
@@ -6724,7 +6712,7 @@ export async function fetchPostById(postId: string) {
   const response = await axios.post(
     DGRAPH_ENDPOINT,
     { query, variables: { id: postId } },
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json' } },
   );
 
   if (response.data.errors) {
@@ -6825,7 +6813,7 @@ export async function addNewUserSubscription(
     subscriberId,
     tierId,
     startDate,
-    endDate: endDate || (new Date()).toISOString(),
+    endDate: endDate || new Date().toISOString(),
     isActive,
   };
 
@@ -6849,4 +6837,3 @@ export async function addNewUserSubscription(
 }
 
 // ----------------- end of kaia hackathon graph functions ---------------
-

@@ -44,7 +44,7 @@ describe('ERC20Permit', function () {
 
     beforeEach(function () {
       this.buildData = (contract, deadline = maxDeadline) =>
-        getDomain(contract).then(domain => ({
+        getDomain(contract).then((domain) => ({
           domain,
           types: { Permit },
           message: {

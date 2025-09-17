@@ -117,7 +117,7 @@ describe('ERC721Consecutive', function () {
         });
 
         it('simple minting is possible after construction', async function () {
-          const tokenId = sum(...this.batches.map(b => b.amount)) + offset;
+          const tokenId = sum(...this.batches.map((b) => b.amount)) + offset;
 
           await expect(this.token.ownerOf(tokenId))
             .to.be.revertedWithCustomError(this.token, 'ERC721NonexistentToken')
@@ -129,7 +129,7 @@ describe('ERC721Consecutive', function () {
         });
 
         it('cannot mint a token that has been batched minted', async function () {
-          const tokenId = sum(...this.batches.map(b => b.amount)) + offset - 1n;
+          const tokenId = sum(...this.batches.map((b) => b.amount)) + offset - 1n;
 
           expect(await this.token.ownerOf(tokenId)).to.not.equal(ethers.ZeroAddress);
 

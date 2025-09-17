@@ -83,7 +83,7 @@ class UserOperation {
   }
 }
 
-const parseInitCode = initCode => ({
+const parseInitCode = (initCode) => ({
   factory: '0x' + initCode.replace(/0x/, '').slice(0, 40),
   factoryData: '0x' + initCode.replace(/0x/, '').slice(40),
 });
@@ -111,16 +111,16 @@ class ERC4337Helper {
 
     if (params.erc7702signer) {
       const delegate = await accountFactory.deploy(...extraArgs);
-      const instance = await params.erc7702signer.getAddress().then(address => accountFactory.attach(address));
+      const instance = await params.erc7702signer.getAddress().then((address) => accountFactory.attach(address));
       const authorization = await params.erc7702signer.authorize({ address: delegate.target });
       return new ERC7702SmartAccount(instance, authorization, env);
     } else {
       const initCode = await accountFactory
         .getDeployTransaction(...extraArgs)
-        .then(tx =>
+        .then((tx) =>
           factory.interface.encodeFunctionData('$deploy', [0, params.salt ?? ethers.randomBytes(32), tx.data]),
         )
-        .then(deployCode => ethers.concat([factory.target, deployCode]));
+        .then((deployCode) => ethers.concat([factory.target, deployCode]));
 
       const instance = await ethers.provider
         .call({
@@ -128,8 +128,8 @@ class ERC4337Helper {
           to: env.senderCreator,
           data: env.senderCreator.interface.encodeFunctionData('createSender', [initCode]),
         })
-        .then(result => ethers.getAddress(ethers.hexlify(ethers.getBytes(result).slice(-20))))
-        .then(address => accountFactory.attach(address));
+        .then((result) => ethers.getAddress(ethers.hexlify(ethers.getBytes(result).slice(-20))))
+        .then((address) => accountFactory.attach(address));
 
       return new SmartAccount(instance, initCode, env);
     }

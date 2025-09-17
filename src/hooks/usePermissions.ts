@@ -17,7 +17,7 @@ export function usePermissions() {
   // Initialize permission manager
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const initializePermissions = async () => {
       try {
         const permissionManager = PWAPermissionManager.getInstance();
@@ -128,9 +128,12 @@ export function usePermissions() {
     }
   }, [permissionManager, permissionState]);
 
-  const shouldShowPrimer = useCallback((permission: 'camera' | 'microphone' | 'notifications') => {
-    return permissionManager?.shouldShowPermissionPrimer(permission);
-  }, [permissionManager]);
+  const shouldShowPrimer = useCallback(
+    (permission: 'camera' | 'microphone' | 'notifications') => {
+      return permissionManager?.shouldShowPermissionPrimer(permission);
+    },
+    [permissionManager],
+  );
 
   const hasAllRequiredPermissions = useCallback(() => {
     return (

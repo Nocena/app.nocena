@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { MembershipTier, Post } from '../../../lib/types';
-import { PostCard } from './PostCard';
+import { PostCard } from '../../../components/profile/PostCard';
 import { FileText, Plus } from 'lucide-react';
-import { CreatePostModal } from './CreatePostModal';
+import { CreatePostModal } from '../../../components/profile/CreatePostModal';
 import { addPostWithTier, fetchUserPosts } from '../../../lib/api/dgraph';
 import imageCompression from 'browser-image-compression';
 import { SubscriptionModal } from '@components/modals/SubscriptionModal';
 import { useRouter } from 'next/router';
-
 
 interface PostsSectionProps {
   userId: string;
@@ -15,18 +14,17 @@ interface PostsSectionProps {
   tiers: MembershipTier[];
   subscribedTiers: string[];
   isOwnProfile: boolean;
-  updateSubscriptionTiers?: (userId: string) => Promise<void>
+  updateSubscriptionTiers?: (userId: string) => Promise<void>;
 }
 
 const PostsSection: React.FC<PostsSectionProps> = ({
-                                                     userId,
-                                                     currentUserId,
-                                                     tiers,
-                                                     subscribedTiers,
-                                                     updateSubscriptionTiers,
-                                                     isOwnProfile,
-                                                   }) => {
-
+  userId,
+  currentUserId,
+  tiers,
+  subscribedTiers,
+  updateSubscriptionTiers,
+  isOwnProfile,
+}) => {
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -41,43 +39,44 @@ const PostsSection: React.FC<PostsSectionProps> = ({
 
   const updateUserPosts = useCallback(async (userId: string) => {
     const rawPosts = await fetchUserPosts(userId);
-    setPosts(rawPosts.map((rawPost) => ({
-      id: rawPost.id,
-      creatorId: rawPost.creator.id,
-      creator: rawPost.creator,
-      title: rawPost.title,
-      content: rawPost.content,
-      mediaUrl: rawPost.mediaUrl,
-      mediaType: rawPost.mediaType,
-      tierRequired: {
-        id: rawPost.tierRequired.id,
-        name: rawPost.tierRequired.name,
-        price: rawPost.tierRequired.price,
-        description: '',
-        color: 'common',
-        benefits: [],
-        subscriberCount: 0,
-      },
-      isPublic: rawPost.isPublic,
-      likes: rawPost.likes,
-      comments: rawPost.comments,
-      createdAt: rawPost.createdAt,
-      tags: [],
-    })));
+    setPosts(
+      rawPosts.map((rawPost) => ({
+        id: rawPost.id,
+        creatorId: rawPost.creator.id,
+        creator: rawPost.creator,
+        title: rawPost.title,
+        content: rawPost.content,
+        mediaUrl: rawPost.mediaUrl,
+        mediaType: rawPost.mediaType,
+        tierRequired: {
+          id: rawPost.tierRequired.id,
+          name: rawPost.tierRequired.name,
+          price: rawPost.tierRequired.price,
+          description: '',
+          color: 'common',
+          benefits: [],
+          subscriberCount: 0,
+        },
+        isPublic: rawPost.isPublic,
+        likes: rawPost.likes,
+        comments: rawPost.comments,
+        createdAt: rawPost.createdAt,
+        tags: [],
+      })),
+    );
   }, []);
 
   useEffect(() => {
-    if (userId)
-      updateUserPosts(userId);
+    if (userId) updateUserPosts(userId);
   }, [userId]);
 
   const onSubscribe = (post: Post) => {
-    setSelectedPost(post)
-    setIsSubscriptionModalOpen(true)
+    setSelectedPost(post);
+    setIsSubscriptionModalOpen(true);
   };
 
   const onPostClick = (post: Post) => {
-    router.push(`/post/${post.id}`)
+    router.push(`/post/${post.id}`);
   };
 
   const handleConfirmSubscription = (tierId: string) => {
@@ -153,11 +152,10 @@ const PostsSection: React.FC<PostsSectionProps> = ({
           postData.isPublic,
           postData.tags,
           mediaUrl,
-          mediaType
+          mediaType,
         );
 
         await updateUserPosts(userId);
-
       } catch (error) {
         console.error('Error creating post:', error);
         alert('Failed to create post. Please try again.');

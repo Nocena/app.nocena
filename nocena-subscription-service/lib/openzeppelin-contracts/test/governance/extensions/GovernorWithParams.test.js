@@ -134,7 +134,7 @@ describe('GovernorWithParams', function () {
             reason: 'no particular reason',
             params: params.encoded,
             signature: (contract, message) =>
-              getDomain(contract).then(domain => this.other.signTypedData(domain, { ExtendedBallot }, message)),
+              getDomain(contract).then((domain) => this.other.signTypedData(domain, { ExtendedBallot }, message)),
           };
 
           // Vote
@@ -167,7 +167,7 @@ describe('GovernorWithParams', function () {
             reason: 'no particular reason',
             params: params.encoded,
             signature: (contract, message) =>
-              getDomain(contract).then(domain => this.other.signTypedData(domain, { ExtendedBallot }, message)),
+              getDomain(contract).then((domain) => this.other.signTypedData(domain, { ExtendedBallot }, message)),
           };
 
           // Vote
@@ -200,8 +200,8 @@ describe('GovernorWithParams', function () {
             // tampered signature
             signature: (contract, message) =>
               getDomain(contract)
-                .then(domain => this.other.signTypedData(domain, { ExtendedBallot }, message))
-                .then(signature => {
+                .then((domain) => this.other.signTypedData(domain, { ExtendedBallot }, message))
+                .then((signature) => {
                   const tamperedSig = ethers.toBeArray(signature);
                   tamperedSig[42] ^= 0xff;
                   return ethers.hexlify(tamperedSig);
@@ -231,7 +231,7 @@ describe('GovernorWithParams', function () {
             reason: 'no particular reason',
             params: params.encoded,
             signature: (contract, message) =>
-              getDomain(contract).then(domain => this.other.signTypedData(domain, { ExtendedBallot }, message)),
+              getDomain(contract).then((domain) => this.other.signTypedData(domain, { ExtendedBallot }, message)),
           };
 
           // Vote

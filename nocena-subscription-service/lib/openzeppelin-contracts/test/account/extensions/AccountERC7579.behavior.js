@@ -503,7 +503,7 @@ function shouldBehaveLikeAccountERC7579({ withHooks = false } = {}) {
               this.fallbackHandler.callPayable.getFragment().selector,
               this.fallbackHandler.callView.getFragment().selector,
               this.fallbackHandler.callRevert.getFragment().selector,
-            ].map(selector =>
+            ].map((selector) =>
               this.mock.$_installModule(
                 MODULE_TYPE_FALLBACK,
                 this.fallbackHandler,

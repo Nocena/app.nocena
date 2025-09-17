@@ -16,10 +16,10 @@ const votingDelay = 4n;
 const votingPeriod = 16n;
 const value = ethers.parseEther('1');
 
-const signBallot = account => (contract, message) =>
-  getDomain(contract).then(domain => account.signTypedData(domain, { Ballot }, message));
-const signExtendedBallot = account => (contract, message) =>
-  getDomain(contract).then(domain => account.signTypedData(domain, { ExtendedBallot }, message));
+const signBallot = (account) => (contract, message) =>
+  getDomain(contract).then((domain) => account.signTypedData(domain, { Ballot }, message));
+const signExtendedBallot = (account) => (contract, message) =>
+  getDomain(contract).then((domain) => account.signTypedData(domain, { ExtendedBallot }, message));
 
 describe('GovernorNoncesKeyed', function () {
   const fixture = async () => {
@@ -91,7 +91,7 @@ describe('GovernorNoncesKeyed', function () {
 
           const maskedProposalId = BigInt(this.helper.id) & (2n ** 192n - 1n);
 
-          this.getNonce = async address => {
+          this.getNonce = async (address) => {
             return await (nonceType === 'default'
               ? this.mock.nonces(address)
               : this.mock['nonces(address,uint192)'](address, maskedProposalId));
@@ -212,7 +212,7 @@ describe('GovernorNoncesKeyed', function () {
         support: VoteType.For,
         voter: this.userEOA.address,
         nonce,
-        signature: (...args) => signBallot(this.userEOA)(...args).then(sig => tamper(sig, 42, 0xff)),
+        signature: (...args) => signBallot(this.userEOA)(...args).then((sig) => tamper(sig, 42, 0xff)),
       };
 
       await expect(this.helper.vote(voteParams))

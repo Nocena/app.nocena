@@ -45,8 +45,8 @@ const ProfileView: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'posts' | 'membership' | 'challenge' | 'achievements'>('posts');
 
-  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([])
-  const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([])
+  const [subscribedTiers, setSubscribedTiers] = useState<string[]>([]);
+  const [membershipTiers, setMembershipTiers] = useState<MembershipTier[]>([]);
 
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
@@ -67,15 +67,14 @@ const ProfileView: React.FC = () => {
     useFollowersData(user?.id);
 
   const updateUserMembershipTiers = useCallback(async (userId: string) => {
-    const tiers = await fetchMembershipTiersByCreator(userId)
-    setMembershipTiers(tiers)
-  }, [])
+    const tiers = await fetchMembershipTiersByCreator(userId);
+    setMembershipTiers(tiers);
+  }, []);
 
   const updateSubscriptionTiers = useCallback(async (userId: string) => {
-    const tiers = await getSubscriptionsByUserId(userId)
-    setSubscribedTiers(tiers.map((tier: any) => tier.tierId))
-  }, [])
-
+    const tiers = await getSubscriptionsByUserId(userId);
+    setSubscribedTiers(tiers.map((tier: any) => tier.tierId));
+  }, []);
 
   // Sync user data when user changes
   useEffect(() => {
@@ -92,8 +91,8 @@ const ProfileView: React.FC = () => {
       // NEW: Avatar data loading
       setGeneratedAvatar(user.currentAvatar || null);
 
-      updateUserMembershipTiers(user.id)
-      updateSubscriptionTiers(user.id)
+      updateUserMembershipTiers(user.id);
+      updateSubscriptionTiers(user.id);
 
       console.log('🎨 ProfileView: User avatar data loaded:', {
         currentAvatar: user.currentAvatar,
@@ -107,9 +106,6 @@ const ProfileView: React.FC = () => {
       });
     }
   }, [user]);
-
-
-
 
   // NEW: Load avatar data from database on component mount
   useEffect(() => {
@@ -591,11 +587,7 @@ const ProfileView: React.FC = () => {
               />
             )}
 
-            {activeSection === 'challenge' && (
-              <ChallengesSection
-                user={user}
-              />
-            )}
+            {activeSection === 'challenge' && <ChallengesSection user={user} />}
 
             {activeSection === 'achievements' && (
               <StatsSection

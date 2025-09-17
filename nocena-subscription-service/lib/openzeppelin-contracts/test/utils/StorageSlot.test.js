@@ -47,7 +47,7 @@ describe('StorageSlot', function () {
     });
   }
 
-  for (const { name, type, value, zero } of TYPES.filter(type => !type.isValueType)) {
+  for (const { name, type, value, zero } of TYPES.filter((type) => !type.isValueType)) {
     describe(`${type} storage pointer`, function () {
       it('set', async function () {
         await this.mock.getFunction(`set${name}Storage`)(slot, value);

@@ -192,7 +192,7 @@ export const getFallbackChallenge = (frequency: 'daily' | 'weekly' | 'monthly'):
     daily: {
       id: 'fallback-daily',
       title: 'Daily Challenge',
-      description: 'Complete today\'s challenge to earn rewards!',
+      description: "Complete today's challenge to earn rewards!",
       reward: 25,
       frequency: 'daily',
       isActive: false, // Mark as inactive to show offline state
@@ -200,7 +200,7 @@ export const getFallbackChallenge = (frequency: 'daily' | 'weekly' | 'monthly'):
     weekly: {
       id: 'fallback-weekly',
       title: 'Weekly Challenge',
-      description: 'Complete this week\'s challenge for bonus rewards!',
+      description: "Complete this week's challenge for bonus rewards!",
       reward: 100,
       frequency: 'weekly',
       isActive: false,
@@ -208,7 +208,7 @@ export const getFallbackChallenge = (frequency: 'daily' | 'weekly' | 'monthly'):
     monthly: {
       id: 'fallback-monthly',
       title: 'Monthly Challenge',
-      description: 'Complete this month\'s epic challenge!',
+      description: "Complete this month's epic challenge!",
       reward: 500,
       frequency: 'monthly',
       isActive: false,
@@ -263,11 +263,10 @@ export const fetchAllAIChallenges = async (): Promise<AIChallenge[]> => {
   }
 };
 
-
 export const getCompletionItemByCompletedChallenge = (completedChallenge: any): completionItem | null => {
   try {
     if (completedChallenge.media && typeof completedChallenge.media === 'string') {
-      let media: MediaMetadata | null = JSON.parse(completedChallenge.media)
+      let media: MediaMetadata | null = JSON.parse(completedChallenge.media);
       if (media && media.directoryCID) {
         try {
           const nestedData = JSON.parse(media.directoryCID);
@@ -287,14 +286,15 @@ export const getCompletionItemByCompletedChallenge = (completedChallenge: any): 
 
       return {
         id: completedChallenge.id,
-        challenge: completedChallenge.aiChallenge || completedChallenge.publicChallenge || completedChallenge.privateChallenge,
+        challenge:
+          completedChallenge.aiChallenge || completedChallenge.publicChallenge || completedChallenge.privateChallenge,
         completionDate: completedChallenge.completionDate,
         user: completedChallenge.user,
         isLiked: false,
         likesCount: 0,
         videoUrl,
         selfieUrl,
-      }
+      };
     }
   } catch (error) {
     console.error('Error parsing media metadata:', error);

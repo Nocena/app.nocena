@@ -42,7 +42,7 @@ Promise.all(
       ethers
         .getDefaultProvider(argv.client)
         .getCode(addr)
-        .then(bytecode =>
+        .then((bytecode) =>
           fs.writeFile(path.join(argv.output, `${name}.bytecode`), ethers.getBytes(bytecode), 'binary', () => {}),
         ),
     ]),

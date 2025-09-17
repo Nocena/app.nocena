@@ -181,7 +181,7 @@ describe('ERC165Checker', function () {
 
     it('supports all interfaceIds via getSupportedInterfaces', async function () {
       expect(await this.mock.$getSupportedInterfaces(this.target, supportedInterfaces)).to.deep.equal(
-        supportedInterfaces.map(i => supportedInterfaces.includes(i)),
+        supportedInterfaces.map((i) => supportedInterfaces.includes(i)),
       );
     });
 
@@ -189,7 +189,7 @@ describe('ERC165Checker', function () {
       const interfaceIdsToTest = [DUMMY_UNSUPPORTED_ID, DUMMY_UNSUPPORTED_ID_2];
 
       expect(await this.mock.$getSupportedInterfaces(this.target, interfaceIdsToTest)).to.deep.equal(
-        interfaceIdsToTest.map(i => supportedInterfaces.includes(i)),
+        interfaceIdsToTest.map((i) => supportedInterfaces.includes(i)),
       );
     });
 
@@ -197,7 +197,7 @@ describe('ERC165Checker', function () {
       const interfaceIdsToTest = [...supportedInterfaces, DUMMY_UNSUPPORTED_ID];
 
       expect(await this.mock.$getSupportedInterfaces(this.target, interfaceIdsToTest)).to.deep.equal(
-        interfaceIdsToTest.map(i => supportedInterfaces.includes(i)),
+        interfaceIdsToTest.map((i) => supportedInterfaces.includes(i)),
       );
     });
 
@@ -233,12 +233,14 @@ describe('ERC165Checker', function () {
   it('Return bomb resistance', async function () {
     this.target = await ethers.deployContract('ERC165ReturnBombMock');
 
-    const { gasUsed: gasUsed1 } = await this.mock.$supportsInterface.send(this.target, DUMMY_ID).then(tx => tx.wait());
+    const { gasUsed: gasUsed1 } = await this.mock.$supportsInterface
+      .send(this.target, DUMMY_ID)
+      .then((tx) => tx.wait());
     expect(gasUsed1).to.be.lessThan(120_000n); // 3*30k + 21k + some margin
 
     const { gasUsed: gasUsed2 } = await this.mock.$getSupportedInterfaces
       .send(this.target, [DUMMY_ID, DUMMY_ID_2, DUMMY_ID_3, DUMMY_UNSUPPORTED_ID, DUMMY_UNSUPPORTED_ID_2])
-      .then(tx => tx.wait());
+      .then((tx) => tx.wait());
 
     expect(gasUsed2).to.be.lessThan(250_000n); // (2+5)*30k + 21k + some margin
   });

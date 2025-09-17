@@ -9,19 +9,19 @@ interface SubscriptionModalProps {
   currentUserId: string;
   tier: MembershipTier | null;
   creatorName: string;
-  updateSubscriptionTiers?: (userId: string) => Promise<void>
+  updateSubscriptionTiers?: (userId: string) => Promise<void>;
   onConfirmSubscription: (tierId: string) => void;
 }
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
-                                                                      isOpen,
-                                                                      onClose,
-                                                                      tier,
-                                                                      currentUserId,
-                                                                      creatorName,
-                                                                      updateSubscriptionTiers,
-                                                                      onConfirmSubscription,
-                                                                    }) => {
+  isOpen,
+  onClose,
+  tier,
+  currentUserId,
+  creatorName,
+  updateSubscriptionTiers,
+  onConfirmSubscription,
+}) => {
   const [step, setStep] = useState<'details' | 'confirm' | 'success'>('details');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,33 +29,33 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   const getTierColor = (color: string) => {
     switch (color) {
-      case 'common': return 'text-rarityCommon bg-rarityCommon';
-      case 'uncommon': return 'text-rarityUncommon bg-rarityUncommon';
-      case 'rare': return 'text-rarityRare bg-rarityRare';
-      case 'epic': return 'text-rarityEpic bg-rarityEpic';
-      case 'legendary': return 'text-rarityLegendary bg-rarityLegendary';
-      default: return 'text-gray-400 bg-gray-400';
+      case 'common':
+        return 'text-rarityCommon bg-rarityCommon';
+      case 'uncommon':
+        return 'text-rarityUncommon bg-rarityUncommon';
+      case 'rare':
+        return 'text-rarityRare bg-rarityRare';
+      case 'epic':
+        return 'text-rarityEpic bg-rarityEpic';
+      case 'legendary':
+        return 'text-rarityLegendary bg-rarityLegendary';
+      default:
+        return 'text-gray-400 bg-gray-400';
     }
   };
 
   const handleProceed = async () => {
     setIsLoading(true);
     // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     setStep('confirm');
     setIsLoading(false);
   };
 
   const handleConfirm = async () => {
     setIsLoading(true);
-    await addNewUserSubscription(
-      currentUserId,
-      tier.id,
-      (new Date()).toISOString(),
-      '',
-      true,
-    )
-    await updateSubscriptionTiers?.(currentUserId)
+    await addNewUserSubscription(currentUserId, tier.id, new Date().toISOString(), '', true);
+    await updateSubscriptionTiers?.(currentUserId);
     setStep('success');
     setIsLoading(false);
 
@@ -79,7 +79,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -91,15 +91,14 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           <div className="flex items-center space-x-3">
             <Crown className="w-6 h-6 text-nocenaPink" />
             <h2 className="text-xl font-bold text-white">
-              {step === 'details' ? 'Subscription Details' :
-                step === 'confirm' ? 'Confirm Subscription' :
-                  'Subscription Successful!'}
+              {step === 'details'
+                ? 'Subscription Details'
+                : step === 'confirm'
+                  ? 'Confirm Subscription'
+                  : 'Subscription Successful!'}
             </h2>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors duration-200"
-          >
+          <button onClick={handleClose} className="text-gray-400 hover:text-white transition-colors duration-200">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -110,7 +109,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             <div className="space-y-6">
               {/* Tier Info */}
               <div className="text-center">
-                <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-opacity-20 ${getTierColor(tier.color)}`}>
+                <div
+                  className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-opacity-20 ${getTierColor(tier.color)}`}
+                >
                   <Star className={`w-5 h-5 ${getTierColor(tier.color).split(' ')[0]}`} />
                   <span className="text-white font-semibold">{tier.name}</span>
                 </div>
@@ -119,9 +120,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
               {/* Pricing */}
               <div className="bg-gray-800 rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-white mb-1">
-                  {tier.price.toLocaleString()} NCX
-                </div>
+                <div className="text-3xl font-bold text-white mb-1">{tier.price.toLocaleString()} NCX</div>
                 <div className="text-gray-400">per month</div>
               </div>
 
@@ -158,7 +157,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <ul className="space-y-2">
                   {tier?.benefits.map((benefit, index) => (
                     <li key={index} className="flex items-start space-x-2 text-sm">
-                      <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${getTierColor(tier?.color).split(' ')[0]}`} />
+                      <CheckCircle
+                        className={`w-4 h-4 mt-0.5 flex-shrink-0 ${getTierColor(tier?.color).split(' ')[0]}`}
+                      />
                       <span className="text-gray-300">{benefit}</span>
                     </li>
                   ))}
@@ -187,9 +188,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             <div className="space-y-6">
               {/* Confirmation Summary */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-white mb-2">
-                  {tier.price.toLocaleString()} NCX
-                </div>
+                <div className="text-2xl font-bold text-white mb-2">{tier.price.toLocaleString()} NCX</div>
                 <p className="text-gray-400">
                   Monthly subscription to <span className="text-white font-medium">{creatorName}</span>
                 </p>
@@ -218,8 +217,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
               {/* Terms */}
               <div className="text-xs text-gray-400 text-center">
-                By confirming, you agree to be charged {tier.price.toLocaleString()} NCX monthly until you cancel.
-                You can cancel anytime from your subscription settings.
+                By confirming, you agree to be charged {tier.price.toLocaleString()} NCX monthly until you cancel. You
+                can cancel anytime from your subscription settings.
               </div>
 
               {/* Action Buttons */}
@@ -258,9 +257,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
               {/* Success Message */}
               <div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  You're subscribed!
-                </h3>
+                <h3 className="text-xl font-bold text-white mb-2">You're subscribed!</h3>
                 <p className="text-gray-400">
                   You've successfully subscribed to <span className="text-white font-medium">{creatorName}</span>'s{' '}
                   <span className={getTierColor(tier.color).split(' ')[0]}>{tier.name}</span> tier.
@@ -269,12 +266,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
               {/* Next Steps */}
               <div className="bg-gray-800 rounded-lg p-4">
-                <p className="text-sm text-gray-300 mb-2">
-                  🎉 You now have access to exclusive content!
-                </p>
-                <p className="text-xs text-gray-400">
-                  Your subscription will renew on {formatDate(30)}
-                </p>
+                <p className="text-sm text-gray-300 mb-2">🎉 You now have access to exclusive content!</p>
+                <p className="text-xs text-gray-400">Your subscription will renew on {formatDate(30)}</p>
               </div>
             </div>
           )}

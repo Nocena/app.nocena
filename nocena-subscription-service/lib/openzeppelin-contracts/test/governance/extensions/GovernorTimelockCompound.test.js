@@ -31,7 +31,7 @@ describe('GovernorTimelockCompound', function () {
       const token = await ethers.deployContract(Token, [tokenName, tokenSymbol, tokenName, version]);
       const predictGovernor = await deployer
         .getNonce()
-        .then(nonce => ethers.getCreateAddress({ from: deployer.address, nonce: nonce + 1 }));
+        .then((nonce) => ethers.getCreateAddress({ from: deployer.address, nonce: nonce + 1 }));
       const timelock = await ethers.deployContract('CompTimelock', [predictGovernor, defaultDelay]);
       const mock = await ethers.deployContract('$GovernorTimelockCompoundMock', [
         name,

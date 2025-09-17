@@ -4,7 +4,7 @@ const { PANIC_CODES } = require('@nomicfoundation/hardhat-chai-matchers/panic');
 const { SimpleMerkleTree } = require('@openzeppelin/merkle-tree');
 
 // generate bytes32 leaves from a string
-const toLeaves = (str, separator = '') => str.split(separator).map(e => ethers.keccak256(ethers.toUtf8Bytes(e)));
+const toLeaves = (str, separator = '') => str.split(separator).map((e) => ethers.keccak256(ethers.toUtf8Bytes(e)));
 // internal node hashes
 const concatSorted = (...elements) => Buffer.concat(elements.map(ethers.getBytes).sort(Buffer.compare));
 const defaultHash = (a, b) => ethers.keccak256(concatSorted(a, b));
@@ -19,7 +19,7 @@ describe('MerkleProof', function () {
       // stateless: no need for a fixture, just use before
       before(async function () {
         this.mock = await ethers.deployContract(contractName);
-        this.makeTree = str => SimpleMerkleTree.of(toLeaves(str), { nodeHash });
+        this.makeTree = (str) => SimpleMerkleTree.of(toLeaves(str), { nodeHash });
       });
 
       describe('verify', function () {
@@ -79,7 +79,7 @@ describe('MerkleProof', function () {
 
           const root = merkleTree.root;
           const { proof, proofFlags, leaves } = merkleTree.getMultiProof(toLeaves('bdf'));
-          const hashes = leaves.map(e => merkleTree.leafHash(e));
+          const hashes = leaves.map((e) => merkleTree.leafHash(e));
 
           expect(await this.mock.$processMultiProof(proof, proofFlags, hashes)).to.equal(root);
           expect(await this.mock.$processMultiProofCalldata(proof, proofFlags, hashes)).to.equal(root);
@@ -93,7 +93,7 @@ describe('MerkleProof', function () {
 
           const root = merkleTree.root;
           const { proof, proofFlags, leaves } = otherMerkleTree.getMultiProof(toLeaves('ghi'));
-          const hashes = leaves.map(e => merkleTree.leafHash(e));
+          const hashes = leaves.map((e) => merkleTree.leafHash(e));
 
           expect(await this.mock.$processMultiProof(proof, proofFlags, hashes)).to.not.equal(root);
           expect(await this.mock.$processMultiProofCalldata(proof, proofFlags, hashes)).to.not.equal(root);
@@ -163,7 +163,7 @@ describe('MerkleProof', function () {
 
           const root = merkleTree.root;
           const { proof, proofFlags, leaves } = merkleTree.getMultiProof(toLeaves('a'));
-          const hashes = leaves.map(e => merkleTree.leafHash(e));
+          const hashes = leaves.map((e) => merkleTree.leafHash(e));
 
           expect(await this.mock.$processMultiProof(proof, proofFlags, hashes)).to.equal(root);
           expect(await this.mock.$processMultiProofCalldata(proof, proofFlags, hashes)).to.equal(root);

@@ -14,7 +14,7 @@ function shouldBehaveLikeNonces() {
       it('increments a nonce', async function () {
         expect(this.mock.nonces(sender)).to.eventually.equal(0n);
 
-        const eventName = ['return$_useNonce', 'return$_useNonce_address'].find(name =>
+        const eventName = ['return$_useNonce', 'return$_useNonce_address'].find((name) =>
           this.mock.interface.getEvent(name),
         );
 
@@ -70,7 +70,7 @@ function shouldBehaveLikeNoncesKeyed() {
   describe('should support nonces with keys', function () {
     const sender = ethers.Wallet.createRandom();
 
-    const keyOffset = key => key << 64n;
+    const keyOffset = (key) => key << 64n;
 
     it('gets a nonce', async function () {
       await expect(this.mock.nonces(sender, ethers.Typed.uint192(0n))).to.eventually.equal(keyOffset(0n) + 0n);

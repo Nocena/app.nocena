@@ -8,19 +8,19 @@ const { TYPES } = require('../../scripts/generate/templates/Arrays.opts');
 
 // See https://en.cppreference.com/w/cpp/algorithm/lower_bound
 const lowerBound = (array, value) => {
-  const i = array.findIndex(element => value <= element);
+  const i = array.findIndex((element) => value <= element);
   return i == -1 ? array.length : i;
 };
 
 // See https://en.cppreference.com/w/cpp/algorithm/upper_bound
 const upperBound = (array, value) => {
-  const i = array.findIndex(element => value < element);
+  const i = array.findIndex((element) => value < element);
   return i == -1 ? array.length : i;
 };
 
-const bigintSign = x => (x > 0n ? 1 : x < 0n ? -1 : 0);
+const bigintSign = (x) => (x > 0n ? 1 : x < 0n ? -1 : 0);
 const comparator = (a, b) => bigintSign(ethers.toBigInt(a) - ethers.toBigInt(b));
-const hasDuplicates = array => array.some((v, i) => array.indexOf(v) != i);
+const hasDuplicates = (array) => array.some((v, i) => array.indexOf(v) != i);
 
 describe('Arrays', function () {
   const fixture = async () => {

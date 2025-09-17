@@ -6,6 +6,6 @@ const OPTS = product(
     { suffix: 'Calldata', location: 'calldata' },
   ],
   [{ visibility: 'pure' }, { visibility: 'view', hash: 'hasher' }],
-).map(objs => Object.assign({}, ...objs));
+).map((objs) => Object.assign({}, ...objs));
 
 module.exports = { OPTS };

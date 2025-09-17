@@ -98,7 +98,7 @@ describe('BeaconProxy', function () {
     it('upgrade a proxy by upgrading its beacon', async function () {
       const value = 10n;
       const data = this.v1.interface.encodeFunctionData('initializeNonPayableWithValue', [value]);
-      const proxy = await this.newBeaconProxy(this.beacon, data).then(instance => this.v1.attach(instance));
+      const proxy = await this.newBeaconProxy(this.beacon, data).then((instance) => this.v1.attach(instance));
 
       // test initial values
       expect(await proxy.value()).to.equal(value);
@@ -116,11 +116,11 @@ describe('BeaconProxy', function () {
     it('upgrade 2 proxies by upgrading shared beacon', async function () {
       const value1 = 10n;
       const data1 = this.v1.interface.encodeFunctionData('initializeNonPayableWithValue', [value1]);
-      const proxy1 = await this.newBeaconProxy(this.beacon, data1).then(instance => this.v1.attach(instance));
+      const proxy1 = await this.newBeaconProxy(this.beacon, data1).then((instance) => this.v1.attach(instance));
 
       const value2 = 42n;
       const data2 = this.v1.interface.encodeFunctionData('initializeNonPayableWithValue', [value2]);
-      const proxy2 = await this.newBeaconProxy(this.beacon, data2).then(instance => this.v1.attach(instance));
+      const proxy2 = await this.newBeaconProxy(this.beacon, data2).then((instance) => this.v1.attach(instance));
 
       // test initial values
       expect(await proxy1.value()).to.equal(value1);

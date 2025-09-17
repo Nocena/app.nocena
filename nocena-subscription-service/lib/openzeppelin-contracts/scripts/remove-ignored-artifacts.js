@@ -14,14 +14,14 @@ const pkgFiles = readJSON('package.json').files;
 
 // Get only negated patterns.
 const ignorePatterns = pkgFiles
-  .filter(pat => pat.startsWith('!'))
+  .filter((pat) => pat.startsWith('!'))
   // Remove the negation part. Makes micromatch usage more intuitive.
-  .map(pat => pat.slice(1));
+  .map((pat) => pat.slice(1));
 
 const ignorePatternsSubtrees = ignorePatterns
   // Add **/* to ignore all files contained in the directories.
-  .concat(ignorePatterns.map(pat => path.join(pat, '**/*')))
-  .map(p => p.replace(/^\//, ''));
+  .concat(ignorePatterns.map((pat) => path.join(pat, '**/*')))
+  .map((p) => p.replace(/^\//, ''));
 
 const artifactsDir = 'contracts/build/contracts';
 const buildinfo = 'artifacts/build-info';

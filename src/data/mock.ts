@@ -24,7 +24,7 @@ export const mockMembershipTiers: MembershipTier[] = [
       'Access to exclusive posts',
       'Early content previews',
       'Community Discord access',
-      'Monthly development updates'
+      'Monthly development updates',
     ],
     subscriberCount: 234,
   },
@@ -39,7 +39,7 @@ export const mockMembershipTiers: MembershipTier[] = [
       'Behind-the-scenes content',
       'Step-by-step tutorials',
       'Direct message access',
-      'Monthly Q&A sessions'
+      'Monthly Q&A sessions',
     ],
     subscriberCount: 89,
   },
@@ -55,7 +55,7 @@ export const mockMembershipTiers: MembershipTier[] = [
       'Custom content requests',
       'Priority support',
       '1-on-1 monthly calls',
-      'Beta access to new games'
+      'Beta access to new games',
     ],
     subscriberCount: 45,
   },
@@ -71,7 +71,7 @@ export const mockMembershipTiers: MembershipTier[] = [
       'Exclusive game assets',
       'Source code access',
       'Co-development opportunities',
-      'Revenue sharing on projects'
+      'Revenue sharing on projects',
     ],
     subscriberCount: 12,
   },
@@ -87,7 +87,7 @@ export const mockMembershipTiers: MembershipTier[] = [
       'Profit sharing (5%)',
       'Collaboration on major projects',
       'Your name in game credits',
-      'Annual meetup invitation'
+      'Annual meetup invitation',
     ],
     subscriberCount: 3,
   },
@@ -99,7 +99,8 @@ export const mockPosts: Post[] = [
     creatorId: '1',
     creator: mockUser,
     title: 'New Indie Game Development Update #12',
-    content: 'This week has been incredible! We\'ve made significant progress on the combat system and I\'m excited to share some behind-the-scenes footage of the animation pipeline. The new particle effects are looking amazing and really bring the magical spells to life. I\'ve also been working on optimizing the performance for lower-end devices.',
+    content:
+      "This week has been incredible! We've made significant progress on the combat system and I'm excited to share some behind-the-scenes footage of the animation pipeline. The new particle effects are looking amazing and really bring the magical spells to life. I've also been working on optimizing the performance for lower-end devices.",
     mediaUrl: 'https://images.pexels.com/photos/194096/pexels-photo-194096.jpeg?auto=compress&cs=tinysrgb&w=800',
     mediaType: 'image',
     tierRequired: mockMembershipTiers[1],
@@ -114,7 +115,8 @@ export const mockPosts: Post[] = [
     creatorId: '1',
     creator: mockUser,
     title: 'Free Tutorial: Character Controller Basics',
-    content: 'Hey everyone! Here\'s a completely free tutorial on creating a robust character controller in Unity. This covers movement, jumping, ground detection, and basic physics interactions. Perfect for beginners who are just starting their game development journey!',
+    content:
+      "Hey everyone! Here's a completely free tutorial on creating a robust character controller in Unity. This covers movement, jumping, ground detection, and basic physics interactions. Perfect for beginners who are just starting their game development journey!",
     mediaUrl: 'https://images.pexels.com/photos/735911/pexels-photo-735911.jpeg?auto=compress&cs=tinysrgb&w=800',
     mediaType: 'video',
     isPublic: true,
@@ -128,7 +130,8 @@ export const mockPosts: Post[] = [
     creatorId: '1',
     creator: mockUser,
     title: 'Exclusive: Alpha Build Playtest Session',
-    content: 'Diamond Elite members, this is for you! I\'m sharing the latest alpha build of our upcoming RPG. This includes the new magic system, improved UI, and the first three levels. Your feedback will directly influence the final game design. Download links and instructions are in the comments below.',
+    content:
+      "Diamond Elite members, this is for you! I'm sharing the latest alpha build of our upcoming RPG. This includes the new magic system, improved UI, and the first three levels. Your feedback will directly influence the final game design. Download links and instructions are in the comments below.",
     mediaUrl: 'https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg?auto=compress&cs=tinysrgb&w=800',
     mediaType: 'image',
     tierRequired: mockMembershipTiers[3],
@@ -143,7 +146,8 @@ export const mockPosts: Post[] = [
     creatorId: '1',
     creator: mockUser,
     title: 'Game Design Philosophy: Creating Meaningful Choices',
-    content: 'One of the most important aspects of game design is giving players meaningful choices. In this post, I\'m breaking down my approach to decision-making systems in RPGs and how every choice should feel impactful to the player\'s experience.',
+    content:
+      "One of the most important aspects of game design is giving players meaningful choices. In this post, I'm breaking down my approach to decision-making systems in RPGs and how every choice should feel impactful to the player's experience.",
     isPublic: true,
     likes: 312,
     comments: 28,
@@ -155,7 +159,8 @@ export const mockPosts: Post[] = [
     creatorId: '1',
     creator: mockUser,
     title: 'Monthly Revenue Report & Transparency',
-    content: 'As promised, here\'s my monthly transparency report. This month we generated 12,500 NCX from memberships and 8,200 NCX from individual post sales. 60% goes back into game development, 25% for operational costs, and 15% for marketing. Thank you for your continued support!',
+    content:
+      "As promised, here's my monthly transparency report. This month we generated 12,500 NCX from memberships and 8,200 NCX from individual post sales. 60% goes back into game development, 25% for operational costs, and 15% for marketing. Thank you for your continued support!",
     tierRequired: mockMembershipTiers[0],
     isPublic: false,
     likes: 145,
@@ -270,7 +275,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-1',
     title: 'Master the Perfect Jump Shot',
-    description: 'Learn the fundamentals of basketball shooting technique. Practice proper form, follow-through, and consistency to improve your accuracy from anywhere on the court.',
+    description:
+      'Learn the fundamentals of basketball shooting technique. Practice proper form, follow-through, and consistency to improve your accuracy from anywhere on the court.',
     videoUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -285,7 +291,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-2',
     title: 'Code Your First React Component',
-    description: 'Build a functional React component from scratch. Learn about JSX, props, state management, and event handling in this beginner-friendly coding challenge.',
+    description:
+      'Build a functional React component from scratch. Learn about JSX, props, state management, and event handling in this beginner-friendly coding challenge.',
     videoUrl: 'https://images.pexels.com/photos/574071/pexels-photo-574071.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/574071/pexels-photo-574071.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -300,7 +307,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-3',
     title: 'Advanced Digital Art Techniques',
-    description: 'Master professional digital painting techniques using advanced brush work, lighting, and composition. Create a stunning character portrait in this intensive art challenge.',
+    description:
+      'Master professional digital painting techniques using advanced brush work, lighting, and composition. Create a stunning character portrait in this intensive art challenge.',
     videoUrl: 'https://images.pexels.com/photos/1109543/pexels-photo-1109543.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/1109543/pexels-photo-1109543.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -315,7 +323,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-4',
     title: '30-Day Fitness Transformation',
-    description: 'Complete a comprehensive 30-day workout program designed to build strength, endurance, and flexibility. Track your progress and transform your fitness level.',
+    description:
+      'Complete a comprehensive 30-day workout program designed to build strength, endurance, and flexibility. Track your progress and transform your fitness level.',
     videoUrl: 'https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -330,7 +339,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-5',
     title: 'Master Chef Cooking Challenge',
-    description: 'Learn to prepare a gourmet three-course meal from scratch. Master knife skills, flavor combinations, and professional plating techniques.',
+    description:
+      'Learn to prepare a gourmet three-course meal from scratch. Master knife skills, flavor combinations, and professional plating techniques.',
     videoUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -345,7 +355,8 @@ export const mockChallenges: ChallengeCardType[] = [
   {
     id: 'challenge-6',
     title: 'Photography Composition Mastery',
-    description: 'Improve your photography skills by mastering the rule of thirds, leading lines, and creative composition techniques. Capture stunning images that tell a story.',
+    description:
+      'Improve your photography skills by mastering the rule of thirds, leading lines, and creative composition techniques. Capture stunning images that tell a story.',
     videoUrl: 'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=800',
     thumbnailUrl: 'https://images.pexels.com/photos/1181263/pexels-photo-1181263.jpeg?auto=compress&cs=tinysrgb&w=400',
     creatorId: '1',
@@ -358,7 +369,6 @@ export const mockChallenges: ChallengeCardType[] = [
     tags: ['photography', 'composition', 'creative', 'visual'],
   },
 ];
-
 
 export const recentlyVisited = mockCreators.slice(0, 4);
 export const recentChallengers = mockCreators.slice(2, 6);

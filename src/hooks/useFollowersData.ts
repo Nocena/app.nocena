@@ -59,7 +59,7 @@ const useFollowersData = (userId?: string) => {
         }
 
         // Fetch from API
-        const fetchedFollowers = [] as string[] /*await fetchUserFollowers(userId)*/;
+        const fetchedFollowers = [] as string[]; /*await fetchUserFollowers(userId)*/
         if (Array.isArray(fetchedFollowers)) {
           setFollowers(fetchedFollowers);
           setFollowersCount(fetchedFollowers.length);

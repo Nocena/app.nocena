@@ -3,7 +3,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  fetchChallengeCompletionsWithLikesAndReactions, fetchTopPosts,
+  fetchChallengeCompletionsWithLikesAndReactions,
+  fetchTopPosts,
   getRecentUsers,
   getSubscriptionsByUserId,
 } from '../../lib/api/dgraph';
@@ -11,24 +12,24 @@ import {
 // Component imports
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ChevronRight, Clock, Sparkles, Trophy } from 'lucide-react';
-import { CreatorCard } from './components/CreatorCard';
+import { CreatorCard } from '../../components/home/CreatorCard';
 import { ChallengeCompletion, Creator, Post, SimplifiedUser } from '../../lib/types';
 import SearchBox, { SearchUser } from '@pages/search/components/SearchBox';
-import { ChallengeCard } from '@pages/profile/components/ChallengeCard';
-import { PostCard } from '@pages/profile/components/PostCard';
+import { ChallengeCard } from '../../components/profile/ChallengeCard';
+import { PostCard } from '../../components/profile/PostCard';
 
 const SectionHeader = ({
-                         icon: Icon,
-                         title,
-                         subtitle,
-                         color,
-                         onClickViewAll,
-                       }: {
+  icon: Icon,
+  title,
+  subtitle,
+  color,
+  onClickViewAll,
+}: {
   icon: any;
   title: string;
   subtitle: string;
   color: string;
-  onClickViewAll?: (() => void) | null
+  onClickViewAll?: (() => void) | null;
 }) => (
   <div className="flex items-center justify-between mb-6">
     <div className="flex items-center space-x-3">
@@ -64,10 +65,9 @@ const HomeView = () => {
     setSubscribedTiers(tiers.map((tier: any) => tier.tierId));
   }, []);
 
-
   useEffect(() => {
     updateSubscriptionTiers(user?.id || '');
-  }, [user])
+  }, [user]);
 
   const handleUserSelect = useCallback(
     (selectedUser: SearchUser) => {
@@ -88,10 +88,7 @@ const HomeView = () => {
       const currentUserId = user?.id; // Use actual user ID from auth context
 
       // Fetch completions with like and reaction data
-      const allCompletions = await fetchChallengeCompletionsWithLikesAndReactions(
-        '',
-        currentUserId,
-      );
+      const allCompletions = await fetchChallengeCompletionsWithLikesAndReactions('', currentUserId);
 
       // Process media URLs for each completion
       const processedCompletions = await Promise.all(
@@ -137,8 +134,7 @@ const HomeView = () => {
       );
 
       // Sort by completion date (most recent first)
-      processedCompletions
-        .sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime());
+      processedCompletions.sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime());
 
       setCompletions(processedCompletions.slice(0, 6));
     } catch (err) {
@@ -150,12 +146,14 @@ const HomeView = () => {
     try {
       // Fetch completions with like and reaction data
       const users = await getRecentUsers();
-      setNewJoinedUsers(users.slice(0, 6).map(user => ({
-        id: user.id,
-        username: user.username,
-        avatar: user.profilePicture,
-        bio: user.bio,
-      })));
+      setNewJoinedUsers(
+        users.slice(0, 6).map((user) => ({
+          id: user.id,
+          username: user.username,
+          avatar: user.profilePicture,
+          bio: user.bio,
+        })),
+      );
       console.log('users', users);
     } catch (err) {
       console.error('Error fetching challenge completions:', err);
@@ -173,15 +171,13 @@ const HomeView = () => {
   };
 
   useEffect(() => {
-    Promise.all([
-      fetchChallengeCompletions(),
-      fetchNewJoinedUsers(),
-      updateTopPosts(),
-    ]).then(() => {
-      setIsLoadingData(false);
-    }).catch(() => {
-      setIsLoadingData(false);
-    });
+    Promise.all([fetchChallengeCompletions(), fetchNewJoinedUsers(), updateTopPosts()])
+      .then(() => {
+        setIsLoadingData(false);
+      })
+      .catch(() => {
+        setIsLoadingData(false);
+      });
   }, []);
 
   if (loading) {

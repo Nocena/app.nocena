@@ -48,9 +48,9 @@ module.exports = format(
     [].concat(
       'using StorageSlot for *;',
       '',
-      TYPES.filter(type => type.isValueType).map(type => storageSetValueType(type)),
-      TYPES.filter(type => type.isValueType).map(type => storageGetValueType(type)),
-      TYPES.filter(type => !type.isValueType).map(type => storageSetNonValueType(type)),
+      TYPES.filter((type) => type.isValueType).map((type) => storageSetValueType(type)),
+      TYPES.filter((type) => type.isValueType).map((type) => storageGetValueType(type)),
+      TYPES.filter((type) => !type.isValueType).map((type) => storageSetNonValueType(type)),
     ),
   ).trimEnd(),
   '}',

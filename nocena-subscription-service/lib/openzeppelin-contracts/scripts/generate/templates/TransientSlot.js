@@ -72,8 +72,8 @@ module.exports = format(
   'library TransientSlot {',
   format(
     [].concat(
-      TYPES.filter(type => type.isValueType).map(type => udvt(type)),
-      TYPES.filter(type => type.isValueType).map(type => transient(type)),
+      TYPES.filter((type) => type.isValueType).map((type) => udvt(type)),
+      TYPES.filter((type) => type.isValueType).map((type) => transient(type)),
     ),
   ).trimEnd(),
   '}',

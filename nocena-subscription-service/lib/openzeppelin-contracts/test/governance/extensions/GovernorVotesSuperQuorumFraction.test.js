@@ -77,7 +77,7 @@ describe('GovernorVotesSuperQuorumFraction', function () {
         await expect(this.mock.quorumNumerator()).to.eventually.equal(quorumRatio);
         await expect(this.mock.superQuorumNumerator()).to.eventually.equal(superQuorumRatio);
         await expect(this.mock.quorumDenominator()).to.eventually.equal(100n);
-        await expect(time.clock[mode]().then(clock => this.mock.superQuorum(clock - 1n))).to.eventually.equal(
+        await expect(time.clock[mode]().then((clock) => this.mock.superQuorum(clock - 1n))).to.eventually.equal(
           (tokenSupply * superQuorumRatio) / 100n,
         );
       });

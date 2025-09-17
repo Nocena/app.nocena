@@ -25,9 +25,9 @@ class GovernorHelper {
    */
   setProposal(actions, description) {
     if (Array.isArray(actions)) {
-      this.targets = actions.map(a => a.target);
-      this.values = actions.map(a => a.value || 0n);
-      this.data = actions.map(a => a.data || '0x');
+      this.targets = actions.map((a) => a.target);
+      this.values = actions.map((a) => a.value || 0n);
+      this.data = actions.map((a) => a.data || '0x');
     } else {
       ({ targets: this.targets, values: this.values, data: this.data } = actions);
     }
@@ -77,7 +77,7 @@ class GovernorHelper {
       delegation.tokenId === undefined ||
         delegation.token
           .ownerOf(delegation.tokenId)
-          .then(owner =>
+          .then((owner) =>
             delegation.token.connect(this.governor.runner).transferFrom(owner, delegation.to, delegation.tokenId),
           ),
     ]);
@@ -113,7 +113,7 @@ class GovernorHelper {
     let args = [await this.id, vote.support]; // base
 
     if (vote.signature) {
-      const sign = await this.forgeMessage(vote).then(msg => vote.signature(this.governor, msg));
+      const sign = await this.forgeMessage(vote).then((msg) => vote.signature(this.governor, msg));
       if (vote.params || vote.reason) {
         method = 'castVoteWithReasonAndParamsBySig';
         args.push(vote.voter, vote.reason ?? '', vote.params ?? '0x', sign);
@@ -139,7 +139,7 @@ class GovernorHelper {
     vote.reason = vote.reason ?? '';
 
     if (vote.signature) {
-      const sign = await this.forgeMessage(vote).then(msg => vote.signature(this.governor, { reason: '', ...msg }));
+      const sign = await this.forgeMessage(vote).then((msg) => vote.signature(this.governor, { reason: '', ...msg }));
       method = 'castOverrideVoteBySig';
       args.push(vote.voter, vote.reason ?? '', sign);
     }

@@ -24,7 +24,7 @@ const prepareSignature = (
     secp256r1.getPublicKey(privateKey, false).slice(0x21, 0x41),
   ].map(ethers.hexlify);
   const { r, s, recovery } = ensureLowerOrderS(secp256r1.sign(messageHash.replace(/0x/, ''), privateKey));
-  const signature = [r, s].map(v => ethers.toBeHex(v, 0x20));
+  const signature = [r, s].map((v) => ethers.toBeHex(v, 0x20));
 
   return { privateKey, publicKey, signature, recovery, messageHash };
 };
@@ -150,7 +150,7 @@ describe('P256', function () {
   describe('wycheproof tests', function () {
     for (const { key, tests } of require('./ecdsa_secp256r1_sha256_p1363_test.json').testGroups) {
       // parse public key
-      let [x, y] = [key.wx, key.wy].map(v => ethers.stripZerosLeft('0x' + v, 32));
+      let [x, y] = [key.wx, key.wy].map((v) => ethers.stripZerosLeft('0x' + v, 32));
       if (x.length > 66 || y.length > 66) continue;
       x = ethers.zeroPadValue(x, 32);
       y = ethers.zeroPadValue(y, 32);

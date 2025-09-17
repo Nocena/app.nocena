@@ -6,7 +6,7 @@ const startCase = require('lodash.startcase');
 
 const baseDir = process.argv[2];
 
-const files = glob.sync(baseDir + '/**/*.adoc').map(f => path.relative(baseDir, f));
+const files = glob.sync(baseDir + '/**/*.adoc').map((f) => path.relative(baseDir, f));
 
 console.log('.API');
 
@@ -27,7 +27,7 @@ const menuItems = files.reduce(
     const keys = doc
       .split('/')
       .filter(Boolean)
-      .map(k => k.replace('.adoc', ''));
+      .map((k) => k.replace('.adoc', ''));
 
     for (let i = 0; i < keys.length; i++) {
       current = current.items[keys[i]] ??= {
@@ -51,15 +51,15 @@ const menuItems = files.reduce(
   },
 );
 
-const arrayifyItems = items =>
+const arrayifyItems = (items) =>
   Object.entries(items).map(([k, v]) => {
     if (Object.keys(v.items ?? {}).length > 0) return [v, arrayifyItems(v.items)];
     return [k, v];
   });
 
-const isString = v => typeof v === 'string';
+const isString = (v) => typeof v === 'string';
 
-const sortItems = items =>
+const sortItems = (items) =>
   items.sort(([a], [b]) =>
     (isString(a) ? a : a.name).toLowerCase().localeCompare(isString(b) ? b : b.name, undefined, { numeric: true }),
   );

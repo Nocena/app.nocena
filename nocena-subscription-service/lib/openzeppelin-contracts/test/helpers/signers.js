@@ -63,7 +63,7 @@ class NonNativeSigner extends AbstractSigner {
     value /*: Record<string, any>*/,
   ) /*: Promise<string>*/ {
     // Populate any ENS names
-    const populated = await TypedDataEncoder.resolveNames(domain, types, value, async name => {
+    const populated = await TypedDataEncoder.resolveNames(domain, types, value, async (name) => {
       assert(this.provider != null, 'cannot resolve ENS names without a provider', 'UNSUPPORTED_OPERATION', {
         operation: 'resolveName',
         info: { name },
@@ -173,8 +173,8 @@ class MultiERC7913SigningKey {
       serialized: AbiCoder.defaultAbiCoder().encode(
         ['bytes[]', 'bytes[]'],
         [
-          this.#signers.map(signer => signer.bytes ?? signer.address),
-          this.#signers.map(signer => signer.signingKey.sign(digest).serialized),
+          this.#signers.map((signer) => signer.bytes ?? signer.address),
+          this.#signers.map((signer) => signer.signingKey.sign(digest).serialized),
         ],
       ),
     };

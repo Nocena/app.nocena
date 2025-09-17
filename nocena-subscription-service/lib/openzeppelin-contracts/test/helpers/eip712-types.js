@@ -1,6 +1,6 @@
 const { mapValues } = require('./iterate');
 
-const formatType = schema => Object.entries(schema).map(([name, type]) => ({ name, type }));
+const formatType = (schema) => Object.entries(schema).map(([name, type]) => ({ name, type }));
 
 module.exports = mapValues(
   {

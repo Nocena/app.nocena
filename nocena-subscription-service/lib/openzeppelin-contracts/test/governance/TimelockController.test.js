@@ -17,7 +17,7 @@ const PROPOSER_ROLE = ethers.id('PROPOSER_ROLE');
 const EXECUTOR_ROLE = ethers.id('EXECUTOR_ROLE');
 const CANCELLER_ROLE = ethers.id('CANCELLER_ROLE');
 
-const getAddress = obj => obj.address ?? obj.target ?? obj;
+const getAddress = (obj) => obj.address ?? obj.target ?? obj;
 
 function genOperation(target, value, data, predecessor, salt) {
   const id = ethers.keccak256(
@@ -79,19 +79,19 @@ describe('TimelockController', function () {
 
     expect(
       await Promise.all(
-        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map(role => this.mock.hasRole(role, this.proposer)),
+        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map((role) => this.mock.hasRole(role, this.proposer)),
       ),
     ).to.deep.equal([true, false, false]);
 
     expect(
       await Promise.all(
-        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map(role => this.mock.hasRole(role, this.canceller)),
+        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map((role) => this.mock.hasRole(role, this.canceller)),
       ),
     ).to.deep.equal([false, true, false]);
 
     expect(
       await Promise.all(
-        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map(role => this.mock.hasRole(role, this.executor)),
+        [PROPOSER_ROLE, CANCELLER_ROLE, EXECUTOR_ROLE].map((role) => this.mock.hasRole(role, this.executor)),
       ),
     ).to.deep.equal([false, false, true]);
   });
@@ -327,7 +327,7 @@ describe('TimelockController', function () {
 
           it('revert if execution comes too early 2/2', async function () {
             // -1 is too tight, test sometime fails
-            await this.mock.getTimestamp(this.operation.id).then(clock => time.increaseTo.timestamp(clock - 5n));
+            await this.mock.getTimestamp(this.operation.id).then((clock) => time.increaseTo.timestamp(clock - 5n));
 
             await expect(
               this.mock
@@ -665,7 +665,7 @@ describe('TimelockController', function () {
 
           it('revert if execution comes too early 2/2', async function () {
             // -1 is to tight, test sometime fails
-            await this.mock.getTimestamp(this.operation.id).then(clock => time.increaseTo.timestamp(clock - 5n));
+            await this.mock.getTimestamp(this.operation.id).then((clock) => time.increaseTo.timestamp(clock - 5n));
 
             await expect(
               this.mock

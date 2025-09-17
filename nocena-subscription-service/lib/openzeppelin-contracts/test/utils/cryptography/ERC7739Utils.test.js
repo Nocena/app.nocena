@@ -181,12 +181,12 @@ describe('ERC7739Utils', function () {
         contentsDescr: '(SomeType(address foo,uint256 bar)(SomeType',
         contentTypeName: null,
       },
-      forbiddenChars.split('').map(char => ({
+      forbiddenChars.split('').map((char) => ({
         descr: `should return nothing if contains [${char}] (implicit)`,
         contentsDescr: `SomeType${char}(address foo,uint256 bar)`,
         contentTypeName: null,
       })),
-      forbiddenChars.split('').map(char => ({
+      forbiddenChars.split('').map((char) => ({
         descr: `should return nothing if contains [${char}] (explicit)`,
         contentsDescr: `SomeType${char}(address foo,uint256 bar)SomeType${char}`,
         contentTypeName: null,
