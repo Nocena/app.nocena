@@ -202,4 +202,78 @@ contract SubscriptionTest is Test {
         vm.prank(user1);
         subscription.getCreatorEarnings(creator1);
     }
+    
+    /// @notice Test subscription cancellation functionality
+    function testSubscriptionCancellation() public {
+        // Setup subscription
+        vm.prank(creator1);
+        subscription.setTierPrice(Subscription.SubscriptionTier.BASIC, 50e18);
+        
+        vm.startPrank(user1);
+        token.approve(address(subscription), 50e18);
+        subscription.subscribe(creator1, Subscription.SubscriptionTier.BASIC);
+        vm.stopPrank();
+        
+        // Verify subscription is active and subscriber count is 1
+        assertTrue(subscription.isActive(user1, creator1, Subscription.SubscriptionTier.BASIC));
+        assertEq(subscription.subscriberCount(creator1), 1);
+        
+        // Cancel subscription
+        vm.prank(user1);
+        subscription.cancelSubscription(creator1, Subscription.SubscriptionTier.BASIC);
+        
+        // Verify subscription is cancelled and subscriber count decreased
+        assertFalse(subscription.isActive(user1, creator1, Subscription.SubscriptionTier.BASIC));
+        assertEq(subscription.subscriberCount(creator1), 0);
+    }
+    
+    /// @notice Test subscription expiry after 30 days
+    function testSubscriptionExpiry() public {
+        // Setup subscription
+        vm.prank(creator1);
+        subscription.setTierPrice(Subscription.SubscriptionTier.BASIC, 50e18);
+        
+        vm.startPrank(user1);
+        token.approve(address(subscription), 50e18);
+        subscription.subscribe(creator1, Subscription.SubscriptionTier.BASIC);
+        vm.stopPrank();
+        
+        // Verify subscription is active
+        assertTrue(subscription.isActive(user1, creator1, Subscription.SubscriptionTier.BASIC));
+        
+        // Fast forward 29 days - should still be active
+        vm.warp(block.timestamp + 29 days);
+        assertTrue(subscription.isActive(user1, creator1, Subscription.SubscriptionTier.BASIC));
+        
+        // Fast forward past 30 days - should be expired
+        vm.warp(block.timestamp + 2 days);
+        assertFalse(subscription.isActive(user1, creator1, Subscription.SubscriptionTier.BASIC));
+    }
+    
+    /// @notice Test NCX to USDT swap functionality
+    function testNCXSwap() public {
+        // Setup: Creator receives NCX from subscription
+        vm.prank(creator1);
+        subscription.setTierPrice(Subscription.SubscriptionTier.BASIC, 100e18);
+        
+        vm.startPrank(user1);
+        token.approve(address(subscription), 100e18);
+        subscription.subscribe(creator1, Subscription.SubscriptionTier.BASIC);
+        vm.stopPrank();
+        
+        // Creator has 100 NCX tokens
+        assertEq(token.balanceOf(creator1), 100e18);
+        
+        // Creator approves subscription contract to spend their NCX
+        vm.startPrank(creator1);
+        token.approve(address(subscription), 50e18);
+        
+        // Attempt swap (will revert due to mock router, but tests function exists)
+        vm.expectRevert();
+        subscription.swapNCXToUSDT(50e18, 25e18);
+        vm.stopPrank();
+        
+        // Verify creator still has tokens (swap failed as expected with mock)
+        assertEq(token.balanceOf(creator1), 100e18);
+    }
 }
