@@ -7,9 +7,8 @@ const pwaConfig = withPWA({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  clientsClaim: true, // Take control immediately
+  clientsClaim: true,
   sw: 'src/sw.js',
-  // Add proper cache cleanup
   cleanupOutdatedCaches: true,
   runtimeCaching: [
     {
@@ -31,6 +30,18 @@ const pwaConfig = withPWA({
         expiration: {
           maxEntries: 50,
           maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+      },
+    },
+    // Cache TTS audio responses
+    {
+      urlPattern: /^\/api\/tts\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'tts-audio-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24, // 1 day
         },
       },
     },
@@ -102,16 +113,38 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // TTS API caching headers
+      {
+        source: '/api/tts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=3600', // Cache for 1 hour
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'POST, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [
           {
             key: 'Feature-Policy',
-            value: 'camera *',
+            value: 'camera *, microphone *',
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=*, geolocation=*',
+            value: 'camera=*, geolocation=*, microphone=*',
           },
           {
             key: 'Content-Security-Policy',
@@ -124,7 +157,7 @@ const nextConfig: NextConfig = {
               "frame-src 'self' blob: https://embedded-wallet.thirdweb.com https://pay.thirdweb.com; " +
               "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
               "font-src 'self' data:; " +
-              "connect-src 'self' https://api.nocena.com https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https://embedded-wallet.thirdweb.com https://pay.thirdweb.com https://cdn.jsdelivr.net wss://relay.walletconnect.org https://relay.walletconnect.org https://rpc.walletconnect.org https://*.walletconnect.org https: http: wss:; " +
+              "connect-src 'self' https://api.nocena.com https://api.pinata.cloud https://*.tile.openstreetmap.org https://unpkg.com https://*.mapbox.com https://*.jawg.io https://embedded-wallet.thirdweb.com https://pay.thirdweb.com https://cdn.jsdelivr.net wss://relay.walletconnect.org https://relay.walletconnect.org https://rpc.walletconnect.org https://*.walletconnect.org https://api.openai.com https: http: wss:; " +
               "media-src 'self' https://gateway.pinata.cloud https://ipfs.io https://cloudflare-ipfs.com https://dweb.link https://gateway.ipfs.io https: http: blob: data:;",
           },
         ],

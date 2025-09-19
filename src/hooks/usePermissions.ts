@@ -1,6 +1,6 @@
 // hooks/usePermissions.ts
 import { useState, useEffect, useCallback } from 'react';
-import { permissionManager, PermissionState } from '../lib/utils/permissionManager';
+import { getPermissionManager, PermissionState, IPWAPermissionManager } from '../lib/utils/permissionManager';
 
 export function usePermissions() {
   const [permissionState, setPermissionState] = useState<PermissionState>({
@@ -11,13 +11,20 @@ export function usePermissions() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [permissionManager, setPermissionManager] = useState<IPWAPermissionManager | null>(null);
 
   // Initialize permission manager
   useEffect(() => {
+    // Only initialize on client side
+    if (typeof window === 'undefined') return;
+
     const initializePermissions = async () => {
       try {
-        await permissionManager.initialize();
-        setPermissionState(permissionManager.getPermissionState());
+        const manager = getPermissionManager();
+        setPermissionManager(manager);
+
+        await manager.initialize();
+        setPermissionState(manager.getPermissionState());
         setIsLoading(false);
       } catch (err) {
         console.error('Failed to initialize permissions:', err);
@@ -27,6 +34,11 @@ export function usePermissions() {
     };
 
     initializePermissions();
+  }, []);
+
+  // Set up permission change listener
+  useEffect(() => {
+    if (!permissionManager) return;
 
     // Listen for permission changes
     const handlePermissionChange = (newState: PermissionState) => {
@@ -38,10 +50,12 @@ export function usePermissions() {
     return () => {
       permissionManager.removeListener(handlePermissionChange);
     };
-  }, []);
+  }, [permissionManager]);
 
   // Handle service worker messages
   useEffect(() => {
+    if (typeof window === 'undefined' || !permissionManager) return;
+
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SW_UPDATED' && event.data?.preservePermissions) {
         console.log('Service worker updated, preserving permissions...');
@@ -72,9 +86,11 @@ export function usePermissions() {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
     };
-  }, []);
+  }, [permissionManager]);
 
   const requestCameraPermission = useCallback(async () => {
+    if (!permissionManager) return 'error' as const;
+
     setError(null);
     try {
       const result = await permissionManager.requestCameraPermission();
@@ -83,9 +99,11 @@ export function usePermissions() {
       setError('Failed to request camera permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestMicrophonePermission = useCallback(async () => {
+    if (!permissionManager) return 'error' as const;
+
     setError(null);
     try {
       const result = await permissionManager.requestMicrophonePermission();
@@ -94,9 +112,11 @@ export function usePermissions() {
       setError('Failed to request microphone permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestNotificationPermission = useCallback(async () => {
+    if (!permissionManager) return 'error' as const;
+
     setError(null);
     try {
       const result = await permissionManager.requestNotificationPermission();
@@ -105,9 +125,11 @@ export function usePermissions() {
       setError('Failed to request notification permission');
       return 'error' as const;
     }
-  }, []);
+  }, [permissionManager]);
 
   const requestAllPermissions = useCallback(async () => {
+    if (!permissionManager) return permissionState;
+
     setError(null);
     try {
       const result = await permissionManager.requestAllPermissions();
@@ -116,11 +138,15 @@ export function usePermissions() {
       setError('Failed to request permissions');
       return permissionState;
     }
-  }, [permissionState]);
+  }, [permissionManager, permissionState]);
 
-  const shouldShowPrimer = useCallback((permission: 'camera' | 'microphone' | 'notifications') => {
-    return permissionManager.shouldShowPermissionPrimer(permission);
-  }, []);
+  const shouldShowPrimer = useCallback(
+    (permission: 'camera' | 'microphone' | 'notifications') => {
+      if (!permissionManager) return false;
+      return permissionManager.shouldShowPermissionPrimer(permission);
+    },
+    [permissionManager],
+  );
 
   const hasAllRequiredPermissions = useCallback(() => {
     return (

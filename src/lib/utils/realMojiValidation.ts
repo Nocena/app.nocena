@@ -332,7 +332,7 @@ export const useRealMoji = () => {
 };
 
 // Export all utilities
-export default {
+const realMojiValidationUtils = {
   validateRealMojiCreation,
   testRealMojiCreation,
   debugRealMojiResponse,
@@ -340,3 +340,5 @@ export default {
   createTestRealMoji,
   useRealMoji,
 };
+
+export default realMojiValidationUtils;

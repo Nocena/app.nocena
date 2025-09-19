@@ -24,20 +24,49 @@ export interface PermissionHistory {
   };
 }
 
-export class PWAPermissionManager {
+// Define the interface for PWAPermissionManager
+export interface IPWAPermissionManager {
+  initialize(): Promise<void>;
+  getPermissionState(): PermissionState;
+  getPermissionHistory(): PermissionHistory;
+  shouldShowPermissionPrimer(permission: 'camera' | 'microphone' | 'notifications'): boolean;
+  requestCameraPermission(): Promise<'granted' | 'denied' | 'error'>;
+  requestMicrophonePermission(): Promise<'granted' | 'denied' | 'error'>;
+  requestNotificationPermission(): Promise<'granted' | 'denied' | 'error'>;
+  requestAllPermissions(): Promise<PermissionState>;
+  addListener(callback: (state: PermissionState) => void): void;
+  removeListener(callback: (state: PermissionState) => void): void;
+  forceRefresh(): Promise<void>;
+}
+
+export class PWAPermissionManager implements IPWAPermissionManager {
   private static instance: PWAPermissionManager;
   private permissionState: PermissionState;
   private permissionHistory: PermissionHistory;
   private listeners: Array<(state: PermissionState) => void> = [];
   private isInitialized = false;
+  private isClient = false;
 
   private constructor() {
+    this.isClient = typeof window !== 'undefined';
+
     this.permissionState = {
       camera: 'unknown',
       microphone: 'unknown',
       notifications: 'unknown',
     };
-    this.permissionHistory = this.loadPermissionHistory();
+
+    // Only load history if we're on the client side
+    if (this.isClient) {
+      this.permissionHistory = this.loadPermissionHistory();
+    } else {
+      // Default history for server-side rendering
+      this.permissionHistory = {
+        camera: { attempts: 0 },
+        microphone: { attempts: 0 },
+        notifications: { attempts: 0 },
+      };
+    }
   }
 
   public static getInstance(): PWAPermissionManager {
@@ -51,9 +80,14 @@ export class PWAPermissionManager {
    * Initialize permission manager - call this early in app lifecycle
    */
   public async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized || !this.isClient) return;
 
     console.log('🔐 Initializing PWA Permission Manager...');
+
+    // Load permission history if not already loaded
+    if (!this.permissionHistory || Object.keys(this.permissionHistory).length === 0) {
+      this.permissionHistory = this.loadPermissionHistory();
+    }
 
     // Check all permissions without triggering prompts
     await this.checkAllPermissions();
@@ -72,6 +106,8 @@ export class PWAPermissionManager {
    * Check all permissions status without triggering prompts
    */
   private async checkAllPermissions(): Promise<void> {
+    if (!this.isClient) return;
+
     const newState: PermissionState = {
       camera: await this.checkCameraPermission(),
       microphone: await this.checkMicrophonePermission(),
@@ -85,6 +121,8 @@ export class PWAPermissionManager {
    * Check camera permission using multiple fallback methods
    */
   private async checkCameraPermission(): Promise<PermissionState['camera']> {
+    if (!this.isClient) return 'unknown';
+
     try {
       // Method 1: Try Permissions API (Chrome/Edge support)
       if ('permissions' in navigator && navigator.permissions.query) {
@@ -126,6 +164,8 @@ export class PWAPermissionManager {
    * Check microphone permission using multiple fallback methods
    */
   private async checkMicrophonePermission(): Promise<PermissionState['microphone']> {
+    if (!this.isClient) return 'unknown';
+
     try {
       // Method 1: Try Permissions API
       if ('permissions' in navigator && navigator.permissions.query) {
@@ -166,6 +206,8 @@ export class PWAPermissionManager {
    * Check notification permission (most reliable across browsers)
    */
   private async checkNotificationPermission(): Promise<PermissionState['notifications']> {
+    if (!this.isClient) return 'unknown';
+
     try {
       if ('Notification' in window) {
         const permission = Notification.permission;
@@ -183,6 +225,8 @@ export class PWAPermissionManager {
    * Request camera permission with proper error handling
    */
   public async requestCameraPermission(): Promise<'granted' | 'denied' | 'error'> {
+    if (!this.isClient) return 'error';
+
     try {
       console.log('📷 Requesting camera permission...');
 
@@ -236,6 +280,8 @@ export class PWAPermissionManager {
    * Request microphone permission separately (for iOS compatibility)
    */
   public async requestMicrophonePermission(): Promise<'granted' | 'denied' | 'error'> {
+    if (!this.isClient) return 'error';
+
     try {
       console.log('🎤 Requesting microphone permission...');
 
@@ -274,6 +320,8 @@ export class PWAPermissionManager {
    * Request notification permission
    */
   public async requestNotificationPermission(): Promise<'granted' | 'denied' | 'error'> {
+    if (!this.isClient) return 'error';
+
     try {
       console.log('🔔 Requesting notification permission...');
 
@@ -306,6 +354,8 @@ export class PWAPermissionManager {
    * Request all permissions in the optimal order for the platform
    */
   public async requestAllPermissions(): Promise<PermissionState> {
+    if (!this.isClient) return this.permissionState;
+
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
     if (isIOS) {
@@ -345,6 +395,8 @@ export class PWAPermissionManager {
    * Set up permission change listeners
    */
   private setupPermissionListeners(): void {
+    if (!this.isClient) return;
+
     // Listen for permission changes using Permissions API where supported
     if ('permissions' in navigator) {
       ['camera', 'microphone', 'notifications'].forEach(async (permission) => {
@@ -378,6 +430,8 @@ export class PWAPermissionManager {
    * Handle service worker updates that might reset permissions
    */
   private handleServiceWorkerUpdates(): void {
+    if (!this.isClient) return;
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'SW_UPDATED') {
@@ -438,6 +492,15 @@ export class PWAPermissionManager {
    * Load permission history from storage
    */
   private loadPermissionHistory(): PermissionHistory {
+    // Only attempt to load if we're on the client side
+    if (!this.isClient) {
+      return {
+        camera: { attempts: 0 },
+        microphone: { attempts: 0 },
+        notifications: { attempts: 0 },
+      };
+    }
+
     try {
       const stored = localStorage.getItem('nocena_permission_history');
       if (stored) {
@@ -458,6 +521,12 @@ export class PWAPermissionManager {
    * Save permission history to storage
    */
   private savePermissionHistory(): void {
+    // Only attempt to save if we're on the client side
+    if (!this.isClient) {
+      console.warn('Cannot save permission history: not on client side');
+      return;
+    }
+
     try {
       localStorage.setItem('nocena_permission_history', JSON.stringify(this.permissionHistory));
     } catch (error) {
@@ -469,6 +538,8 @@ export class PWAPermissionManager {
    * Check if we should show permission primer
    */
   public shouldShowPermissionPrimer(permission: 'camera' | 'microphone' | 'notifications'): boolean {
+    if (!this.isClient) return false;
+
     const history = this.permissionHistory[permission];
     const state = this.permissionState[permission];
 
@@ -489,10 +560,53 @@ export class PWAPermissionManager {
    * Force refresh all permissions (for debugging)
    */
   public async forceRefresh(): Promise<void> {
+    if (!this.isClient) return;
+
     console.log('🔄 Force refreshing all permissions...');
     await this.checkAllPermissions();
   }
 }
 
-// Export singleton instance
-export const permissionManager = PWAPermissionManager.getInstance();
+// Create and export singleton instance with client-side check
+let permissionManagerInstance: PWAPermissionManager | null = null;
+
+export const getPermissionManager = (): IPWAPermissionManager => {
+  if (typeof window !== 'undefined') {
+    if (!permissionManagerInstance) {
+      permissionManagerInstance = PWAPermissionManager.getInstance();
+    }
+    return permissionManagerInstance;
+  }
+
+  // Return a mock implementation for server-side rendering
+  const mockManager: IPWAPermissionManager = {
+    initialize: async (): Promise<void> => {},
+    getPermissionState: (): PermissionState => ({
+      camera: 'unknown',
+      microphone: 'unknown',
+      notifications: 'unknown',
+    }),
+    getPermissionHistory: (): PermissionHistory => ({
+      camera: { attempts: 0 },
+      microphone: { attempts: 0 },
+      notifications: { attempts: 0 },
+    }),
+    shouldShowPermissionPrimer: (_permission: 'camera' | 'microphone' | 'notifications'): boolean => false,
+    requestCameraPermission: async (): Promise<'granted' | 'denied' | 'error'> => 'error',
+    requestMicrophonePermission: async (): Promise<'granted' | 'denied' | 'error'> => 'error',
+    requestNotificationPermission: async (): Promise<'granted' | 'denied' | 'error'> => 'error',
+    requestAllPermissions: async (): Promise<PermissionState> => ({
+      camera: 'unknown',
+      microphone: 'unknown',
+      notifications: 'unknown',
+    }),
+    addListener: (_callback: (state: PermissionState) => void): void => {},
+    removeListener: (_callback: (state: PermissionState) => void): void => {},
+    forceRefresh: async (): Promise<void> => {},
+  };
+
+  return mockManager;
+};
+
+// Export singleton instance (use the getter function instead)
+export const permissionManager = getPermissionManager();

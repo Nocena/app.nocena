@@ -10,28 +10,37 @@ class SimplexNoise {
 
   constructor() {
     this.grad3 = [
-      [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
-      [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
-      [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+      [1, 1, 0],
+      [-1, 1, 0],
+      [1, -1, 0],
+      [-1, -1, 0],
+      [1, 0, 1],
+      [-1, 0, 1],
+      [1, 0, -1],
+      [-1, 0, -1],
+      [0, 1, 1],
+      [0, -1, 1],
+      [0, 1, -1],
+      [0, -1, -1],
     ];
 
-    this.p = [151, 160, 137, 91, 90, 15,
-      131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
-      190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
-      88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166,
-      77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244,
-      102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196,
-      135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123,
-      5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42,
-      223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
-      129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228,
-      251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107,
-      49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,
-      138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180];
+    this.p = [
+      151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240,
+      21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88,
+      237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83,
+      111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216,
+      80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186,
+      3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58,
+      17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
+      129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193,
+      238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157,
+      184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128,
+      195, 78, 66, 215, 61, 156, 180,
+    ];
 
     this.perm = new Array(512);
     this.gradP = new Array(512);
-    
+
     for (let i = 0; i < 512; i++) {
       this.perm[i] = this.p[i & 255];
       this.gradP[i] = this.grad3[this.perm[i] % 12];
@@ -57,13 +66,51 @@ class SimplexNoise {
     let i1, j1, k1;
     let i2, j2, k2;
     if (x0 >= y0) {
-      if (y0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
-      else if (x0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
-      else { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
+      if (y0 >= z0) {
+        i1 = 1;
+        j1 = 0;
+        k1 = 0;
+        i2 = 1;
+        j2 = 1;
+        k2 = 0;
+      } else if (x0 >= z0) {
+        i1 = 1;
+        j1 = 0;
+        k1 = 0;
+        i2 = 1;
+        j2 = 0;
+        k2 = 1;
+      } else {
+        i1 = 0;
+        j1 = 0;
+        k1 = 1;
+        i2 = 1;
+        j2 = 0;
+        k2 = 1;
+      }
     } else {
-      if (y0 < z0) { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
-      else if (x0 < z0) { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
-      else { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+      if (y0 < z0) {
+        i1 = 0;
+        j1 = 0;
+        k1 = 1;
+        i2 = 0;
+        j2 = 1;
+        k2 = 1;
+      } else if (x0 < z0) {
+        i1 = 0;
+        j1 = 1;
+        k1 = 0;
+        i2 = 0;
+        j2 = 1;
+        k2 = 1;
+      } else {
+        i1 = 0;
+        j1 = 1;
+        k1 = 0;
+        i2 = 1;
+        j2 = 1;
+        k2 = 0;
+      }
     }
     const x1 = x0 - i1 + G3;
     const y1 = y0 - j1 + G3;
@@ -112,19 +159,31 @@ interface AnimatedBlobProps {
 
 const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [speed, setSpeed] = useState(20);
-  const [spikes, setSpikes] = useState(0.6);
-  const [processing, setProcessing] = useState(1.0);
+  const [speed, setSpeed] = useState(12);
+  const [spikes, setSpikes] = useState(0.3);
+  const [processing, setProcessing] = useState(0.7);
+  const [currentMode, setCurrentMode] = useState<string>(mode);
 
-  // Smooth transitions between states
+  // Immediate mode update with logging
   useEffect(() => {
-    const targetValues = mode === 'speaking' 
-    ? { speed: 61, spikes: 1.1, processing: 1.21 }
-    : mode === 'listening'
-    ? { speed: 20, spikes: 0.6, processing: 1.0 }
-    : { speed: 12, spikes: 0.3, processing: 0.7 }; // inactive (default)
+    console.log(`AnimatedBlob: Mode change from "${currentMode}" to "${mode}"`);
+    setCurrentMode(mode);
 
-    const animateValue = (current: number, target: number, setter: (value: number) => void, duration: number = 1000) => {
+    const targetValues =
+      mode === 'speaking'
+        ? { speed: 61, spikes: 1.1, processing: 1.21 }
+        : mode === 'listening'
+          ? { speed: 20, spikes: 0.6, processing: 1.0 }
+          : { speed: 12, spikes: 0.3, processing: 0.7 }; // inactive
+
+    console.log(`AnimatedBlob: Target values for ${mode}:`, targetValues);
+
+    const animateValue = (
+      current: number,
+      target: number,
+      setter: (value: number) => void,
+      duration: number = 500, // Reduced duration for more responsive animations
+    ) => {
       const startTime = performance.now();
       const startValue = current;
       const difference = target - startValue;
@@ -132,26 +191,33 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
-        // Smooth easing function
-        const easeInOutCubic = progress < 0.5 
-          ? 4 * progress * progress * progress 
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-        
-        const newValue = startValue + (difference * easeInOutCubic);
+
+        // Smoother easing function for more responsive feel
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+
+        const newValue = startValue + difference * easeOutCubic;
         setter(newValue);
 
         if (progress < 1) {
           requestAnimationFrame(animate);
+        } else {
+          console.log(`AnimatedBlob: Animation complete for ${mode}`);
         }
       };
       requestAnimationFrame(animate);
     };
 
-    animateValue(speed, targetValues.speed, setSpeed, 800);
-    animateValue(spikes, targetValues.spikes, setSpikes, 800);
-    animateValue(processing, targetValues.processing, setProcessing, 800);
-  }, [mode, speed, spikes, processing]);
+    animateValue(speed, targetValues.speed, setSpeed, 400);
+    animateValue(spikes, targetValues.spikes, setSpikes, 400);
+    animateValue(processing, targetValues.processing, setProcessing, 400);
+  }, [mode]); // Remove dependencies on current values to prevent loops
+
+  // Debug logging for animation values
+  useEffect(() => {
+    console.log(
+      `AnimatedBlob: Animation values - speed: ${speed.toFixed(1)}, spikes: ${spikes.toFixed(2)}, processing: ${processing.toFixed(2)}`,
+    );
+  }, [speed, spikes, processing]);
 
   const sceneRef = useRef<{
     scene: THREE.Scene;
@@ -168,18 +234,19 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
 
   useEffect(() => {
     if (!mountRef.current || sceneRef.current) return;
-  
+
+    console.log('AnimatedBlob: Initializing Three.js scene');
     const container = mountRef.current;
-    
+
     // Scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, size / size, 0.1, 1000);
     camera.position.z = 5;
-  
+
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
-      powerPreference: "high-performance"
+      powerPreference: 'high-performance',
     });
     renderer.setSize(size, size);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -187,29 +254,25 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.5;
     container.appendChild(renderer.domElement);
-  
+
     // Sphere geometry - using 128x128 like in the original
     const geometry = new THREE.SphereGeometry(0.8, 128, 128);
-    
+
     // Store original vertices for noise calculation
     const originalVertices: THREE.Vector3[] = [];
     const positions = geometry.attributes.position;
     for (let i = 0; i < positions.count; i++) {
-      originalVertices.push(new THREE.Vector3(
-        positions.getX(i),
-        positions.getY(i),
-        positions.getZ(i)
-      ));
+      originalVertices.push(new THREE.Vector3(positions.getX(i), positions.getY(i), positions.getZ(i)));
     }
-  
+
     // Nocena colors
-    const nocenaBlue = 0x4F9EFF;
-    const nocenaPurple = 0xA855F7;
-    const nocenaPink = 0xFF3D9A;
-  
+    const nocenaBlue = 0x4f9eff;
+    const nocenaPurple = 0xa855f7;
+    const nocenaPink = 0xff3d9a;
+
     // HOLOGRAPHIC MATERIAL
     const material = new THREE.MeshPhongMaterial({
-      color: 0xFFFFFF, // White base for iridescence
+      color: 0xffffff, // White base for iridescence
       shininess: 300,
       transparent: true,
       opacity: 0.9,
@@ -218,28 +281,28 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
       specular: nocenaPink,
       reflectivity: 1.0,
     });
-  
+
     // HOLOGRAPHIC LIGHTING
     const rimLight1 = new THREE.DirectionalLight(nocenaPink, 0.8);
     rimLight1.position.set(2, 2, 2);
     scene.add(rimLight1);
-    
+
     const rimLight2 = new THREE.DirectionalLight(nocenaBlue, 0.6);
     rimLight2.position.set(-2, -1, 2);
     scene.add(rimLight2);
-    
+
     const rimLight3 = new THREE.DirectionalLight(nocenaPurple, 0.4);
     rimLight3.position.set(0, -2, 1);
     scene.add(rimLight3);
-    
-    const ambientLight = new THREE.AmbientLight(0x6666FF, 0.3);
+
+    const ambientLight = new THREE.AmbientLight(0x6666ff, 0.3);
     scene.add(ambientLight);
-  
+
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
-  
+
     const simplex = new SimplexNoise();
-  
+
     sceneRef.current = {
       scene,
       camera,
@@ -250,10 +313,13 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
       simplex,
       time: 0,
       animationId: null,
-      originalVertices
+      originalVertices,
     };
-  
+
+    console.log('AnimatedBlob: Three.js scene initialized');
+
     return () => {
+      console.log('AnimatedBlob: Cleaning up Three.js scene');
       if (sceneRef.current) {
         if (sceneRef.current.animationId) {
           cancelAnimationFrame(sceneRef.current.animationId);
@@ -281,29 +347,29 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
 
       const spikeIntensity = spikes * processing;
       const positions = sceneRef.current.geometry.attributes.position;
-      
+
       // Update vertices using noise - exactly like CodePen
       for (let i = 0; i < sceneRef.current.originalVertices.length; i++) {
         const originalVertex = sceneRef.current.originalVertices[i].clone();
         originalVertex.normalize();
-        
+
         const noiseValue = sceneRef.current.simplex.noise3D(
           originalVertex.x * spikeIntensity,
           originalVertex.y * spikeIntensity,
-          originalVertex.z * spikeIntensity + sceneRef.current.time
+          originalVertex.z * spikeIntensity + sceneRef.current.time,
         );
-        
+
         originalVertex.multiplyScalar(1 + 0.3 * noiseValue);
         positions.setXYZ(i, originalVertex.x, originalVertex.y, originalVertex.z);
       }
-      
+
       sceneRef.current.geometry.computeVertexNormals();
       positions.needsUpdate = true;
     };
 
     const animate = (timestamp: number) => {
       if (!sceneRef.current) return;
-      
+
       update(timestamp);
       sceneRef.current.renderer.render(sceneRef.current.scene, sceneRef.current.camera);
       sceneRef.current.animationId = requestAnimationFrame(animate);
@@ -323,7 +389,7 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
   }, [speed, spikes, processing]);
 
   return (
-    <div 
+    <div
       ref={mountRef}
       className="relative flex items-center justify-center mx-auto"
       style={{ width: size, height: size }}
