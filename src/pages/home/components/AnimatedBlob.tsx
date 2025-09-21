@@ -1,4 +1,3 @@
-// src/components/ai/AnimatedBlob.tsx
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
@@ -160,24 +159,30 @@ interface AnimatedBlobProps {
 
 const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [speed, setSpeed] = useState(20);
-  const [spikes, setSpikes] = useState(0.6);
-  const [processing, setProcessing] = useState(1.0);
+  const [speed, setSpeed] = useState(12);
+  const [spikes, setSpikes] = useState(0.3);
+  const [processing, setProcessing] = useState(0.7);
+  const [currentMode, setCurrentMode] = useState<string>(mode);
 
-  // Smooth transitions between states
+  // Immediate mode update with logging
   useEffect(() => {
+    console.log(`AnimatedBlob: Mode change from "${currentMode}" to "${mode}"`);
+    setCurrentMode(mode);
+
     const targetValues =
       mode === 'speaking'
         ? { speed: 61, spikes: 1.1, processing: 1.21 }
         : mode === 'listening'
           ? { speed: 20, spikes: 0.6, processing: 1.0 }
-          : { speed: 12, spikes: 0.3, processing: 0.7 }; // inactive (default)
+          : { speed: 12, spikes: 0.3, processing: 0.7 }; // inactive
+
+    console.log(`AnimatedBlob: Target values for ${mode}:`, targetValues);
 
     const animateValue = (
       current: number,
       target: number,
       setter: (value: number) => void,
-      duration: number = 1000,
+      duration: number = 500, // Reduced duration for more responsive animations
     ) => {
       const startTime = performance.now();
       const startValue = current;
@@ -187,24 +192,32 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
 
-        // Smooth easing function
-        const easeInOutCubic =
-          progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        // Smoother easing function for more responsive feel
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3);
 
-        const newValue = startValue + difference * easeInOutCubic;
+        const newValue = startValue + difference * easeOutCubic;
         setter(newValue);
 
         if (progress < 1) {
           requestAnimationFrame(animate);
+        } else {
+          console.log(`AnimatedBlob: Animation complete for ${mode}`);
         }
       };
       requestAnimationFrame(animate);
     };
 
-    animateValue(speed, targetValues.speed, setSpeed, 800);
-    animateValue(spikes, targetValues.spikes, setSpikes, 800);
-    animateValue(processing, targetValues.processing, setProcessing, 800);
-  }, [mode, speed, spikes, processing]);
+    animateValue(speed, targetValues.speed, setSpeed, 400);
+    animateValue(spikes, targetValues.spikes, setSpikes, 400);
+    animateValue(processing, targetValues.processing, setProcessing, 400);
+  }, [mode]); // Remove dependencies on current values to prevent loops
+
+  // Debug logging for animation values
+  useEffect(() => {
+    console.log(
+      `AnimatedBlob: Animation values - speed: ${speed.toFixed(1)}, spikes: ${spikes.toFixed(2)}, processing: ${processing.toFixed(2)}`,
+    );
+  }, [speed, spikes, processing]);
 
   const sceneRef = useRef<{
     scene: THREE.Scene;
@@ -222,6 +235,7 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
   useEffect(() => {
     if (!mountRef.current || sceneRef.current) return;
 
+    console.log('AnimatedBlob: Initializing Three.js scene');
     const container = mountRef.current;
 
     // Scene setup
@@ -302,7 +316,10 @@ const AnimatedBlob: React.FC<AnimatedBlobProps> = ({ size = 400, mode }) => {
       originalVertices,
     };
 
+    console.log('AnimatedBlob: Three.js scene initialized');
+
     return () => {
+      console.log('AnimatedBlob: Cleaning up Three.js scene');
       if (sceneRef.current) {
         if (sceneRef.current.animationId) {
           cancelAnimationFrame(sceneRef.current.animationId);

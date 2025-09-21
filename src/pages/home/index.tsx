@@ -1,207 +1,230 @@
-// pages/challenge/index.tsx - WITH DISCOVER BUTTON
+// pages/home/index.tsx - UPDATED FOR JOURNEY-BASED CHALLENGES
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchFollowerCompletions, fetchLatestUserCompletion } from '../../lib/api/dgraph';
-import {
-  getCurrentChallenge,
-  getChallengeReward,
-  getFallbackChallenge,
-  AIChallenge,
-} from '../../lib/utils/challengeUtils';
 
 // Component imports
-import ChallengeHeader from './components/ChallengeHeader';
 import ChallengeForm from './components/ChallengeForm';
 import CompletionFeed from './components/CompletionFeed';
 import CompletionItem from './components/CompletionItem';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PrimaryButton from '../../components/ui/PrimaryButton';
 
-type ChallengeType = 'daily' | 'weekly' | 'monthly';
-
-// FIXED completion check functions
-function hasCompletedDaily(user: any): boolean {
-  if (!user || !user.dailyChallenge) return false;
-
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-  console.log('Daily check:', {
-    dayOfYear,
-    stringLength: user.dailyChallenge.length,
-    value: user.dailyChallenge.charAt(dayOfYear - 1),
-  });
-
-  return user.dailyChallenge.charAt(dayOfYear - 2) === '1'; //L: why -2? I don't know, but it works (same as in dgraph.ts when I save the string)
+// Types for journey-based challenges
+interface JourneyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  reward: number;
+  frequency: string;
+  isActive: boolean;
+  createdAt?: string;
 }
 
-function hasCompletedWeekly(user: any): boolean {
-  if (!user || !user.weeklyChallenge) return false;
+// Function to get user's next challenge from their journey
+const getUserNextChallenge = async (userId: string): Promise<JourneyChallenge | null> => {
+  try {
+    // This will fetch challenges for the user's journey in order
+    // For now, we'll get all custom-journey challenges and find the first uncompleted one
+    const query = `
+      query GetUserNextChallenge($userId: String!) {
+        # Get user's completed challenge IDs first
+        getUser(id: $userId) {
+          completedChallenges(filter: { challengeType: { eq: "ai" } }) {
+            aiChallenge {
+              id
+            }
+          }
+        }
+        
+        # Get all journey challenges ordered by creation
+        queryAIChallenge(
+          filter: { frequency: { eq: "custom-journey" }, isActive: true }
+          order: { asc: createdAt }
+        ) {
+          id
+          title
+          description
+          reward
+          frequency
+          isActive
+          createdAt
+        }
+      }
+    `;
 
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const daysSinceStart = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const weekOfYear = Math.floor(daysSinceStart / 7) + 1;
+    const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { userId } }),
+    });
 
-  console.log('Weekly check:', {
-    weekOfYear,
-    stringLength: user.weeklyChallenge.length,
-    value: user.weeklyChallenge.charAt(weekOfYear - 1),
-  });
+    const data = await response.json();
 
-  return user.weeklyChallenge.charAt(weekOfYear - 1) === '1';
-}
+    if (data.errors) {
+      console.error('Error fetching user journey:', data.errors);
+      return null;
+    }
 
-function hasCompletedMonthly(user: any): boolean {
-  if (!user || !user.monthlyChallenge) return false;
-
-  const now = new Date();
-  const month = now.getMonth(); // 0-based (0 = January)
-
-  console.log('Monthly check:', {
-    month,
-    stringLength: user.monthlyChallenge.length,
-    value: user.monthlyChallenge.charAt(month),
-  });
-
-  return user.monthlyChallenge.charAt(month) === '1';
-}
-
-function hasCompletedChallenge(user: any, challengeType: ChallengeType): boolean {
-  if (challengeType === 'daily') return hasCompletedDaily(user);
-  if (challengeType === 'weekly') return hasCompletedWeekly(user);
-  return hasCompletedMonthly(user);
-}
-
-// Mock data generator for development testing
-const createMockVideoBlob = (): Blob => {
-  // Create a simple mock video blob (1x1 pixel black video)
-  const canvas = document.createElement('canvas');
-  canvas.width = 640;
-  canvas.height = 480;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Mock Video', canvas.width / 2, canvas.height / 2);
-  }
-
-  return new Promise<Blob>((resolve) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) resolve(blob);
-        else resolve(new Blob(['mock video'], { type: 'video/mp4' }));
-      },
-      'image/jpeg',
-      0.8,
+    const completedChallengeIds = new Set(
+      data.data.getUser?.completedChallenges?.map((completion: any) => completion.aiChallenge?.id).filter(Boolean) ||
+        [],
     );
-  }) as any;
+
+    const allJourneyChallenges = data.data.queryAIChallenge || [];
+
+    // Find the first challenge that hasn't been completed
+    const nextChallenge = allJourneyChallenges.find((challenge: any) => !completedChallengeIds.has(challenge.id));
+
+    console.log('Next challenge for user:', {
+      userId,
+      completedCount: completedChallengeIds.size,
+      totalChallenges: allJourneyChallenges.length,
+      nextChallenge: nextChallenge?.title || 'None',
+    });
+
+    return nextChallenge || null;
+  } catch (error) {
+    console.error('Error getting user next challenge:', error);
+    return null;
+  }
 };
 
-const createMockPhotoBlob = (): Blob => {
-  // Create a simple mock photo blob
-  const canvas = document.createElement('canvas');
-  canvas.width = 300;
-  canvas.height = 400;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Mock Selfie', canvas.width / 2, canvas.height / 2);
-  }
+// Function to check if user has completed today's challenge
+const hasCompletedTodaysChallenge = async (userId: string, challengeId: string): Promise<boolean> => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
 
-  return new Promise<Blob>((resolve) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) resolve(blob);
-        else resolve(new Blob(['mock photo'], { type: 'image/jpeg' }));
-      },
-      'image/jpeg',
-      0.8,
-    );
-  }) as any;
+    const query = `
+      query CheckTodaysCompletion($userId: String!, $challengeId: String!, $startOfDay: DateTime!, $endOfDay: DateTime!) {
+        queryUser(filter: { id: { eq: $userId } }) {
+          completedChallenges(filter: {
+            and: [
+              { aiChallenge: { id: { eq: $challengeId } } },
+              { completionDate: { between: { min: $startOfDay, max: $endOfDay } } }
+            ]
+          }) {
+            id
+          }
+        }
+      }
+    `;
+
+    const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        variables: { userId, challengeId, startOfDay, endOfDay },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      console.error('Error checking completion status:', data.errors);
+      return false;
+    }
+
+    const completions = data.data.queryUser?.[0]?.completedChallenges || [];
+    return completions.length > 0;
+  } catch (error) {
+    console.error("Error checking today's completion:", error);
+    return false;
+  }
 };
+
+// Fallback challenge for when no journey challenges are available
+const getFallbackChallenge = (): JourneyChallenge => ({
+  id: 'fallback',
+  title: 'Take a Photo Challenge',
+  description: 'Capture a moment from your day and share it with the community!',
+  reward: 10,
+  frequency: 'custom-journey',
+  isActive: false, // Mark as inactive so users know it's offline
+});
 
 const HomeView = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [selectedTab, setSelectedTab] = useState<ChallengeType>('daily');
+  const [currentChallenge, setCurrentChallenge] = useState<JourneyChallenge | null>(null);
+  const [isLoadingChallenge, setIsLoadingChallenge] = useState(true);
+  const [hasCompleted, setHasCompleted] = useState(false);
+  const [isCheckingCompletion, setIsCheckingCompletion] = useState(false);
   const [followerCompletions, setFollowerCompletions] = useState<any[]>([]);
   const [isFetchingCompletions, setIsFetchingCompletions] = useState(false);
-
-  // Challenge state
-  const [currentChallenge, setCurrentChallenge] = useState<AIChallenge | null>(null);
-  const [isLoadingChallenge, setIsLoadingChallenge] = useState(true);
-
-  // Latest completion state
   const [latestCompletion, setLatestCompletion] = useState<any>(null);
   const [isLoadingLatestCompletion, setIsLoadingLatestCompletion] = useState(false);
 
   // Development mode check
   const isDevelopmentMode = process.env.NODE_ENV === 'development';
 
-  // Debug user completion strings
-  useEffect(() => {
-    if (user) {
-      console.log('User completion data:', {
-        dailyChallenge: user.dailyChallenge,
-        weeklyChallenge: user.weeklyChallenge,
-        monthlyChallenge: user.monthlyChallenge,
-        dailyLength: user.dailyChallenge?.length,
-        weeklyLength: user.weeklyChallenge?.length,
-        monthlyLength: user.monthlyChallenge?.length,
-      });
-    }
-  }, [user]);
-
-  // Fetch challenge from Dgraph when tab changes
+  // Fetch user's next challenge
   useEffect(() => {
     const loadChallenge = async () => {
+      if (!user) return;
+
       setIsLoadingChallenge(true);
-      console.log(`🔄 Loading ${selectedTab} challenge from Dgraph...`);
+      console.log('Loading next challenge for user...');
 
       try {
-        const challenge = await getCurrentChallenge(selectedTab);
+        const nextChallenge = await getUserNextChallenge(user.id);
 
-        if (challenge) {
-          console.log(`✅ Loaded ${selectedTab} challenge:`, challenge.title);
-          setCurrentChallenge(challenge);
+        if (nextChallenge) {
+          console.log('Loaded next challenge:', nextChallenge.title);
+          setCurrentChallenge(nextChallenge);
         } else {
-          console.warn(`⚠️ No ${selectedTab} challenge found, using fallback`);
-          setCurrentChallenge(getFallbackChallenge(selectedTab));
+          console.warn('No challenges available, using fallback');
+          setCurrentChallenge(getFallbackChallenge());
         }
       } catch (error) {
-        console.error(`❌ Error loading ${selectedTab} challenge:`, error);
-        setCurrentChallenge(getFallbackChallenge(selectedTab));
+        console.error('Error loading challenge:', error);
+        setCurrentChallenge(getFallbackChallenge());
       } finally {
         setIsLoadingChallenge(false);
       }
     };
 
     loadChallenge();
-  }, [selectedTab]);
+  }, [user]);
 
-  // Fetch latest completion when user changes or when completion status changes
+  // Check if user has completed today's challenge
   useEffect(() => {
-    if (!user) return;
+    const checkCompletion = async () => {
+      if (!user || !currentChallenge || currentChallenge.id === 'fallback') return;
+
+      setIsCheckingCompletion(true);
+      try {
+        const completed = await hasCompletedTodaysChallenge(user.id, currentChallenge.id);
+        setHasCompleted(completed);
+        console.log('Completion status:', completed);
+      } catch (error) {
+        console.error('Error checking completion:', error);
+        setHasCompleted(false);
+      } finally {
+        setIsCheckingCompletion(false);
+      }
+    };
+
+    checkCompletion();
+  }, [user, currentChallenge]);
+
+  // Fetch latest completion when user completes challenge
+  useEffect(() => {
+    if (!user || !hasCompleted) return;
 
     const loadLatestCompletion = async () => {
       setIsLoadingLatestCompletion(true);
       try {
-        console.log('🔄 Fetching latest completion...');
-        const completion = await fetchLatestUserCompletion(user.id);
+        console.log('Fetching latest completion...');
+        const completion = await fetchLatestUserCompletion(user.id, 'ai');
         setLatestCompletion(completion);
-        console.log('✅ Latest completion:', completion);
+        console.log('Latest completion:', completion);
       } catch (error) {
-        console.error('❌ Error fetching latest completion:', error);
+        console.error('Error fetching latest completion:', error);
         setLatestCompletion(null);
       } finally {
         setIsLoadingLatestCompletion(false);
@@ -209,30 +232,11 @@ const HomeView = () => {
     };
 
     loadLatestCompletion();
-  }, [user]);
+  }, [user, hasCompleted]);
 
-  // Check completion status using the user's completion flags
-  const hasCompleted = useMemo(() => {
-    if (!user) return false;
-    const completed = hasCompletedChallenge(user, selectedTab);
-    console.log(`${selectedTab} completion status:`, completed);
-    return completed;
-  }, [user, selectedTab]);
-
-  // Calculate reward based on challenge data or fallback
-  const reward = useMemo(() => {
-    return getChallengeReward(currentChallenge, selectedTab);
-  }, [currentChallenge, selectedTab]);
-
-  // Check if latest completion matches current challenge frequency
-  const latestCompletionMatchesTab = useMemo(() => {
-    if (!latestCompletion || !latestCompletion.aiChallenge) return false;
-    return latestCompletion.aiChallenge.frequency === selectedTab;
-  }, [latestCompletion, selectedTab]);
-
-  // ONLY fetch follower completions if user has actually completed the challenge
+  // Fetch follower completions if user has completed
   useEffect(() => {
-    if (!user || loading || !hasCompleted) {
+    if (!user || loading || !hasCompleted || !currentChallenge) {
       setFollowerCompletions([]);
       setIsFetchingCompletions(false);
       return;
@@ -240,11 +244,11 @@ const HomeView = () => {
 
     const loadFollowerCompletions = async () => {
       setIsFetchingCompletions(true);
-
       try {
-        console.log(`User has completed ${selectedTab} challenge, fetching friend completions...`);
+        console.log('User has completed challenge, fetching friend completions...');
         const today = new Date().toISOString().split('T')[0];
-        const completions = await fetchFollowerCompletions(user.id, today, selectedTab);
+        // For journey challenges, we'll show completions from friends who completed any AI challenge today
+        const completions = await fetchFollowerCompletions(user.id, today, 'ai');
         setFollowerCompletions(completions);
         console.log('Loaded follower completions:', completions.length);
       } catch (error) {
@@ -256,9 +260,20 @@ const HomeView = () => {
     };
 
     loadFollowerCompletions();
-  }, [user, loading, selectedTab, hasCompleted]);
+  }, [user, loading, hasCompleted, currentChallenge]);
 
-  const handleCompleteChallenge = async (type: string, frequency: string) => {
+  // Calculate reward - use challenge reward or fallback
+  const reward = useMemo(() => {
+    return currentChallenge?.reward || 10;
+  }, [currentChallenge]);
+
+  // Check if latest completion matches current challenge
+  const latestCompletionMatchesChallenge = useMemo(() => {
+    if (!latestCompletion || !currentChallenge || !latestCompletion.aiChallenge) return false;
+    return latestCompletion.aiChallenge.id === currentChallenge.id;
+  }, [latestCompletion, currentChallenge]);
+
+  const handleCompleteChallenge = async () => {
     if (!user) {
       alert('Please login to complete challenges!');
       router.push('/login');
@@ -278,7 +293,7 @@ const HomeView = () => {
 
     // Prevent double completion
     if (hasCompleted) {
-      alert(`You have already completed today's ${selectedTab} challenge!`);
+      alert("You have already completed today's challenge!");
       return;
     }
 
@@ -287,8 +302,8 @@ const HomeView = () => {
         pathname: '/completing',
         query: {
           challengeId: currentChallenge.id,
-          type, // 'AI'
-          frequency, // 'daily', 'weekly', or 'monthly'
+          type: 'AI',
+          frequency: currentChallenge.frequency,
           title: currentChallenge.title,
           description: currentChallenge.description,
           reward: currentChallenge.reward,
@@ -301,7 +316,7 @@ const HomeView = () => {
     }
   };
 
-  // Handle discover button click - navigate to browsing with all completions
+  // Handle discover button click
   const handleDiscoverClick = () => {
     if (!user) {
       alert('Please login to discover challenges!');
@@ -309,8 +324,6 @@ const HomeView = () => {
       return;
     }
 
-    // Navigate to browsing page without specific challenge/user filters
-    // This will show all completions across the app
     router.push('/browsing');
   };
 
@@ -326,33 +339,35 @@ const HomeView = () => {
   return (
     <div className="text-white p-4 min-h-screen mt-20">
       <div className="max-w-4xl mx-auto">
-        {/* Challenge Type Tabs */}
-        <ChallengeHeader selectedTab={selectedTab} onTabChange={setSelectedTab} />
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2">Your Journey</h1>
+          <p className="text-gray-300">Complete challenges to progress through your learning path</p>
+        </div>
 
         {/* Show loading state while fetching challenge */}
-        {isLoadingChallenge ? (
+        {isLoadingChallenge || isCheckingCompletion ? (
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner size="md" />
-            <span className="ml-3 text-gray-300">Loading {selectedTab} challenge...</span>
+            <span className="ml-3 text-gray-300">Loading your next challenge...</span>
           </div>
         ) : (
-          /* Main Content */
           <>
             {/* Discover Button */}
             <div className="mt-6 flex justify-center mb-8">
               <PrimaryButton onClick={handleDiscoverClick} isActive={true} text="Discover" />
             </div>
-            {/* Always show the challenge form - it will display completion state if completed */}
+
+            {/* Challenge Form */}
             <ChallengeForm
               challenge={currentChallenge}
               reward={reward}
-              selectedTab={selectedTab}
               hasCompleted={hasCompleted}
               onCompleteChallenge={handleCompleteChallenge}
             />
 
-            {/* Show latest completion using CompletionItem if user has completed and it matches current tab */}
-            {hasCompleted && latestCompletionMatchesTab && latestCompletion && user && (
+            {/* Show latest completion if user has completed */}
+            {hasCompleted && latestCompletionMatchesChallenge && latestCompletion && user && (
               <div className="mt-8">
                 <CompletionItem
                   profile={{
@@ -373,9 +388,24 @@ const HomeView = () => {
                   user={user}
                   isLoading={isFetchingCompletions}
                   followerCompletions={followerCompletions}
-                  selectedTab={selectedTab}
+                  selectedTab="journey" // Changed from selectedTab to indicate journey mode
                   hasCompleted={hasCompleted}
                 />
+              </div>
+            )}
+
+            {/* Progress indicator */}
+            {user && (
+              <div className="mt-8 text-center">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-sm text-gray-400 mb-2">Journey Progress</p>
+                  <div className="text-lg font-semibold">
+                    {hasCompleted ? 'Challenge Completed! 🎉' : 'Ready for your next challenge'}
+                  </div>
+                  {currentChallenge && currentChallenge.id !== 'fallback' && (
+                    <p className="text-xs text-gray-500 mt-2">Challenge: {currentChallenge.title}</p>
+                  )}
+                </div>
               </div>
             )}
           </>

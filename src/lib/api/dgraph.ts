@@ -6837,3 +6837,124 @@ export async function addNewUserSubscription(
 }
 
 // ----------------- end of kaia hackathon graph functions ---------------
+
+export const createEnhancedAIChallenge = async (challengeData: {
+  title: string;
+  description: string;
+  reward: number;
+  frequency: string;
+  day?: number;
+  week?: number;
+  month?: number;
+  year?: number;
+  journeyId?: string;
+  targetUserId?: string;
+  pathType?: string;
+  originalGoal?: string;
+}): Promise<string> => {
+  const id = uuidv4();
+  const now = new Date();
+  const createdAt = now.toISOString();
+
+  // Use provided values or calculate defaults
+  const year = challengeData.year || now.getFullYear();
+  let day = challengeData.day || null;
+  let week = challengeData.week || null;
+  let month = challengeData.month || null;
+
+  // For traditional AI challenges, set time periods based on frequency
+  if (!challengeData.day && !challengeData.week && !challengeData.month) {
+    if (challengeData.frequency === 'daily') {
+      day = getDayOfYear(now);
+    } else if (challengeData.frequency === 'weekly') {
+      week = getWeekOfYear(now);
+    } else if (challengeData.frequency === 'monthly') {
+      month = now.getMonth() + 1;
+    }
+  }
+
+  const mutation = `
+    mutation CreateEnhancedAIChallenge(
+      $id: String!,
+      $title: String!,
+      $description: String!,
+      $reward: Int!,
+      $createdAt: DateTime!,
+      $frequency: String!,
+      $day: Int,
+      $week: Int,
+      $month: Int,
+      $year: Int!
+    ) {
+      addAIChallenge(input: [{
+        id: $id,
+        title: $title,
+        description: $description,
+        reward: $reward,
+        createdAt: $createdAt,
+        isActive: true,
+        frequency: $frequency,
+        day: $day,
+        week: $week,
+        month: $month,
+        year: $year
+      }]) {
+        aIChallenge {
+          id
+          title
+          frequency
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await axios.post(
+      DGRAPH_ENDPOINT,
+      {
+        query: mutation,
+        variables: {
+          id,
+          title: challengeData.title,
+          description: challengeData.description,
+          reward: challengeData.reward,
+          createdAt,
+          frequency: challengeData.frequency,
+          day,
+          week,
+          month,
+          year,
+        },
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    console.log('Full GraphQL response:', JSON.stringify(response.data, null, 2));
+
+    if (response.data.errors) {
+      console.error('Dgraph mutation error:', response.data.errors);
+      throw new Error('Failed to create enhanced AI challenge');
+    }
+
+    // Check the response structure - note the corrected field name
+    const responseData = response.data.data?.addAIChallenge?.aIChallenge;
+    if (!responseData || !Array.isArray(responseData) || responseData.length === 0) {
+      console.error('No challenge data returned:', response.data.data);
+      throw new Error('No challenge created - invalid response structure');
+    }
+
+    const createdChallenge = responseData[0];
+    console.log('Created enhanced AI challenge:', {
+      id: createdChallenge.id,
+      title: createdChallenge.title,
+      frequency: createdChallenge.frequency,
+    });
+
+    return id;
+  } catch (error) {
+    console.error('Error creating enhanced AI challenge:', error);
+    throw error;
+  }
+};
