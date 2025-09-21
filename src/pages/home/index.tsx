@@ -81,7 +81,7 @@ const HomeView = () => {
   const [isFetchingCompletions, setIsFetchingCompletions] = useState(false);
   const [latestCompletion, setLatestCompletion] = useState<any>(null);
   const [isLoadingLatestCompletion, setIsLoadingLatestCompletion] = useState(false);
-  
+
   // Journey status state
   const [journeyStatus, setJourneyStatus] = useState<{
     hasJourney: boolean;
@@ -331,7 +331,7 @@ const HomeView = () => {
         </div>
 
         {/* Show loading state while fetching challenge */}
-        {(journeyStatus.isLoading || isLoadingChallenge || isCheckingCompletion) ? (
+        {journeyStatus.isLoading || isLoadingChallenge || isCheckingCompletion ? (
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner size="md" />
             <span className="ml-3 text-gray-300">Loading your next challenge...</span>
@@ -387,11 +387,7 @@ const HomeView = () => {
               <div className="text-center py-12">
                 <h2 className="text-2xl font-bold mb-4">Journey Complete!</h2>
                 <p className="text-gray-300 mb-6">You've completed all challenges in your journey.</p>
-                <PrimaryButton
-                  onClick={() => window.location.reload()}
-                  text="Create New Journey"
-                  isActive={true}
-                />
+                <PrimaryButton onClick={() => window.location.reload()} text="Create New Journey" isActive={true} />
               </div>
             )}
 

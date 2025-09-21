@@ -78,6 +78,9 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
   const [generatedChallenges, setGeneratedChallenges] = useState<any[]>([]);
   const [showChallengePreview, setShowChallengePreview] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  // Add client-side only state
+  const [isClient, setIsClient] = useState(false);
 
   // Typing effect hook
   const { displayedText, isTyping, isComplete } = useTypingEffect(fullText, 50, 2000);
@@ -90,6 +93,16 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
+
+  // Set client-side flag after mount
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Register service worker only on client
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      // Service worker registration can happen here if needed
+    }
+  }, []);
 
   const pathOptions: PathOption[] = [
     {
@@ -129,7 +142,9 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       setIsProcessing(true);
 
       // Get userId from localStorage (set by JourneyOnboarding wrapper)
-      const userId = typeof window !== 'undefined' ? window.localStorage.getItem('currentUserId') : null;
+      const userId = isClient && typeof window !== 'undefined' 
+        ? window.localStorage.getItem('currentUserId') 
+        : null;
 
       if (!userId) {
         throw new Error('User ID is required to save challenges');
@@ -144,7 +159,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
           challenges: challenges,
           pathType: pathData.type,
           goal: pathData.goal || null,
-          userId: userId, // Pass the user ID from localStorage
+          userId: userId,
         }),
       });
 
@@ -183,7 +198,9 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       // Speak a brief confirmation
       const confirmText = 'Here are your new personalized challenges!';
       setFullText(confirmText);
-      await speakText(confirmText);
+      if (isClient) {
+        await speakText(confirmText);
+      }
     }
 
     setIsRegenerating(false);
@@ -229,7 +246,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pathType: pathType, // 'winter-arc' or 'daily-side-quest'
+          pathType: pathType,
         }),
       });
 
@@ -292,22 +309,22 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       if (speechTimeoutRef.current) {
         clearTimeout(speechTimeoutRef.current);
       }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (isClient && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
-      if (recognitionRef.current) {
+      if (isClient && recognitionRef.current) {
         recognitionRef.current.stop();
       }
       isActiveRef.current = false;
     };
-  }, []);
+  }, [isClient]);
 
-  // Initialize conversation
+  // Initialize conversation only on client
   useEffect(() => {
-    if (!conversationStarted) {
+    if (isClient && !conversationStarted) {
       initializeConversation();
     }
-  }, [conversationStarted]);
+  }, [isClient, conversationStarted]);
 
   const initializeConversation = async () => {
     // Display text with typing animation (2 second delay, 50ms per character)
@@ -327,15 +344,14 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
     try {
       // Start AI speech immediately (parallel with typing animation)
       const response = await sendToOpenAI([systemMessage]);
-      if (response) {
+      if (response && isClient) {
         await speakText(response);
       }
 
       // Auto-switch to paths 8 seconds after conversation starts
       timeoutRef.current = setTimeout(() => {
-        if (isActiveRef.current) {
-          setShowPaths(true);
-        }
+        console.log('Timeout triggered, isActiveRef:', isActiveRef.current, 'isClient:', isClient);
+        setShowPaths(true);
       }, 8000);
     } catch (error) {
       console.error('Failed to initialize conversation:', error);
@@ -346,7 +362,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
   };
 
   const speakText = async (text: string): Promise<void> => {
-    if (!isActiveRef.current) return;
+    if (!isActiveRef.current || !isClient) return;
 
     try {
       setIsSpeaking(true);
@@ -359,8 +375,8 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
         },
         body: JSON.stringify({
           text: text,
-          voice: 'nova', // OpenAI's best voice
-          model: 'tts-1', // Fast model for real-time
+          voice: 'nova',
+          model: 'tts-1',
         }),
       });
 
@@ -390,8 +406,8 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       console.error('Speech synthesis error:', error);
       setIsSpeaking(false);
 
-      // Fallback to browser TTS
-      if ('speechSynthesis' in window) {
+      // Fallback to browser TTS - only on client
+      if (isClient && 'speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.9;
         utterance.pitch = 1;
@@ -412,7 +428,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       audioRef.current.currentTime = 0;
     }
 
-    if ('speechSynthesis' in window) {
+    if (isClient && 'speechSynthesis' in window) {
       speechSynthesis.cancel();
     }
 
@@ -439,12 +455,14 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
 
       try {
         const response = await sendToOpenAI([systemMessage]);
-        if (response) {
+        if (response && isClient) {
           await speakText(response);
         }
       } catch (error) {
         console.error('Failed to get custom journey prompt:', error);
-        await speakText(promptText);
+        if (isClient) {
+          await speakText(promptText);
+        }
       }
     } else {
       // Handle predefined paths (Winter Arc, Daily Side Quest)
@@ -454,7 +472,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       const challenges = await loadPreDefinedChallenges(pathId);
 
       if (!challenges) {
-        return; // Error is already set in loadPreDefinedChallenges
+        return;
       }
 
       setGeneratedChallenges(challenges);
@@ -476,11 +494,15 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
         const response = await sendToOpenAI([systemMessage]);
         if (response) {
           setFullText(response);
-          await speakText(response);
+          if (isClient) {
+            await speakText(response);
+          }
         }
       } catch (error) {
         console.error('Failed to get path response:', error);
-        await speakText(promptText);
+        if (isClient) {
+          await speakText(promptText);
+        }
       }
 
       // Show the challenge preview
@@ -488,8 +510,10 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
     }
   };
 
-  // Speech recognition setup
+  // Speech recognition setup - only on client
   const initializeSpeechRecognition = () => {
+    if (!isClient) return;
+    
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
@@ -524,6 +548,8 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
   };
 
   const startVoiceRecording = () => {
+    if (!isClient) return;
+    
     if (recognitionRef.current) {
       try {
         recognitionRef.current.start();
@@ -540,7 +566,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
   };
 
   const stopVoiceRecording = () => {
-    if (recognitionRef.current) {
+    if (isClient && recognitionRef.current) {
       recognitionRef.current.stop();
     }
   };
@@ -552,7 +578,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
     const challenges = await generateChallenges(userInput.trim());
 
     if (!challenges) {
-      return; // Error is already set in generateChallenges
+      return;
     }
 
     setGeneratedChallenges(challenges);
@@ -576,7 +602,9 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
       const response = await sendToOpenAI([systemMessage, goalMessage]);
       if (response) {
         setFullText(response);
-        await speakText(response);
+        if (isClient) {
+          await speakText(response);
+        }
 
         // Show the challenge preview after speaking
         setShowCustomInput(false);
@@ -637,6 +665,21 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
     if (showChallengePreview) return 'Review your first 3 challenges...';
     return 'Listen to your AI coach...';
   };
+
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <div className="min-h-screen text-white flex flex-col items-center justify-center px-6 relative overflow-hidden mb-20">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-900/20 to-purple-900/20" />
+        <div className="relative z-10 w-full max-w-md mx-auto text-center">
+          <div className="flex justify-center items-center relative mb-8">
+            <div className="w-45 h-45 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse" />
+          </div>
+          <p className="text-sm text-white/60">Loading AI Coach...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-white flex flex-col items-center justify-center px-6 relative overflow-hidden mb-20">
@@ -959,10 +1002,9 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
             {pathOptions.map((path, index) => (
               <div
                 key={path.id}
-                className="animate-slide-in-up opacity-0"
+                className="opacity-100 transition-all duration-500"
                 style={{
                   animationDelay: `${index * 200}ms`,
-                  animationFillMode: 'forwards',
                 }}
               >
                 <ThematicContainer
