@@ -5,6 +5,8 @@
 
 Nocena presents a revolutionary **decentralized "crypto Patreon"** that addresses the fundamental issues plaguing current creator monetization platforms. Our hackathon submission focuses on **stablecoin integration** to provide influencers with stable earnings through USDT conversion, eliminating the volatility concerns that prevent mainstream adoption of crypto-based creator platforms.
 
+Full specific pitch for this project - http://hackathonpitch.nocena.com/
+
 ## 🎯 Problem Statement
 
 Current influencer monetization platforms suffer from critical flaws:
