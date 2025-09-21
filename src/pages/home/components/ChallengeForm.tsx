@@ -1,27 +1,29 @@
-// components/home/ChallengeForm.tsx - FIXED WITH COMPLETION STATE
+// components/home/ChallengeForm.tsx - UPDATED FOR JOURNEY-BASED CHALLENGES
 import React from 'react';
 import Image from 'next/image';
 import PrimaryButton from '../../../components/ui/PrimaryButton';
 import ThematicContainer from '../../../components/ui/ThematicContainer';
-import { AIChallenge } from '../../../lib/utils/challengeUtils';
 
 const nocenixIcon = '/nocenix.ico';
 
-interface ChallengeFormProps {
-  challenge: AIChallenge | null;
+interface JourneyChallenge {
+  id: string;
+  title: string;
+  description: string;
   reward: number;
-  selectedTab: string;
-  hasCompleted: boolean; // Add this prop
-  onCompleteChallenge: (type: string, frequency: string) => void;
+  frequency: string;
+  isActive: boolean;
+  createdAt?: string;
 }
 
-const ChallengeForm: React.FC<ChallengeFormProps> = ({
-  challenge,
-  reward,
-  selectedTab,
-  hasCompleted,
-  onCompleteChallenge,
-}) => {
+interface ChallengeFormProps {
+  challenge: JourneyChallenge | null;
+  reward: number;
+  hasCompleted: boolean;
+  onCompleteChallenge: () => void;
+}
+
+const ChallengeForm: React.FC<ChallengeFormProps> = ({ challenge, reward, hasCompleted, onCompleteChallenge }) => {
   // Handle case where challenge is null or loading
   if (!challenge) {
     return (
@@ -42,7 +44,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
           <h2 className="text-xl font-bold mb-4 text-green-300">{challenge.title}</h2>
           <div className="flex flex-col items-center space-y-6">
             <div className="bg-green-600 text-white px-6 py-3 rounded-full text-md font-medium">
-              ✅ {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Challenge Complete
+              🎉 Challenge Complete!
             </div>
 
             <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
@@ -52,6 +54,10 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
                 <span className="text-sm text-gray-300">earned</span>
               </div>
             </ThematicContainer>
+
+            <div className="text-sm text-gray-300 text-center">
+              <p>Great job! Come back tomorrow for your next challenge.</p>
+            </div>
           </div>
         </div>
       </ThematicContainer>
@@ -91,7 +97,7 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
         <p className="text-lg text-gray-300 mb-8 font-light">{challenge.description}</p>
 
         <div className="flex flex-col items-center space-y-6">
-          <PrimaryButton text="Complete Challenge" onClick={() => onCompleteChallenge('AI', selectedTab)} />
+          <PrimaryButton text="Complete Challenge" onClick={onCompleteChallenge} />
 
           <ThematicContainer asButton={false} color="nocenaPink" className="px-4 py-1">
             <div className="flex items-center space-x-1">
@@ -99,6 +105,13 @@ const ChallengeForm: React.FC<ChallengeFormProps> = ({
               <Image src={nocenixIcon} alt="Nocenix" width={32} height={32} />
             </div>
           </ThematicContainer>
+
+          {/* Progress indicator for journey challenges */}
+          {challenge.frequency === 'custom-journey' && (
+            <div className="text-xs text-gray-400 text-center">
+              <p>Part of your personalized learning journey</p>
+            </div>
+          )}
         </div>
       </div>
     </ThematicContainer>

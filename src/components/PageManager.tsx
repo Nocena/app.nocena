@@ -114,7 +114,7 @@ const lazyLoadWithTracking = (importFn: () => Promise<any>, pageName: string) =>
 
 // Lazy load the page components using their correct paths
 const HomePage = lazyLoadWithTracking(
-  () => import(/* webpackChunkName: "home-page" */ '../pages/home_new/index'),
+  () => import(/* webpackChunkName: "home-page" */ '../pages/home/components/AI'),
   'HomePage',
 );
 const MapPage = lazyLoadWithTracking(() => import(/* webpackChunkName: "map-page" */ '../pages/map/index'), 'MapPage');
@@ -136,7 +136,7 @@ if (isBrowser) {
   // Use requestIdleCallback for preloading to avoid competing with critical resources
   const preloadPages = () => {
     // Preload the most common pages in order of likely usage
-    setTimeout(() => import(/* webpackChunkName: "home-page" */ '../pages/home_new/index'), 1000);
+    setTimeout(() => import(/* webpackChunkName: "home-page" */ '../pages/home/components/AI'), 1000);
     setTimeout(() => import(/* webpackChunkName: "inbox-page" */ '../pages/inbox/index'), 2000);
     setTimeout(() => import(/* webpackChunkName: "profile-page" */ '../pages/profile/index'), 3000);
   };
@@ -168,7 +168,7 @@ const PageManager: React.FC = () => {
   logPerf(`PageManager render started`);
 
   const router = useRouter();
-  const [activeRoute, setActiveRoute] = useState('/home_new');
+  const [activeRoute, setActiveRoute] = useState('/home');
   const [loadedPages, setLoadedPages] = useState<string[]>([]);
   const [isRouterReady, setIsRouterReady] = useState(false);
 
@@ -231,7 +231,7 @@ const PageManager: React.FC = () => {
       if (isBrowser) {
         // Look up which component name corresponds to this route
         const routeToComponentName: Record<string, string> = {
-          '/home_new': 'home_new',
+          '/home': 'home',
           '/map': 'map',
           '/inbox': 'inbox',
           '/search': 'search',
@@ -281,7 +281,7 @@ const PageManager: React.FC = () => {
       // Use requestAnimationFrame to ensure it doesn't compete with current render
       window.requestAnimationFrame(() => {
         const timer = setTimeout(() => {
-          const pagesToPreload = ['/home_new', '/map', '/inbox', '/search', '/profile'].filter(
+          const pagesToPreload = ['/home', '/map', '/inbox', '/search', '/profile'].filter(
             (page) => !loadedPages.includes(page),
           );
 
@@ -302,7 +302,7 @@ const PageManager: React.FC = () => {
 
     // Trigger visibility events for pages
     const routes = [
-      { path: '/home_new', name: 'home_new' },
+      { path: '/home', name: 'home' },
       { path: '/map', name: 'map' },
       { path: '/inbox', name: 'inbox' },
       { path: '/search', name: 'search' },
@@ -334,7 +334,7 @@ const PageManager: React.FC = () => {
 
   // Handle active route that might contain dynamic segments (like /profile/[id])
   const isProfileRoute = activeRoute === '/profile' || activeRoute.startsWith('/profile/');
-  const isHomeRoute = activeRoute === '/home_new';
+  const isHomeRoute = activeRoute === '/home';
   const isMapRoute = activeRoute === '/map';
   const isInboxRoute = activeRoute === '/inbox';
   const isSearchRoute = activeRoute === '/search';
@@ -401,7 +401,7 @@ const PageManager: React.FC = () => {
     <div className="page-container">
       {/* Only render pages that have been loaded or are active */}
 
-      {(loadedPages.includes('/home_new') || isHomeRoute) && (
+      {(loadedPages.includes('/home') || isHomeRoute) && (
         <div
           id="home-page-container"
           className="page-transition"
