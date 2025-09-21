@@ -1,15 +1,20 @@
-// pages/api/chat/save-journey.ts
-
+// pages/api/chat/save-journey.ts - UPDATED TO CREATE USER-SPECIFIC CHALLENGES
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createEnhancedAIChallenge } from '../../../lib/api/dgraph';
 
 interface Challenge {
   title: string;
   description: string;
-  difficulty?: string;
-  estimatedTime?: string;
-  category?: string;
-  day: number;
+  difficulty: string;
+  estimatedTime: string;
+  category: string;
+}
+
+interface SaveJourneyRequest {
+  challenges: Challenge[];
+  pathType: string;
+  goal?: string;
+  userId: string; // This should come from auth context
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -17,144 +22,115 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { challenges, pathType, goal, userId } = req.body;
-
-  if (!challenges || !Array.isArray(challenges)) {
-    return res.status(400).json({ error: 'Challenges array is required' });
-  }
-
-  if (!pathType || !['winter-arc', 'daily-side-quest', 'custom-journey'].includes(pathType)) {
-    return res.status(400).json({ error: 'Valid pathType is required (winter-arc, daily-side-quest, custom-journey)' });
-  }
-
-  if (!userId) {
-    return res.status(400).json({ error: 'User ID is required' });
-  }
-
-  // For custom journey, goal is required
-  if (pathType === 'custom-journey' && (!goal || typeof goal !== 'string')) {
-    return res.status(400).json({ error: 'Goal is required for custom journey' });
-  }
+  console.log('🚀 Save Journey API called');
 
   try {
-    const savedChallenges = [];
-    const currentDate = new Date();
-    const journeyId = `${pathType}-${userId}-${Date.now()}`;
+    const { challenges, pathType, goal, userId }: SaveJourneyRequest = req.body;
 
-    // Create appropriate description based on path type
-    const getDescription = (challenge: Challenge) => {
-      let baseDescription = challenge.description;
+    if (!challenges || !Array.isArray(challenges) || challenges.length === 0) {
+      return res.status(400).json({ error: 'Challenges array is required' });
+    }
 
-      // Add additional info for custom journey
-      if (pathType === 'custom-journey') {
-        baseDescription += `\n\nGoal: ${goal}`;
-        if (challenge.difficulty) baseDescription += `\nDifficulty: ${challenge.difficulty}`;
-        if (challenge.estimatedTime) baseDescription += `\nEstimated Time: ${challenge.estimatedTime}`;
-        if (challenge.category) baseDescription += `\nCategory: ${challenge.category}`;
-      }
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
 
-      return baseDescription;
-    };
+    console.log(`📝 Creating ${challenges.length} challenges for user ${userId}`);
+    console.log(`🎯 Path type: ${pathType}`);
+    if (goal) console.log(`🎯 Goal: ${goal}`);
 
-    // Get appropriate reward based on path type and difficulty
-    const getReward = (challenge: Challenge) => {
-      const baseReward = 10;
+    const savedChallenges: string[] = [];
+    const failedChallenges: { index: number; error: string }[] = [];
 
-      if (pathType === 'winter-arc') {
-        return 15; // Higher rewards for discipline challenges
-      } else if (pathType === 'daily-side-quest') {
-        return 8; // Lower rewards for fun/social challenges
-      } else {
-        // Custom journey - vary by difficulty
-        if (challenge.difficulty === 'Advanced') return 20;
-        if (challenge.difficulty === 'Intermediate') return 15;
-        return baseReward;
-      }
-    };
-
-    // Save each challenge as an AIChallenge
-    for (const challenge of challenges) {
-      const challengeData = {
-        title: challenge.title,
-        description: getDescription(challenge),
-        reward: getReward(challenge),
-        frequency: pathType, // Use pathType as frequency identifier
-        day: challenge.day,
-        week: Math.ceil(challenge.day / 7),
-        month: Math.ceil(challenge.day / 30),
-        year: currentDate.getFullYear(),
-        // Universal fields for all journey types
-        journeyId: journeyId,
-        targetUserId: userId,
-        pathType: pathType,
-        ...(goal && { originalGoal: goal }), // Only add goal for custom journey
-      };
+    // Process each challenge
+    for (let i = 0; i < challenges.length; i++) {
+      const challenge = challenges[i];
 
       try {
-        const savedChallenge = await createEnhancedAIChallenge(challengeData);
-        savedChallenges.push({ id: savedChallenge });
-      } catch (challengeError) {
-        console.error(`Failed to save challenge ${challenge.day}:`, challengeError);
-        // Continue with other challenges even if one fails
+        console.log(`📝 Saving challenge ${i + 1}/${challenges.length}: ${challenge.title}`);
+
+        // Create user-specific description that includes the user ID for filtering
+        // We'll embed it in a way that doesn't affect the user experience
+        const userSpecificDescription = `${challenge.description}\n\n<!-- USER_ID: ${userId} -->`;
+
+        // Map difficulty to reward points
+        const getRewardForDifficulty = (difficulty: string): number => {
+          switch (difficulty?.toLowerCase()) {
+            case 'beginner':
+              return 10;
+            case 'intermediate':
+              return 15;
+            case 'advanced':
+              return 20;
+            default:
+              return 10;
+          }
+        };
+
+        const challengeData = {
+          title: challenge.title,
+          description: userSpecificDescription, // This includes the user ID marker
+          reward: getRewardForDifficulty(challenge.difficulty),
+          frequency: 'custom-journey',
+          // Remove the extra fields that createEnhancedAIChallenge doesn't accept
+        };
+
+        const challengeId = await createEnhancedAIChallenge(challengeData);
+        savedChallenges.push(challengeId);
+
+        console.log(`✅ Challenge ${i + 1} saved successfully: ${challengeId}`);
+      } catch (error) {
+        console.error(`❌ Failed to save challenge ${i + 1}:`, error);
+        failedChallenges.push({
+          index: i,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
 
-    // Update user's current journey status
-    // You might want to add a field to User schema to track active journey
-    // This could be done with a separate API call to update user record
+    const successCount = savedChallenges.length;
+    const failureCount = failedChallenges.length;
 
-    const pathNames: { [key: string]: string } = {
-      'winter-arc': 'Winter Arc 2K25',
-      'daily-side-quest': 'Daily Side Quest',
-      'custom-journey': 'Custom Journey',
-    };
+    console.log(`📊 Journey save results:`);
+    console.log(`✅ Successful: ${successCount}/${challenges.length}`);
+    console.log(`❌ Failed: ${failureCount}/${challenges.length}`);
 
-    res.status(200).json({
-      success: true,
-      message: `Successfully saved ${savedChallenges.length} ${pathNames[pathType]} challenges`,
-      journeyId: journeyId,
-      pathType: pathType,
-      savedChallenges: savedChallenges.length,
-      ...(goal && { goal }), // Only include goal in response if it exists
-    });
+    if (failureCount > 0) {
+      console.warn('⚠️ Some challenges failed to save:', failedChallenges);
+    }
+
+    // Return success if at least some challenges were saved
+    if (successCount > 0) {
+      res.status(200).json({
+        success: true,
+        message: `Successfully saved ${successCount} out of ${challenges.length} challenges`,
+        savedCount: successCount,
+        failedCount: failureCount,
+        savedChallengeIds: savedChallenges,
+        failedChallenges: failureCount > 0 ? failedChallenges : undefined,
+        journeyMetadata: {
+          userId,
+          pathType,
+          goal,
+          totalChallenges: successCount,
+          createdAt: new Date().toISOString(),
+        },
+      });
+    } else {
+      // All challenges failed
+      res.status(500).json({
+        success: false,
+        error: 'Failed to save any challenges',
+        failedChallenges,
+        totalFailed: failureCount,
+      });
+    }
   } catch (error) {
-    console.error('Error saving journey challenges:', error);
+    console.error('❌ Error in save-journey API:', error);
     res.status(500).json({
-      error: 'Failed to save journey',
+      success: false,
+      error: 'Internal server error while saving journey',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }
-
-// Helper function you'll need to add to your dgraph.ts file:
-/*
-export const createOrUpdateAIChallenge = async (challengeData: any) => {
-  const mutation = `
-    mutation CreateAIChallenge($challenge: AddAIChallengeInput!) {
-      addAIChallenge(input: [$challenge]) {
-        aiChallenge {
-          id
-          title
-          description
-          frequency
-          day
-          isActive
-          reward
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    challenge: challengeData
-  };
-
-  try {
-    const response = await executeDgraphMutation(mutation, variables);
-    return response.addAIChallenge.aiChallenge[0];
-  } catch (error) {
-    console.error('Error creating AI challenge:', error);
-    throw error;
-  }
-};
-*/

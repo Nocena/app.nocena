@@ -1,7 +1,8 @@
+// lib/utils/journeyUtils.ts - Updated with targetUserId filtering
+
 /**
- * Check if user has an existing journey (custom-journey challenges)
- * @param userId - User ID to check
- * @returns Promise<{hasJourney: boolean, challengeCount: number, nextChallenge?: any}>
+ * Check if user has an existing journey (user-specific custom-journey challenges)
+ * NOW PROPERLY FILTERS BY targetUserId
  */
 export const checkUserJourneyStatus = async (
   userId: string,
@@ -14,10 +15,11 @@ export const checkUserJourneyStatus = async (
   try {
     console.log('🔍 Checking journey status for user:', userId);
 
-    const query = `
-      query CheckUserJourney($userId: String!) {
-        # Get user's completed custom-journey challenges
-        getUser(id: $userId) {
+    const journeyQuery = `
+      query CheckUserJourneyMetadata($userId: String!) {
+        queryUser(filter: { id: { eq: $userId } }) {
+          id
+          # Get user's completed custom-journey challenges
           completedChallenges(filter: { 
             and: [
               { challengeType: { eq: "ai" } },
@@ -32,9 +34,15 @@ export const checkUserJourneyStatus = async (
           }
         }
         
-        # Get all available custom-journey challenges
-        availableChallenges: queryAIChallenge(
-          filter: { frequency: { eq: "custom-journey" }, isActive: true }
+        # Get user-specific challenges using targetUserId
+        userSpecificChallenges: queryAIChallenge(
+          filter: { 
+            and: [
+              { frequency: { eq: "custom-journey" } },
+              { isActive: true },
+              { targetUserId: { eq: $userId } }
+            ]
+          }
           order: { asc: createdAt }
         ) {
           id
@@ -44,6 +52,98 @@ export const checkUserJourneyStatus = async (
           frequency
           isActive
           createdAt
+          targetUserId
+        }
+      }
+    `;
+
+    const response = await fetch(process.env.NEXT_PUBLIC_DGRAPH_ENDPOINT!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: journeyQuery, variables: { userId } }),
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      console.error('❌ Error checking journey status:', data.errors);
+      return { hasJourney: false, challengeCount: 0 };
+    }
+
+    const userData = data.data.queryUser?.[0];
+    const userSpecificChallenges = data.data.userSpecificChallenges || [];
+    const completedChallenges = userData?.completedChallenges || [];
+
+    const completedChallengeIds = new Set(
+      completedChallenges.map((completion: any) => completion.aiChallenge?.id).filter(Boolean),
+    );
+
+    // Only use user-specific challenges now
+    const hasJourney = userSpecificChallenges.length > 0;
+
+    if (!hasJourney) {
+      console.log('👋 No user-specific journey found');
+      return { hasJourney: false, challengeCount: 0 };
+    }
+
+    // Find the next uncompleted challenge
+    const nextChallenge = userSpecificChallenges.find((challenge: any) => !completedChallengeIds.has(challenge.id));
+
+    console.log('📊 Journey status result:', {
+      hasJourney,
+      totalChallenges: userSpecificChallenges.length,
+      completedCount: completedChallenges.length,
+      nextChallenge: nextChallenge?.title || 'All completed!',
+      userId,
+    });
+
+    return {
+      hasJourney,
+      challengeCount: userSpecificChallenges.length,
+      nextChallenge,
+      completedCount: completedChallenges.length,
+    };
+  } catch (error) {
+    console.error('❌ Error checking journey status:', error);
+    return { hasJourney: false, challengeCount: 0 };
+  }
+};
+
+/**
+ * Get user's next challenge - now properly filtered by targetUserId
+ */
+export const getUserNextChallenge = async (userId: string): Promise<any> => {
+  try {
+    const query = `
+      query GetUserNextChallenge($userId: String!) {
+        # Get user's completed challenge IDs first
+        getUser(id: $userId) {
+          completedChallenges(filter: { challengeType: { eq: "ai" } }) {
+            aiChallenge {
+              id
+            }
+          }
+        }
+        
+        # Get user-specific journey challenges only
+        queryAIChallenge(
+          filter: { 
+            and: [
+              { frequency: { eq: "custom-journey" } }, 
+              { isActive: true },
+              { targetUserId: { eq: $userId } }
+            ]
+          }
+          order: { asc: createdAt }
+        ) {
+          id
+          title
+          description
+          reward
+          frequency
+          isActive
+          createdAt
+          targetUserId
         }
       }
     `;
@@ -57,57 +157,30 @@ export const checkUserJourneyStatus = async (
     const data = await response.json();
 
     if (data.errors) {
-      console.error('❌ Error checking journey status:', data.errors);
-      return { hasJourney: false, challengeCount: 0 };
+      console.error('Error fetching user journey:', data.errors);
+      return null;
     }
 
-    const completedChallenges = data.data.getUser?.completedChallenges || [];
-    const availableChallenges = data.data.availableChallenges || [];
-
     const completedChallengeIds = new Set(
-      completedChallenges.map((completion: any) => completion.aiChallenge?.id).filter(Boolean),
+      data.data.getUser?.completedChallenges?.map((completion: any) => completion.aiChallenge?.id).filter(Boolean) ||
+        [],
     );
 
-    // Find the next uncompleted challenge
-    const nextChallenge = availableChallenges.find((challenge: any) => !completedChallengeIds.has(challenge.id));
+    const userJourneyChallenges = data.data.queryAIChallenge || [];
 
-    const hasJourney = availableChallenges.length > 0;
+    // Find the first challenge that hasn't been completed
+    const nextChallenge = userJourneyChallenges.find((challenge: any) => !completedChallengeIds.has(challenge.id));
 
-    console.log('📊 Journey status result:', {
-      hasJourney,
-      totalChallenges: availableChallenges.length,
-      completedCount: completedChallenges.length,
-      nextChallenge: nextChallenge?.title || 'All completed!',
+    console.log('Next challenge for user:', {
+      userId,
+      completedCount: completedChallengeIds.size,
+      totalChallenges: userJourneyChallenges.length,
+      nextChallenge: nextChallenge?.title || 'None',
     });
 
-    return {
-      hasJourney,
-      challengeCount: availableChallenges.length,
-      nextChallenge,
-      completedCount: completedChallenges.length,
-    };
+    return nextChallenge || null;
   } catch (error) {
-    console.error('❌ Error checking journey status:', error);
-    return { hasJourney: false, challengeCount: 0 };
-  }
-};
-
-/**
- * Create initial journey for user
- * This is called after the VoiceAIChat journey creation is complete
- */
-export const markJourneyAsCreated = async (userId: string): Promise<boolean> => {
-  try {
-    console.log('✅ Marking journey as created for user:', userId);
-
-    // The journey creation is handled by the VoiceAIChat component
-    // This function is mainly for any additional setup if needed
-
-    // Could add user preference updates, analytics tracking, etc.
-
-    return true;
-  } catch (error) {
-    console.error('❌ Error marking journey as created:', error);
-    return false;
+    console.error('Error getting user next challenge:', error);
+    return null;
   }
 };

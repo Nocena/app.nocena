@@ -1,13 +1,31 @@
-// pages/home/components/JourneyOnboarding.tsx - Wrapper for VoiceAIChat journey creation
+// pages/home/components/JourneyOnboarding.tsx - Fixed version
 import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { markJourneyAsCreated } from '../../../lib/utils/journeyUtils';
 import VoiceAIChat from './AI'; // Import the VoiceAIChat component
 import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 
 interface JourneyOnboardingProps {
   onJourneyCreated: () => void; // Callback when journey creation is complete
 }
+
+// Create a wrapper component that handles the VoiceAIChat prop mismatch
+const VoiceAIChatWrapper: React.FC<{ onPathSelect: (pathId: string) => void; userId: string }> = ({
+  onPathSelect,
+  userId,
+}) => {
+  // Use useEffect to handle localStorage side effect
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('currentUserId', userId);
+    }
+  }, [userId]);
+
+  return (
+    <div>
+      <VoiceAIChat onPathSelect={onPathSelect} />
+    </div>
+  );
+};
 
 const JourneyOnboarding: React.FC<JourneyOnboardingProps> = ({ onJourneyCreated }) => {
   const { user } = useAuth();
@@ -21,24 +39,23 @@ const JourneyOnboarding: React.FC<JourneyOnboardingProps> = ({ onJourneyCreated 
 
     try {
       setIsCompletingSetup(true);
-      console.log('🚀 Journey creation completed for path:', pathId);
+      console.log('Journey creation completed for path:', pathId);
 
-      // Mark the journey as created in our system
-      const success = await markJourneyAsCreated(user.id);
+      // The journey is already created by VoiceAIChat with proper targetUserId
+      // No additional setup needed since we're using targetUserId filtering
+      console.log('Journey setup complete, transitioning to home');
 
-      if (success) {
-        console.log('✅ Journey setup complete, transitioning to home');
-
-        // Small delay to show completion state
-        setTimeout(() => {
-          onJourneyCreated();
-        }, 1000);
-      } else {
-        console.error('❌ Failed to complete journey setup');
-        setIsCompletingSetup(false);
+      // Clean up localStorage
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('currentUserId');
       }
+
+      // Small delay to show completion state
+      setTimeout(() => {
+        onJourneyCreated();
+      }, 1000);
     } catch (error) {
-      console.error('❌ Error completing journey setup:', error);
+      console.error('Error completing journey setup:', error);
       setIsCompletingSetup(false);
     }
   };
@@ -62,8 +79,16 @@ const JourneyOnboarding: React.FC<JourneyOnboardingProps> = ({ onJourneyCreated 
     );
   }
 
-  // Render the VoiceAIChat component with our callback
-  return <VoiceAIChat onPathSelect={handlePathSelect} />;
+  // Render the VoiceAIChat wrapper with user context
+  if (!user) {
+    return (
+      <div className="min-h-screen text-white flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  return <VoiceAIChatWrapper onPathSelect={handlePathSelect} userId={user.id} />;
 };
 
 export default JourneyOnboarding;

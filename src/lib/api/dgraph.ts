@@ -6884,7 +6884,8 @@ export const createEnhancedAIChallenge = async (challengeData: {
       $day: Int,
       $week: Int,
       $month: Int,
-      $year: Int!
+      $year: Int!,
+      $targetUserId: String
     ) {
       addAIChallenge(input: [{
         id: $id,
@@ -6897,12 +6898,14 @@ export const createEnhancedAIChallenge = async (challengeData: {
         day: $day,
         week: $week,
         month: $month,
-        year: $year
+        year: $year,
+        targetUserId: $targetUserId
       }]) {
         aIChallenge {
           id
           title
           frequency
+          targetUserId
         }
       }
     }
@@ -6924,6 +6927,7 @@ export const createEnhancedAIChallenge = async (challengeData: {
           week,
           month,
           year,
+          targetUserId: challengeData.targetUserId, // Add this line
         },
       },
       {

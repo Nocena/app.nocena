@@ -128,6 +128,13 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
     try {
       setIsProcessing(true);
 
+      // Get userId from localStorage (set by JourneyOnboarding wrapper)
+      const userId = typeof window !== 'undefined' ? window.localStorage.getItem('currentUserId') : null;
+
+      if (!userId) {
+        throw new Error('User ID is required to save challenges');
+      }
+
       const response = await fetch('/api/chat/save-journey', {
         method: 'POST',
         headers: {
@@ -137,7 +144,7 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
           challenges: challenges,
           pathType: pathData.type,
           goal: pathData.goal || null,
-          userId: 'current-user-id', // You'll need to get this from auth context
+          userId: userId, // Pass the user ID from localStorage
         }),
       });
 
@@ -145,6 +152,13 @@ const VoiceAIChat: React.FC<VoiceAIChatProps> = ({ onPathSelect }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save challenges');
+      }
+
+      console.log(`Successfully saved ${result.savedCount} challenges for user ${userId}`);
       return true;
     } catch (error) {
       console.error('Failed to save challenges:', error);
