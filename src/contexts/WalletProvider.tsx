@@ -4,13 +4,37 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConnectKitProvider, getDefaultConfig } from 'connectkit';
 import { WALLETCONNECT_PROJECT_ID } from '../lib/constants';
 
+// Flow EVM Testnet configuration
+const flowEvmTestnet = {
+  id: 545,
+  name: 'Flow EVM Testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Flow',
+    symbol: 'FLOW',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://testnet.evm.nodes.onflow.org'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Flow EVM Testnet Explorer',
+      url: 'https://evm-testnet.flowscan.io',
+    },
+  },
+  testnet: true,
+} as const;
+
 export const walletConfig = createConfig(
   getDefaultConfig({
     // Your dApps chains
-    chains: [mainnet, lensTestnet],
+    chains: [mainnet, lensTestnet, flowEvmTestnet],
     transports: {
       [lensTestnet.id]: http(lensTestnet.rpcUrls.default.http[0]),
       [mainnet.id]: http(mainnet.rpcUrls.default.http[0]),
+      [flowEvmTestnet.id]: http(flowEvmTestnet.rpcUrls.default.http[0]),
     },
     // Required API Keys
     walletConnectProjectId: WALLETCONNECT_PROJECT_ID,

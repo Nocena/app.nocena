@@ -1,7 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Coins, AlertTriangle, Gift, TrendingUp, Users, Heart } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAccount } from 'wagmi';
+import { useDualTokens } from '../../../hooks/contracts/useDualTokens';
+import { useIsRewardMinter } from '../../../hooks/contracts/useNocenite';
+import { useChallengeRewards } from '../../../hooks/contracts/useChallengeRewards';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
@@ -13,7 +17,11 @@ interface NocenixMenuProps {
 
 const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
   const { user } = useAuth();
-  const [tokenBalance] = useState<number>(user?.earnedTokens || 0);
+  const { address, isConnected } = useAccount();
+  const { nctBalance, ncxBalance } = useDualTokens();
+  const { data: isRewardMinter } = useIsRewardMinter(address as `0x${string}`);
+  const { rewardDaily, rewardWeekly, rewardMonthly, isPending: rewardPending } = useChallengeRewards();
+
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -261,21 +269,90 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
           </div>
 
           {/* Title & Subtitle */}
-          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Nocenix</h1>
-          <p className="text-white/60 text-lg mb-6">Your content, your profit</p>
-
-          {/* Current Balance Display */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-white/20">
-            <h3 className="text-white/80 font-medium mb-3">Your Balance</h3>
-            <div className="flex items-center justify-center space-x-3 mb-2">
-              <div className="text-4xl font-bold bg-gradient-to-r from-nocenaPink to-nocenaBlue bg-clip-text text-transparent">
-                {tokenBalance.toLocaleString()}
-              </div>
-              <div className="text-2xl font-medium text-white">NCX</div>
-            </div>
-            <p className="text-white/50 text-sm">Beta tokens • No monetary value yet</p>
-          </div>
+          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Nocenix / Nocenite</h1>
+          <p className="text-white/60 text-lg mb-6">Dual token ecosystem for creators</p>
         </div>
+
+        {/* Test Functionality - Only show if wallet is connected and authorized */}
+        {isConnected && isRewardMinter && (
+          <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-500/40 rounded-2xl p-5 mb-6">
+            <h3 className="text-blue-200 font-medium mb-4 flex items-center">
+              <Coins className="w-5 h-5 mr-2" />
+              Test Token System
+            </h3>
+
+            {/* Challenge Reward Tests */}
+            <div className="space-y-3 mb-4">
+              <div className="text-blue-300/80 text-sm mb-2">Test Challenge Rewards:</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert('Daily button clicked!');
+                    console.log('Daily reward clicked', { address, rewardPending, isRewardMinter });
+                    if (address) {
+                      console.log('Calling rewardDaily with address:', address);
+                      try {
+                        rewardDaily(address as `0x${string}`);
+                        console.log('rewardDaily called successfully');
+                      } catch (error) {
+                        console.error('Error calling rewardDaily:', error);
+                      }
+                    } else {
+                      console.log('No address available');
+                    }
+                  }}
+                  disabled={rewardPending}
+                  className="flex-1 bg-green-500/20 border border-green-500/40 text-green-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
+                  style={{ pointerEvents: 'auto', zIndex: 10 }}
+                >
+                  {rewardPending ? 'Minting...' : 'Daily (100 NCT)'}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Weekly reward clicked', { address, rewardPending, isRewardMinter });
+                    if (address) {
+                      console.log('Calling rewardWeekly with address:', address);
+                      try {
+                        rewardWeekly(address as `0x${string}`);
+                      } catch (error) {
+                        console.error('Error calling rewardWeekly:', error);
+                      }
+                    }
+                  }}
+                  disabled={rewardPending}
+                  className="flex-1 bg-blue-500/20 border border-blue-500/40 text-blue-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
+                  style={{ pointerEvents: 'auto', zIndex: 10 }}
+                >
+                  {rewardPending ? 'Minting...' : 'Weekly (500 NCT)'}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Monthly reward clicked', { address, rewardPending, isRewardMinter });
+                    if (address) {
+                      console.log('Calling rewardMonthly with address:', address);
+                      try {
+                        rewardMonthly(address as `0x${string}`);
+                      } catch (error) {
+                        console.error('Error calling rewardMonthly:', error);
+                      }
+                    }
+                  }}
+                  disabled={rewardPending}
+                  className="flex-1 bg-purple-500/20 border border-purple-500/40 text-purple-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
+                  style={{ pointerEvents: 'auto', zIndex: 10 }}
+                >
+                  {rewardPending ? 'Minting...' : 'Monthly (2500 NCT)'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Beta Testing Notice */}
         <div className="bg-orange-500/20 backdrop-blur-sm border border-orange-500/40 rounded-2xl p-5 mb-6">
@@ -284,8 +361,9 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
             <div>
               <h3 className="text-orange-200 font-medium mb-2">Beta Testing Phase</h3>
               <p className="text-orange-300/80 text-sm leading-relaxed">
-                Nocenix is currently a <strong>testnet token</strong> with no monetary value. These tokens are for
-                testing purposes during our beta phase, but will carry over when we launch!
+                Nocenix and Nocenite are currently <strong>Flow EVM testnet tokens</strong> with no monetary value. Earn
+                NCT by interacting with the app - your percentage of total NCT determines your share of weekly NCX
+                airdrops.
               </p>
             </div>
           </div>
@@ -295,17 +373,19 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
           <h3 className="text-white font-semibold mb-4 flex items-center text-lg">
             <Gift className="w-5 h-5 mr-3 text-nocenaPink" />
-            What is Nocenix?
+            What is the Dual Token System?
           </h3>
           <p className="text-white/80 leading-relaxed">
-            Nocenix is Nocena's reward token that recognizes your participation and engagement. Think of it as your
-            digital reputation score that will have real value after our beta launch.
+            <strong>Nocenite (NCT)</strong> - Unlimited reward tokens earned through challenges.
+            <br />
+            <strong>Nocenix (NCX)</strong> - Capped value tokens (1B max) distributed weekly via airdrops based on your
+            NCT holdings.
           </p>
         </div>
 
         {/* How You Earn */}
         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
-          <h3 className="text-white font-semibold mb-5 text-lg">How You Earn Nocenix</h3>
+          <h3 className="text-white font-semibold mb-5 text-lg">How You Earn Tokens</h3>
           <div className="space-y-4">
             {[
               {
@@ -325,25 +405,25 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
                 ),
                 bgColor: 'bg-nocenaBlue/20',
                 title: 'Complete Challenges',
-                desc: 'Earn tokens for each challenge you finish',
+                desc: 'Earn NCT tokens: Daily (100), Weekly (500), Monthly (2,500)',
               },
               {
                 icon: <Heart className="w-5 h-5 text-nocenaPink" />,
                 bgColor: 'bg-nocenaPink/20',
-                title: 'Give & Receive Likes',
-                desc: 'Active engagement with the community',
+                title: 'Weekly Airdrops',
+                desc: 'Receive NCX tokens proportional to your NCT holdings',
               },
               {
                 icon: <Users className="w-5 h-5 text-green-400" />,
                 bgColor: 'bg-green-500/20',
-                title: 'Invite Friends',
-                desc: 'Both you and your friend earn 50 tokens',
+                title: 'Time-Based Rewards',
+                desc: 'Earlier participation = higher airdrop percentages',
               },
               {
                 icon: <TrendingUp className="w-5 h-5 text-purple-400" />,
                 bgColor: 'bg-purple-500/20',
-                title: 'Platform Activity',
-                desc: 'General participation and engagement',
+                title: 'Decentralized System',
+                desc: 'Anyone can execute airdrops and earn 0.1% executor rewards',
               },
             ].map((item, index) => (
               <div
@@ -375,17 +455,12 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
               {
                 color: 'bg-nocenaPink',
                 title: 'Real Token Launch',
-                desc: 'Nocenix will become a tradeable token on major exchanges',
+                desc: 'NCX will become tradeable on select decentralized exchanges',
               },
               {
                 color: 'bg-nocenaBlue',
                 title: 'Monetary Value',
                 desc: 'Your earned tokens will have real trading value',
-              },
-              {
-                color: 'bg-nocenaPurple',
-                title: 'Beta Rewards',
-                desc: 'All tokens earned during beta will carry over to the real token',
               },
             ].map((item, index) => (
               <div key={index} className="flex items-start space-x-4">

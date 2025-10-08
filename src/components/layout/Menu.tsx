@@ -5,6 +5,7 @@ import ThematicImage from '../ui/ThematicImage';
 import ThematicContainer from '../ui/ThematicContainer';
 import WalletMenu from './menu/Wallet';
 import NocenixMenu from './menu/Nocenix';
+import AirdropMenu from './menu/Airdrop';
 import SettingsMenu from './menu/Settings';
 import FAQMenu from './menu/FAQ';
 import SupportMenu from './menu/Support';
@@ -379,9 +380,22 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
               <path d="M12 6v6l4 2" />
             </svg>
           }
-          title="Nocenix"
-          description="Your token balance and history"
+          title="Nocenix / Nocenite"
+          description="Dual token ecosystem and rewards"
           onClick={() => setActiveSection('nocenix')}
+        />
+
+        <MenuItem
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="8" cy="8" r="6" />
+              <path d="M18.09 10.37A6 6 0 1 1 10.37 18.09" />
+              <circle cx="16" cy="16" r="6" />
+            </svg>
+          }
+          title="Airdrop"
+          description="Weekly NCX distribution system"
+          onClick={() => setActiveSection('airdrop')}
         />
 
         <MenuItem
@@ -468,6 +482,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
         return <WalletMenu onBack={() => setActiveSection(null)} />;
       case 'nocenix':
         return <NocenixMenu onBack={() => setActiveSection(null)} />;
+      case 'airdrop':
+        return <AirdropMenu onBack={() => setActiveSection(null)} />;
       case 'settings':
         return <SettingsMenu onBack={() => setActiveSection(null)} />;
       case 'faq':

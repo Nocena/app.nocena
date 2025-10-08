@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { ThirdwebProvider } from 'thirdweb/react';
+import { WalletProvider } from '../contexts/WalletProvider';
 import { useAuth, AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 import AppLayout from '../components/layout/AppLayout';
@@ -195,7 +196,7 @@ function MyAppContent({ Component, pageProps }: AppProps) {
   };
 
   // Define layout types
-  const noLayoutPages = ['/login', '/register'];
+  const noLayoutPages = ['/login', '/register', '/test-tokens', '/simple-test'];
   const specialPages = ['/browsing', '/completing', '/createchallenge'];
   const isAdminPage = currentPathname.startsWith('/admin/') || currentPathname === '/test-admin';
 
@@ -212,13 +213,15 @@ function MyAppContent({ Component, pageProps }: AppProps) {
     user: !!user,
   });
 
-  // Handle public routes (login, register, admin)
+  // Handle public routes (login, register, admin, test pages)
   if (
     !user &&
     (currentPathname === '/login' ||
       currentPathname === '/register' ||
       currentPathname.startsWith('/admin/') ||
-      currentPathname === '/test-admin')
+      currentPathname === '/test-admin' ||
+      currentPathname === '/test-tokens' ||
+      currentPathname === '/simple-test')
   ) {
     return (
       <>
@@ -326,11 +329,13 @@ function MyAppContent({ Component, pageProps }: AppProps) {
 function MyApp(props: AppProps) {
   return (
     <ThirdwebProvider>
-      <AuthProvider>
-        <BackgroundTaskProvider>
-          <MyAppContent {...props} />
-        </BackgroundTaskProvider>
-      </AuthProvider>
+      <WalletProvider>
+        <AuthProvider>
+          <BackgroundTaskProvider>
+            <MyAppContent {...props} />
+          </BackgroundTaskProvider>
+        </AuthProvider>
+      </WalletProvider>
     </ThirdwebProvider>
   );
 }

@@ -1,6 +1,6 @@
 // lib/thirdweb.ts
 import { createThirdwebClient } from 'thirdweb';
-import { polygon } from 'thirdweb/chains';
+import { defineChain } from 'thirdweb/chains';
 
 // Create the client with your Client ID and Secret Key
 export const client = createThirdwebClient({
@@ -8,5 +8,21 @@ export const client = createThirdwebClient({
   secretKey: process.env.THIRDWEB_SECRET_KEY, // Add this for server-side operations
 });
 
-// Define the chain you want to use
-export const chain = polygon;
+// Define Flow EVM testnet chain
+export const chain = defineChain({
+  id: 545,
+  name: 'Flow EVM Testnet',
+  nativeCurrency: {
+    name: 'Flow',
+    symbol: 'FLOW',
+    decimals: 18,
+  },
+  rpc: 'https://testnet.evm.nodes.onflow.org',
+  blockExplorers: [
+    {
+      name: 'Flow EVM Testnet Explorer',
+      url: 'https://evm-testnet.flowscan.io',
+    },
+  ],
+  testnet: true,
+});

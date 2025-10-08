@@ -39,6 +39,7 @@ const pwaConfig = withPWA({
 
 /** @type {NextConfig} */
 const nextConfig: NextConfig = {
+  reactStrictMode: false, // Disable strict mode to reduce Fast Refresh issues
   images: {
     domains: [
       'gateway.pinata.cloud',
