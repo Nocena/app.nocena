@@ -12,7 +12,7 @@ export interface ChallengeData {
   creatorAvatar?: string;
   participantCount?: number;
   maxParticipants?: number;
-  // NEW: Add completion data fields
+  // Completion data fields
   completionCount?: number;
   recentCompletions?: {
     userId: string;
@@ -20,6 +20,10 @@ export interface ChallengeData {
     profilePicture: string;
     completedAt: string;
   }[];
+  // NEW: Fields for generated challenges
+  category?: string;
+  distance?: number;
+  poiName?: string;
 }
 
 export interface LocationData {
