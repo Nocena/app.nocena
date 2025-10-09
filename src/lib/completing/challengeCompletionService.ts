@@ -1,10 +1,5 @@
 // lib/completing/challengeCompletionService.ts - UPDATED VERSION WITH NFT DATABASE SAVING
-import {
-  createChallengeCompletion,
-  updateUserTokens,
-  createNotification,
-  saveNFTRewardToDatabase,
-} from '../api/dgraph';
+import { createChallengeCompletion, createNotification, saveNFTRewardToDatabase } from '../api/dgraph';
 import { directPinataUpload } from './directPinataUpload';
 
 export interface CompletionData {
@@ -61,6 +56,7 @@ export async function completeChallengeWorkflow(
     generationPrompt?: string;
     status: 'generating' | 'completed' | 'failed';
   },
+  userWalletAddress?: string, // Add wallet address for blockchain minting
 ): Promise<CompletionResult> {
   try {
     const { video, photo, verificationResult, description, challenge } = completionData;
@@ -121,8 +117,34 @@ export async function completeChallengeWorkflow(
 
     console.log('✅ Challenge completion created with ID:', completionId);
 
-    // Step 4: Update user's tokens
-    await updateUserTokens(userId, challenge.reward);
+    // Step 4: Mint blockchain NCT tokens if it's an AI challenge with frequency and user has wallet
+    if (challenge.type === 'AI' && challenge.frequency && userWalletAddress) {
+      try {
+        console.log('🔗 Minting blockchain NCT tokens...');
+        const mintResponse = await fetch('/api/mint-challenge-reward', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userAddress: userWalletAddress,
+            challengeFrequency: challenge.frequency,
+            completionId: completionId,
+          }),
+        });
+
+        const mintResult = await mintResponse.json();
+        if (mintResult.success) {
+          console.log(`✅ Blockchain NCT minted: ${mintResult.rewardAmount} tokens, tx: ${mintResult.txHash}`);
+        } else {
+          console.error('❌ Blockchain minting failed:', mintResult.error);
+          throw new Error(`Blockchain minting failed: ${mintResult.error}`);
+        }
+      } catch (error) {
+        console.error('❌ Blockchain minting error:', error);
+        throw error;
+      }
+    }
 
     // Step 5: Update the AuthContext if needed (for AI challenges)
     if (challenge.type === 'AI' && challenge.frequency && updateAuthUser) {
@@ -133,7 +155,7 @@ export async function completeChallengeWorkflow(
       updateAuthUser(updatedCompletionStrings);
     }
 
-    // Step 6: Save NFT reward to database if it was successfully generated
+    // Step 8: Save NFT reward to database if it was successfully generated
     let nftRewardResult: CompletionResult['nftReward'];
 
     if (existingNFTData && existingNFTData.status === 'completed' && existingNFTData.imageUrl) {

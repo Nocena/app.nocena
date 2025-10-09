@@ -4,6 +4,7 @@ import { useDualTokens } from '../../hooks/contracts/useDualTokens';
 import { useIsRewardMinter } from '../../hooks/contracts/useNocenite';
 import { useChallengeRewards } from '../../hooks/contracts/useChallengeRewards';
 import { useExecuteAirdrop } from '../../hooks/contracts/useAirdrop';
+import { CHALLENGE_REWARDS } from '../../lib/constants';
 
 export function DualTokenTest() {
   const { address, isConnected } = useAccount();
@@ -79,21 +80,21 @@ export function DualTokenTest() {
               disabled={rewardPending || !isRewardMinter}
               className="px-4 py-2 bg-green-500 text-white rounded disabled:opacity-50"
             >
-              Daily (100 NCT)
+              Daily ({CHALLENGE_REWARDS.DAILY} NCT)
             </button>
             <button
               onClick={() => handleTestReward('weekly')}
               disabled={rewardPending || !isRewardMinter}
               className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
             >
-              Weekly (500 NCT)
+              Weekly ({CHALLENGE_REWARDS.WEEKLY} NCT)
             </button>
             <button
               onClick={() => handleTestReward('monthly')}
               disabled={rewardPending || !isRewardMinter}
               className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50"
             >
-              Monthly (2500 NCT)
+              Monthly ({CHALLENGE_REWARDS.MONTHLY} NCT)
             </button>
           </div>
         </div>

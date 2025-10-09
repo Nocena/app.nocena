@@ -36,16 +36,15 @@ const CreateChallengeView: React.FC<CreateChallengeViewProps> = ({
   const router = useRouter();
   const [challengeName, setChallengeName] = useState('');
   const [description, setDescription] = useState('');
-  const [reward, setReward] = useState(10); // Default to 10 NOCENIX
-  const [participants, setParticipants] = useState<ParticipantCount>(10); // Default to 10 participants
+  const [reward, setReward] = useState(100);
+  const [participants, setParticipants] = useState<ParticipantCount>(10);
 
   // Dropdown toggles
   const [isRewardDropdownOpen, setIsRewardDropdownOpen] = useState(false);
   const [isParticipantsDropdownOpen, setIsParticipantsDropdownOpen] = useState(false);
   const [isTotalCostDropdownOpen, setIsTotalCostDropdownOpen] = useState(false);
 
-  // Sample reward options
-  const rewardOptions = [1, 5, 10, 25, 50, 100, 150];
+  const rewardOptions = [100, 500, 2500];
   const participantOptions: ParticipantCount[] = [5, 10, 25, 50, 100, 250, 500, 1000];
 
   // Calculate total cost for public challenges only

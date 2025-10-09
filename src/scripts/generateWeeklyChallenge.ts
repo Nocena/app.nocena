@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import axios from 'axios';
 import { weeklyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
+import { CHALLENGE_REWARDS } from '../lib/constants';
 import { resetTimeBasedEarnings } from '../lib/api/dgraph';
 
 // Initialize OpenAI client
@@ -374,7 +375,7 @@ IMPORTANT: Analyze the recent experiments above and generate something DIFFERENT
       id: uuidv4(),
       title,
       description,
-      reward: 5,
+      reward: CHALLENGE_REWARDS.WEEKLY, // 500 NCT for weekly challenges
       createdAt: new Date().toISOString(),
       isActive: true,
       frequency: 'weekly',

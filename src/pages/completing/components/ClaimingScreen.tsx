@@ -10,6 +10,7 @@ import {
   saveNFTRewardAfterCompletion,
 } from '../../../lib/completing/challengeCompletionService';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAccount } from 'wagmi';
 import { useBackgroundTasks } from '../../../contexts/BackgroundTaskContext';
 
 interface Challenge {
@@ -122,6 +123,7 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
   backgroundTaskIds,
 }) => {
   const { user, updateUser } = useAuth();
+  const { address } = useAccount();
   const backgroundTasks = useBackgroundTasks();
   const [claimingStage, setClaimingStage] = useState<'ready' | 'claiming' | 'success' | 'failed'>('ready');
   const [challengeDescription, setChallengeDescription] = useState('');
@@ -370,7 +372,13 @@ const ClaimingScreen: React.FC<ClaimingScreenProps> = ({
             }
           : undefined;
 
-      const result = await completeChallengeWorkflow(user.id, completionData, updateUser, existingNFTData);
+      const result = await completeChallengeWorkflow(
+        user.id,
+        completionData,
+        updateUser,
+        existingNFTData,
+        address as string,
+      );
 
       if (result.success) {
         console.log('[Claim Success DEBUG] Challenge completion successful:', result);

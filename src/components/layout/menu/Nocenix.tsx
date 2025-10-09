@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import { useDualTokens } from '../../../hooks/contracts/useDualTokens';
 import { useIsRewardMinter } from '../../../hooks/contracts/useNocenite';
 import { useChallengeRewards } from '../../../hooks/contracts/useChallengeRewards';
+import { CHALLENGE_REWARDS } from '../../../lib/constants';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
@@ -273,87 +274,6 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
           <p className="text-white/60 text-lg mb-6">Dual token ecosystem for creators</p>
         </div>
 
-        {/* Test Functionality - Only show if wallet is connected and authorized */}
-        {isConnected && isRewardMinter && (
-          <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-500/40 rounded-2xl p-5 mb-6">
-            <h3 className="text-blue-200 font-medium mb-4 flex items-center">
-              <Coins className="w-5 h-5 mr-2" />
-              Test Token System
-            </h3>
-
-            {/* Challenge Reward Tests */}
-            <div className="space-y-3 mb-4">
-              <div className="text-blue-300/80 text-sm mb-2">Test Challenge Rewards:</div>
-              <div className="flex gap-2">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    alert('Daily button clicked!');
-                    console.log('Daily reward clicked', { address, rewardPending, isRewardMinter });
-                    if (address) {
-                      console.log('Calling rewardDaily with address:', address);
-                      try {
-                        rewardDaily(address as `0x${string}`);
-                        console.log('rewardDaily called successfully');
-                      } catch (error) {
-                        console.error('Error calling rewardDaily:', error);
-                      }
-                    } else {
-                      console.log('No address available');
-                    }
-                  }}
-                  disabled={rewardPending}
-                  className="flex-1 bg-green-500/20 border border-green-500/40 text-green-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                  style={{ pointerEvents: 'auto', zIndex: 10 }}
-                >
-                  {rewardPending ? 'Minting...' : 'Daily (100 NCT)'}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Weekly reward clicked', { address, rewardPending, isRewardMinter });
-                    if (address) {
-                      console.log('Calling rewardWeekly with address:', address);
-                      try {
-                        rewardWeekly(address as `0x${string}`);
-                      } catch (error) {
-                        console.error('Error calling rewardWeekly:', error);
-                      }
-                    }
-                  }}
-                  disabled={rewardPending}
-                  className="flex-1 bg-blue-500/20 border border-blue-500/40 text-blue-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                  style={{ pointerEvents: 'auto', zIndex: 10 }}
-                >
-                  {rewardPending ? 'Minting...' : 'Weekly (500 NCT)'}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Monthly reward clicked', { address, rewardPending, isRewardMinter });
-                    if (address) {
-                      console.log('Calling rewardMonthly with address:', address);
-                      try {
-                        rewardMonthly(address as `0x${string}`);
-                      } catch (error) {
-                        console.error('Error calling rewardMonthly:', error);
-                      }
-                    }
-                  }}
-                  disabled={rewardPending}
-                  className="flex-1 bg-purple-500/20 border border-purple-500/40 text-purple-200 px-3 py-2 rounded-lg text-sm disabled:opacity-50 cursor-pointer"
-                  style={{ pointerEvents: 'auto', zIndex: 10 }}
-                >
-                  {rewardPending ? 'Minting...' : 'Monthly (2500 NCT)'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Beta Testing Notice */}
         <div className="bg-orange-500/20 backdrop-blur-sm border border-orange-500/40 rounded-2xl p-5 mb-6">
           <div className="flex items-start space-x-3">
@@ -405,7 +325,7 @@ const NocenixMenu: React.FC<NocenixMenuProps> = ({ onBack }) => {
                 ),
                 bgColor: 'bg-nocenaBlue/20',
                 title: 'Complete Challenges',
-                desc: 'Earn NCT tokens: Daily (100), Weekly (500), Monthly (2,500)',
+                desc: `Earn NCT tokens: Daily (${CHALLENGE_REWARDS.DAILY}), Weekly (${CHALLENGE_REWARDS.WEEKLY}), Monthly (${CHALLENGE_REWARDS.MONTHLY})`,
               },
               {
                 icon: <Heart className="w-5 h-5 text-nocenaPink" />,
