@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Wallet, Shield, Zap, Smartphone, Users } from 'lucide-react';
+import { Wallet, Shield, Zap, Smartphone, Users, Copy } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAccount } from 'wagmi';
+import { useDualTokens } from '../../../hooks/contracts/useDualTokens';
+import { useIsRewardMinter } from '../../../hooks/contracts/useNocenite';
 
 const nocenix = '/nocenix.ico';
 
@@ -11,7 +14,24 @@ interface WalletMenuProps {
 
 const WalletMenu: React.FC<WalletMenuProps> = ({ onBack }) => {
   const { user } = useAuth();
-  const [tokenBalance] = useState<number>(user?.earnedTokens || 0);
+  const { address, isConnected } = useAccount();
+  const { nctBalance, ncxBalance } = useDualTokens();
+  const { data: isRewardMinter } = useIsRewardMinter(address as `0x${string}`);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  // Contract addresses - using the actual deployed contracts
+  const NCT_ADDRESS = '0x7eEae9284A91af4c2258C80c62853ff5B30dd47E';
+  const NCX_ADDRESS = '0x6D6ac4219E7795ec2e714802642eC57Ce09f22C1';
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedAddress(label);
+      setTimeout(() => setCopiedAddress(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -56,13 +76,62 @@ const WalletMenu: React.FC<WalletMenuProps> = ({ onBack }) => {
 
       {/* Current Balance */}
       <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10">
-        <h3 className="text-white font-semibold mb-4 text-center text-lg">Your Balance</h3>
-        <div className="flex items-center justify-center space-x-2 mb-4">
-          <div className="text-3xl font-bold text-nocenaPink">{tokenBalance}</div>
-          <Image src={nocenix} alt="Nocenix" width={24} height={24} />
-          <div className="text-xl font-medium text-white">NCX</div>
-        </div>
-        <p className="text-white/50 text-sm text-center">Your tokens are safely stored and ready to use</p>
+        <h3 className="text-white font-semibold mb-4 text-center text-lg">Your Blockchain Balance</h3>
+        {isConnected && address ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-left flex-1">
+                <div className="text-2xl font-bold text-green-400">
+                  {parseFloat(nctBalance.formatted).toFixed(0)} NCT
+                </div>
+                <div className="text-white/50 text-sm">Reward Tokens</div>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-white/40 text-xs font-mono">
+                    {NCT_ADDRESS.slice(0, 6)}...{NCT_ADDRESS.slice(-4)}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(NCT_ADDRESS, 'NCT')}
+                    className="text-white/40 hover:text-white/60 transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  {copiedAddress === 'NCT' && <span className="text-green-400 text-xs">Copied!</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-left flex-1">
+                <div className="text-2xl font-bold bg-gradient-to-r from-nocenaPink to-nocenaBlue bg-clip-text text-transparent">
+                  {parseFloat(ncxBalance.formatted).toFixed(2)} NCX
+                </div>
+                <div className="text-white/50 text-sm">Value Tokens</div>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-white/40 text-xs font-mono">
+                    {NCX_ADDRESS.slice(0, 6)}...{NCX_ADDRESS.slice(-4)}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(NCX_ADDRESS, 'NCX')}
+                    className="text-white/40 hover:text-white/60 transition-colors"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  {copiedAddress === 'NCX' && <span className="text-green-400 text-xs">Copied!</span>}
+                </div>
+              </div>
+            </div>
+            <div className="text-center pt-2 border-t border-white/10">
+              <div className="text-white/60 text-xs">
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </div>
+              <div className="text-white/40 text-xs">{isRewardMinter ? 'Authorized Minter' : 'Not Authorized'}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white/50 mb-2">Connect Wallet</div>
+            <div className="text-white/40 text-sm">Connect to view blockchain balances</div>
+          </div>
+        )}
       </div>
 
       {/* What is a Wallet */}

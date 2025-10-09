@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import axios from 'axios';
 import { monthlyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
+import { CHALLENGE_REWARDS } from '../lib/constants';
 import { resetTimeBasedEarnings } from '../lib/api/dgraph';
 
 // Initialize OpenAI client
@@ -421,7 +422,7 @@ IMPORTANT: Review the recent episodes above and create something DIFFERENT for m
       id: uuidv4(),
       title,
       description,
-      reward: 25, // Monthly challenges reward 25 Nocenix
+      reward: CHALLENGE_REWARDS.MONTHLY, // 2500 NCT for monthly challenges
       createdAt: new Date().toISOString(),
       isActive: true,
       frequency: 'monthly',
