@@ -1,6 +1,6 @@
-// Updated MapControls.tsx with zoom in/out buttons
+// Updated MapControls.tsx with challenge generation button
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { LocationData } from '../../../lib/map/types';
 
@@ -10,6 +10,7 @@ interface MapControlsProps {
   onRecenter: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onGenerateChallenges: () => Promise<void>; // NEW: Add this prop
   userLocation?: LocationData | null;
 }
 
@@ -19,9 +20,11 @@ const MapControls: React.FC<MapControlsProps> = ({
   onRecenter,
   onZoomIn,
   onZoomOut,
+  onGenerateChallenges,
   userLocation,
 }) => {
   const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleCreateChallenge = () => {
     console.log('Create challenge button clicked');
@@ -35,7 +38,6 @@ const MapControls: React.FC<MapControlsProps> = ({
 
     console.log('Navigating to create challenge with location:', userLocation);
 
-    // Navigate to create challenge with public flag and location data
     router.push({
       pathname: '/createchallenge',
       query: {
@@ -46,12 +48,31 @@ const MapControls: React.FC<MapControlsProps> = ({
     });
   };
 
+  // NEW: Handle generate challenges button click
+  const handleGenerateChallenges = async () => {
+    if (!userLocation) {
+      alert('Location access is required to generate challenges.');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      await onGenerateChallenges();
+      console.log('✅ Challenges generated successfully');
+    } catch (error) {
+      console.error('❌ Failed to generate challenges:', error);
+      alert('Failed to generate challenges. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (!mapLoaded) {
     return null;
   }
 
   return (
-    <div className="absolute bottom-24 right-4 flex flex-col space-y-2 z-10">
+    <div className="absolute bottom-24 right-4 flex flex-col space-y-2 z-[150]">
       {/* Zoom In Button */}
       <button
         onClick={onZoomIn}
@@ -105,7 +126,7 @@ const MapControls: React.FC<MapControlsProps> = ({
         </svg>
       </button>
 
-      {/* Recenter button - White with gradient arrow */}
+      {/* Recenter button */}
       <button
         onClick={onRecenter}
         className="w-14 h-14 rounded-full bg-white text-white flex items-center justify-center shadow-lg"
@@ -125,7 +146,6 @@ const MapControls: React.FC<MapControlsProps> = ({
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          {/* North-pointing arrow with gradient fill */}
           <defs>
             <linearGradient id="locationGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#10CAFF" />
@@ -134,6 +154,55 @@ const MapControls: React.FC<MapControlsProps> = ({
           </defs>
           <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="url(#locationGradient)" stroke="url(#locationGradient)" />
         </svg>
+      </button>
+
+      {/* NEW: Generate Challenges Button */}
+      <button
+        onClick={handleGenerateChallenges}
+        disabled={isGenerating || !userLocation}
+        className={`w-14 h-14 rounded-full ${
+          userLocation && !isGenerating ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gray-500'
+        } text-white flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
+        aria-label="Generate AI challenges"
+        title={
+          userLocation ? (isGenerating ? 'Generating...' : 'Generate challenges nearby') : 'Location access required'
+        }
+        style={{
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        {isGenerating ? (
+          <svg
+            className="animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Sparkles/AI icon */}
+            <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364 6.364l-2.121-2.121M8.757 8.757L6.636 6.636m12.728 0l-2.121 2.121m-9.9 9.9l-2.121 2.121" />
+            <circle cx="12" cy="12" r="3" fill="white" />
+          </svg>
+        )}
       </button>
 
       {/* Create Challenge button */}

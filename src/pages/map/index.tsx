@@ -7,8 +7,8 @@ import ChallengeMarker from './components/ChallengeMarker';
 import MapControls from './components/MapControls';
 import LoadingOverlay from './components/LoadingOverlay';
 import { fetchNearbyChallenge, getMapStyleURL, getUserLocation, loadMapLibreCSS } from '../../lib/map/mapService';
+import { generateRandomChallenges } from '../../lib/map/challengeGenerator'; // NEW: Import generator
 
-// Define the interface for our custom event
 interface BrowsingNavigationDetail {
   challengeId: string;
   userId: string;
@@ -21,11 +21,9 @@ interface BrowsingNavigationEvent extends CustomEvent {
 const MapView = () => {
   const router = useRouter();
 
-  // Refs
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
-  // State
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapLibrary, setMapLibrary] = useState<any>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -35,10 +33,8 @@ const MapView = () => {
   const [challenges, setChallenges] = useState<ChallengeData[]>([]);
   const [initialLocationSet, setInitialLocationSet] = useState(false);
 
-  // Handle zoom in button click
   const handleZoomIn = () => {
     if (!mapInstanceRef.current) return;
-
     const currentZoom = mapInstanceRef.current.getZoom();
     mapInstanceRef.current.zoomTo(currentZoom + 1, {
       duration: 300,
@@ -46,10 +42,8 @@ const MapView = () => {
     });
   };
 
-  // Handle zoom out button click
   const handleZoomOut = () => {
     if (!mapInstanceRef.current) return;
-
     const currentZoom = mapInstanceRef.current.getZoom();
     mapInstanceRef.current.zoomTo(currentZoom - 1, {
       duration: 300,
@@ -57,15 +51,46 @@ const MapView = () => {
     });
   };
 
-  // Force full viewport height for map container
+  // NEW: Handle challenge generation
+  const handleGenerateChallenges = async () => {
+    if (!userLocation) {
+      throw new Error('User location is required');
+    }
+
+    console.log('🎯 Generating AI challenges at:', userLocation);
+
+    try {
+      // Generate new challenges using the AI generator
+      const newChallenges = await generateRandomChallenges(
+        userLocation.latitude,
+        userLocation.longitude,
+        10, // Generate 10 challenges
+      );
+
+      console.log(`✅ Generated ${newChallenges.length} challenges`);
+
+      // Replace existing challenges with new ones
+      setChallenges(newChallenges);
+
+      // Clear selected pin
+      setSelectedPin(null);
+
+      // Optional: Show success message
+      setTimeout(() => {
+        alert(`Generated ${newChallenges.length} new challenges nearby! 🎉`);
+      }, 100);
+    } catch (error) {
+      console.error('❌ Error generating challenges:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const setMapHeight = () => {
       if (mapContainerRef.current) {
-        // Force the map to take full viewport height
         mapContainerRef.current.style.height = '100vh';
         mapContainerRef.current.style.width = '100vw';
 
-        // Also set position to ensure it covers everything
         const parentContainer = mapContainerRef.current.parentElement;
         if (parentContainer) {
           parentContainer.style.position = 'fixed';
@@ -86,21 +111,18 @@ const MapView = () => {
     };
   }, []);
 
-  // Get user location first, then initialize map
   useEffect(() => {
     const getUserLocationFirst = async () => {
       setLocatingUser(true);
 
       try {
-        // Get user location
         const location = await getUserLocation();
         setUserLocation(location);
         setInitialLocationSet(true);
       } catch (error: any) {
         console.warn('Error getting user location:', error);
 
-        // Default location already handled in getUserLocation
-        const defaultLocation = { longitude: 14.4378, latitude: 50.0755 }; // Prague center
+        const defaultLocation = { longitude: 14.4378, latitude: 50.0755 };
         setUserLocation(defaultLocation);
         setInitialLocationSet(true);
 
@@ -112,22 +134,18 @@ const MapView = () => {
     getUserLocationFirst();
   }, []);
 
-  // Load and initialize MapLibre only after we have the user's location
   useEffect(() => {
     if (!initialLocationSet || !userLocation) return;
 
     const initializeMap = async () => {
       try {
-        // Load MapLibre CSS
         loadMapLibreCSS();
 
-        // Dynamically import MapLibre
         const MapLibre = await import('maplibre-gl');
         setMapLibrary(MapLibre);
 
         if (!mapContainerRef.current) return;
 
-        // Get token from environment variable
         const jawgAccessToken = process.env.NEXT_PUBLIC_JAWG_ACCESS_TOKEN;
 
         if (!jawgAccessToken) {
@@ -136,7 +154,6 @@ const MapView = () => {
           return;
         }
 
-        // Create map with the user's location as center
         const map = new MapLibre.Map({
           container: mapContainerRef.current,
           style: getMapStyleURL(jawgAccessToken),
@@ -152,7 +169,6 @@ const MapView = () => {
           preserveDrawingBuffer: true,
         } as MapOptions);
 
-        // Add only a minimal attribution control
         map.addControl(
           new MapLibre.AttributionControl({
             compact: true,
@@ -160,14 +176,12 @@ const MapView = () => {
           'bottom-left',
         );
 
-        // When map loads, load challenges
         map.on('load', async () => {
           console.log('Map loaded successfully');
           mapInstanceRef.current = map;
           setMapLoaded(true);
 
           try {
-            // Load nearby challenges
             const nearbyChallenge = await fetchNearbyChallenge(userLocation);
             setChallenges(nearbyChallenge);
           } catch (error) {
@@ -191,7 +205,6 @@ const MapView = () => {
 
     initializeMap();
 
-    // Cleanup
     return () => {
       if (mapInstanceRef.current && mapInstanceRef.current.remove) {
         mapInstanceRef.current.remove();
@@ -200,7 +213,6 @@ const MapView = () => {
     };
   }, [initialLocationSet, userLocation]);
 
-  // Handle recenter button click
   const handleRecenterMap = async () => {
     if (!mapInstanceRef.current) return;
 
@@ -215,7 +227,7 @@ const MapView = () => {
         zoom: 16,
         essential: true,
         animate: true,
-        duration: 1000, // 1 second animation
+        duration: 1000,
       });
     } catch (error) {
       console.warn('Error getting position for recentering:', error);
@@ -224,7 +236,6 @@ const MapView = () => {
     }
   };
 
-  // Reset selected pin when map moves
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -244,17 +255,14 @@ const MapView = () => {
     };
   }, [selectedPin]);
 
-  // FIXED: Better navigation handling for browsing page with proper typing
   useEffect(() => {
     const handleBrowsingNavigation = async (event: Event) => {
-      // Type assertion to our custom event interface
       const customEvent = event as BrowsingNavigationEvent;
       const { challengeId, userId } = customEvent.detail;
 
       console.log('🎬 Navigating to browsing:', { challengeId, userId });
 
       try {
-        // Use Next.js router with proper error handling
         await router.push({
           pathname: '/browsing',
           query: { challengeId, userId },
@@ -262,12 +270,10 @@ const MapView = () => {
         console.log('✅ Navigation to browsing successful');
       } catch (error) {
         console.error('❌ Navigation error:', error);
-        // Fallback to direct URL navigation if router fails
         window.location.href = `/browsing?challengeId=${challengeId}&userId=${userId}`;
       }
     };
 
-    // Also expose router globally for popup component usage
     if (typeof window !== 'undefined') {
       (window as any).__NEXT_ROUTER__ = router;
     }
@@ -276,22 +282,18 @@ const MapView = () => {
 
     return () => {
       window.removeEventListener('navigateToBrowsing', handleBrowsingNavigation);
-      // Clean up global router reference
       if (typeof window !== 'undefined') {
         delete (window as any).__NEXT_ROUTER__;
       }
     };
   }, [router]);
 
-  // ADDED: Handle page visibility to pause/resume map when navigating away
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (mapInstanceRef.current) {
         if (document.hidden) {
-          // Pause map rendering when page is hidden
           mapInstanceRef.current.stop();
         } else {
-          // Resume map rendering when page becomes visible
           mapInstanceRef.current.start();
         }
       }
@@ -318,7 +320,6 @@ const MapView = () => {
         height: '100vh',
       }}
     >
-      {/* Map container */}
       <div
         ref={mapContainerRef}
         className="w-full h-full bg-gray-900"
@@ -328,7 +329,6 @@ const MapView = () => {
         }}
       />
 
-      {/* Challenge markers - Render these first so user marker appears on top */}
       {mapLoaded &&
         mapLibrary &&
         challenges.map((challenge, index) => (
@@ -343,7 +343,6 @@ const MapView = () => {
           />
         ))}
 
-      {/* User location marker - Render last so it appears on top */}
       {mapLoaded && mapLibrary && userLocation && (
         <UserLocationMarker
           map={mapInstanceRef.current}
@@ -352,17 +351,16 @@ const MapView = () => {
         />
       )}
 
-      {/* Map controls */}
       <MapControls
         mapLoaded={mapLoaded}
         locatingUser={locatingUser}
         onRecenter={handleRecenterMap}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
+        onGenerateChallenges={handleGenerateChallenges} // NEW: Pass the handler
         userLocation={userLocation}
       />
 
-      {/* Loading overlay */}
       <LoadingOverlay mapLoaded={mapLoaded} locatingUser={locatingUser} loadError={loadError} />
     </div>
   );
