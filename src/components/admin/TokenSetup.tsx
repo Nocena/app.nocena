@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useManageRewardMinters, useIsRewardMinter } from '../../hooks/contracts/useNocenite';
-import { useDualTokens } from '../../hooks/contracts/useDualTokens';
+import { useNoceniteToken } from '../../hooks/contracts/useNoceniteToken';
 
 export function TokenSetup() {
   const { address } = useAccount();
   const { addRewardMinter, isPending, error } = useManageRewardMinters();
   const { data: isRewardMinter } = useIsRewardMinter(address as `0x${string}`);
-  const { nctBalance, ncxBalance } = useDualTokens();
+  const nctBalance = useNoceniteToken();
   const [setupAddress, setSetupAddress] = useState(address || '');
 
   const handleAddRewardMinter = () => {
@@ -36,10 +36,8 @@ export function TokenSetup() {
         </p>
         <p>Can Mint NCT: {isRewardMinter ? '✅ Yes' : '❌ No'}</p>
         <p>NCT Balance: {nctBalance.formatted}</p>
-        <p>NCX Balance: {ncxBalance.formatted}</p>
       </div>
 
-      {/* Setup Section */}
       {!isRewardMinter && (
         <div className="space-y-4">
           <h3 className="font-semibold">Authorize Reward Minter:</h3>
@@ -61,7 +59,7 @@ export function TokenSetup() {
         </div>
       )}
 
-      {isRewardMinter && (
+      {Boolean(isRewardMinter) && (
         <div className="p-4 bg-green-100 rounded">
           <p className="text-green-800">✅ This wallet is authorized to mint NCT rewards!</p>
         </div>

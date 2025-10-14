@@ -6,7 +6,7 @@ import type { StaticImageData } from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAccount } from 'wagmi';
-import { useDualTokens } from '../../hooks/contracts/useDualTokens';
+import { useNoceniteToken } from '../../hooks/contracts/useNoceniteToken';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicContainer from '../../components/ui/ThematicContainer';
@@ -27,7 +27,7 @@ const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
   const { user, login, updateUser } = useAuth();
   const { address, isConnected } = useAccount();
-  const { ncxBalance } = useDualTokens();
+  const nctBalance = useNoceniteToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,8 +39,8 @@ const ProfileView: React.FC = () => {
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
 
-  // Use blockchain NCX balance if connected, otherwise fallback to user earned tokens
-  const tokenBalance = isConnected && address ? parseFloat(ncxBalance.formatted) : user?.earnedTokens || 0;
+  // Use blockchain NCT balance if connected, otherwise fallback to user earned tokens
+  const tokenBalance = isConnected && address ? parseFloat(nctBalance.formatted) : user?.earnedTokens || 0;
 
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);

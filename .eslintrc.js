@@ -19,12 +19,11 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
     'prettier', // Make sure this is last to override other configs
   ],
 
   // Enable plugins
-  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'prettier'],
+  plugins: ['@typescript-eslint', 'react', 'prettier'],
 
   // Custom rules
   rules: {

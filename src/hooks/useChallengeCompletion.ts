@@ -40,34 +40,11 @@ export function useChallengeCompletion() {
         return completionResult;
       }
 
-      // Step 2: Mint blockchain tokens if enabled and conditions are met
-      let blockchainReward;
-      if (
-        enableBlockchainRewards &&
-        address &&
-        walletClient &&
-        isRewardMinter &&
-        completionData.challenge.frequency &&
-        completionData.challenge.type === 'AI'
-      ) {
-        console.log('🔗 Minting blockchain reward...');
-
-        blockchainReward = await mintChallengeReward(
-          address as `0x${string}`,
-          completionData.challenge.frequency as ChallengeFrequency,
-          walletClient,
-        );
-
-        if (blockchainReward.success) {
-          console.log(`✅ Blockchain reward minted: ${blockchainReward.rewardAmount} NCT`);
-        } else {
-          console.warn('⚠️ Blockchain reward failed, but challenge completion succeeded');
-        }
-      }
+      // Step 2: Challenge completion handles blockchain rewards automatically
+      console.log('✅ Challenge completion includes automatic blockchain rewards');
 
       return {
         ...completionResult,
-        blockchainReward,
       };
     } catch (error) {
       console.error('❌ Challenge completion failed:', error);

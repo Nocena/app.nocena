@@ -1,9 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { parseEther, createWalletClient, http } from 'viem';
+import { createWalletClient, http, keccak256, encodeAbiParameters } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { flowTestnet } from 'viem/chains';
-import { CONTRACTS, CHALLENGE_REWARDS } from '../../lib/constants';
-import { NOCENITE_ABI } from '../../lib/contracts/noceniteAbi';
+import { CONTRACTS } from '../../lib/constants';
+import challengeRewardsArtifact from '../../lib/contracts/challengeRewards.json';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -11,54 +11,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { userAddress, challengeFrequency, completionId } = req.body;
+    const { userAddress, challengeFrequency, ipfsHash } = req.body;
 
-    // Validate inputs
-    if (!userAddress || !challengeFrequency || !completionId) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!userAddress || !challengeFrequency || !ipfsHash) {
+      return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    if (!['daily', 'weekly', 'monthly'].includes(challengeFrequency)) {
-      return res.status(400).json({ error: 'Invalid challenge frequency' });
+    // Get relayer private key from environment
+    const relayerPrivateKey = process.env.RELAYER_PRIVATE_KEY;
+    if (!relayerPrivateKey) {
+      return res.status(500).json({ error: 'Relayer private key not configured' });
     }
 
-    // Get private key from environment
-    const privateKey = process.env.SERVICE_ACCOUNT_PRIVATE_KEY;
-    if (!privateKey) {
-      console.error('❌ SERVICE_ACCOUNT_PRIVATE_KEY not found in environment');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
+    // Ensure private key has 0x prefix
+    const formattedPrivateKey = relayerPrivateKey.startsWith('0x') ? relayerPrivateKey : `0x${relayerPrivateKey}`;
 
-    const rewardAmount = CHALLENGE_REWARDS[challengeFrequency.toUpperCase() as keyof typeof CHALLENGE_REWARDS];
-
-    // Create service account wallet
-    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    // Create relayer account and wallet client
+    const relayerAccount = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
     const walletClient = createWalletClient({
-      account,
+      account: relayerAccount,
       chain: flowTestnet,
       transport: http(),
     });
 
-    // Mint tokens
-    const txHash = await walletClient.writeContract({
-      address: CONTRACTS.Nocenite as `0x${string}`,
-      abi: NOCENITE_ABI,
-      functionName: 'mint',
-      args: [userAddress as `0x${string}`, parseEther(rewardAmount.toString())],
+    // Determine function name based on frequency
+    const functionName = `complete${challengeFrequency.charAt(0).toUpperCase() + challengeFrequency.slice(1)}Challenge`;
+
+    // Create the message hash that matches the contract's expectation
+    // Contract uses: keccak256(abi.encode(user, challengeType, ipfsHash))
+    const messageHash = keccak256(
+      encodeAbiParameters(
+        [
+          { name: 'user', type: 'address' },
+          { name: 'challengeType', type: 'string' },
+          { name: 'ipfsHash', type: 'string' },
+        ],
+        [userAddress as `0x${string}`, challengeFrequency, ipfsHash],
+      ),
+    );
+
+    // Sign the message hash (viem automatically adds the Ethereum signed message prefix)
+    const signature = await walletClient.signMessage({
+      message: { raw: messageHash },
     });
 
-    console.log(`✅ Minted ${rewardAmount} NCT to ${userAddress}, tx: ${txHash}`);
+    // Call the contract function
+    const txHash = await walletClient.writeContract({
+      address: CONTRACTS.ChallengeRewards as `0x${string}`,
+      abi: challengeRewardsArtifact.abi,
+      functionName,
+      args: [userAddress, ipfsHash, signature],
+    });
 
     return res.status(200).json({
       success: true,
       txHash,
-      rewardAmount,
+      functionName,
+      message: `${challengeFrequency} challenge reward minted successfully`,
     });
   } catch (error) {
-    console.error('❌ Mint failed:', error);
+    console.error('Relayer error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Minting failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }

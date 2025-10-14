@@ -11,7 +11,7 @@ interface ChallengeFormProps {
   challenge: AIChallenge | null;
   reward: number;
   selectedTab: string;
-  hasCompleted: boolean; // Add this prop
+  hasCompleted: boolean;
   onCompleteChallenge: (type: string, frequency: string) => void;
 }
 

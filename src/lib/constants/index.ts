@@ -26,9 +26,8 @@ export const APP_ADDRESS = process.env.NEXT_PUBLIC_APP_ADDRESS || '';
 export const FLOW_EVM_TESTNET_ID = 545;
 
 export const CONTRACTS = {
-  Nocenite: '0x7eEae9284A91af4c2258C80c62853ff5B30dd47E',
-  Nocenix: '0x6D6ac4219E7795ec2e714802642eC57Ce09f22C1',
-  Airdrop: '0x27Fb6c9cCc4C7324c31B0782c0B647725cAe4FC9',
+  Nocenite: '0xA92C45C3d516f1cCe011BE92C81326962e5C1047',
+  ChallengeRewards: '0xf9b4812a2160b4550045ae3DfDF797eC4d5C3336',
 } as const;
 
 // Challenge reward amounts (in tokens, not wei)

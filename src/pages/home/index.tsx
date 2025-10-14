@@ -217,6 +217,9 @@ const HomeView = () => {
     const completed = hasCompletedChallenge(user, selectedTab);
     console.log(`${selectedTab} completion status:`, completed);
     return completed;
+
+    // FOR TESTING: Uncomment the line below to disable completion limits
+    // return false;
   }, [user, selectedTab]);
 
   // Calculate reward based on challenge data or fallback

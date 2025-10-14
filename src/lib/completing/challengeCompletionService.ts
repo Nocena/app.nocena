@@ -63,7 +63,7 @@ export async function completeChallengeWorkflow(
 
     console.log('Starting challenge completion workflow for user:', userId);
     console.log('Challenge type:', challenge.type, 'Challenge ID:', challenge.challengeId);
-    console.log('Video blob size:', video.size, 'Photo blob size:', photo.size);
+    console.log('Video blob size:', video?.size || 'no video', 'Photo blob size:', photo?.size || 'no photo');
     console.log('Existing NFT data:', existingNFTData);
 
     // Step 1: Upload media to IPFS
@@ -129,20 +129,20 @@ export async function completeChallengeWorkflow(
           body: JSON.stringify({
             userAddress: userWalletAddress,
             challengeFrequency: challenge.frequency,
-            completionId: completionId,
+            ipfsHash: mediaMetadata.videoCID || 'challenge-completion',
           }),
         });
 
         const mintResult = await mintResponse.json();
         if (mintResult.success) {
-          console.log(`✅ Blockchain NCT minted: ${mintResult.rewardAmount} tokens, tx: ${mintResult.txHash}`);
+          console.log(`✅ Blockchain NCT tokens minted: ${mintResult.txHash}`);
         } else {
           console.error('❌ Blockchain minting failed:', mintResult.error);
-          throw new Error(`Blockchain minting failed: ${mintResult.error}`);
+          // Don't throw error - let challenge completion succeed even if blockchain fails
         }
       } catch (error) {
         console.error('❌ Blockchain minting error:', error);
-        throw error;
+        // Don't throw error - let challenge completion succeed even if blockchain fails
       }
     }
 

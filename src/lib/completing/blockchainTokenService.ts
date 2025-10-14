@@ -1,10 +1,8 @@
-import { parseEther } from 'viem';
-import { CONTRACTS, FLOW_EVM_TESTNET_ID, CHALLENGE_REWARDS } from '../constants';
-import { NOCENITE_ABI } from '../contracts/noceniteAbi';
+import { CHALLENGE_REWARDS } from '../constants';
 
 export type ChallengeFrequency = 'daily' | 'weekly' | 'monthly';
 
-export interface BlockchainRewardResult {
+interface BlockchainRewardResult {
   success: boolean;
   txHash?: string;
   error?: string;
@@ -12,47 +10,55 @@ export interface BlockchainRewardResult {
 }
 
 /**
- * Mints NCT tokens for challenge completion
- * This should be called after successful challenge verification
+ * Mints NCT tokens for challenge completion using relayer API
  */
-export async function mintChallengeReward(
+async function mintChallengeReward(
   userAddress: `0x${string}`,
-  challengeFrequency: ChallengeFrequency,
-  walletClient: any, // wagmi wallet client
+  frequency: ChallengeFrequency,
+  ipfsHash: string,
 ): Promise<BlockchainRewardResult> {
   try {
-    const rewardAmount = CHALLENGE_REWARDS[challengeFrequency.toUpperCase() as keyof typeof CHALLENGE_REWARDS];
-
-    console.log(`🪙 Minting ${rewardAmount} NCT tokens for ${challengeFrequency} challenge completion`);
-
-    const txHash = await walletClient.writeContract({
-      address: CONTRACTS.Nocenite as `0x${string}`,
-      abi: NOCENITE_ABI,
-      functionName: 'mint',
-      args: [userAddress, parseEther(rewardAmount.toString())],
-      chainId: FLOW_EVM_TESTNET_ID,
+    const response = await fetch('/api/mint-challenge-reward', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userAddress,
+        challengeFrequency: frequency,
+        ipfsHash,
+      }),
     });
 
-    console.log(`✅ NCT minting transaction sent: ${txHash}`);
+    const result = await response.json();
 
-    return {
-      success: true,
-      txHash,
-      rewardAmount,
-    };
+    if (result.success) {
+      return {
+        success: true,
+        txHash: result.txHash,
+        rewardAmount: getEstimatedReward(frequency),
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || 'Unknown error',
+        rewardAmount: 0,
+      };
+    }
   } catch (error) {
-    console.error('❌ Failed to mint NCT tokens:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      rewardAmount: CHALLENGE_REWARDS[challengeFrequency.toUpperCase() as keyof typeof CHALLENGE_REWARDS],
+      rewardAmount: 0,
     };
   }
 }
 
 /**
- * Gets the reward amount for a challenge frequency
+ * Gets the estimated reward amount for a challenge frequency
  */
-export function getChallengeRewardAmount(frequency: ChallengeFrequency): number {
+function getEstimatedReward(frequency: ChallengeFrequency): number {
   return CHALLENGE_REWARDS[frequency.toUpperCase() as keyof typeof CHALLENGE_REWARDS];
 }
+
+export { mintChallengeReward, getEstimatedReward };
