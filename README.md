@@ -16,7 +16,7 @@ Nocena is a challenge-based social networking application where users can comple
 - **Backend**: Integrated in Next.js
 - **Database**: Dgraph
 - **Image Storage**: Pinata (IPFS)
-- **Blockchain**: Flow for the token layer
+- **Blockchain**: Flow EVM for the token layer
 - **Package Manager**: pnpm
 
 ## Getting Started
@@ -48,6 +48,7 @@ Nocena is a challenge-based social networking application where users can comple
    - TWILIO_ACCOUNT_SID
    - TWILIO_AUTH_TOKEN
    - TWILIO_VERIFY_SERVICE_SID
+   - RELAYER_PRIVATE_KEY
 
 ### Development
 
@@ -97,6 +98,23 @@ pnpm format
 pnpm build
 pnpm start
 ```
+
+## Development Testing
+
+### Challenge Completion Testing
+
+By default, users can only complete one challenge per day/week/month. To test the full challenge flow repeatedly during development:
+
+1. Navigate to `src/pages/home/index.tsx`
+2. In the `hasCompleted` useMemo function, uncomment the testing line:
+   ```typescript
+   // FOR TESTING: Uncomment the line below to disable completion limits
+   return false;
+   ```
+3. Comment out the production logic above it
+4. **Remember to revert these changes before committing**
+
+This allows unlimited challenge completions for testing the entire verification and reward flow.
 
 ## PWA Support
 
@@ -168,7 +186,10 @@ app.nocena/
 │   │       ├── ThematicImage.tsx               # Themed image component      -││-
 │   │       └── ThematicText.tsx                # Themed text component       -││-
 │   ├── contexts/                               # React context providers
-│   │   └── AuthContext.tsx                     # Authentication context for user sessions
+│   │   ├── AuthContext.tsx                     # Authentication context for user sessions
+│   │   ├── BackgroundTaskContext.tsx           # Background task management for verification and NFT generation
+│   │   ├── LensAuthProvider.tsx                # Lens Protocol authentication
+│   │   └── WalletProvider.tsx                  # Wallet connection management
 │   ├── data/                                   # Data models and services
 │   │   └── challenges.ts                       # Challenge data types and models
 │   ├── lib/                                    # Library code
@@ -178,18 +199,28 @@ app.nocena/
 │   │   ├── completing/                         # Challenge completion functionality
 │   │   │   ├── mediaServices.ts                # Media handling for challenge completion
 │   │   │   └── types.ts                        # Type definitions for challenge completion
+│   │   ├── verification/                       # AI verification system
+│   │   │   ├── simpleVerificationService.ts    # Main verification service
+│   │   │   ├── steps/                          # Individual verification steps
+│   │   │   └── helpers/                        # Verification helper functions
 │   │   ├── map/                                # Helpers for map page
 │   │   │   ├── mapService.ts                   # Fetching the public challenge data
 │   │   │   └── types.ts                        # Type definitions for map page
-│   │   └── utils/                              # Utility functions
-│   │       ├── challengeUtils.ts               # Helper functions for challenges
-│   │       ├── pinataUtils.ts                  # Pinata utils used for debugging the pinata upload
-│   │       ├── dateUtils.ts                    # Date formatting and manipulation utilities
-│   │       ├── passwordUtils.ts                # New and more secure hashing functionality with salt
-│   │       ├── phoneUtils.ts                   # Util for phone verfication process
-│   │       ├── rateLimiting.ts                 # Helper function for countering bruteforce on the discord invite code
-│   │       ├── verification.ts                 # Verifing user by their phonenumber
-│   │       └── security.ts                     # Security-related utilities
+│   │   ├── utils/                              # Utility functions
+│   │   │   ├── challengeUtils.ts               # Helper functions for challenges
+│   │   │   ├── pinataUtils.ts                  # Pinata utils used for debugging the pinata upload
+│   │   │   ├── dateUtils.ts                    # Date formatting and manipulation utilities
+│   │   │   ├── passwordUtils.ts                # New and more secure hashing functionality with salt
+│   │   │   ├── phoneUtils.ts                   # Util for phone verfication process
+│   │   │   ├── rateLimiting.ts                 # Helper function for countering bruteforce on the discord invite code
+│   │   │   ├── verification.ts                 # Verifing user by their phonenumber
+│   │   │   └── security.ts                     # Security-related utilities
+│   │   ├── constants/                          # Application constants
+│   │   ├── contracts/                          # Blockchain contract interfaces
+│   │   ├── rewards/                            # Reward system logic
+│   │   ├── pushNotifications.ts                # Push notification service
+│   │   ├── types.ts                            # Global type definitions
+│   │   └── thirdweb.ts                         # ThirdWeb configuration
 │   ├── pages/                                  # Next.js pages
 │   │   ├── _app.tsx                            # Next.js app wrapper component
 │   │   ├── _document.tsx                       # Next.js document customization
@@ -203,14 +234,11 @@ app.nocena/
 │   │   │   └── pinFileToIPFS.ts                # Upload file to IPFS
 │   │   ├── completing/                         # Challenge completion pages
 │   │   │   ├── components/                     # Components for challenge completion flow
-│   │   │   │   ├── ChallengeHeader.tsx         # Header for challenge view
-│   │   │   │   ├── IdleView.tsx                # Idle state view
-│   │   │   │   ├── RecordingView.tsx           # Video recording view
-│   │   │   │   ├── FileUploadView.tsx          # For weekly and monthly challenegs working diffrently than daily
-│   │   │   │   ├── ReviewView.tsx              # Submission review view
-│   │   │   │   ├── SelfieView.tsx              # Selfie capture view
-│   │   │   │   ├── StartingView.tsx            # Initial challenge view
-│   │   │   │   └── StatusView.tsx              # Status indicator view
+│   │   │   │   ├── VideoRecordingScreen.tsx    # Video recording interface
+│   │   │   │   ├── VideoReviewScreen.tsx       # Video review and approval
+│   │   │   │   ├── SelfieScreen.tsx            # Selfie capture for verification
+│   │   │   │   ├── VerificationScreen.tsx      # AI verification processing
+│   │   │   │   └── ClaimingScreen.tsx          # Token claiming interface
 │   │   │   └── index.tsx                       # Main challenge completion page
 │   │   ├── createchallenge/                    # Challenge creation
 │   │   │   └── index.tsx                       # Challenge creation page

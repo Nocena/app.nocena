@@ -5,6 +5,8 @@ import Image from 'next/image';
 import type { StaticImageData } from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAccount } from 'wagmi';
+import { useNoceniteToken } from '../../hooks/contracts/useNoceniteToken';
 import { getPageState, updatePageState } from '../../components/PageManager';
 
 import ThematicContainer from '../../components/ui/ThematicContainer';
@@ -20,11 +22,12 @@ import PenIcon from '../../components/icons/pen';
 import useFollowersData from '../../hooks/useFollowersData';
 
 const defaultProfilePic = '/images/profile.png';
-const nocenix = '/nocenix.ico';
 
 const ProfileView: React.FC = () => {
   const DEFAULT_PROFILE_PIC = '/images/profile.png';
   const { user, login, updateUser } = useAuth();
+  const { address, isConnected } = useAccount();
+  const nctBalance = useNoceniteToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,8 +37,10 @@ const ProfileView: React.FC = () => {
   const [username, setUsername] = useState<string>(user?.username || 'Guest');
   const [bio, setBio] = useState<string>(user?.bio || 'No bio yet');
   const [isEditingBio, setIsEditingBio] = useState<boolean>(false);
-  const [tokenBalance, setTokenBalance] = useState<number>(user?.earnedTokens || 0);
   const [activeSection, setActiveSection] = useState<'trailer' | 'calendar' | 'achievements'>('trailer');
+
+  // Use blockchain NCT balance if connected, otherwise fallback to user earned tokens
+  const tokenBalance = isConnected && address ? parseFloat(nctBalance.formatted) : user?.earnedTokens || 0;
 
   // Avatar generation state - NEW
   const [generatedAvatar, setGeneratedAvatar] = useState<string | null>(user?.currentAvatar || null);
@@ -61,7 +66,6 @@ const ProfileView: React.FC = () => {
       setDailyChallenges(user.dailyChallenge.split('').map((char) => char === '1'));
       setWeeklyChallenges(user.weeklyChallenge.split('').map((char) => char === '1'));
       setMonthlyChallenges(user.monthlyChallenge.split('').map((char) => char === '1'));
-      setTokenBalance(user.earnedTokens || 0);
       setProfilePic(user.profilePicture || defaultProfilePic);
       setCoverPhoto(user.coverPhoto || '/images/cover.jpg');
       setUsername(user.username);
@@ -447,14 +451,6 @@ const ProfileView: React.FC = () => {
                   >
                     <div className="text-2xl font-bold">{followersCount}</div>
                     <div className="text-sm text-white/60">Followers</div>
-                  </div>
-                  <div className="w-px h-8 bg-white/20"></div>
-                  <div className="text-center">
-                    <div className="flex items-center space-x-1">
-                      <span className="text-2xl font-bold">{tokenBalance}</span>
-                      <Image src={nocenix} alt="Nocenix" width={20} height={20} />
-                    </div>
-                    <div className="text-sm text-white/60">Nocenix</div>
                   </div>
                 </div>
               </div>

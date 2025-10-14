@@ -598,4 +598,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
+// Add display name for Fast Refresh compatibility
+AuthProvider.displayName = 'AuthProvider';
+
 export default AuthContext;

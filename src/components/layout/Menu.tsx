@@ -4,7 +4,7 @@ import PrimaryButton from '../ui/PrimaryButton';
 import ThematicImage from '../ui/ThematicImage';
 import ThematicContainer from '../ui/ThematicContainer';
 import WalletMenu from './menu/Wallet';
-import NocenixMenu from './menu/Nocenix';
+import NoceniteMenu from './menu/Nocenite';
 import SettingsMenu from './menu/Settings';
 import FAQMenu from './menu/FAQ';
 import SupportMenu from './menu/Support';
@@ -379,9 +379,9 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
               <path d="M12 6v6l4 2" />
             </svg>
           }
-          title="Nocenix"
-          description="Your token balance and history"
-          onClick={() => setActiveSection('nocenix')}
+          title="Nocenite"
+          description="Token rewards and ecosystem"
+          onClick={() => setActiveSection('nocenite')}
         />
 
         <MenuItem
@@ -466,8 +466,8 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onLogout, showBottomNavbar
     switch (activeSection) {
       case 'wallet':
         return <WalletMenu onBack={() => setActiveSection(null)} />;
-      case 'nocenix':
-        return <NocenixMenu onBack={() => setActiveSection(null)} />;
+      case 'nocenite':
+        return <NoceniteMenu onBack={() => setActiveSection(null)} />;
       case 'settings':
         return <SettingsMenu onBack={() => setActiveSection(null)} />;
       case 'faq':

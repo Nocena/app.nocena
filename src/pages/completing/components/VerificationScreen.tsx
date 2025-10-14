@@ -75,7 +75,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
 
   // Development mode configuration
   const isDevelopmentEnvironment = process.env.NODE_ENV === 'development';
-  const [useMockVerification, setUseMockVerification] = useState(false); // CHANGED: Default to false to test real verification
+  const [useMockVerification, setUseMockVerification] = useState(true); // CHANGED: Default to true for testing
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const monitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -581,7 +581,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
     const modelsLoaded = backgroundStatus.modelPreload.status === 'completed';
 
     let subtitle = '';
-    if (isDevelopmentEnvironment && useMockVerification) {
+    if (useMockVerification) {
       subtitle = 'Mock verification mode';
     } else if (hasBackgroundVerification) {
       subtitle = 'Verification processing in background - instant results available';
@@ -607,7 +607,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           };
         } else {
           return {
-            title: isDevelopmentEnvironment && useMockVerification ? 'Mock AI Verification' : 'AI Verification',
+            title: useMockVerification ? 'Mock AI Verification' : 'AI Verification',
             subtitle,
             color: 'nocenaPink',
           };
@@ -1051,7 +1051,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                     console.log('[Verification Screen] Background verification stuck, starting fresh');
                     // Cancel the stuck task and start fresh
                     backgroundTasks.cancelTask(backgroundTaskIds.verificationId);
-                    if (isDevelopmentEnvironment && useMockVerification) {
+                    if (useMockVerification) {
                       startFakeVerification();
                     } else {
                       startFreshVerification();
@@ -1063,7 +1063,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
                 } else {
                   // Start fresh verification (mock or real based on dev settings)
                   console.log('[Verification Screen] Starting fresh verification');
-                  if (isDevelopmentEnvironment && useMockVerification) {
+                  if (useMockVerification) {
                     startFakeVerification();
                   } else {
                     startFreshVerification();
@@ -1093,7 +1093,7 @@ const VerificationScreen: React.FC<VerificationScreenProps> = ({
           {verificationStage === 'failed' && (
             <PrimaryButton
               onClick={() => {
-                if (isDevelopmentEnvironment && useMockVerification) {
+                if (useMockVerification) {
                   startFakeVerification();
                 } else {
                   startFreshVerification();

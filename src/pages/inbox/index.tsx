@@ -6,6 +6,7 @@ import NotificationFollower from './notifications/NotificationFollower';
 import NotificationChallenge from './notifications/NotificationChallenge';
 import NotificationInviteReward from './notifications/NotificationInviteReward';
 import { getPageState, updatePageState } from '../../components/PageManager';
+import { CHALLENGE_REWARDS } from '../../lib/constants';
 
 // Performance debugging - global timer for overall page load
 const startTime = Date.now();
@@ -426,32 +427,20 @@ const InboxView = () => {
     };
   }, [pullDistance, fetchUserNotifications]);
 
-  // Helper function to determine reward amount based on notification type
   const getRewardForNotification = (notification: NotificationBase) => {
-    // Default reward
-    let reward = 10;
+    let reward: number = CHALLENGE_REWARDS.DAILY;
 
-    // Try to get reward from challenge if available
-    if (notification.privateChallenge) {
-      // Assume private challenges have a standard reward of 15
-      reward = 15;
-    } else if (notification.publicChallenge) {
-      // Assume public challenges have a standard reward of 20
-      reward = 20;
-    } else if (notification.aiChallenge) {
-      // Assign reward based on frequency
+    if (notification.aiChallenge) {
       switch (notification.aiChallenge.frequency) {
         case 'daily':
-          reward = 5;
+          reward = CHALLENGE_REWARDS.DAILY;
           break;
         case 'weekly':
-          reward = 15;
+          reward = CHALLENGE_REWARDS.WEEKLY;
           break;
         case 'monthly':
-          reward = 25;
+          reward = CHALLENGE_REWARDS.MONTHLY;
           break;
-        default:
-          reward = 10;
       }
     }
 

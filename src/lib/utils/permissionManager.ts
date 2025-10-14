@@ -439,9 +439,12 @@ export class PWAPermissionManager {
    */
   private loadPermissionHistory(): PermissionHistory {
     try {
-      const stored = localStorage.getItem('nocena_permission_history');
-      if (stored) {
-        return JSON.parse(stored);
+      // Check if we're in the browser environment
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem('nocena_permission_history');
+        if (stored) {
+          return JSON.parse(stored);
+        }
       }
     } catch (error) {
       console.error('Error loading permission history:', error);
@@ -459,7 +462,9 @@ export class PWAPermissionManager {
    */
   private savePermissionHistory(): void {
     try {
-      localStorage.setItem('nocena_permission_history', JSON.stringify(this.permissionHistory));
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem('nocena_permission_history', JSON.stringify(this.permissionHistory));
+      }
     } catch (error) {
       console.error('Error saving permission history:', error);
     }

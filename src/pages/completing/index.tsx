@@ -13,6 +13,7 @@ import VerificationScreen from './components/VerificationScreen';
 import ClaimingScreen from './components/ClaimingScreen';
 import { useBackgroundTasks } from '../../contexts/BackgroundTaskContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { CHALLENGE_REWARDS } from '../../lib/constants';
 
 interface Challenge {
   title: string;
@@ -74,7 +75,9 @@ const CompletingViewContent: React.FC<CompletingViewProps> = ({ onBack }) => {
           description: description as string,
           challengerName: 'Nocena GPT',
           challengerProfile: '/images/AI.jpg',
-          reward: parseInt(reward as string),
+          reward: frequency
+            ? CHALLENGE_REWARDS[(frequency as string).toUpperCase() as keyof typeof CHALLENGE_REWARDS]
+            : parseInt(reward as string),
           color: 'nocenaPink',
           type: 'AI',
           frequency: frequency as 'daily' | 'weekly' | 'monthly',

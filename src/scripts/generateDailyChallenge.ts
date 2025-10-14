@@ -5,6 +5,7 @@ import webpush from 'web-push';
 import axios from 'axios';
 import { dailyChallenges, ChallengeFrequency, ChallengeCategory } from '../data/challenges';
 import { resetTimeBasedEarnings } from '../lib/api/dgraph';
+import { CHALLENGE_REWARDS } from '../lib/constants';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -418,7 +419,7 @@ IMPORTANT: Look at the recent challenges above and generate something DIFFERENT.
       id: uuidv4(),
       title,
       description,
-      reward: 1, // Always 1 for daily challenges
+      reward: CHALLENGE_REWARDS.DAILY, // 100 NCT for daily challenges
       createdAt: new Date().toISOString(),
       isActive: true,
       frequency: 'daily',
