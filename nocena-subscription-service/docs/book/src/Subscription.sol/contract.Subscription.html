@@ -1,0 +1,370 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Subscription</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../../book.css">
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/cadenpiper/app.nocena" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="subscription"><a class="header" href="#subscription">Subscription</a></h1>
+<p><a href="https://github.com/cadenpiper/app.nocena/blob/5816d082f11c57d7ed65d7f1fba8efe53fbdb25f/src/Subscription.sol">Git Source</a></p>
+<p><strong>Inherits:</strong>
+<a href="/src/NCXConverter.sol/abstract.NCXConverter.html">NCXConverter</a>, ReentrancyGuard</p>
+<p>Multi-creator subscription system with NCX token payments and KlaySwap integration</p>
+<p><em>Allows creators to set individual prices, users to subscribe with NCX tokens,
+and creators to swap NCX earnings to USDT via KlaySwap</em></p>
+<h2 id="state-variables"><a class="header" href="#state-variables">State Variables</a></h2>
+<h3 id="subscriptionduration"><a class="header" href="#subscriptionduration">subscriptionDuration</a></h3>
+<p>Fixed subscription duration (30 days)</p>
+<pre><code class="language-solidity">uint256 public immutable subscriptionDuration;
+</code></pre>
+<h3 id="max_price"><a class="header" href="#max_price">MAX_PRICE</a></h3>
+<p>Maximum subscription price to prevent overflow attacks</p>
+<pre><code class="language-solidity">uint256 public constant MAX_PRICE = 1_000_000 * 10 ** 18;
+</code></pre>
+<h3 id="min_price"><a class="header" href="#min_price">MIN_PRICE</a></h3>
+<p>Minimum subscription price to prevent spam</p>
+<pre><code class="language-solidity">uint256 public constant MIN_PRICE = 1 * 10 ** 18;
+</code></pre>
+<h3 id="subscriptionend"><a class="header" href="#subscriptionend">subscriptionEnd</a></h3>
+<p>Tracks subscription end times: user =&gt; creator =&gt; tier =&gt; endTime</p>
+<pre><code class="language-solidity">mapping(address =&gt; mapping(address =&gt; mapping(SubscriptionTier =&gt; uint256))) public subscriptionEnd;
+</code></pre>
+<h3 id="tierprices"><a class="header" href="#tierprices">tierPrices</a></h3>
+<p>Tracks creator subscription prices: creator =&gt; tier =&gt; price in NCX</p>
+<pre><code class="language-solidity">mapping(address =&gt; mapping(SubscriptionTier =&gt; uint256)) public tierPrices;
+</code></pre>
+<h3 id="subscribercount"><a class="header" href="#subscribercount">subscriberCount</a></h3>
+<p>Public subscriber count for each creator</p>
+<pre><code class="language-solidity">mapping(address =&gt; uint256) public subscriberCount;
+</code></pre>
+<h3 id="totalearnings"><a class="header" href="#totalearnings">totalEarnings</a></h3>
+<p>Private total earnings for creators (only creator can view)</p>
+<pre><code class="language-solidity">mapping(address =&gt; uint256) private totalEarnings;
+</code></pre>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="constructor"><a class="header" href="#constructor">constructor</a></h3>
+<p>Initialize the subscription contract</p>
+<pre><code class="language-solidity">constructor(address _ncxToken, address _usdtToken, address _klayswapRouter, uint256 _duration)
+    NCXConverter(_ncxToken, _usdtToken, _klayswapRouter);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>_ncxToken</code></td><td><code>address</code></td><td>Address of the NCX token contract</td></tr>
+<tr><td><code>_usdtToken</code></td><td><code>address</code></td><td>Address of the USDT token contract</td></tr>
+<tr><td><code>_klayswapRouter</code></td><td><code>address</code></td><td>Address of the KlaySwap router</td></tr>
+<tr><td><code>_duration</code></td><td><code>uint256</code></td><td>Subscription duration in seconds</td></tr>
+</tbody></table>
+</div>
+<h3 id="settierprice"><a class="header" href="#settierprice">setTierPrice</a></h3>
+<p>Creator sets their subscription price for a specific tier</p>
+<pre><code class="language-solidity">function setTierPrice(SubscriptionTier tier, uint256 _price) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>tier</code></td><td><code>SubscriptionTier</code></td><td>Subscription tier (BASIC, PREMIUM, VIP)</td></tr>
+<tr><td><code>_price</code></td><td><code>uint256</code></td><td>Price in NCX tokens (with 18 decimals)</td></tr>
+</tbody></table>
+</div>
+<h3 id="subscribe"><a class="header" href="#subscribe">subscribe</a></h3>
+<p>User subscribes to a creator at a specific tier</p>
+<p><em>Transfers NCX directly to creator and grants 30-day access</em></p>
+<pre><code class="language-solidity">function subscribe(address creator, SubscriptionTier tier) external nonReentrant;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>creator</code></td><td><code>address</code></td><td>Address of the creator to subscribe to</td></tr>
+<tr><td><code>tier</code></td><td><code>SubscriptionTier</code></td><td>Subscription tier to purchase</td></tr>
+</tbody></table>
+</div>
+<h3 id="cancelsubscription"><a class="header" href="#cancelsubscription">cancelSubscription</a></h3>
+<p>User cancels their subscription to a creator for a specific tier</p>
+<pre><code class="language-solidity">function cancelSubscription(address creator, SubscriptionTier tier) external;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>creator</code></td><td><code>address</code></td><td>Address of the creator to unsubscribe from</td></tr>
+<tr><td><code>tier</code></td><td><code>SubscriptionTier</code></td><td>Subscription tier to cancel</td></tr>
+</tbody></table>
+</div>
+<h3 id="isactive"><a class="header" href="#isactive">isActive</a></h3>
+<p>Check if a user's subscription to a creator at specific tier is active</p>
+<pre><code class="language-solidity">function isActive(address user, address creator, SubscriptionTier tier) external view returns (bool);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>user</code></td><td><code>address</code></td><td>Address of the subscriber</td></tr>
+<tr><td><code>creator</code></td><td><code>address</code></td><td>Address of the creator</td></tr>
+<tr><td><code>tier</code></td><td><code>SubscriptionTier</code></td><td>Subscription tier to check</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>bool</code></td><td>bool True if subscription is active, false otherwise</td></tr>
+</tbody></table>
+</div>
+<h3 id="getcreatorearnings"><a class="header" href="#getcreatorearnings">getCreatorEarnings</a></h3>
+<p>Get creator's total earnings (only creator can view)</p>
+<pre><code class="language-solidity">function getCreatorEarnings(address creator) external view returns (uint256);
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>creator</code></td><td><code>address</code></td><td>Address of the creator</td></tr>
+</tbody></table>
+</div>
+<p><strong>Returns</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>&lt;none&gt;</code></td><td><code>uint256</code></td><td>uint256 Total earnings in NCX tokens</td></tr>
+</tbody></table>
+</div>
+<h3 id="swapncxtousdt"><a class="header" href="#swapncxtousdt">swapNCXToUSDT</a></h3>
+<p>Creator swaps their NCX tokens to USDT via KlaySwap</p>
+<p><em>Requires creator to approve NCX tokens to this contract first</em></p>
+<pre><code class="language-solidity">function swapNCXToUSDT(uint256 ncxAmount, uint256 minUSDTOut) external nonReentrant;
+</code></pre>
+<p><strong>Parameters</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>ncxAmount</code></td><td><code>uint256</code></td><td>Amount of NCX tokens to swap</td></tr>
+<tr><td><code>minUSDTOut</code></td><td><code>uint256</code></td><td>Minimum USDT to receive (slippage protection)</td></tr>
+</tbody></table>
+</div>
+<h2 id="events"><a class="header" href="#events">Events</a></h2>
+<h3 id="subscribed"><a class="header" href="#subscribed">Subscribed</a></h3>
+<p>Emitted when a user subscribes to a creator</p>
+<pre><code class="language-solidity">event Subscribed(address indexed user, address indexed creator, SubscriptionTier tier, uint256 endTime);
+</code></pre>
+<h3 id="subscriptioncancelled"><a class="header" href="#subscriptioncancelled">SubscriptionCancelled</a></h3>
+<p>Emitted when a user cancels their subscription</p>
+<pre><code class="language-solidity">event SubscriptionCancelled(address indexed user, address indexed creator, SubscriptionTier tier);
+</code></pre>
+<h3 id="tierpriceset"><a class="header" href="#tierpriceset">TierPriceSet</a></h3>
+<p>Emitted when a creator sets their subscription price</p>
+<pre><code class="language-solidity">event TierPriceSet(address indexed creator, SubscriptionTier tier, uint256 price);
+</code></pre>
+<h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
+<h3 id="cannotsubscribetoself"><a class="header" href="#cannotsubscribetoself">CannotSubscribeToSelf</a></h3>
+<p>Thrown when trying to subscribe to yourself</p>
+<pre><code class="language-solidity">error CannotSubscribeToSelf();
+</code></pre>
+<h3 id="invalidprice"><a class="header" href="#invalidprice">InvalidPrice</a></h3>
+<p>Thrown when price is outside allowed range</p>
+<pre><code class="language-solidity">error InvalidPrice();
+</code></pre>
+<h3 id="tierpricenotset"><a class="header" href="#tierpricenotset">TierPriceNotSet</a></h3>
+<p>Thrown when creator hasn't set a price for tier</p>
+<pre><code class="language-solidity">error TierPriceNotSet();
+</code></pre>
+<h3 id="invalidtokenaddress"><a class="header" href="#invalidtokenaddress">InvalidTokenAddress</a></h3>
+<p>Thrown when token addresses are invalid</p>
+<pre><code class="language-solidity">error InvalidTokenAddress();
+</code></pre>
+<h3 id="unauthorizedaccess"><a class="header" href="#unauthorizedaccess">UnauthorizedAccess</a></h3>
+<p>Thrown when unauthorized access to earnings</p>
+<pre><code class="language-solidity">error UnauthorizedAccess();
+</code></pre>
+<h2 id="enums"><a class="header" href="#enums">Enums</a></h2>
+<h3 id="subscriptiontier"><a class="header" href="#subscriptiontier">SubscriptionTier</a></h3>
+<p>Subscription tier levels</p>
+<pre><code class="language-solidity">enum SubscriptionTier {
+    BASIC,
+    PREMIUM,
+    VIP
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../src/Nocenix.sol/contract.Nocenix.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../src/Nocenix.sol/contract.Nocenix.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>
